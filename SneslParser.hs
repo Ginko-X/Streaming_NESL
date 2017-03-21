@@ -1,4 +1,12 @@
-{- Streaming NESL Parser -}
+{- A basic Streaming NESL Parser 
+ 
+ . reused code from unesl interpreter
+ . no type checking
+ . doesn't support user-defined functions
+ . doesn't support pattern maching
+ . support only one variable binding in sequence comprehension
+
+ -}
 
 module SneslParser where 
 
@@ -7,23 +15,10 @@ import Text.ParserCombinators.Parsec
 
 
 parseString s = parse parseExp "" s                
-                                         
-parseFile p = do input <- readFile p 
-                 return (parseString input)
 
-st2 = " a_var"
-st1 = "\'c\'"
-st3 = "\"str seq\""
-st4 = "1.2"
-st5 = "x+1"
-st6 = "{1,2}"
-st7 = "let x = 2+3*4 in x"
-st8 = "#{1,2}*4-5"
+parseFile file = do input <- readFile file 
+                    return (parseString input)                                     
 
-testParser = map parseString [st7,st8]
-
-
--- code from unesl parser
 
 whitespace :: Parser ()
 whitespace = skipMany (do space
@@ -37,16 +32,16 @@ symbol :: String ->  Parser ()
 symbol s = do try (string s)
               whitespace
 
-parseVar :: Parser Exp
+parseVar :: Parser Id 
 parseVar = do whitespace
               v <- letter <|> char '_'
               vs <- many (letter <|> digit <|> char '_')
               whitespace
-              return $ Var (v:vs)
+              return (v:vs)
 
 
 parseValue :: Parser Exp 
-parseValue = do s <- many1 digit                
+parseValue = do s <- many1 digit   -- int or float            
                 ((do char '.'
                      s2 <- many1 digit
                      whitespace
@@ -55,18 +50,29 @@ parseValue = do s <- many1 digit
                  (do whitespace
                      return $ Lit $ IVal (read s)))                
              <|>  
-             do string "true" 
+             do string "True" 
+                whitespace
                 return $ Lit $ BVal True
              <|> 
-             do string "false"
+             do string "False"
+                whitespace
                 return $ Lit $ BVal False
              <|> -- char
              do char '\''
                 c <- anyChar
                 char '\''
                 whitespace
-                return $ Lit (CVal c)           
-             <|>  -- string sequence
+                return $ Lit (CVal c)
+             <|> 
+             do e <- parseVar
+                ((do 
+                   symbol "("
+                   ps <- parseExp `sepBy` (symbol ",")
+                   symbol ")"
+                   return $ Call e ps)
+                  <|>     
+                 (return $ Var e))
+             <|>  
              do char '"'
                 s <- manyTill anyChar (try (char '"'))
                 whitespace
@@ -78,14 +84,10 @@ parseValue = do s <- many1 digit
                 case es of
                   [e] -> return e
                   _ -> return $ Tup es
-             <|>  -- comprehension 
+             <|>  -- comprehensions 
              do symbol "{"
-                --(do es <- parseExp `sepBy` (symbol ",")
-                --    symbol "}"
-                --    return $ Seq es)
-                -- <|>   
                 (do e <- parseExp
-                    ((do symbol ":"
+                    ((do symbol ":"  -- general ones
                          qs <- parseQual `sepBy1` (symbol ";" <|> symbol ",")
                          me <- option Nothing
                                (do symbol "|"
@@ -95,22 +97,22 @@ parseValue = do s <- many1 digit
                          case me of
                            Nothing -> return $ GComp e qs 
                            Just ef -> return $ Call "concat" [GComp (RComp e ef) qs])
-                      <|>
-                     (do symbol "|"
+                      <|> 
+                     (do symbol "|" -- restricted ones
                          e2 <- parseExp
                          symbol "}"
                          return $ RComp e e2)))
---             return GComp e1 ["", Call "iota" [b2i e2] ] ))
+                         --return $ GComp e [(Var "", Call "index" [b2i e2])] )))  -- desugared
 
 
-b2i :: Bool -> Int 
-b2i b = if b then 1 else 0
+--b2i :: Exp -> Exp 
+--b2i (Lit (BVal b)) = Lit $ IVal (if b then 1 else 0)
 
 
 parseQual = do p <- parseVar
                (symbol "<-" <|> symbol "in")
                e <- parseExp
-               return (p, e)
+               return (Var p, e)
 
 
 binop :: String -> Exp -> Exp -> Exp
@@ -151,8 +153,9 @@ parsePrefix =
   <|>
   parseSub
 
+
 parseSub :: Parser Exp
-parseSub = do e <- parseValue <|> parseVar
+parseSub = do e <- parseValue <|> (do e' <- parseVar; return $ Var e')
               ss <- many sub
               return $ foldl (\e1 (e2,p) -> (Call "_sub" [e1,e2])) e ss
             where sub = do sp <- getPosition 
@@ -168,11 +171,10 @@ parseExp = do symbol "let"
               binds <- (do p <- parseVar 
                            symbol "="
                            e1 <- parseExp
-                           return (p,e1))     --`sepBy1` (symbol ";")                  
+                           return (Var p,e1)) 
               symbol "in"
               e2 <- parseExp
               return $ Let (fst binds) (snd binds) e2
---               return $ foldr (\(p,e1) e2 -> Let p e1 e2) e2 binds
            <|>
            parseComp
 
