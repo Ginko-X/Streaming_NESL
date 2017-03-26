@@ -1,12 +1,11 @@
 {- A basic Streaming NESL Parser 
  
- . reused code from unesl interpreter
- . no type checking
- . doesn't support user-defined functions
- . doesn't support pattern maching
- . support only one variable binding in sequence comprehension
-
- -}
++ reused code from unesl interpreter
++ no type checking
++ doesn't support user-defined functions
++ doesn't support pattern maching
++ support only one variable binding in sequence comprehension
+-}
 
 module SneslParser where 
 
@@ -41,14 +40,9 @@ parseVar = do whitespace
 
 
 parseValue :: Parser Exp 
-parseValue = do s <- many1 digit   -- int or float            
-                ((do char '.'
-                     s2 <- many1 digit
-                     whitespace
-                     return $ Lit $ RVal (read (s ++ "." ++ s2)))
-                 <|> 
-                 (do whitespace
-                     return $ Lit $ IVal (read s)))                
+parseValue = do s <- many1 digit           
+                whitespace
+                return $ Lit $ IVal (read s)
              <|>  
              do string "True" 
                 whitespace
@@ -56,13 +50,7 @@ parseValue = do s <- many1 digit   -- int or float
              <|> 
              do string "False"
                 whitespace
-                return $ Lit $ BVal False
-             <|> -- char
-             do char '\''
-                c <- anyChar
-                char '\''
-                whitespace
-                return $ Lit (CVal c)
+                return $ Lit $ BVal False           
              <|> 
              do e <- parseVar
                 ((do 
@@ -72,18 +60,15 @@ parseValue = do s <- many1 digit   -- int or float
                    return $ Call e ps)
                   <|>     
                  (return $ Var e))
-             <|>  
-             do char '"'
-                s <- manyTill anyChar (try (char '"'))
-                whitespace
-                return $ Seq (map (Lit . CVal) s)
              <|> -- tuple or parenthesis
              do symbol "("
-                es <- parseExp `sepBy` (symbol ",")
-                symbol ")"
-                case es of
-                  [e] -> return e
-                  _ -> return $ Tup es
+                e1 <- parseExp
+                ((do symbol ","
+                     e2 <- parseExp
+                     symbol ")" 
+                     return $ Tup e1 e2)
+                  <|>
+                 (return e1))
              <|>  -- comprehensions 
              do symbol "{"
                 (do e <- parseExp

@@ -1,9 +1,8 @@
 {- A basic Streaming NESL interpreter
 
-. reused code from unesl interpreter
-. time cost(work and step) not guaranteed
-. space cost not added
-
++ reused code from unesl interpreter
++ time cost(work and step) not guaranteed
++ space cost not added
 -}
 
 module SneslInterp where
@@ -25,9 +24,10 @@ eval (Var s) r =
 eval (Lit l) r = 
   return (AVal l)
 
-eval (Tup es) r = 
-  do vs <- mapM (\e -> eval e r) es
-     return $ TVal vs
+eval (Tup e1 e2) r = 
+  do v1 <- eval e1 r
+     v2 <- eval e2 r 
+     return $ TVal v1 v2
 
 eval (Seq ss) r = 
   do vs <- mapM (\e -> eval e r) ss
@@ -67,38 +67,33 @@ bind (Var x) v = [(x,v)]
 par :: [Snesl a] -> Snesl [a]
 par [] = return []
 par (t : ts) = 
-  Snesl (\c -> case rSnesl t c of
-               Left (a, w1, s1) -> 
-                 case rSnesl (par ts) c of
-                   Left (as, w2, s2) -> Left (a:as, w1+w2, s1 `max` s2)
-                   Right e -> Right e
-               Right e -> Right e)
+  Snesl (case rSnesl t of
+           Left (a, w1, s1) -> 
+             case rSnesl (par ts) of
+               Left (as, w2, s2) -> Left (a:as, w1+w2, s1 `max` s2)
+               Right e -> Right e
+           Right e -> Right e)
 
 
 
 returnc :: (Int, Int) -> a -> Snesl a
-returnc (w,s) a = Snesl (\c -> Left (a, w, s))
+returnc (w,s) a = Snesl $ Left (a, w, s)
 
 primop :: ([AVal] -> AVal) -> Val
 primop f = FVal (\as -> returnc (1,1) $ AVal (f [v | AVal v <- as]))
                            
 cplus [IVal n1, IVal n2] = IVal (n1 + n2)
-cplus [RVal n1, RVal n2] = RVal (n1 + n2)
 
 cminus [IVal n1, IVal n2] = IVal (n1 - n2)
-cminus [RVal n1, RVal n2] = RVal (n1 - n2)
 
 cuminus [IVal n] = IVal (- n)
-cuminus [RVal n] = RVal (- n)
 
 ctimes [IVal n1, IVal n2] = IVal (n1 * n2)
-ctimes [RVal n1, RVal n2] = RVal (n1 * n2)
 
 cdiv [IVal n1, IVal n2] = IVal (n1 `div` n2)
-cdiv [RVal n1, RVal n2] = RVal (n1 / n2)
 
 cleq [IVal n1, IVal n2] = BVal (n1 <= n2)
-cleq [RVal n1, RVal n2] = BVal (n1 <= n2)
+
 
 
 r0 :: Env
@@ -112,18 +107,17 @@ r0 = [("true", AVal (BVal True)),
       ("_eq", primop (\ [v1, v2] -> BVal (v1 == v2))),
       ("_leq", primop cleq),
       ("not", primop (\ [BVal b] -> BVal (not b))),
-      ("ord", primop (\ [CVal c] -> IVal (ord c))),
-      ("real", primop (\ [IVal n] -> RVal (fromIntegral n))),
+
 
       -- functions for vectors
-      ("_length", FVal (\ [VVal vs] -> return $ AVal (IVal (length vs)))),
-      ("_sub", FVal (\ [VVal vs, AVal (IVal n)] ->
-                if 0 <= n && n < length vs then returnc (1,1) $ vs !! n
-                else fail $ "bad subscript: " ++ show n ++ 
-                            ", vector length: " ++ show (length vs))),
+      --("_length", FVal (\ [VVal vs] -> return $ AVal (IVal (length vs)))),
+      --("_sub", FVal (\ [VVal vs, AVal (IVal n)] ->
+      --          if 0 <= n && n < length vs then returnc (1,1) $ vs !! n
+      --          else fail $ "bad subscript: " ++ show n ++ 
+      --                      ", vector length: " ++ show (length vs))),
      
-      -- convert vector to sequence
-      ("seq", FVal (\[VVal vs] -> returnc (0,1) $ SVal vs)),
+      ---- convert vector to sequence
+      --("seq", FVal (\[VVal vs] -> returnc (0,1) $ SVal vs)),
 
       -- iota for sequence
       ("index", FVal (\ [AVal (IVal n)] -> 
@@ -139,7 +133,7 @@ r0 = [("true", AVal (BVal True)),
                            in returnc (length v,1) (SVal v))),
 
       -- convert tuple to sequence
-      ("mkseq", FVal (\[TVal vs] -> returnc (0,1) (SVal vs))),
+      ("mkseq", FVal (\[TVal v1 v2] -> returnc (0,1) (SVal [v1, v2]))),
 
       -- sequence empty check, zero work 
       ("empty", FVal(\[SVal vs] -> returnc (0,1) $ AVal (BVal (null vs)))),
@@ -150,7 +144,7 @@ r0 = [("true", AVal (BVal True)),
        -- zip for two seqs, zero work
       ("zip", FVal (\[SVal v1, SVal v2] -> 
                  if (length v1) == (length v2)
-                 then returnc (0,1) $ SVal (map (\(x,y) -> TVal [x,y]) (zip v1 v2) )
+                 then returnc (0,1) $ SVal (map (\(x,y) -> TVal x y) (zip v1 v2) )
                  else fail "zip: lengths mismatch")),
       
       -- seq partition with flags     
@@ -159,16 +153,14 @@ r0 = [("true", AVal (BVal True)),
                                 l = length vs
                             in if sum [1| b <- bs, not b] == l then
                                  returnc (l,1) $ SVal [SVal v | v <- seglist (flags2len bs) vs]
-                               else fail "part: flags mismatch")),
+                               else fail "part: flags mismatch"))]
 
       -- convert sequence to vector, zero work?
-      ("tab", FVal (\[SVal vs] -> returnc (0,1) $ VVal vs)),
-
+      --("tab", FVal (\[SVal vs] -> returnc (0,1) $ VVal vs))]
    
       -- reduce for sequence  
       -- scan for sequence 
 
-      ("error", FVal (\ [VVal s] -> fail [c | AVal (CVal c) <- s]))]
 
 
 -- [f,f,t,t,f,t] -> [2,0,1]
@@ -187,7 +179,7 @@ doExp :: String -> IO ()
 doExp s = 
     case parseString s of
         Right e ->
-            case rSnesl (eval e r0) "TopExp" of
+            case rSnesl (eval e r0) of
                Left (v, nw, ns) ->  
                   do putStrLn (show v)             
                      putStrLn ("[Work: " ++ show nw ++ ", step: " ++ show ns ++ "]")
