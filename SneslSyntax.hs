@@ -33,7 +33,7 @@ data Exp = Var Id
 
 instance Show AVal where
     show (IVal i) = show i
-    show (BVal b) = show b
+    show (BVal b) = if b then "T" else "F"
 
 --instance Show CVal where
 --  show (AVal a) = show a

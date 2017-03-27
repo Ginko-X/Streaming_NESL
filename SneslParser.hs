@@ -44,11 +44,11 @@ parseValue = do s <- many1 digit
                 whitespace
                 return $ Lit $ IVal (read s)
              <|>  
-             do string "True" 
+             do string "T" 
                 whitespace
                 return $ Lit $ BVal True
              <|> 
-             do string "False"
+             do string "F"
                 whitespace
                 return $ Lit $ BVal False           
              <|> 

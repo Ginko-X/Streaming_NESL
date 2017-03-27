@@ -108,17 +108,6 @@ r0 = [("true", AVal (BVal True)),
       ("_leq", primop cleq),
       ("not", primop (\ [BVal b] -> BVal (not b))),
 
-
-      -- functions for vectors
-      --("_length", FVal (\ [VVal vs] -> return $ AVal (IVal (length vs)))),
-      --("_sub", FVal (\ [VVal vs, AVal (IVal n)] ->
-      --          if 0 <= n && n < length vs then returnc (1,1) $ vs !! n
-      --          else fail $ "bad subscript: " ++ show n ++ 
-      --                      ", vector length: " ++ show (length vs))),
-     
-      ---- convert vector to sequence
-      --("seq", FVal (\[VVal vs] -> returnc (0,1) $ SVal vs)),
-
       -- iota for sequence
       ("index", FVal (\ [AVal (IVal n)] -> 
                           returnc (n,1) $ SVal [AVal (IVal i) | i <- [0..n-1]])),
@@ -154,9 +143,6 @@ r0 = [("true", AVal (BVal True)),
                             in if sum [1| b <- bs, not b] == l then
                                  returnc (l,1) $ SVal [SVal v | v <- seglist (flags2len bs) vs]
                                else fail "part: flags mismatch"))]
-
-      -- convert sequence to vector, zero work?
-      --("tab", FVal (\[SVal vs] -> returnc (0,1) $ VVal vs))]
    
       -- reduce for sequence  
       -- scan for sequence 
