@@ -60,8 +60,11 @@ eval (RComp e0 e1) r =
 
 
 
-bind :: Exp -> Val -> Env
-bind (Var x) v = [(x,v)]
+
+bind :: Pat -> Val -> Env
+bind (PVar x) v = [(x,v)]
+bind PWild v = []
+bind (PTup p1 p2) (TVal v1 v2) = (bind p1 v1) ++ (bind p2 v2)
 
 
 par :: [Snesl a] -> Snesl [a]

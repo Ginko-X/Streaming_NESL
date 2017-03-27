@@ -24,11 +24,17 @@ data Exp = Var Id
          | Lit AVal    
          | Seq [Exp]   -- sequence
          | Tup Exp Exp   -- tuple
-         | Let Exp Exp Exp  -- need correction
+         | Let Pat Exp Exp  -- need correction
          | Call Id [Exp]     -- only for built-in functions
-         | GComp Exp [(Exp,Exp)]  -- general comprehension
+         | GComp Exp [(Pat,Exp)]  -- general comprehension
          | RComp Exp Exp    -- Restricted comprehension
          deriving Show
+
+
+data Pat = PVar Id
+         | PWild 
+         | PTup Pat Pat
+  deriving Show
 
 
 instance Show AVal where

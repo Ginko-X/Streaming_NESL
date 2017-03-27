@@ -38,6 +38,20 @@ parseVar = do whitespace
               whitespace
               return (v:vs)
 
+parsePat :: Parser Pat
+parsePat = do x <- parseVar
+              return $ PVar x
+           <|>
+           do symbol "_"
+              return PWild
+           <|>
+           do symbol "("
+              p1 <- parsePat 
+              symbol ","
+              p2 <- parsePat
+              symbol ")"
+              return $ PTup p1 p2
+
 
 parseValue :: Parser Exp 
 parseValue = do s <- many1 digit           
@@ -93,11 +107,11 @@ parseValue = do s <- many1 digit
 --b2i :: Exp -> Exp 
 --b2i (Lit (BVal b)) = Lit $ IVal (if b then 1 else 0)
 
-
-parseQual = do p <- parseVar
+parseQual :: Parser (Pat, Exp)
+parseQual = do p <- parsePat
                (symbol "<-" <|> symbol "in")
                e <- parseExp
-               return (Var p, e)
+               return (p, e)
 
 
 binop :: String -> Exp -> Exp -> Exp
@@ -153,13 +167,14 @@ parseSub = do e <- parseValue <|> (do e' <- parseVar; return $ Var e')
 parseExp :: Parser Exp
 parseExp = do symbol "let"
               whitespace
-              binds <- (do p <- parseVar 
+              binds <- (do p <- parsePat
                            symbol "="
                            e1 <- parseExp
-                           return (Var p,e1)) 
+                           return (p,e1))
+                        `sepBy1` (symbol ";")
               symbol "in"
               e2 <- parseExp
-              return $ Let (fst binds) (snd binds) e2
+              return $ foldr (\(p,e1) e2 -> Let p e1 e2) e2 binds
            <|>
            parseComp
 
