@@ -1,10 +1,5 @@
-{- A basic Streaming NESL Parser 
- 
-+ reused code from unesl interpreter
-+ no type checking
-+ doesn't support user-defined functions
-+ doesn't support pattern maching
-+ support only one variable binding in sequence comprehension
+{- A basic Streaming NESL Parser  
+ + need type system ?
 -}
 
 module SneslParser where 
@@ -119,15 +114,13 @@ binop s x y = Call s [x,y]
 
 
 parseTerm :: Parser Exp
-parseTerm = parsePrefix `chainl1` (do sp <- getPosition
-                                      o <- mulop
+parseTerm = parsePrefix `chainl1` (do o <- mulop
                                       return $ \e1 e2 -> o e1 e2)
               where mulop = do {symbol "*"; return $ binop "_times"} <|>
                             do {symbol "/"; return $ binop "_div"}
 
 parseSum :: Parser Exp
-parseSum = parseTerm `chainl1` (do sp <- getPosition
-                                   o <- addop
+parseSum = parseTerm `chainl1` (do o <- addop
                                    return $ \e1 e2 -> o e1 e2)
               where addop = do {try (symbol "++"); return $ binop "_append"} <|>
                             do {symbol "+"; return $ binop "_plus"} <|>
@@ -135,18 +128,15 @@ parseSum = parseTerm `chainl1` (do sp <- getPosition
 
 parsePrefix :: Parser Exp
 parsePrefix =
-  do sp <- getPosition
-     symbol "#"
+  do symbol "#"
      e <- parsePrefix
      return (Call "_length" [e])
   <|>
-  do sp <- getPosition     
-     symbol "&"
+  do symbol "&"
      e <- parsePrefix
      return (Call "index" [e])
   <|>
-  do sp <- getPosition
-     symbol "-"
+  do symbol "-"
      e <- parsePrefix
      return (Call "_uminus" [e])
   <|>
@@ -156,12 +146,11 @@ parsePrefix =
 parseSub :: Parser Exp
 parseSub = do e <- parseValue <|> (do e' <- parseVar; return $ Var e')
               ss <- many sub
-              return $ foldl (\e1 (e2,p) -> (Call "_sub" [e1,e2])) e ss
-            where sub = do sp <- getPosition 
-                           symbol "["
+              return $ foldl (\e1 e2 -> (Call "_sub" [e1,e2])) e ss
+            where sub = do symbol "["
                            e1 <- parseExp
                            symbol "]"
-                           return (e1, sp)
+                           return e1
 
 
 parseExp :: Parser Exp
@@ -181,8 +170,7 @@ parseExp = do symbol "let"
                    
 
 parseComp = do e <- parseSum
-               option e (do sp <- getPosition
-                            o <- compop
+               option e (do o <- compop
                             e' <- parseSum
                             return $ (o e e'))
              where compop = do {symbol "=="; return $ binop "_eq"} <|>

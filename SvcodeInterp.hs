@@ -1,3 +1,6 @@
+{- Svcode Interpreter 
+ + TODO: add more instructions -}
+
 module SvcodeInterp where
 
 import SvcodeSyntax
@@ -10,6 +13,7 @@ import Control.Monad
 --type AccStore = [(SId, SvVal)]
 --type CursorMap = [(SId, SId, SvVal)]
 --data Svctx = Svctx {buffers :: BufferStore, accs :: AccStore, cursors :: CursorMap}  
+
 
 type Svctx = [(SId, SvVal)]
 
@@ -25,47 +29,51 @@ instance Monad Svcode where
                                Right err' -> Right err'      
             Right err -> Right err
 
+instance Functor Svcode where
+  fmap f t = t >>= return . f
 
 instance Applicative Svcode where
-    pure = return 
-    (<*>) = ap 
-
-instance Functor Svcode where
-    fmap = liftM
+  pure = return
+  tf <*> ta = tf >>= \f -> fmap f ta
 
 
-runProg :: SSym -> Either SvVal String
-runProg (SSym sdefs sid) = case rSvcode (mapM_ sdefInterp sdefs) [] of 
+runProg :: SSym -> Either Svctx String
+runProg (SSym sdefs st) = case rSvcode (mapM_ sdefInterp sdefs) [] of 
     Left (_,sids) -> 
-        case lookup sid sids of 
-            Just stream -> Left stream
-            Nothing -> Right "Referring to a stream that does not exist." 
+        case lookupTree st sids of                      
+            [] -> Right "Returns are empty or some stream definition does not exist." 
+            vs -> Left vs
     Right err -> Right err 
 
 
+lookupTree :: STree -> Svctx -> Svctx
+lookupTree STnil _ = []
+lookupTree (STcons s st) ctx = case lookup s ctx of 
+    Just v -> (s,v) : (lookupTree st ctx) 
+    Nothing -> []
+
+
+
 sdefInterp :: SDef -> Svcode SvVal
-sdefInterp (SDef sid Ctrl) = Svcode $ \ c -> 
-    case lookup sid c of 
-        Just _ -> Right "Trying to define a stream that already exists."
-        Nothing -> Left (sv, c++[(sid,sv)])
-            where sv = SSVal [IVal 0]   -- Ctrl stream should be a wildcard
+sdefInterp (SDef sid Ctrl) = Svcode $ \c ->  
+    Left (sv, c++[(sid,sv)])
+        where sv = SSVal [IVal 1]   -- Ctrl stream should be wildcards
 
 
-sdefInterp (SDef sid1 (Rep sid2 a)) = Svcode $ \ c ->
-    case lookup sid1 c of 
-        Just _ -> Right "Trying to define a stream that already exists." 
-        Nothing -> case lookup sid2 c of 
-            Nothing -> Right "Referring to a stream that does not exist."  
-            Just (SSVal sv2) -> Left (sv1,c ++ [(sid1, sv1)])
-                where sv1 = SSVal $ replicate (length sv2) a 
+-- MapConst: Map the const 'a' to the stream 'sid2'
+sdefInterp (SDef sid1 (MapConst sid2 a)) = Svcode $ \ c ->
+    case lookup sid2 c of 
+        Nothing -> Right $ "Referring to a stream that does not exist: " ++ show sid2
+        Just (SSVal sv2) -> Left (sv1,c ++ [(sid1, sv1)])
+            where sv1 = SSVal $ replicate (length sv2) a 
 
 
--- toflags: generate flags segment for each segment length in a given int seq
+-- toflags: generate flag segments for a stream of integers
 -- e.g. <1,4,0,2> => <F,T,F,F,F,F,T,T,F,F,T>
 sdefInterp (SDef sid1 (ToFlags sid2)) = Svcode $ \ c ->
     case lookup sid2 c of 
-        Nothing -> Right "Referring to a stream that does not exist."  
-        Just (SSVal sv2) -> Left (sv1, c ++ [(sid1,sv1)])  -- need to check redefinition
+        Nothing -> Right $ "Referring to a stream that does not exist: " ++ show sid2
+        Just (SSVal sv2) -> Left (sv1, c ++ [(sid1,sv1)]) 
             where sv1 = SSVal $ concat $ map si2sb sv2 
                   si2sb (IVal i) = replicate i (BVal False) ++ [BVal True]
 
@@ -74,23 +82,25 @@ sdefInterp (SDef sid1 (ToFlags sid2)) = Svcode $ \ c ->
 -- e.g. <F,F,F,T, F,F,T> => <0,1,2,0,1>  
 sdefInterp (SDef sid1 (Iotas sid2)) = Svcode $ \ c ->
     case lookup sid2 c of 
-        Nothing -> Right "Referring to a stream that does not exist."  
+        Nothing -> Right $ "Referring to a stream that does not exist: " ++ show sid2
         Just (SSVal sv2) -> Left (sv1, c ++ [(sid1,sv1)])
-            where sv1 = segExScanPlus sv2'
+            where sv1 = SSVal $ segExScanPlus sv2'
                   sv2' = map sb2si sv2
                   sb2si (BVal b) = IVal (if b then 0 else 1)
 
 
+
+
 -- segment exclusive scan for plus; segment delimiter is 0
 segExScanPlus :: [AVal] -> [AVal]
---segExScanPlus 
+segExScanPlus  = undefined
 
 
 
-exampleProg = SSym defs "s2"
-defs = [SDef "s" Ctrl, 
-        SDef "s1" (Rep "s" (IVal 100)),
-        SDef "s2" (ToFlags "s1")]
+exampleProg = SSym defs (STcons 2 STnil)
+defs = [SDef 0 Ctrl, 
+        SDef 1 (MapConst 0 (IVal 100)),
+        SDef 2 (ToFlags 1)]
 
 
 

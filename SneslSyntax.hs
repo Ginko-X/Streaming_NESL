@@ -24,10 +24,10 @@ data Exp = Var Id
          | Lit AVal    
          | Seq [Exp]   -- sequence
          | Tup Exp Exp   -- tuple
-         | Let Pat Exp Exp  -- need correction
-         | Call Id [Exp]     -- only for built-in functions
-         | GComp Exp [(Pat,Exp)]  -- general comprehension
-         | RComp Exp Exp    -- Restricted comprehension
+         | Let Pat Exp Exp  
+         | Call Id [Exp]     
+         | GComp Exp [(Pat,Exp)] 
+         | RComp Exp Exp    
          deriving Show
 
 

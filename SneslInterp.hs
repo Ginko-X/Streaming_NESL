@@ -1,8 +1,4 @@
-{- A basic Streaming NESL interpreter
-
-+ reused code from unesl interpreter
-+ time cost(work and step) not guaranteed
-+ space cost not added
+{- A minimum Streaming NESL interpreter
 -}
 
 module SneslInterp where
@@ -10,6 +6,8 @@ module SneslInterp where
 import SneslSyntax
 import SneslParser
 import Data.Char (chr, ord)
+import Data.List (transpose)
+
 
 
 type Env = [(Id, Val)]
@@ -45,11 +43,19 @@ eval (Call i es) r =
        Nothing -> error ("bad function: " ++ i)
 
 -- general comprehension
--- only support one variable binding
-eval (GComp e0 [(x,e1)]) r =
-  do vs <- (do SVal v <- eval e1 r; return v)
-     vs0 <- par [eval e0 ((bind x w) ++ r)| w <- vs]
-     return $ SVal vs0
+eval (GComp e0 ps) r =
+  do vs <- mapM (\(_,e) -> eval e r) ps 
+     let vs' = transpose $ map (\(SVal v) -> v) vs  
+     if foldl (\a x -> a && (length x == length (head vs'))) True vs'
+     then (do 
+             let binds = zipWith (\pl vl -> 
+                                 concat $ zipWith (\(p,_) v -> bind p v) pl vl)
+                               (replicate (length vs') ps) vs' 
+             vss <- par $ zipWith (\e b -> eval e (r++b)) 
+                                  (replicate (length vs') e0) binds
+             return $ SVal vss)
+     else fail "Length mismatch in comprehension"
+     
 
 --restricted comprehension
 eval (RComp e0 e1) r = 
@@ -125,13 +131,17 @@ r0 = [("true", AVal (BVal True)),
                            in returnc (length v,1) (SVal v))),
 
       -- convert tuple to sequence
-      ("mkseq", FVal (\[TVal v1 v2] -> returnc (0,1) (SVal [v1, v2]))),
+      ("mkNseq", FVal (\[v@(TVal v1 v2)] -> returnc (0,1) $ mkNestedSeq v)),
+      ("mkFseq", FVal (\[v@(TVal v1 v2)] -> returnc (0,1) $ SVal $ mkFlattenedSeq v)),
 
       -- sequence empty check, zero work 
       ("empty", FVal(\[SVal vs] -> returnc (0,1) $ AVal (BVal (null vs)))),
 
       -- singleton seq
-      ("the", FVal (\[SVal [x]] -> returnc (0,1) x)),
+      ("the", FVal (\[SVal x ] -> 
+          if (length x == 1) 
+          then returnc (0,1) $ head x
+          else fail "the: length mismatch")),
 
        -- zip for two seqs, zero work
       ("zip", FVal (\[SVal v1, SVal v2] -> 
@@ -145,10 +155,41 @@ r0 = [("true", AVal (BVal True)),
                                 l = length vs
                             in if sum [1| b <- bs, not b] == l then
                                  returnc (l,1) $ SVal [SVal v | v <- seglist (flags2len bs) vs]
-                               else fail "part: flags mismatch"))]
+                               else fail "part: flags mismatch")),
+
+      ("scanExPlus", FVal (\ [SVal vs] -> 
+           let is = [i | AVal (IVal i) <- vs]
+               l = length is 
+               rs = init $ scanl (+) 0 is  
+            in returnc (l, ceiling (log $ fromIntegral l)) 
+                         $ SVal [AVal (IVal i) | i <-rs])),
+   
+      ("scanIncPlus", FVal (\ [SVal vs] -> 
+           let is = [i | AVal (IVal i) <- vs]
+               l = length is 
+               rs = tail $ scanl (+) 0 is  
+            in returnc (l, ceiling (log $ fromIntegral l)) 
+                          $ SVal [AVal (IVal i) | i <-rs]))]
    
       -- reduce for sequence  
-      -- scan for sequence 
+
+
+mkNestedSeq :: Val -> Val 
+mkNestedSeq (TVal v1 v2) = SVal [v1',v2']
+    where v1' = mkNestedSeq v1 
+          v2' = mkNestedSeq v2
+mkNestedSeq v = v  
+
+
+mkFlattenedSeq :: Val -> [Val]
+mkFlattenedSeq (TVal t1@(TVal v1 v2) t2@(TVal v3 v4)) = t1' ++ t2'
+    where t1' = mkFlattenedSeq t1
+          t2' = mkFlattenedSeq t2
+mkFlattenedSeq (TVal t1@(TVal v1 v2) t2) = t1' ++ [t2]
+    where t1' = mkFlattenedSeq t1
+mkFlattenedSeq (TVal t1 t2@(TVal v3 v4)) = [t1] ++ t2'
+    where t2' = mkFlattenedSeq t2
+mkFlattenedSeq (TVal v1 v2) = [v1,v2]
 
 
 
