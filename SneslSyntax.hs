@@ -15,14 +15,13 @@ data AVal = IVal Int
 data Val = AVal AVal  
          | TVal Val Val -- tuple
          | SVal [Val]   -- sequence
-         | FVal ([Val] -> Snesl Val)  
+         | FVal ([Val] -> Snesl Val) 
 
 
 type Id = String
 
 data Exp = Var Id
          | Lit AVal    
-         | Seq [Exp]   -- sequence
          | Tup Exp Exp   -- tuple
          | Let Pat Exp Exp  
          | Call Id [Exp]     
@@ -60,17 +59,17 @@ showelts (x:xs) = show x ++ ", " ++ showelts xs
 
 
 
-newtype Snesl a = Snesl {rSnesl :: Either (a, Int,Int) String}
+newtype Snesl a = Snesl {rSnesl :: Either String (a, Int,Int)}
 
 instance Monad Snesl where
-  return a = Snesl $ Left (a,0,0)
+  return a = Snesl $ Right (a,0,0)
 
   m >>= f = Snesl $ 
     case rSnesl m of 
-       Right err -> Right err
-       Left (a,w,d) -> case rSnesl (f a) of 
-                          Right err' -> Right err'
-                          Left (a',w',d') -> Left (a',w+w',d+d')
+       Left err -> Left err
+       Right (a,w,d) -> case rSnesl (f a) of 
+                          Left err' -> Left err'
+                          Right (a',w',d') -> Right (a',w+w',d+d')
 
 
 

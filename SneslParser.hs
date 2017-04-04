@@ -7,8 +7,12 @@ module SneslParser where
 import SneslSyntax
 import Text.ParserCombinators.Parsec
 
+parseString :: String -> Either String Exp
+parseString s = 
+  case parse parseExp "" s of 
+    Right e -> Right e 
+    Left _ -> Left "Parsing error"
 
-parseString s = parse parseExp "" s                
 
 parseFile file = do input <- readFile file 
                     return (parseString input)                                     
@@ -96,11 +100,6 @@ parseValue = do s <- many1 digit
                          e2 <- parseExp
                          symbol "}"
                          return $ RComp e e2)))
-                         --return $ GComp e [(Var "", Call "index" [b2i e2])] )))  -- desugared
-
-
---b2i :: Exp -> Exp 
---b2i (Lit (BVal b)) = Lit $ IVal (if b then 1 else 0)
 
 parseQual :: Parser (Pat, Exp)
 parseQual = do p <- parsePat

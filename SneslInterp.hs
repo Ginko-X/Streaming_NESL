@@ -27,9 +27,9 @@ eval (Tup e1 e2) r =
      v2 <- eval e2 r 
      return $ TVal v1 v2
 
-eval (Seq ss) r = 
-  do vs <- mapM (\e -> eval e r) ss
-     return $ SVal vs
+--eval (Seq ss) r = 
+--  do vs <- mapM (\e -> eval e r) ss
+--     return $ SVal vs
 
 
 eval (Let p e1 e2) r =
@@ -77,16 +77,16 @@ par :: [Snesl a] -> Snesl [a]
 par [] = return []
 par (t : ts) = 
   Snesl (case rSnesl t of
-           Left (a, w1, s1) -> 
+           Right (a, w1, s1) -> 
              case rSnesl (par ts) of
-               Left (as, w2, s2) -> Left (a:as, w1+w2, s1 `max` s2)
-               Right e -> Right e
-           Right e -> Right e)
+               Right (as, w2, s2) -> Right (a:as, w1+w2, s1 `max` s2)
+               Left e -> Left e
+           Left e -> Left e)
 
 
 
 returnc :: (Int, Int) -> a -> Snesl a
-returnc (w,s) a = Snesl $ Left (a, w, s)
+returnc (w,s) a = Snesl $ Right (a, w, s)
 
 primop :: ([AVal] -> AVal) -> Val
 primop f = FVal (\as -> returnc (1,1) $ AVal (f [v | AVal v <- as]))
@@ -162,17 +162,17 @@ r0 = [("true", AVal (BVal True)),
                l = length is 
                rs = init $ scanl (+) 0 is  
             in returnc (l, ceiling (log $ fromIntegral l)) 
-                         $ SVal [AVal (IVal i) | i <-rs])),
+                      $ SVal [AVal (IVal i) | i <-rs])),
    
       ("scanIncPlus", FVal (\ [SVal vs] -> 
            let is = [i | AVal (IVal i) <- vs]
                l = length is 
                rs = tail $ scanl (+) 0 is  
             in returnc (l, ceiling (log $ fromIntegral l)) 
-                          $ SVal [AVal (IVal i) | i <-rs]))]
+                      $ SVal [AVal (IVal i) | i <-rs]))]
    
       -- reduce for sequence  
-
+      -- scan for sequence 
 
 mkNestedSeq :: Val -> Val 
 mkNestedSeq (TVal v1 v2) = SVal [v1',v2']
@@ -205,13 +205,20 @@ seglist [] [] = []
 seglist (n:ns) l = take n l : seglist ns (drop n l)
 
 
+runSneslInterp :: Exp -> Either String Val
+runSneslInterp e = 
+  case rSnesl (eval e r0) of
+    Right (v, nw, ns) ->  Right v 
+    Left s -> Left $ "Snesl runtime error: "++s
+
+
 doExp :: String -> IO ()
 doExp s = 
     case parseString s of
         Right e ->
             case rSnesl (eval e r0) of
-               Left (v, nw, ns) ->  
+               Right (v, nw, ns) ->  
                   do putStrLn (show v)             
                      putStrLn ("[Work: " ++ show nw ++ ", step: " ++ show ns ++ "]")
-               Right s -> putStrLn ("Runtime error: " ++ s)
+               Left s -> putStrLn ("Runtime error: " ++ s)
         Left err -> putStrLn ("Parsing error")

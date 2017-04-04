@@ -9,18 +9,18 @@ import DataTrans
 import SneslParser
 
 
-newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> Either (a,[SDef], SId) String}
+newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> Either String (a,[SDef], SId)}
 
 instance Monad SneslTrans where
-    return a = SneslTrans $ \ sid -> Left (a, [], sid)
+    return a = SneslTrans $ \ sid -> Right (a, [], sid)
 
     m >>= f = SneslTrans $ \ sid -> 
         case rSneslTrans m sid  of
-            Right err -> Right err
-            Left (a, sv, sid')  -> 
+            Left err -> Left err
+            Right (a, sv, sid')  -> 
                 case rSneslTrans (f a) sid' of 
-                    Right err' -> Right err'
-                    Left (a', sv', sid'') -> Left (a', sv++sv', sid'')
+                    Left err' -> Left err'
+                    Right (a', sv', sid'') -> Right (a', sv++sv', sid'')
 
 
 
@@ -36,13 +36,13 @@ instance Applicative SneslTrans where
 type CompEnv = [(Id, STree)]
 
 env0 :: CompEnv
-env0 = [("x", (STId 10))]
+env0 = []
 
 
-compiler :: Exp ->  Either SSym String
+compiler :: Exp ->  Either String SSym 
 compiler e = case rSneslTrans (translate e (STId 0) env0) 1   of 
-                 Left (st, sv, _) -> Left $ SSym (SDef 0 Ctrl:sv) st
-                 Right err -> Right err 
+                 Right (st, sv, _) -> Right $ SSym (SDef 0 Ctrl:sv) st
+                 Left err -> Left err 
              --where ty = typing e
 
 
@@ -116,13 +116,6 @@ pack (STPair t (STId s)) b =
        return (STPair st2 st3)
 
 
--- primitive pack
--- [1,2,3,4,5] [F,T,F,F,T] = [2,5]
-ppack :: [a] -> [Bool] -> [a]
-ppack [] [] = []
-ppack (a:as) (False:fs) = ppack as fs
-ppack (a:as) (True:fs) = a: ppack as fs
-
 
 
 
@@ -147,7 +140,7 @@ bindVars (PTup p1 p2) = concat $ map bindVars [p1,p2]
 
 
 emit :: Instr -> SneslTrans STree
-emit i = SneslTrans $ \ sid -> Left (STId sid, [SDef sid i] ,sid+1)
+emit i = SneslTrans $ \ sid -> Right (STId sid, [SDef sid i] ,sid+1)
 
 
 type FuncEnv = [(Id, [STree] -> STree -> SneslTrans STree)]
@@ -155,18 +148,25 @@ type FuncEnv = [(Id, [STree] -> STree -> SneslTrans STree)]
 fe0 :: FuncEnv
 fe0 = [("_plus", \[STId s1, STId s2] _ -> emit (MapAdd s1 s2)),
 
-       ("index", \[STId s] ctrl -> iotas ctrl s),                     
+       ("index", \[STId s] ctrl -> iotas s),                     
 
-       ("scanExPlus", \[STId s] _ -> emit (ScanExPlus s))]
+       ("scanExPlus", \[STPair (STId t) (STId s)] _ -> scanExPlus t s)]
 
 
-iotas :: STree -> SId -> SneslTrans STree
-iotas _ s = 
+
+iotas :: SId -> SneslTrans STree
+iotas s = 
     do (STId s1) <- emit (ToFlags s)
        (STId s2) <- emit (Usum s1)
        (STId s3) <- emit (MapConst s2 (IVal 1))
-       (STId s4) <- emit (ScanExPlus s3)
+       (STId s4) <- emit (SegscanPlus s3 s1)
        return (STPair (STId s4) (STId s1)) 
+
+
+scanExPlus :: SId -> SId -> SneslTrans STree
+scanExPlus t s = 
+   do v <- emit (SegscanPlus t s)
+      return (STPair v (STId s))
 
 
 -- [STree] are the arguments
@@ -182,28 +182,4 @@ bind PWild s = []
 bind (PTup p1 p2) (STPair t1 t2) = ps1 ++ ps2
     where ps1 = bind p1 t1
           ps2 = bind p2 t2
-
-
--- the number of 'True' must be equal to the length of the first list
-pdist :: [a] -> [Bool] -> [a]
-pdist [] [] = []
-pdist v@(a:s) (False:fs) = a : pdist v fs 
-pdist (a:s) (True:fs) = pdist s fs 
-
-
-
-
-b2u [] = []
-b2u (False:fs) = True : b2u fs 
-b2u (True: fs) = False: True: b2u fs
-
--- unary sum of the number of Fs 
--- e.g. <F,F,T,F,T> => <1,1,1> or <*,*,*> actually
---usum :: SId -> 
---usum s@(SSVal []) = s 
---usum (SSVal ((BVal True):xs)) = usum (SSVal xs)
---usum (SSVal ((BVal False):xs)) = concatSeq (SSVal [IVal 1]) $ usum (SSVal xs)
-
-
-
 

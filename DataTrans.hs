@@ -7,12 +7,7 @@ import SneslSyntax
 import SvcodeSyntax
 import SneslParser
 import SneslInterp
-
--- Snesl types
-data Type = TInt 
-          | TBool
-          | TTup Type Type
-          | TSeq Type
+import SneslTyping
 
 
 --- data transformation from SNESL to SVOCDE ---
@@ -26,9 +21,6 @@ dataTrans (TSeq t) (SVal vs) = SSVal vs' fs
 dataTrans (TTup t1 t2) (TVal v1 v2) = SPVal v1' v2'
     where v1' = dataTrans t1 v1  
           v2' = dataTrans t2 v2 
-
-
---dataTransBack :: Type -> SvVal -> Val 
 
 
 
@@ -69,7 +61,20 @@ i2flags :: Int -> [Bool]
 i2flags i = replicate i (False) ++ [True]
 
 
---- transformation from SVCODE to SNESL ----
+
+---- transformation from SVCODE to SNESL ------
+
+dataTransBack :: Type -> SvVal -> Val
+dataTransBack TInt (SIVal [i]) = AVal $ IVal i 
+dataTransBack TBool (SBVal [b]) = AVal $ BVal b
+dataTransBack (TSeq t) (SSVal vs fs) = SVal vs'
+    where vs' = seqTransBack t vs
+
+dataTransBack (TTup t1 t2) (SPVal v1 v2) = TVal v1' v2'
+    where v1' = dataTransBack t1 v1 
+          v2' = dataTransBack t2 v2 
+
+
 
 seqTransBack :: Type -> SvVal -> [Val]
 
