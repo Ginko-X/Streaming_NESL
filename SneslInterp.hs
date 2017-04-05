@@ -1,5 +1,4 @@
-{- A minimum Streaming NESL interpreter
--}
+{- A minimum Streaming NESL interpreter -}
 
 module SneslInterp where
 
@@ -27,11 +26,6 @@ eval (Tup e1 e2) r =
      v2 <- eval e2 r 
      return $ TVal v1 v2
 
---eval (Seq ss) r = 
---  do vs <- mapM (\e -> eval e r) ss
---     return $ SVal vs
-
-
 eval (Let p e1 e2) r =
   do v1 <- eval e1 r
      eval e2 (bind p v1 ++ r)
@@ -51,7 +45,7 @@ eval (GComp e0 ps) r =
              let binds = zipWith (\pl vl -> 
                                  concat $ zipWith (\(p,_) v -> bind p v) pl vl)
                                (replicate (length vs') ps) vs' 
-             vss <- par $ zipWith (\e b -> eval e (r++b)) 
+             vss <- par $ zipWith (\e b -> eval e (b++r)) 
                                   (replicate (length vs') e0) binds
              return $ SVal vss)
      else fail "Length mismatch in comprehension"
@@ -169,10 +163,13 @@ r0 = [("true", AVal (BVal True)),
                l = length is 
                rs = tail $ scanl (+) 0 is  
             in returnc (l, ceiling (log $ fromIntegral l)) 
-                      $ SVal [AVal (IVal i) | i <-rs]))]
+                      $ SVal [AVal (IVal i) | i <-rs])),
+
+      ("reducePlus", FVal (\ [SVal vs] -> 
+           let is = [i | AVal (IVal i) <- vs]
+               l = length is 
+            in returnc (l, ceiling (log $ fromIntegral l)) $ AVal $ IVal (sum is) ))]
    
-      -- reduce for sequence  
-      -- scan for sequence 
 
 mkNestedSeq :: Val -> Val 
 mkNestedSeq (TVal v1 v2) = SVal [v1',v2']

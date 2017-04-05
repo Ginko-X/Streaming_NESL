@@ -31,11 +31,12 @@ instance Applicative Svcode where
   tf <*> ta = tf >>= \f -> fmap f ta
 
 
-runProg :: SSym -> Either String SvVal
-runProg (SSym sdefs st) = case rSvcode (mapM_ sdefInterp sdefs) [] of 
+runSvcodeProg :: SSym -> Either String SvVal
+runSvcodeProg (SSym sdefs st) = 
+  case rSvcode (mapM_ sdefInterp sdefs) [] of 
     Right (_, ctx) -> 
         case lookupTree st ctx of                      
-            Nothing -> Left "Returns are empty or some stream definition does not exist."  
+            Nothing -> Left "Stream does not exist." 
             Just vs -> Right vs
     Left err -> Left err 
 
@@ -44,7 +45,8 @@ lookupTree :: STree -> Svctx -> Maybe SvVal
 lookupTree (STId t1) ctx = lookup t1 ctx  
 lookupTree (STPair t1 t2) ctx = case lookupTree t1 ctx of 
     Just v1 -> case lookupTree t2 ctx of 
-                   Just v2 -> Just $ SPVal v1 v2  -- 可能需要进一步划分SSVal 和 SPVal 
+                   Just v2 -> Just $ SPVal v1 v2  -- need a 'Type' to indicate 
+                                                  -- a SSVal or a SPVal
                    Nothing -> Nothing
     Nothing -> Nothing
 
@@ -52,7 +54,8 @@ lookupTree (STPair t1 t2) ctx = case lookupTree t1 ctx of
 lookupSid :: SId -> Svcode SvVal 
 lookupSid s = Svcode $ \c -> 
     case lookup s c of 
-        Nothing -> Left $ "Referring to a stream that does not exist: " ++ show s
+        Nothing -> Left $ "Referring to a stream that does not exist: " 
+                             ++ show s
         Just v -> Right (v,c) 
 
 
@@ -90,11 +93,6 @@ instrInterp (ToFlags sid) =
     do (SIVal v) <- lookupSid sid
        return $ SBVal $ concat $ map i2flags v  
 
----- Iotas: segmemt iota on segment flags
----- e.g. <F,F,F,T, F,F,T> => <0,1,2,0,1>  
---instrInterp (Iotas sid) = 
---    do (SBVal vs) <- lookupSid sid
---       return $ SIVal $ concat $ map (\l -> [0..l-1]) $ flags2len vs
 
 -- count the number of 'False'
 instrInterp (Usum sid) = 
@@ -107,6 +105,16 @@ instrInterp (MapAdd s1 s2) =
        if (length v1)  == (length v2) 
          then return $ SIVal $ zipWith (+) v1 v2
          else fail "MapAdd: lengths mismatch" 
+
+
+instrInterp (MapEqual s1 s2) = 
+   do (SIVal v1) <- lookupSid s1
+      (SIVal v2) <- lookupSid s2
+      if (length v1)  == (length v2) 
+        then return $ SBVal $ zipWith (==) v1 v2
+        else fail "MapEqual: lengths mismatch" 
+
+
 
 instrInterp (Pack s1 s2) = 
     do v1 <- lookupSid s1
@@ -124,7 +132,8 @@ instrInterp (UPack s1 s2) =
        (SBVal v2) <- lookupSid s2 
        if (length [v | v <- v1, v] ) == (length v2)
          then return $ SBVal $ upack v1 v2
-         else fail "UPack: segments mismatch"  
+         else fail "UPack: segments mismatch"
+
 
 instrInterp (Distr s1 s2) =
     do v1 <- lookupSid s1
@@ -149,6 +158,46 @@ instrInterp (SegscanPlus s1 s2) =
          then fail "SegscanPlus: segments mismatch"
          else return $ SIVal $ segExScanPlus v1 v2 
 
+
+instrInterp (ReducePlus s1 s2) =
+    do (SIVal v1) <- lookupSid s1 
+       (SBVal v2) <- lookupSid s2
+       let ls = flags2len v2          
+       return $ SIVal $ segSum ls v1 
+
+
+-- remove all the 'T' flags except for the last one
+instrInterp (Concat s1 s2) = 
+    do (SBVal v1) <- lookupSid s1
+       (SBVal v2) <- lookupSid s2
+       return $ SBVal $ concatflag v1 v2 
+
+instrInterp (Append s1 s2) = 
+  do v1 <- lookupSid s1
+     v2 <- lookupSid s2 
+     return $ appendStream v1 v2  
+
+
+instrInterp (MapTimes s1 s2) = 
+  do (SIVal v1) <- lookupSid s1
+     (SIVal v2) <- lookupSid s2
+     if (length v1)  == (length v2) 
+        then return $ SIVal $ zipWith (*) v1 v2
+        else fail "MapTimes: lengths mismatch" 
+
+instrInterp (MapDiv s1 s2) = 
+  do (SIVal v1) <- lookupSid s1
+     (SIVal v2) <- lookupSid s2
+     if (length v1)  == (length v2) 
+        then return $ SIVal $ zipWith (div) v1 v2
+        else fail "MapDiv: lengths mismatch" 
+
+
+concatflag [] [] = []
+concatflag [] (True:fs2) = True: concatflag [] fs2
+concatflag (False:fs1) f2@(False:fs2) = False: concatflag fs1 f2
+concatflag (True:fs1) (False:fs2) = concatflag fs1 fs2 
+concatflag f1@(False:fs1) (True:fs2) = True : concatflag f1 fs2
 
 
 -- primitive pack
@@ -199,29 +248,18 @@ segExScanPlus is bs = concat $ map (init.(scanl (+) 0)) segs
 
 
 
-exampleProg1 = SSym def1 (STPair (STId 3) (STId 4))
+segSum :: [Int] -> [Int] -> [Int]
+segSum [] [] = []
+segSum (n:ns) l = (sum $ take n l) : segSum ns (drop n l)
 
-def1 = [SDef 0 Ctrl,
-        SDef 1 (MapConst 0 (IVal 2)),
-        SDef 2 (MapConst 0 (IVal 10)),
-        SDef 3 (ToFlags 2),
-        SDef 4 (Iotas 3)]
+
+appendStream (SIVal v1) (SIVal v2) = SIVal (v1 ++ v2)
+appendStream (SBVal v1) (SBVal v2) = SBVal (v1 ++ v2)
+
+
 
 -- "let x = 2 in {x+y : y in &10 }"
 exampleProg = SSym defs (STPair (STId 9) (STId 3))
-{- 
-S0 := Ctrl;
-S1 := MapConst S0 IVal 2;
-S2 := MapConst S0 IVal 10;
-S3 := ToFlags S2;
-S4 := Usum S3;
-S5 := MapConst S4 IVal 1;
-S6 := ScanExPlus S5;
-S7 := Usum S3;
-S8 := Distr S1 S3;
-S9 := MapAdd S8 S6
-Return: STPair (STId 9) (STId 3)
--}
 defs = [SDef 0 Ctrl,
         SDef 1 (MapConst 0 (IVal 2)),
         SDef 2 (MapConst 0 (IVal 10)),
@@ -232,9 +270,4 @@ defs = [SDef 0 Ctrl,
         SDef 7 (Usum 3),
         SDef 8 (Distr 1 3),
         SDef 9 (MapAdd 8 6)] 
-
-
-
-
-
 

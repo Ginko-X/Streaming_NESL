@@ -1,5 +1,4 @@
-{- Compiler from SNESL to SVCODE 
- + not finished -}
+{- A Compiler from SNESL to SVCODE -}
 
 module SneslCompiler where 
 
@@ -9,7 +8,8 @@ import DataTrans
 import SneslParser
 
 
-newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> Either String (a,[SDef], SId)}
+newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> 
+                                       Either String (a,[SDef], SId)}
 
 instance Monad SneslTrans where
     return a = SneslTrans $ \ sid -> Right (a, [], sid)
@@ -43,8 +43,6 @@ compiler :: Exp ->  Either String SSym
 compiler e = case rSneslTrans (translate e (STId 0) env0) 1   of 
                  Right (st, sv, _) -> Right $ SSym (SDef 0 Ctrl:sv) st
                  Left err -> Left err 
-             --where ty = typing e
-
 
 
 translate :: Exp -> STree -> CompEnv -> SneslTrans STree 
@@ -86,16 +84,27 @@ translate (GComp e0 ps) ctrl env =
         st <- translate e0 ctrl' (binds ++ binds' ++ env)
         return (STPair st (STId s))
         
+
 translate (RComp e0 e1) ctrl env = 
-    do (STId s1) <- translate e1 ctrl env  -- s1 : <T>
-       (STId s2) <- emit (B2u s1)  -- s2 : <F,T>
-       ctrl' <- emit (Usum s2)  -- ctrl' : <*>
-       let freeVars = getVars e0  -- [x,y]
-       freeVarsTrs <- mapM (\x -> translate (Var x) ctrl env) freeVars --[St1, St2]
+    do (STId s1) <- translate e1 ctrl env  
+       (STId s2) <- emit (B2u s1)  
+       ctrl' <- emit (Usum s2)  
+       let freeVars = getVars e0 
+       freeVarsTrs <- mapM (\x -> translate (Var x) ctrl env) freeVars 
        newVarTrs <- mapM (\x -> pack x s1) freeVarsTrs
        let binds = zipWith (\ v t -> (v,t)) freeVars newVarTrs
        s3 <- translate e0 ctrl' (binds ++ env) 
        return (STPair s3 (STId s2)) 
+
+
+type FuncEnv = [(Id, [STree] -> STree -> SneslTrans STree)]
+
+-- [STree] are the arguments
+transFunc :: Id -> FuncEnv -> [STree] -> STree -> SneslTrans STree
+transFunc fid fe0 args ctrl = case lookup fid fe0 of 
+    Just f -> f args ctrl
+    Nothing -> fail "Function call error."
+
 
 
 distr :: STree -> SId -> SneslTrans STree
@@ -116,9 +125,6 @@ pack (STPair t (STId s)) b =
        return (STPair st2 st3)
 
 
-
-
-
 -- get the free varibales in the expression
 getVars :: Exp -> [Id]
 getVars (Var x) = [x]
@@ -127,10 +133,9 @@ getVars (Tup e1 e2) = concat $ map getVars [e1,e2]
 getVars (Let p e1 e2) = filter (\x -> not $ x `elem` binds) (getVars e2) 
     where binds = bindVars p 
 getVars (Call fname es) = concat $ map getVars es     
-getVars (GComp e0 ps) = filter (\x -> not $ x `elem` binds) (e0vs ++ evs) 
+getVars (GComp e0 ps) = filter (\x -> not $ x `elem` binds) e0vs
     where e0vs = getVars e0 
           binds = concat $ map (\(p,e) -> bindVars p) ps
-          evs = concat $ map (\(_,e) -> getVars e) ps
 getVars (RComp e0 e1) = concat $ map getVars [e0,e1]
 
 bindVars :: Pat -> [Id]
@@ -143,14 +148,25 @@ emit :: Instr -> SneslTrans STree
 emit i = SneslTrans $ \ sid -> Right (STId sid, [SDef sid i] ,sid+1)
 
 
-type FuncEnv = [(Id, [STree] -> STree -> SneslTrans STree)]
 
 fe0 :: FuncEnv
 fe0 = [("_plus", \[STId s1, STId s2] _ -> emit (MapAdd s1 s2)),
+       ("_times", \[STId s1, STId s2] _ -> emit (MapTimes s1 s2)),
+       ("_div", \[STId s1, STId s2] _ -> emit (MapDiv s1 s2)),
+       ("_eq",\[STId s1, STId s2] _ -> emit (MapEqual s1 s2)),
 
        ("index", \[STId s] ctrl -> iotas s),                     
 
-       ("scanExPlus", \[STPair (STId t) (STId s)] _ -> scanExPlus t s)]
+       ("scanExPlus", \[STPair (STId t) (STId s)] _ -> scanExPlus t s),
+
+       ("reducePlus", \[STPair (STId t) (STId s)] _ -> reducePlus t s),
+       
+       --("_append", \[STPair t1 (STId s1) ,STPair t2 (STId s2)] _ -> 
+       --       do t <- appendSeq t1 t2; 
+       --          (STId s') <- emit (Append s1 s2);
+       --          s'' <- emit (Concat s');
+       --          return (STPair t s'')), 
+       ("concat", \[STPair (STPair t (STId s1)) (STId s2)] _ -> concatSeq t s1 s2)]
 
 
 
@@ -169,14 +185,26 @@ scanExPlus t s =
       return (STPair v (STId s))
 
 
--- [STree] are the arguments
-transFunc :: Id -> FuncEnv -> [STree] -> STree -> SneslTrans STree
-transFunc fid fe0 args ctrl = case lookup fid fe0 of 
-    Just f -> f args ctrl
-    Nothing -> fail "Function call error."
+reducePlus t s = emit (ReducePlus t s)
+
+concatSeq :: STree -> SId -> SId -> SneslTrans STree
+concatSeq t s1 s2 = 
+    do s' <- emit (Concat s1 s2)
+       return (STPair t s')
 
 
-bind :: Pat -> STree -> CompEnv
+appendSeq :: STree -> STree -> SneslTrans STree
+appendSeq (STId t1) (STId t2) = 
+    do t' <- emit (Append t1 t2) 
+       return t'
+appendSeq (STPair t1 (STId s1)) (STPair t2 (STId s2)) = 
+    do t' <- appendSeq t1 t2
+       s' <- emit (Append s1 s2)
+       return (STPair t' s')
+
+
+
+bind :: Pat ->  STree -> CompEnv
 bind (PVar x) a = [(x, a)]
 bind PWild s = []
 bind (PTup p1 p2) (STPair t1 t2) = ps1 ++ ps2

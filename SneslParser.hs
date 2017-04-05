@@ -1,6 +1,4 @@
-{- A basic Streaming NESL Parser  
- + need type system ?
--}
+{- A basic Streaming NESL Parser   -}
 
 module SneslParser where 
 
@@ -53,7 +51,8 @@ parsePat = do x <- parseVar
 
 
 parseValue :: Parser Exp 
-parseValue = do s <- many1 digit           
+parseValue = do whitespace
+                s <- many1 digit           
                 whitespace
                 return $ Lit $ IVal (read s)
              <|>  
@@ -81,7 +80,8 @@ parseValue = do s <- many1 digit
                      symbol ")" 
                      return $ Tup e1 e2)
                   <|>
-                 (return e1))
+                 (do symbol ")" 
+                     return e1))
              <|>  -- comprehensions 
              do symbol "{"
                 (do e <- parseExp

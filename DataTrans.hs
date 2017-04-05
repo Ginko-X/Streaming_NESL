@@ -26,7 +26,6 @@ dataTrans (TTup t1 t2) (TVal v1 v2) = SPVal v1' v2'
 
 seqTrans :: Type -> [Val] -> SvVal
 
--- [1,2] -> <1,2>
 seqTrans TInt vs = SIVal vs' 
     where vs' = [a | (AVal (IVal a)) <- vs]
          
@@ -48,7 +47,7 @@ concatSsval :: Type -> [SvVal] -> SvVal
 concatSsval TInt vs = SIVal $ concat [is | (SIVal is) <- vs] 
 concatSsval TBool vs = SBVal $ concat [bs | (SBVal bs) <- vs]  
 concatSsval (TSeq t) vs = SSVal vs' fs'
-    where (s1,s2) = unzip [(s ,f)| (SSVal s f) <- vs] -- SSVal $ concat $ map (\(SSVal v) -> v) ss 
+    where (s1,s2) = unzip [(s ,f)| (SSVal s f) <- vs] 
           vs' = concatSsval t s1
           fs' = concat s2
 concatSsval (TTup t1 t2) vs = SPVal s1' s2'
@@ -106,10 +105,11 @@ segSeq (n:ns) vs = (SVal $ take n vs) : segSeq ns (drop n vs)
 
 
 
----- examples  ---
+--- examples  ---
 
 -- SNESL: [{{3,4}},{2}}, {{}}, {{1}}]
 testExample1 = seqTransBack type1 $ seqTrans type1 example1
+
 type1 = TSeq (TSeq TInt)
 example1 = [SVal [SVal [(AVal (IVal 3)),(AVal (IVal 4))], 
                        SVal [(AVal (IVal 2))]], 
@@ -127,14 +127,4 @@ type2 = TTup (TSeq TInt) TBool
 example2 = [TVal (SVal [(AVal (IVal 3)), AVal (IVal 4)]) (AVal (BVal True)), 
                   TVal (SVal []) (AVal (BVal False)), 
                   TVal (SVal [(AVal (IVal 7)), (AVal (IVal 8))]) (AVal (BVal False))]
-
-
-
----- seqTransBack example
----- ((<3,1,4,1,5,9>, <F F F T T F T F F T>), <F F F F T> )
-testExample3 = seqTransBack type3 example3
-type3 = TSeq TInt
-example3 = (SSVal (SIVal [3,1,4,1,5,9])
-                  [False,False,False,True, True, False,True,False,False,True])
-
 

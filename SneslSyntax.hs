@@ -7,10 +7,6 @@ data AVal = IVal Int
           | BVal Bool 
           deriving Eq 
 
---data CVal = AVal AVal
---          | CTVal CVal CVal
---          | VVal [CVal]  -- vector
-
 
 data Val = AVal AVal  
          | TVal Val Val -- tuple
@@ -22,7 +18,7 @@ type Id = String
 
 data Exp = Var Id
          | Lit AVal    
-         | Tup Exp Exp   -- tuple
+         | Tup Exp Exp  
          | Let Pat Exp Exp  
          | Call Id [Exp]     
          | GComp Exp [(Pat,Exp)] 
@@ -39,11 +35,6 @@ data Pat = PVar Id
 instance Show AVal where
     show (IVal i) = show i
     show (BVal b) = if b then "T" else "F"
-
---instance Show CVal where
---  show (AVal a) = show a
---  show (CTVal v1 v2) = "(" ++ show v1 ++ "," ++ show v2 ++ ")"
---  show (VVal vs) = "[" ++ showelts vs ++ "]"
 
 
 instance Show Val where

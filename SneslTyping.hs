@@ -8,34 +8,7 @@ data Type = TInt
           | TBool
           | TTup Type Type
           | TSeq Type
-          deriving Show
-
-
-
-type TyEnv = [(Id, Type)]
-
---newtype SneslTyping a = SneslTyping {rSneslTyping :: Either String a}
-
-type SneslTyping a = Either String a 
-
---instance Monad SneslTyping where
---    return a = SneslTyping $ Right a 
-
---    m >>= f = SneslTyping $ 
---        case (rSneslTyping m) of
---            Right a -> case rSneslTyping (f a) of 
---                           Right b -> Right b 
---                           Left err' -> Left err' 
---            Left err -> Left err
-
-
-
---instance Functor SneslTyping where
---  fmap f t = t >>= return . f
-
---instance Applicative SneslTyping where
---  pure = return
---  tf <*> ta = tf >>= \f -> fmap f ta
+          deriving (Show,Eq)
 
 
 typing :: Exp -> Either String Type
@@ -45,6 +18,10 @@ typing e =
         Left err -> Left $ "Typing error: " ++ err 
 
 
+
+type TyEnv = [(Id, Type)]
+
+type SneslTyping a = Either String a 
 
 typeInfer :: Exp -> TyEnv  -> SneslTyping Type
 typeInfer (Var x) env = 
@@ -102,12 +79,44 @@ typeBind (PTup p1 p2) (TTup t1 t2) = (typeBind p1 t1) ++ (typeBind p2 t2)
 type FuncTyEnv = [(Id, [Type] -> SneslTyping Type)]
 
 funcTyEnv0 :: FuncTyEnv
-funcTyEnv0 = [("_plus", \[TInt, TInt] -> return TInt),
-              ("index", \[TInt] -> return $ TSeq TInt)]
+funcTyEnv0 = [("_plus", \t -> funcTypeChk "_plus" t [TInt,TInt] TInt),
+              ("_times", \t -> funcTypeChk "_times" t [TInt,TInt] TInt),
+              ("_div", \t -> funcTypeChk "_div" t [TInt,TInt] TInt),
+              ("not", \t -> funcTypeChk "not" t [TBool] TBool ),
+
+              ("index", \t -> funcTypeChk "index" t [TInt] (TSeq TInt)),              
+              ("_eq", \t -> funcTypeChk "_eq" t [TInt,TInt] TBool),
+              
+              ("scanExPlus", \t -> funcTypeChk "scanExPlus" t [TSeq TInt] (TSeq TInt)),
+             
+              ("reducePlus", \t -> funcTypeChk "reducePlus" t [TSeq TInt] TInt),
+
+              ("_append", \t -> funcTypeChkAppend t),
+
+              ("concat", \t -> funcTypeChkConcat t)]
+
 
 funcTypeInfer :: Id -> FuncTyEnv -> [Type] -> SneslTyping Type
 funcTypeInfer f env args = 
     case lookup f env of 
         Just f -> f args
-        Nothing -> fail $ "Function type mismatch: " ++ f 
+        Nothing -> fail $ "Undefined function: " ++ f 
+
+funcTypeChk :: Id -> [Type] ->[Type] -> Type -> SneslTyping Type
+funcTypeChk fname t1 t2 ft = 
+    if t1 == t2 
+    then return ft 
+    else fail $ "Function type or arity mismatch:" ++ fname
+
+funcTypeChkConcat t = 
+    case t of 
+       [TSeq (TSeq t')] -> return $ TSeq t'
+       _ -> fail "Function type or arity mismatch: concat"
+
+
+funcTypeChkAppend t = 
+    case t of 
+       [TSeq t1, TSeq t2] -> if t1 == t2 then return $ TSeq t1 
+                              else fail "Function type mismatch: _append"
+       _ -> fail "Function type or arity mismatch: _append"
 
