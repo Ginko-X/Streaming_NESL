@@ -9,25 +9,26 @@ import DataTrans
 
 
 -- An example program: compute all the primes less than the number 'count'
-
 prog1 = "let count = 50; " ++
         "    rs1 = {{{x+1 | a / (x+1) * (x+1) == a} : x in &a}: a in &count} ;"  ++
          "   rs2 = {reducePlus(concat(z)): z in rs1} "  ++
         "in concat({{x | x+1 == y}: x in &count, y in rs2})"
 
 
-
 -- the last 'Bool' indicates the comparison result 
 testExample :: String ->  Either String (Val,Type,Bool) 
 testExample p = 
-    do absProg <- parseString p  -- parse the SNESL expression
-       sneslTy <- typing absProg  -- get the expression type
-       sneslRes <- runSneslInterp absProg -- SNESL running result
-       svcode <- compiler absProg -- SVCODE generated from the SNESL expression
-       svcodeRes <-runSvcodeProg svcode -- SVCODE running result
+    do absProg <- parseString p    -- parse the SNESL expression
+       sneslTy <- typing absProg    -- get the expression type
+       sneslRes <- runSneslInterp absProg  -- SNESL running result
+       svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
+       svcodeRes <-runSvcodeProg svcode    -- SVCODE running result
        let compRes = compValSvVal sneslRes sneslTy svcodeRes  -- compare the two results       
        return (sneslRes,sneslTy, compRes)
 
+-- testExample prog1
+-- running result:
+-- Right ({2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47},TSeq TInt,True)
 
 
 compValSvVal :: Val -> Type -> SvVal -> Bool 
