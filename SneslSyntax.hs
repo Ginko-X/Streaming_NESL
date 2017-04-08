@@ -5,7 +5,7 @@ module SneslSyntax where
 
 data AVal = IVal Int 
           | BVal Bool 
-          deriving Eq 
+          deriving (Eq)--,Show) 
 
 
 data Val = AVal AVal  

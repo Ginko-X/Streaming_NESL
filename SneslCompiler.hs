@@ -1,4 +1,4 @@
-{- A Compiler from SNESL to SVCODE -}
+{- A Compiler from SNESL to SVCODE  -}
 
 module SneslCompiler where 
 
@@ -75,7 +75,7 @@ translate (Call fname es) ctrl env =
 translate (GComp e0 ps) ctrl env = 
      do trs <- mapM (\(_,e) -> translate e ctrl env) ps
         let binds = concat $ zipWith (\(p,_) (STPair t (STId s))-> bind p t) ps trs
-        let (STPair t (STId s)) = head trs -- the segment descriptor 
+        let (STPair t (STId s)) = head trs 
         ctrl' <- emit (Usum s) 
         let freeVars = getVars (GComp e0 ps)
         freeVarsTrs <- mapM (\x -> translate (Var x) ctrl env) freeVars       
@@ -161,11 +161,9 @@ fe0 = [("_plus", \[STId s1, STId s2] _ -> emit (MapAdd s1 s2)),
 
        ("reducePlus", \[STPair (STId t) (STId s)] _ -> reducePlus t s),
        
-       --("_append", \[STPair t1 (STId s1) ,STPair t2 (STId s2)] _ -> 
-       --       do t <- appendSeq t1 t2; 
-       --          (STId s') <- emit (Append s1 s2);
-       --          s'' <- emit (Concat s');
-       --          return (STPair t s'')), 
+        ("_append", \[t1'@(STPair t1 (STId s1)), t2'@(STPair t2 (STId s2))] ctrl -> 
+                  appendSeq t1' t2'), 
+
        ("concat", \[STPair (STPair t (STId s1)) (STId s2)] _ -> concatSeq t s1 s2)]
 
 
@@ -189,19 +187,33 @@ reducePlus t s = emit (ReducePlus t s)
 
 concatSeq :: STree -> SId -> SId -> SneslTrans STree
 concatSeq t s1 s2 = 
-    do s' <- emit (Concat s1 s2)
+    do s' <- emit (SegConcat s1 s2)
        return (STPair t s')
 
-
+-- 先不考虑pair
 appendSeq :: STree -> STree -> SneslTrans STree
-appendSeq (STId t1) (STId t2) = 
-    do t' <- emit (Append t1 t2) 
-       return t'
-appendSeq (STPair t1 (STId s1)) (STPair t2 (STId s2)) = 
-    do t' <- appendSeq t1 t2
-       s' <- emit (Append s1 s2)
-       return (STPair t' s')
+appendSeq (STPair (STId t1) (STId s1)) 
+          (STPair (STId t2) (STId s2)) =
+    do fs <- emit (InterMerge s1 s2)
+       st <- emit (PriSegInter t1 s1 t2 s2)
+       return (STPair st fs)
 
+appendSeq (STPair t1'@(STPair t1 (STId s1)) (STId s2)) 
+          (STPair t2'@(STPair t2 (STId s3)) (STId s4)) =
+    do fs <- emit (InterMerge s2 s4)
+       t <- appendRecur t1' s2 t2' s4
+       return (STPair t fs)
+
+
+appendRecur :: STree -> SId -> STree -> SId -> SneslTrans STree 
+appendRecur (STId s1) s2 (STId s3) s4 = emit (PriSegInter s1 s2 s3 s4)
+appendRecur (STPair t1 (STId s1)) s2 
+            (STPair t2 (STId s3)) s4 = 
+    do s5 <- emit (SegInter s1 s2 s3 s4)
+       (STId s1') <- emit (SegMerge s1 s2)
+       (STId s3') <- emit (SegMerge s3 s4)
+       s6 <- appendRecur t1 s1' t2 s3'
+       return (STPair s6 s5)
 
 
 bind :: Pat ->  STree -> CompEnv

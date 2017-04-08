@@ -14,10 +14,14 @@ data Instr = Ctrl
            | Pack SId SId
            | UPack SId SId
            | Distr SId SId
+           | SegDistr SId SId
            | B2u SId
            | MapEqual SId SId
-           | Concat SId SId
-           | Append SId SId
+           | SegConcat SId SId
+           | SegMerge SId SId --
+           | InterMerge SId SId
+           | SegInter SId SId SId SId  -- segment interleave for flags
+           | PriSegInter SId SId SId SId  -- segment interleave for primitive streams
            | MapTimes SId SId
            | MapDiv SId SId 
            deriving Show

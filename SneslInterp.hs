@@ -196,7 +196,7 @@ flags2len fs = zipWith (\x y -> x-y-1) tidx (-1:(init tidx))
                where tidx = [t| (t,True) <- (zip [0..(length fs)-1] fs)] 
                      len = length fs
                     
-
+-- [3,2] -> [FFT FT] => [[FFT],[FT]] -- i.e. partition
 seglist :: [Int] -> [a] -> [[a]]
 seglist [] [] = []
 seglist (n:ns) l = take n l : seglist ns (drop n l)

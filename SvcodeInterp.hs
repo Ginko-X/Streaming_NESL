@@ -135,16 +135,34 @@ instrInterp (UPack s1 s2) =
          else fail "UPack: segments mismatch"
 
 
+--instrInterp (Distr s1 s2) =
+--    do v1 <- lookupSid s1
+--       l1 <- streamLen v1
+--       (SBVal v2) <- lookupSid s2
+--       if not $ l1 == (length [v | v <- v2, v])
+--         then fail "Distr: segments mismatch"
+--         else let v1' = case v1 of
+--                         (SIVal is) -> SIVal $ pdist is v2 
+--                         (SBVal bs) -> SBVal $ pdist bs v2
+--              in return v1'
+
 instrInterp (Distr s1 s2) =
     do v1 <- lookupSid s1
-       l1 <- streamLen v1
        (SBVal v2) <- lookupSid s2
-       if not $ l1 == (length [v | v <- v2, v])
-         then fail "Distr: segments mismatch"
-         else let v1' = case v1 of
-                         (SIVal is) -> SIVal $ pdist is v2 
-                         (SBVal bs) -> SBVal $ pdist bs v2
-              in return v1'
+       let ls = flags2len v2 
+           v1' = case v1 of
+                  (SIVal is) -> SIVal $ concat $ map (segReplicate is) ls   
+                  (SBVal bs) -> SBVal $ concat $ map (segReplicate bs) ls 
+       return v1'            
+
+--instrInterp (SegDistr s1 s2) = 
+--  do (SBVal v1) <- lookupSid s1
+--     (SBVal v2) <- lookupSid s2
+--     if not $ (length [v| v <- v1, v]) == (length [v | v <- v2, v])
+--       then fail "SegDistr: segments and flag mismatch"
+--       else return $ SBVal $ segDistr v1 v2
+      
+
 
 instrInterp (B2u sid) = 
     do (SBVal v) <- lookupSid sid 
@@ -167,15 +185,42 @@ instrInterp (ReducePlus s1 s2) =
 
 
 -- remove all the 'T' flags except for the last one
-instrInterp (Concat s1 s2) = 
+instrInterp (SegConcat s1 s2) = 
     do (SBVal v1) <- lookupSid s1
        (SBVal v2) <- lookupSid s2
-       return $ SBVal $ concatflag v1 v2 
+       return $ SBVal $ segConcat v1 v2 
 
-instrInterp (Append s1 s2) = 
+--instrInterp (Append s1 s2) = 
+--  do v1 <- lookupSid s1
+--     v2 <- lookupSid s2 
+--     return $ appendPrimStream v1 v2  
+
+
+instrInterp (InterMerge s1 s2) = 
+  do (SBVal v1) <- lookupSid s1
+     (SBVal v2) <- lookupSid s2
+     return $ SBVal $ interMerge v1 v2 
+
+instrInterp (SegInter s1 s2 s3 s4) = 
+  do (SBVal v1) <- lookupSid s1
+     (SBVal v2) <- lookupSid s2
+     (SBVal v3) <- lookupSid s3
+     (SBVal v4) <- lookupSid s4 
+     -- should add segment length check here
+     return $ SBVal $ segInter v1 v2 v3 v4  
+
+instrInterp (PriSegInter s1 s2 s3 s4) = 
   do v1 <- lookupSid s1
-     v2 <- lookupSid s2 
-     return $ appendStream v1 v2  
+     (SBVal v2) <- lookupSid s2
+     v3 <- lookupSid s3
+     (SBVal v4) <- lookupSid s4
+     return $ priSegInter v1 v2 v3 v4  
+
+instrInterp (SegMerge s1 s2) = 
+  do (SBVal v1) <- lookupSid s1
+     (SBVal v2) <- lookupSid s2
+     return $ SBVal $ segMerge v1 v2 
+
 
 
 instrInterp (MapTimes s1 s2) = 
@@ -193,11 +238,67 @@ instrInterp (MapDiv s1 s2) =
         else fail "MapDiv: lengths mismatch" 
 
 
-concatflag [] [] = []
-concatflag [] (True:fs2) = True: concatflag [] fs2
-concatflag (False:fs1) f2@(False:fs2) = False: concatflag fs1 f2
-concatflag (True:fs1) (False:fs2) = concatflag fs1 fs2 
-concatflag f1@(False:fs1) (True:fs2) = True : concatflag f1 fs2
+
+segInter :: [Bool] -> [Bool] -> [Bool] -> [Bool] -> [Bool]
+segInter b1 b2 b3 b4 = concat $ interleaveList segs b1' b3'
+    where b1' = segFlag b1
+          b3' = segFlag b3 
+          segs = zip b2' b4'
+          b2' = flags2len b2
+          b4' = flags2len b4
+
+
+priSegInter :: SvVal -> [Bool] -> SvVal -> [Bool] -> SvVal 
+priSegInter (SIVal v1) b1 (SIVal v2) b2 = SIVal $ interleaveList segs v1 v2
+    where b1' = flags2len b1
+          b2' = flags2len b2 
+          segs = zip b1' b2'
+
+priSegInter (SBVal v1) b1 (SBVal v2) b2 = SBVal $ interleaveList segs v1 v2
+    where b1' = flags2len b1
+          b2' = flags2len b2 
+          segs = zip b1' b2'
+
+
+interleaveList :: [(Int, Int)] -> [a] -> [a] -> [a]
+interleaveList [] _ _ = []
+interleaveList ((l1,l2):ps) vs1 vs2 = 
+  (take l1 vs1) ++ (take l2 vs2) ++ (interleaveList ps (drop l1 vs1) (drop l2 vs2))
+
+
+segFlag :: [Bool] -> [[Bool]]
+segFlag bs = seglist (map (+1) $ flags2len bs) bs  
+
+
+segMerge :: [Bool] -> [Bool] -> [Bool]
+segMerge b1 b2 = concat $ takeSeg ls b1' 
+    where ls = flags2len b2
+          b1' = map init $ segFlag b1
+
+takeSeg :: [Int] -> [[Bool]] -> [[Bool]]
+takeSeg [] _ = []
+takeSeg (i:is) bs = take i bs ++ [[True]] ++ (takeSeg is (drop i bs))
+
+
+appendPrimStream :: SvVal -> SvVal -> SvVal
+appendPrimStream (SIVal v1) (SIVal v2) = SIVal (v1 ++ v2)
+appendPrimStream (SBVal v1) (SBVal v2) = SBVal (v1 ++ v2)
+
+-- [F,T,F,T] ++ [F,T,F,F,T]  => [F,F,T,F,F,F,T]
+interMerge :: [Bool] -> [Bool] -> [Bool]
+interMerge [] f2 = f2 
+interMerge (False:fs1) f2 = False : interMerge fs1 f2
+interMerge f1@(True:fs1) (False:fs2) = False : interMerge f1 fs2
+interMerge (True:fs1) (True:fs2) = True : interMerge fs1 fs2
+
+
+-- 
+segConcat :: [Bool] -> [Bool] -> [Bool]
+segConcat [] [] = []
+--segConcat [] (False:fs2) -- This case should be a runtime error
+segConcat (False:fs1) f2@(False:fs2) = False: segConcat fs1 f2
+segConcat (True:fs1) (False:fs2) = segConcat fs1 fs2 
+segConcat f1 (True:fs2) = True : segConcat f1 fs2
 
 
 -- primitive pack
@@ -240,6 +341,27 @@ pdist v@(a:s) (False:fs) = a : pdist v fs
 pdist (a:s) (True:fs) = pdist s fs 
 
 
+---- [FT,FFT] ->[FFFT,FT] => [FTFTFT FFT]
+--segDistr :: [Bool] -> [Bool] -> [Bool]
+--segDistr f1 f2 = concat $ zipWith (\s l -> segReplicate s l) ss ls2
+--   where ss = seglist ls1 f1
+--         ls1 = map (+1) $ flags2len f1 
+--         ls2 = flags2len f2
+
+-- replicate [a] 'Int' times
+segReplicate :: [a] -> Int -> [a]
+segReplicate [] _ = []
+segReplicate bs 1 = bs
+segReplicate bs i = bs ++ segReplicate bs (i-1) 
+
+
+--segDistr [] [] = []
+--segDistr (False:fs1) f2@(False:fs2) = False : segDistr fs1 f2
+--segDistr (False:fs1) f2@(True:fs2) = segDistr fs1 f2 
+--segDistr (True:fs1) (False:fs2) = True : segDistr fs1 fs2   
+--segDistr (True:fs1) (True:fs2) = segDistr fs1 fs2 
+
+
 -- segment exclusive scan for plus; segment delimiter is 0
 segExScanPlus :: [Int] -> [Bool] -> [Int]
 segExScanPlus is bs = concat $ map (init.(scanl (+) 0)) segs  
@@ -253,8 +375,6 @@ segSum [] [] = []
 segSum (n:ns) l = (sum $ take n l) : segSum ns (drop n l)
 
 
-appendStream (SIVal v1) (SIVal v2) = SIVal (v1 ++ v2)
-appendStream (SBVal v1) (SBVal v2) = SBVal (v1 ++ v2)
 
 
 
