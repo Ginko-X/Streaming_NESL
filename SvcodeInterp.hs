@@ -135,33 +135,41 @@ instrInterp (UPack s1 s2) =
          else fail "UPack: segments mismatch"
 
 
---instrInterp (Distr s1 s2) =
---    do v1 <- lookupSid s1
---       l1 <- streamLen v1
---       (SBVal v2) <- lookupSid s2
---       if not $ l1 == (length [v | v <- v2, v])
---         then fail "Distr: segments mismatch"
---         else let v1' = case v1 of
---                         (SIVal is) -> SIVal $ pdist is v2 
---                         (SBVal bs) -> SBVal $ pdist bs v2
---              in return v1'
-
 instrInterp (Distr s1 s2) =
     do v1 <- lookupSid s1
+       l1 <- streamLen v1
        (SBVal v2) <- lookupSid s2
-       let ls = flags2len v2 
-           v1' = case v1 of
-                  (SIVal is) -> SIVal $ concat $ map (segReplicate is) ls   
-                  (SBVal bs) -> SBVal $ concat $ map (segReplicate bs) ls 
-       return v1'            
+       if not $ l1 == (length [v | v <- v2, v])
+         then fail "Distr: segments mismatch"
+         else let v1' = case v1 of
+                         (SIVal is) -> SIVal $ pdist is v2 
+                         (SBVal bs) -> SBVal $ pdist bs v2
+              in return v1'
 
---instrInterp (SegDistr s1 s2) = 
---  do (SBVal v1) <- lookupSid s1
---     (SBVal v2) <- lookupSid s2
---     if not $ (length [v| v <- v1, v]) == (length [v | v <- v2, v])
---       then fail "SegDistr: segments and flag mismatch"
---       else return $ SBVal $ segDistr v1 v2
-      
+instrInterp (SegDistr s1 s2) =
+    do (SBVal v1) <- lookupSid s1
+       (SBVal v2) <- lookupSid s2
+       -- runtime error check: segCountChk
+       return $ SBVal $ segDistr v1 v2          
+
+
+instrInterp (SegFlagDistr s1 s2 s3) = 
+  do (SBVal v1) <- lookupSid s1
+     (SBVal v2) <- lookupSid s2
+     (SBVal v3) <- lookupSid s3
+     --segCountChk v2 v3 "SegFlagDistr"
+     --segDescriChk v1 v2 "SegFlagDistr"
+     return $ SBVal $ segFlagDistr v1 v2 v3 
+
+instrInterp (PrimSegFlagDistr s1 s2 s3) = 
+  do v1 <- lookupSid s1
+     (SBVal v2) <- lookupSid s2
+     (SBVal v3) <- lookupSid s3
+     --segCountChk v2 v3 "SegFlagDistr"
+     --segElemChk v1 v2 "SegFlagDistr" 
+     case v1 of 
+        (SIVal is) -> return $ SIVal $ primSegFlagDistr is v2 v3 
+        (SBVal bs) -> return $ SBVal $ primSegFlagDistr bs v2 v3 
 
 
 instrInterp (B2u sid) = 
@@ -239,10 +247,26 @@ instrInterp (MapDiv s1 s2) =
 
 
 
+-- runtime error check:
+
+-- check two bool lists have the same number of segments (i.e. number of 'T's)
+segCountChk :: [Bool] -> [Bool] -> String -> Svcode ()
+segCountChk = undefined
+
+-- the number of 'F's in b2 is equal to the number of 'T's in b1
+segDescriChk :: [Bool] -> [Bool] -> String -> Svcode ()
+segDescriChk b1 b2 instrName = undefined
+
+-- the number of 'F's in bs is equal to the length of as
+segElemChk :: [a] -> [Bool] -> String -> Svcode ()
+segElemChk as bs instrName = undefined
+
+
+-- segment interleave
 segInter :: [Bool] -> [Bool] -> [Bool] -> [Bool] -> [Bool]
 segInter b1 b2 b3 b4 = concat $ interleaveList segs b1' b3'
-    where b1' = segFlag b1
-          b3' = segFlag b3 
+    where b1' = partFlags b1
+          b3' = partFlags b3 
           segs = zip b2' b4'
           b2' = flags2len b2
           b4' = flags2len b4
@@ -266,24 +290,42 @@ interleaveList ((l1,l2):ps) vs1 vs2 =
   (take l1 vs1) ++ (take l2 vs2) ++ (interleaveList ps (drop l1 vs1) (drop l2 vs2))
 
 
-segFlag :: [Bool] -> [[Bool]]
-segFlag bs = seglist (map (+1) $ flags2len bs) bs  
+-- partition flags by 'T's
+-- [FFT FT T FFT] => [[FFT], [FT], [T], [FFT]]
+partFlags :: [Bool] -> [[Bool]]
+partFlags bs = seglist (map (+1) $ flags2len bs) bs  
+
+-- partition flags by another descriptor flag
+-- [FFT FT T FFT] , [FT FFFT] => [[FFT], [FT,T,FFT]]
+flagPartFlags :: [Bool] -> [Bool] -> [[Bool]]
+flagPartFlags bs fs = map concat $ seglist ls (partFlags bs)
+    where ls = flags2len fs 
+
+-- [1,5,2,4] , [FT FFFT] => [[1], [5,2,4]]
+flagPartPrim :: [a] -> [Bool] -> [[a]]
+flagPartPrim vs fs = seglist ls vs
+    where ls = flags2len fs 
 
 
+-- segment merge
+-- e.g [FFTFT FT] , [FTFFT] => [FFT FFT]
 segMerge :: [Bool] -> [Bool] -> [Bool]
 segMerge b1 b2 = concat $ takeSeg ls b1' 
     where ls = flags2len b2
-          b1' = map init $ segFlag b1
+          b1' = map init $ partFlags b1
 
 takeSeg :: [Int] -> [[Bool]] -> [[Bool]]
 takeSeg [] _ = []
 takeSeg (i:is) bs = take i bs ++ [[True]] ++ (takeSeg is (drop i bs))
 
 
+
 appendPrimStream :: SvVal -> SvVal -> SvVal
 appendPrimStream (SIVal v1) (SIVal v2) = SIVal (v1 ++ v2)
 appendPrimStream (SBVal v1) (SBVal v2) = SBVal (v1 ++ v2)
 
+
+-- interleave merge
 -- [F,T,F,T] ++ [F,T,F,F,T]  => [F,F,T,F,F,F,T]
 interMerge :: [Bool] -> [Bool] -> [Bool]
 interMerge [] f2 = f2 
@@ -342,11 +384,26 @@ pdist (a:s) (True:fs) = pdist s fs
 
 
 ---- [FT,FFT] ->[FFFT,FT] => [FTFTFT FFT]
---segDistr :: [Bool] -> [Bool] -> [Bool]
---segDistr f1 f2 = concat $ zipWith (\s l -> segReplicate s l) ss ls2
---   where ss = seglist ls1 f1
---         ls1 = map (+1) $ flags2len f1 
---         ls2 = flags2len f2
+segDistr :: [Bool] -> [Bool] -> [Bool]
+segDistr f1 f2 = concat $ zipWith segReplicate f1s ls2
+   where f1s = partFlags f1 
+         ls2 = flags2len f2
+
+
+segFlagDistr :: [Bool] -> [Bool] -> [Bool] -> [Bool]
+segFlagDistr v1 v2 v3  = concat $ zipWith segReplicate segs ls3 
+    where segs = flagPartFlags v1 v2 
+          ls3 = flags2len v3
+
+primSegFlagDistr :: [a] -> [Bool] -> [Bool] -> [a]
+primSegFlagDistr v1 v2 v3  = concat $ zipWith segReplicate segs ls3 
+    where segs = flagPartPrim v1 v2 
+          ls3 = flags2len v3
+
+
+
+
+
 
 -- replicate [a] 'Int' times
 segReplicate :: [a] -> Int -> [a]
@@ -354,12 +411,6 @@ segReplicate [] _ = []
 segReplicate bs 1 = bs
 segReplicate bs i = bs ++ segReplicate bs (i-1) 
 
-
---segDistr [] [] = []
---segDistr (False:fs1) f2@(False:fs2) = False : segDistr fs1 f2
---segDistr (False:fs1) f2@(True:fs2) = segDistr fs1 f2 
---segDistr (True:fs1) (False:fs2) = True : segDistr fs1 fs2   
---segDistr (True:fs1) (True:fs2) = segDistr fs1 fs2 
 
 
 -- segment exclusive scan for plus; segment delimiter is 0

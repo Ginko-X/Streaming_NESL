@@ -15,6 +15,8 @@ data Instr = Ctrl
            | UPack SId SId
            | Distr SId SId
            | SegDistr SId SId
+           | SegFlagDistr SId SId SId
+           | PrimSegFlagDistr SId SId SId 
            | B2u SId
            | MapEqual SId SId
            | SegConcat SId SId
@@ -30,20 +32,6 @@ data SDef = SDef SId Instr  -- deriving Show
 
 data SSym = SSym [SDef] STree  -- deriving Show 
 
-
---instance Show Instr where
---  show Ctrl = "Ctrl"
-
---  show (ToFlags sid) = "ToFlags "++ "S" ++ show sid
---  show (Usum sid) = "Usum "++ "S" ++ show sid
---  show (B2u sid) = "B2u "++ "S" ++ show sid
-  
---  show (MapAdd s1 s2) = "MapAdd " ++ "S" ++ show s1 ++ " S" ++ show s2
---  show (MapConst s1 a) = "MapConst " ++ "S" ++ show s1 ++ " " ++ show a 
---  show (SegscanPlus s1 s2) = "SegscanPlus " ++ "S" ++ show s1 ++ " S" ++ show s2
---  show (Pack s1 s2) = "Pack " ++ "S" ++ show s1 ++ " S" ++ show s2
---  show (UPack s1 s2) = "UPack " ++ "S" ++ show s1 ++ " S" ++ show s2
---  show (Distr s1 s2) = "Distr " ++ "S" ++ show s1 ++ " S" ++ show s2
 
 
 instance Show SDef where
