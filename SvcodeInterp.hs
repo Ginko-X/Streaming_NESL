@@ -427,18 +427,3 @@ segSum (n:ns) l = (sum $ take n l) : segSum ns (drop n l)
 
 
 
-
-
--- "let x = 2 in {x+y : y in &10 }"
-exampleProg = SSym defs (STPair (STId 9) (STId 3))
-defs = [SDef 0 Ctrl,
-        SDef 1 (MapConst 0 (IVal 2)),
-        SDef 2 (MapConst 0 (IVal 10)),
-        SDef 3 (ToFlags 2),
-        SDef 4 (Usum 3),
-        SDef 5 (MapConst 4 (IVal 1)),
-        SDef 6 (SegscanPlus 5 3),
-        SDef 7 (Usum 3),
-        SDef 8 (Distr 1 3),
-        SDef 9 (MapAdd 8 6)] 
-
