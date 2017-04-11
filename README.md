@@ -1,4 +1,4 @@
-Working progress see the [issue comments](https://github.com/Ginko-X/Streaming_NESL/issues)
+## For working progress please see the [issue comments](https://github.com/Ginko-X/Streaming_NESL/issues)
 
 # A minimal Streaming NESL implementation including:
 + A minimal Streaming NESL parser and interpreter
