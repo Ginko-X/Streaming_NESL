@@ -50,6 +50,26 @@ lookupTree (STPair t1 t2) ctx = case lookupTree t1 ctx of
                    Nothing -> Nothing
     Nothing -> Nothing
 
+-- only for debug
+--runSvcodeProg :: SSym -> Either String SvVal
+--runSvcodeProg (SSym sdefs st) = 
+--  case rSvcode (mapM_ sdefInterp sdefs) [] of 
+--    Right (_, ctx) -> 
+--        case lookupSpeTree [22..26] ctx of                      
+--            Nothing -> Left "Stream does not exist." 
+--            Just vs -> Right vs
+--    Left err -> Left err 
+
+--lookupSpeTree :: [SId] -> Svctx -> Maybe SvVal
+--lookupSpeTree [] ctx = Just (SIVal [])
+--lookupSpeTree [t1] ctx = lookup t1 ctx  
+--lookupSpeTree (t1:ts) ctx = case lookupSpeTree [t1] ctx of 
+--    Just v1 -> case lookupSpeTree ts ctx of 
+--                   Just v2 -> Just $ SPVal v1 v2  -- need a 'Type' to indicate 
+--                                                  -- a SSVal or a SPVal
+--                   Nothing -> Nothing
+--    Nothing -> Nothing
+
 
 lookupSid :: SId -> Svcode SvVal 
 lookupSid s = Svcode $ \c -> 
@@ -350,13 +370,11 @@ ppack [] [] = []
 ppack (a:as) (False:fs) = ppack as fs
 ppack (a:as) (True:fs) = a: ppack as fs
 
--- pack unary numbers (subsequences of the form <F,F,..T>)
-upack :: [Bool] -> [Bool] -> [Bool]
-upack [] [] = []
-upack (False:fs1) f2 = upack fs1 f2 
-upack (True:fs1) (False:fs2) = upack fs1 fs2
-upack (True:fs1) (True:fs2) = False:True : upack fs1 fs2 
- 
+-- pack unary numbers(subsequences of the form <F,F,..T>)
+upack :: [Bool] -> [Bool] -> [Bool] 
+upack b1 b2 = concat $ fst $ unzip $ filter (\(s,f) -> f) (zip segs b2) 
+    where segs = partFlags b1 
+
 
 -- unary sum of the number of Fs 
 -- e.g. <F,F,T,F,T> => <F,F,F> representing <*,*,*> 

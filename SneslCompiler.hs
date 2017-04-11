@@ -118,8 +118,9 @@ translate (RComp e0 e1) ctrl env tye =
        (STId s2) <- emit (B2u s1)  
        ctrl' <- emit (Usum s2)  
        let freeVars = getVars e0 
+       freeVarsTps <- mapM (\x -> getVarType x tye) freeVars         
        freeVarsTrs <- mapM (\x -> translate (Var x) ctrl env tye) freeVars 
-       newVarTrs <- mapM (\x -> pack x s1) freeVarsTrs
+       newVarTrs <- zipWithM (\x xtp -> pack xtp x s1) freeVarsTrs freeVarsTps
        let binds = zipWith (\ v t -> (v,t)) freeVars newVarTrs
        s3 <- translate e0 ctrl' (binds ++ env) tye 
        return (STPair s3 (STId s2)) 
@@ -172,14 +173,20 @@ distrSegRecur (TSeq t) (STPair (STPair s0 (STId s1)) (STId s2)) s =
 
 
 
-pack :: STree -> SId -> SneslTrans STree
-pack (STId s) b = emit (Pack s b)
+pack :: Type -> STree -> SId -> SneslTrans STree
+pack TInt (STId s) b = emit (Pack s b)
+pack TBool (STId s) b = emit (Pack s b)
+pack (TTup tp1 tp2) (STPair t1 t2) b = 
+  do st1 <- pack tp1 t1 b
+     st2 <- pack tp2 t2 b
+     return (STPair st1 st2)  
 
-pack (STPair t (STId s)) b = 
+pack (TSeq tp) (STPair t (STId s)) b = 
     do (STId st1) <- emit (Distr b s)
-       st2 <- pack t st1 
+       st2 <- pack tp t st1 
        st3 <- emit (UPack s b)
        return (STPair st2 st3)
+
 
 
 -- get the free varibales in the expression
@@ -257,7 +264,8 @@ appendSeq _ (STPair (STId t1) (STId s1))
        st <- emit (PriSegInter t1 s1 t2 s2)
        return (STPair st fs)
 
---appendSeq (TSeq (TTup t1 t2)) (STPair t1'@(STPair t1 (STId s1)) (STId s2)) 
+--appendSeq (TSeq (TTup t1 t2)) (STPair t1'@(STPair t1 (STId s1)) (STId s2)) = 
+
 
 appendSeq (TSeq (TSeq t)) (STPair t1'@(STPair t1 (STId s1)) (STId s2)) 
                           (STPair t2'@(STPair t2 (STId s3)) (STId s4)) =
