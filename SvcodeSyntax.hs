@@ -49,10 +49,10 @@ data SvVal = SIVal [Int]
            --deriving Show
 
 instance Show SvVal where
-    show (SIVal is) = "<" ++ showseq "," is ++ ">"
-    show (SBVal bs) = "<" ++ showseq "," bs ++ ">"    
-    show (SSVal v bs) = "(" ++ show v ++ ","++ show bs ++")"    
-    show (SPVal v1 v2) = "(" ++ show v1 ++"," ++ show v2 ++ ")"
+    show (SIVal is) = "Ints <" ++ showseq "," is ++ ">"
+    show (SBVal bs) = "Bools <" ++ showseq "," bs ++ ">"    
+    show (SSVal v bs) = "Seq (" ++ show v ++ ","++ show bs ++")"    
+    show (SPVal v1 v2) = "Pair (" ++ show v1 ++"," ++ show v2 ++ ")"
 
 
 showseq delim [] = ""

@@ -29,7 +29,7 @@ prog3 = "let a = {{&2|T}|T} ++ {{{3|T}|T} |T} ; "++
 
 
 -- the last 'Bool' indicates the comparison result 
---testExample :: String ->  Either String (Val,Type,Bool) 
+testExample :: String ->  Either String (Val,Type,Bool) 
 testExample p = 
     do absProg <- parseString p    -- parse the SNESL expression
        sneslTy <- typing absProg    -- get the expression's type
@@ -38,7 +38,7 @@ testExample p =
        svcodeRes <-runSvcodeProg svcode    -- SVCODE interpreting result
        --return (sneslRes, svcode, svcodeRes)
        let compRes = compValSvVal sneslRes sneslTy svcodeRes  -- compare the two results       
-       return (sneslRes,sneslTy,svcodeRes,svcode,compRes)
+       return (sneslRes,sneslTy,compRes)
 
 
 

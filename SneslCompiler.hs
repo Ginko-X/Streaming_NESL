@@ -1,4 +1,4 @@
-{- A Compiler from SNESL to SVCODE  -}
+{- Compiler from SNESL to SVCODE  -}
 
 module SneslCompiler where 
 
@@ -256,32 +256,35 @@ concatSeq t s1 s2 =
     do s' <- emit (SegConcat s1 s2)
        return (STPair t s')
 
--- 先不考虑pair
+
+
+-- append 
 appendSeq :: Type -> STree -> STree -> SneslTrans STree
-appendSeq _ (STPair (STId t1) (STId s1)) 
-          (STPair (STId t2) (STId s2)) =
+appendSeq (TSeq tp) t1'@(STPair t1 (STId s1)) t2'@(STPair t2 (STId s2)) =
     do fs <- emit (InterMerge s1 s2)
-       st <- emit (PriSegInter t1 s1 t2 s2)
-       return (STPair st fs)
-
---appendSeq (TSeq (TTup t1 t2)) (STPair t1'@(STPair t1 (STId s1)) (STId s2)) = 
-
-
-appendSeq (TSeq (TSeq t)) (STPair t1'@(STPair t1 (STId s1)) (STId s2)) 
-                          (STPair t2'@(STPair t2 (STId s3)) (STId s4)) =
-    do fs <- emit (InterMerge s2 s4)
-       t <- appendRecur t1' s2 t2' s4
+       t <- appendRecur tp t1' t2'
        return (STPair t fs)
 
 
-appendRecur :: STree -> SId -> STree -> SId -> SneslTrans STree 
-appendRecur (STId s1) s2 (STId s3) s4 = emit (PriSegInter s1 s2 s3 s4)
-appendRecur (STPair t1 (STId s1)) s2 
-            (STPair t2 (STId s3)) s4 = 
+appendRecur :: Type -> STree -> STree -> SneslTrans STree 
+appendRecur TInt (STPair (STId t1) (STId s1)) (STPair (STId t2) (STId s2)) =
+      emit (PriSegInter t1 s1 t2 s2)
+
+appendRecur TBool (STPair (STId t1) (STId s1)) (STPair (STId t2) (STId s2)) =
+      emit (PriSegInter t1 s1 t2 s2)
+     
+appendRecur (TTup tp1 tp2) (STPair (STPair t1 s1) (STId s2))
+                           (STPair (STPair t2 s3) (STId s4)) = 
+    do st1 <- appendRecur tp1 (STPair t1 (STId s2)) (STPair t2 (STId s4))
+       st2 <- appendRecur tp2 (STPair s1 (STId s2)) (STPair s3 (STId s4)) 
+       return (STPair st1 st2)
+
+appendRecur (TSeq tp) (STPair (STPair t1 (STId s1)) (STId s2)) 
+                      (STPair (STPair t2 (STId s3)) (STId s4)) =
     do s5 <- emit (SegInter s1 s2 s3 s4)
-       (STId s1') <- emit (SegMerge s1 s2)
-       (STId s3') <- emit (SegMerge s3 s4)
-       s6 <- appendRecur t1 s1' t2 s3'
+       s1' <- emit (SegMerge s1 s2)
+       s3' <- emit (SegMerge s3 s4)
+       s6 <- appendRecur tp (STPair t1 s1') (STPair t2 s3')
        return (STPair s6 s5)
 
 
