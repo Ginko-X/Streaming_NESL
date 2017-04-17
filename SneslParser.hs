@@ -82,24 +82,29 @@ parseValue = do whitespace
                   <|>
                  (do symbol ")" 
                      return e1))
-             <|>  -- comprehensions 
+             <|>  -- comprehensions and sequence
              do symbol "{"
-                (do e <- parseExp
-                    ((do symbol ":"  -- general ones
-                         qs <- parseQual `sepBy1` (symbol ";" <|> symbol ",")
-                         me <- option Nothing
-                               (do symbol "|"
-                                   e <- parseExp
-                                   return $ Just e)
-                         symbol "}"
-                         case me of
-                           Nothing -> return $ GComp e qs 
-                           Just ef -> return $ Call "concat" [GComp (RComp e ef) qs])
-                      <|> 
-                     (do symbol "|" -- restricted ones
-                         e2 <- parseExp
-                         symbol "}"
-                         return $ RComp e e2)))
+                ((do e <- parseExp
+                     ((do symbol ","
+                          es <- parseExp `sepBy1` (symbol ",")
+                          symbol "}"
+                          return $ Seq (e:es))
+                       <|>
+                      (do symbol "}"
+                          return $ Seq [e])
+                       <|>
+                      (do symbol ":"  -- general ones
+                          qs <- parseQual `sepBy1` (symbol ";" <|> symbol ",")                        
+                          symbol "}"
+                          return $ GComp e qs)                        
+                       <|> 
+                      (do symbol "|" -- restricted ones
+                          e2 <- parseExp
+                          symbol "}"
+                          return $ RComp e e2)))
+                 <|>
+                 (do symbol "}" 
+                     return $ Seq []))
 
 parseQual :: Parser (Pat, Exp)
 parseQual = do p <- parsePat
