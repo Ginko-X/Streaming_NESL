@@ -75,9 +75,6 @@ translate (Tup e1 e2) ctrl env tye =
        t2 <- translate e2 ctrl env tye 
        return (STPair t1 t2)
 
---translate (Seq es) ctrl env tye = 
---    do ts <- mapM (\e -> translate e ctrl env tye) es  
-
 
 translate (Let pat e1 e2) ctrl env tye = 
     do tp <- compTypeInfer e1 tye
@@ -136,7 +133,6 @@ transFunc :: Id -> FuncEnv -> [STree] -> [Type] -> STree -> SneslTrans STree
 transFunc fid fe0 args tys ctrl = case lookup fid fe0 of 
     Just f -> f args tys ctrl
     Nothing -> fail "Function call error."
-
 
 
 distr :: Type -> STree -> SId -> SneslTrans STree

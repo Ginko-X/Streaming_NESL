@@ -19,7 +19,7 @@ type Id = String
 data Exp = Var Id
          | Lit AVal    
          | Tup Exp Exp 
-         | Seq [Exp] 
+         | SeqNil
          | Let Pat Exp Exp  
          | Call Id [Exp]     
          | GComp Exp [(Pat,Exp)] 

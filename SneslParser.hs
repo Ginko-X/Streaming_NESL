@@ -87,11 +87,12 @@ parseValue = do whitespace
                 ((do e <- parseExp
                      ((do symbol ","
                           es <- parseExp `sepBy1` (symbol ",")
-                          symbol "}"
-                          return $ Seq (e:es))
+                          symbol "}"                       
+                          let e0 = RComp e (Lit $ BVal True)
+                          return $ foldl (\e1 e2 -> Call "_append" [e1, RComp e2 (Lit $ BVal True)]) e0 es)
                        <|>
-                      (do symbol "}"
-                          return $ Seq [e])
+                      (do symbol "}" 
+                          return $ RComp e (Lit $ BVal True)) 
                        <|>
                       (do symbol ":"  -- general ones
                           qs <- parseQual `sepBy1` (symbol ";" <|> symbol ",")                        
@@ -104,7 +105,7 @@ parseValue = do whitespace
                           return $ RComp e e2)))
                  <|>
                  (do symbol "}" 
-                     return $ Seq []))
+                     return SeqNil))
 
 parseQual :: Parser (Pat, Exp)
 parseQual = do p <- parsePat

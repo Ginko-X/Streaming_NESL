@@ -26,9 +26,8 @@ eval (Tup e1 e2) r =
      v2 <- eval e2 r 
      return $ TVal v1 v2
 
-eval (Seq es) r =
-  do vs <- mapM (\e -> eval e r) es
-     return $ SVal vs
+eval SeqNil r =
+     return $ SVal []
 
 eval (Let p e1 e2) r =
   do v1 <- eval e1 r

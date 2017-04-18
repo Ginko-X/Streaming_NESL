@@ -40,14 +40,7 @@ typeInfer (Tup e1 e2) env =
        return (TTup t1 t2)
 
 -- a special case
---typeInfer (Seq []) env = 
-
-
-typeInfer (Seq es) env = 
-    do (t0:ts) <- mapM (\e -> typeInfer e env) es
-       if all (\t -> t == t0) ts
-       then return (TSeq t0)
-       else fail "Sequence type mismatch"
+--typeInfer SeqNil env = 
 
 typeInfer (Let p e1 e2) env = 
     do tp <- typeInfer e1 env

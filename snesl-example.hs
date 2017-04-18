@@ -21,12 +21,15 @@ prog1 = "let count = 50; " ++
 prog2 = "let a = {{&2|T}|T} ++ {{{3|T}|T} |T} ; "++  
         "    b = {{{4|T}|T}|T} ++ {{{5|T} ++ {9|T}|T}|T} " ++ 
         " in {x ++ y : x in a, y in b}"
--- correct result: {{{0, 1}, {4}}, {{3}, {5, 9}}}
+
 
 prog3 = "let a = {{&2|T}|T} ++ {{{3|T}|T} |T} ; "++  
         "    b = {{{4|T}|T}|T} ++ {{{5|T} ++ {9|T}|T}|T} " ++ 
         " in {a ++ b : _ in &2}"
 
+prog3' = "let a = {{&2}} ++ {{{3}}} ; "++  
+        "    b = {{{4}}} ++ {{{5} ++ {9}}} " ++ 
+        " in {a ++ b : _ in &2}"
 
 -- the last 'Bool' indicates the comparison result 
 --testExample :: String ->  Either String (Val,Type,Bool) 
