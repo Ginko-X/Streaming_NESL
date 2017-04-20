@@ -1,4 +1,7 @@
 # Working Progress
++ Week 16 (17~23 Apr)
+    + Add sequence expressions (some discussion #4)
+    + Add work and step cost to SNESL
 
 + Week 15 (10~16 Apr, Easter break)
     + [Thesis proposal](https://docs.google.com/document/d/1xeS902Cb_PUidC7BxDZYzvpoMYaEfMEPG5s9OC0j_gg/edit?usp=sharing)(editable)
