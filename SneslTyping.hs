@@ -8,7 +8,13 @@ data Type = TInt
           | TBool
           | TTup Type Type
           | TSeq Type
-          deriving (Show,Eq)
+          deriving Eq 
+
+instance Show Type where
+  show TInt = "int"
+  show TBool = "bool"
+  show (TTup t1 t2) = "(" ++ show t1 ++ "," ++ show t2 ++ ")"
+  show (TSeq t) = "{" ++ show t ++"}" 
 
 
 typing :: Exp -> Either String Type

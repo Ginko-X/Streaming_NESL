@@ -56,11 +56,11 @@ parseValue = do whitespace
                 whitespace
                 return $ Lit $ IVal (read s)
              <|>  
-             do string "T" 
+             do symbol "T" 
                 whitespace
                 return $ Lit $ BVal True
              <|> 
-             do string "F"
+             do symbol "F"
                 whitespace
                 return $ Lit $ BVal False           
              <|> 
@@ -159,7 +159,8 @@ parseSub = do e <- parseValue <|> (do e' <- parseVar; return $ Var e')
 
 
 parseExp :: Parser Exp
-parseExp = do symbol "let"
+parseExp = do whitespace
+              symbol "let"
               whitespace
               binds <- (do p <- parsePat
                            symbol "="

@@ -15,33 +15,38 @@ prog1 = "let count = 50; " ++
         "in  concat({{x | x+1 == y}: x in &count, y in rs2})"
 
 
--- An example for '_append' 
--- a = {{{0, 1}}, {{3}}} 
--- b = {{{4}},    {{5, 9}}}
+-- An example for '_append', a = {{{0, 1}}, {{3}}} , b = {{{4}},    {{5, 9}}}
 prog2 = "let a = {{&2|T}|T} ++ {{{3|T}|T} |T} ; "++  
         "    b = {{{4|T}|T}|T} ++ {{{5|T} ++ {9|T}|T}|T} " ++ 
         " in {x ++ y : x in a, y in b}"
 
-
-prog3 = "let a = {{&2|T}|T} ++ {{{3|T}|T} |T} ; "++  
-        "    b = {{{4|T}|T}|T} ++ {{{5|T} ++ {9|T}|T}|T} " ++ 
-        " in {a ++ b : _ in &2}"
-
-prog3' = "let a = {{&2}} ++ {{{3}}} ; "++  
+-- same as prog2, using primitive sequences instead of guards
+prog3 = "let a = {{&2}} ++ {{{3}}} ; "++  
         "    b = {{{4}}} ++ {{{5} ++ {9}}} " ++ 
         " in {a ++ b : _ in &2}"
+
+
+runFile :: FilePath -> IO () 
+runFile file = do prog <- readFile file 
+                  case testExample prog of 
+                    Left err -> putStrLn err 
+                    Right ((v,w,s),tp,b) 
+                       -> do putStrLn $ show v ++ " :: " ++ show tp 
+                             putStrLn $ "work: " ++ show w ++ "  step: " ++ show s
+                             putStrLn $ "Compare with SVCODE value: " ++ show b
+ 
 
 -- the last 'Bool' indicates the comparison result 
 --testExample :: String ->  Either String (Val,Type,Bool) 
 testExample p = 
     do absProg <- parseString p    -- parse the SNESL expression
        sneslTy <- typing absProg    -- get the expression's type
-       sneslRes <- runSneslInterp absProg  -- SNESL interpreting result
+       (sneslRes,w,s) <- runSneslInterp absProg  -- SNESL interpreting result
        svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
        svcodeRes <-runSvcodeProg svcode    -- SVCODE interpreting result
        --return (sneslRes, sneslTy, svcodeRes)
        let compRes = compValSvVal sneslRes sneslTy svcodeRes  -- compare the two results       
-       return (sneslRes,sneslTy,compRes)
+       return ((sneslRes,w,s),sneslTy,compRes)
 
 
 -- helper functions for comparing a SNESL value and a SVCODE value
