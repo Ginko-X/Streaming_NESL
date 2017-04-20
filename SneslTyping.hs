@@ -3,20 +3,6 @@ module SneslTyping where
 import SneslSyntax
 
 
--- Snesl types
-data Type = TInt 
-          | TBool
-          | TTup Type Type
-          | TSeq Type
-          deriving Eq 
-
-instance Show Type where
-  show TInt = "int"
-  show TBool = "bool"
-  show (TTup t1 t2) = "(" ++ show t1 ++ "," ++ show t2 ++ ")"
-  show (TSeq t) = "{" ++ show t ++"}" 
-
-
 typing :: Exp -> Either String Type
 typing e = 
     case typeInfer e [] of 
@@ -45,8 +31,9 @@ typeInfer (Tup e1 e2) env =
        t2 <- typeInfer e2 env
        return (TTup t1 t2)
 
--- a special case
---typeInfer SeqNil env = 
+ --a special case
+typeInfer (SeqNil tp) env = return $ TSeq tp
+
 
 typeInfer (Let p e1 e2) env = 
     do tp <- typeInfer e1 env

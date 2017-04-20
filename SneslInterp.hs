@@ -26,7 +26,7 @@ eval (Tup e1 e2) r =
      v2 <- eval e2 r 
      return $ TVal v1 v2
 
-eval SeqNil r =
+eval (SeqNil tp) r =
      return $ SVal []
 
 eval (Let p e1 e2) r =

@@ -3,6 +3,7 @@
 
 module SneslSyntax where
 
+
 data AVal = IVal Int 
           | BVal Bool 
           deriving Eq --,Show) 
@@ -19,7 +20,7 @@ type Id = String
 data Exp = Var Id
          | Lit AVal    
          | Tup Exp Exp 
-         | SeqNil
+         | SeqNil Type 
          | Let Pat Exp Exp  
          | Call Id [Exp]     
          | GComp Exp [(Pat,Exp)] 
@@ -31,6 +32,7 @@ data Pat = PVar Id
          | PWild 
          | PTup Pat Pat
   deriving Show
+
 
 
 instance Show AVal where
@@ -48,6 +50,24 @@ instance Show Val where
 showelts [] = ""
 showelts [x] = show x
 showelts (x:xs) = show x ++ ", " ++ showelts xs
+
+
+
+-- Snesl types
+data Type = TInt 
+          | TBool
+          | TTup Type Type
+          | TSeq Type
+          deriving Eq 
+
+
+instance Show Type where
+  show TInt = "int"
+  show TBool = "bool"
+  show (TTup t1 t2) = "(" ++ show t1 ++ "," ++ show t2 ++ ")"
+  show (TSeq t) = "{" ++ show t ++"}" 
+
+
 
 
 

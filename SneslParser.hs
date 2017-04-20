@@ -105,7 +105,31 @@ parseValue = do whitespace
                           return $ RComp e e2)))
                  <|>
                  (do symbol "}" 
-                     return SeqNil))
+                     symbol ":"
+                     tp <- parseType 
+                     return $ SeqNil tp))
+
+
+parseType :: Parser Type 
+parseType = do symbol "int" 
+               return TInt 
+            <|>
+            do symbol "bool"
+               return TBool
+            <|>
+            do symbol "{"
+               t <- parseType
+               symbol "}"
+               return $ TSeq t
+            <|>
+            do symbol "("
+               t1 <- parseType
+               symbol ","
+               t2 <- parseType
+               symbol ")"
+               return $ TTup t1 t2 
+
+
 
 parseQual :: Parser (Pat, Exp)
 parseQual = do p <- parsePat
