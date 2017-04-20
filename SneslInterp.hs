@@ -42,8 +42,9 @@ eval (Call i es) r =
 -- general comprehension
 eval (GComp e0 ps) r =
   do vs <- mapM (\(_,e) -> eval e r) ps 
-     let vs' = transpose $ map (\(SVal v) -> v) vs  
-     if foldl (\a x -> a && (length x == length (head vs'))) True vs'
+     let vs' = transpose [v | SVal v <- vs] 
+         v0l = length $ head vs'  
+     if all (\v -> length v == v0l) vs'
      then (do 
              let binds = zipWith (\pl vl -> 
                                  concat $ zipWith (\(p,_) v -> bind p v) pl vl)
@@ -56,11 +57,10 @@ eval (GComp e0 ps) r =
 
 --restricted comprehension
 eval (RComp e0 e1) r = 
-  do b <- eval e1 r 
+  do (AVal (BVal b)) <- eval e1 r 
      case b of 
-        (AVal (BVal True)) -> (do v <- eval e0 r; return $ SVal [v])
+        True -> (do v <- eval e0 r; returnc (1,1) (SVal [v]))
         _ -> return $ SVal []
-
 
 
 
@@ -103,9 +103,7 @@ cleq [IVal n1, IVal n2] = BVal (n1 <= n2)
 
 
 r0 :: Env
-r0 = [("true", AVal (BVal True)),
-      ("false", AVal (BVal False)),
-      ("_plus", primop cplus),
+r0 = [("_plus", primop cplus),
       ("_minus", primop cminus),
       ("_uminus", primop cuminus),
       ("_times", primop ctimes),
@@ -127,70 +125,49 @@ r0 = [("true", AVal (BVal True)),
                            let v = concat [v | SVal v <- vs]
                            in returnc (length v,1) (SVal v))),
 
-      -- convert tuple to sequence
-      ("mkNseq", FVal (\[v@(TVal v1 v2)] -> returnc (0,1) $ mkNestedSeq v)),
-      ("mkFseq", FVal (\[v@(TVal v1 v2)] -> returnc (0,1) $ SVal $ mkFlattenedSeq v)),
+      ---- sequence empty check, zero work 
+      --("empty", FVal(\[SVal vs] -> returnc (0,1) $ AVal (BVal (null vs)))),
 
-      -- sequence empty check, zero work 
-      ("empty", FVal(\[SVal vs] -> returnc (0,1) $ AVal (BVal (null vs)))),
+      ---- singleton seq
+      --("the", FVal (\[SVal x ] -> 
+      --    if (length x == 1) 
+      --    then returnc (0,1) $ head x
+      --    else fail "the: length mismatch")),
 
-      -- singleton seq
-      ("the", FVal (\[SVal x ] -> 
-          if (length x == 1) 
-          then returnc (0,1) $ head x
-          else fail "the: length mismatch")),
-
-       -- zip for two seqs, zero work
-      ("zip", FVal (\[SVal v1, SVal v2] -> 
-                 if (length v1) == (length v2)
-                 then returnc (0,1) $ SVal (map (\(x,y) -> TVal x y) (zip v1 v2) )
-                 else fail "zip: lengths mismatch")),
+      -- -- zip for two seqs, zero work
+      --("zip", FVal (\[SVal v1, SVal v2] -> 
+      --           if (length v1) == (length v2)
+      --           then returnc (0,1) $ SVal (map (\(x,y) -> TVal x y) (zip v1 v2) )
+      --           else fail "zip: lengths mismatch")),
       
-      -- seq partition with flags     
-      ("part", FVal (\ [SVal vs, SVal flags] -> 
-                            let bs = [b | AVal (BVal b) <- flags]
-                                l = length vs
-                            in if sum [1| b <- bs, not b] == l then
-                                 returnc (l,1) $ SVal [SVal v | v <- seglist (flags2len bs) vs]
-                               else fail "part: flags mismatch")),
+      ---- seq partition with flags     
+      --("part", FVal (\ [SVal vs, SVal flags] -> 
+      --                      let bs = [b | AVal (BVal b) <- flags]
+      --                          l = length vs
+      --                      in if sum [1| b <- bs, not b] == l then
+      --                           returnc (l,1) $ SVal [SVal v | v <- seglist (flags2len bs) vs]
+      --                         else fail "part: flags mismatch")),
+
+
+      --("scanIncPlus", FVal (\ [SVal vs] -> 
+      --     let is = [i | AVal (IVal i) <- vs]
+      --         l = length is 
+      --         rs = tail $ scanl (+) 0 is  
+      --      in returnc (l, ceiling (log $ fromIntegral l)) 
+      --                $ SVal [AVal (IVal i) | i <-rs])),
 
       ("scanExPlus", FVal (\ [SVal vs] -> 
            let is = [i | AVal (IVal i) <- vs]
                l = length is 
                rs = init $ scanl (+) 0 is  
             in returnc (l, ceiling (log $ fromIntegral l)) 
-                      $ SVal [AVal (IVal i) | i <-rs])),
-   
-      ("scanIncPlus", FVal (\ [SVal vs] -> 
-           let is = [i | AVal (IVal i) <- vs]
-               l = length is 
-               rs = tail $ scanl (+) 0 is  
-            in returnc (l, ceiling (log $ fromIntegral l)) 
-                      $ SVal [AVal (IVal i) | i <-rs])),
+                      $ SVal [AVal (IVal i) | i <-rs])), 
 
       ("reducePlus", FVal (\ [SVal vs] -> 
            let is = [i | AVal (IVal i) <- vs]
                l = length is 
             in returnc (l, ceiling (log $ fromIntegral l)) $ AVal $ IVal (sum is) ))]
    
-
-mkNestedSeq :: Val -> Val 
-mkNestedSeq (TVal v1 v2) = SVal [v1',v2']
-    where v1' = mkNestedSeq v1 
-          v2' = mkNestedSeq v2
-mkNestedSeq v = v  
-
-
-mkFlattenedSeq :: Val -> [Val]
-mkFlattenedSeq (TVal t1@(TVal v1 v2) t2@(TVal v3 v4)) = t1' ++ t2'
-    where t1' = mkFlattenedSeq t1
-          t2' = mkFlattenedSeq t2
-mkFlattenedSeq (TVal t1@(TVal v1 v2) t2) = t1' ++ [t2]
-    where t1' = mkFlattenedSeq t1
-mkFlattenedSeq (TVal t1 t2@(TVal v3 v4)) = [t1] ++ t2'
-    where t2' = mkFlattenedSeq t2
-mkFlattenedSeq (TVal v1 v2) = [v1,v2]
-
 
 
 -- [f,f,t,t,f,t] -> [2,0,1]
@@ -205,10 +182,10 @@ seglist [] [] = []
 seglist (n:ns) l = take n l : seglist ns (drop n l)
 
 
-runSneslInterp :: Exp -> Either String Val
+runSneslInterp :: Exp -> Either String (Val,Int,Int)
 runSneslInterp e = 
   case rSnesl (eval e r0) of
-    Right (v, nw, ns) ->  Right v 
+    Right (v, nw, ns) ->  Right (v,nw,ns) 
     Left s -> Left $ "Snesl runtime error: "++s
 
 
