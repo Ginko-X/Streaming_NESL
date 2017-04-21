@@ -30,10 +30,11 @@ runFile :: FilePath -> IO ()
 runFile file = do prog <- readFile file 
                   case testExample prog of 
                     Left err -> putStrLn err 
-                    Right ((v,w,s),tp,b) 
+                    Right ((v,w,s),tp,b,(w',s')) 
                        -> do putStrLn $ show v ++ " :: " ++ show tp 
-                             putStrLn $ "work: " ++ show w ++ "  step: " ++ show s
+                             putStrLn $ "SNESL work: " ++ show w ++ "  step: " ++ show s
                              putStrLn $ "Compare with SVCODE value: " ++ show b
+                             putStrLn $ "SVCODE work: " ++ show w' ++ "  step: " ++ show s'
  
 
 -- the last 'Bool' indicates the comparison result 
@@ -43,10 +44,10 @@ testExample p =
        sneslTy <- typing absProg    -- get the expression's type
        (sneslRes,w,s) <- runSneslInterp absProg  -- SNESL interpreting result
        svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
-       svcodeRes <-runSvcodeProg svcode    -- SVCODE interpreting result
+       (svcodeRes,(w',s')) <- runSvcodeProg svcode    -- SVCODE interpreting result
        --return (sneslRes, sneslTy, svcodeRes)
        let compRes = compValSvVal sneslRes sneslTy svcodeRes  -- compare the two results       
-       return ((sneslRes,w,s),sneslTy,compRes)
+       return ((sneslRes,w,s),sneslTy,compRes, (w',s'))
 
 
 -- helper functions for comparing a SNESL value and a SVCODE value
