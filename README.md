@@ -2,6 +2,7 @@
 + Week 16 (17~23 Apr)
     + Add sequence expressions ([some discussion](https://github.com/Ginko-X/Streaming_NESL/issues/4))
     + Add work and step cost to SNESL
+    + Add work and step cost to SVCODE, [for details](https://github.com/Ginko-X/Streaming_NESL/commit/8aabcf45a7d26202c738c8d246190cb03646ece1)  
 
 + Week 15 (10~16 Apr, Easter break)
     + [Thesis proposal](https://docs.google.com/document/d/1xeS902Cb_PUidC7BxDZYzvpoMYaEfMEPG5s9OC0j_gg/edit?usp=sharing)(editable)
