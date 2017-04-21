@@ -70,7 +70,6 @@ instance Show Type where
 
 
 
-
 newtype Snesl a = Snesl {rSnesl :: Either String (a, Int,Int)}
 
 instance Monad Snesl where

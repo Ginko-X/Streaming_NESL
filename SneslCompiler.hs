@@ -75,6 +75,12 @@ translate (Tup e1 e2) ctrl env tye =
        t2 <- translate e2 ctrl env tye 
        return (STPair t1 t2)
 
+translate (SeqNil tp) (STId ctrl) env tye = 
+    do s0 <- emptySeq tp ctrl
+       (STId c) <- emit (MapConst ctrl (IVal 0))  
+       f <- emit (ToFlags c)
+       return (STPair s0 f)
+
 
 translate (Let pat e1 e2) ctrl env tye = 
     do tp <- compTypeInfer e1 tye
@@ -171,6 +177,23 @@ distrSegRecur (TSeq t) (STPair (STPair s0 (STId s1)) (STId s2)) s =
       return (STPair newS0 newS1)
 
 
+-- for empty sequence
+emptySeq :: Type -> SId -> SneslTrans STree
+emptySeq TInt _ =  emit (Empty SInt)
+
+emptySeq TBool _ = emit (Empty SBool)
+
+emptySeq (TSeq tp) ctrl = 
+    do s0 <- emptySeq tp ctrl
+       (STId c) <- emit (MapConst ctrl (IVal 0)) 
+       f <- emit (ToFlags c)
+       return (STPair s0 f)
+
+emptySeq (TTup t1 t2) c = 
+    do s1 <- emptySeq t1 c  
+       s2 <- emptySeq t2 c 
+       return (STPair s1 s2)
+
 
 pack :: Type -> STree -> SId -> SneslTrans STree
 pack TInt (STId s) b = emit (Pack s b)
@@ -193,6 +216,7 @@ getVars :: Exp -> [Id]
 getVars (Var x) = [x]
 getVars (Lit a) = []
 getVars (Tup e1 e2) = concat $ map getVars [e1,e2]
+getVars (SeqNil tp) = []
 getVars (Let p e1 e2) = filter (\x -> not $ x `elem` binds) (getVars e2) 
     where binds = bindVars p 
 getVars (Call fname es) = concat $ map getVars es     

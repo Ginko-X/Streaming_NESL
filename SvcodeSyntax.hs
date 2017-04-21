@@ -26,11 +26,14 @@ data Instr = Ctrl
            | PriSegInter SId SId SId SId  -- segment interleave for primitive streams
            | MapTimes SId SId
            | MapDiv SId SId 
+           | Empty PType
            deriving Show
            
 data SDef = SDef SId Instr  -- deriving Show 
 
 data SSym = SSym [SDef] STree  -- deriving Show 
+
+data PType = SInt | SBool deriving Show
 
 
 

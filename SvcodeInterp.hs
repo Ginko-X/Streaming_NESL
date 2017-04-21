@@ -16,12 +16,20 @@ newtype Svcode a = Svcode {rSvcode :: Svctx -> Either String (a, Svctx)}
 instance Monad Svcode where
     return a = Svcode $ \ c -> Right (a, c)
 
+
     m >>= f = Svcode $ \ c -> 
         case rSvcode m c of 
             Right (a, c') -> case rSvcode (f a) c' of 
                                Right (b, c'') -> Right (b, c'')
                                Left err' -> Left err'      
             Left err -> Left err
+
+    --m >>= f = Svcode $ \ c -> 
+    --    case rSvcode m c of 
+    --        Right (a, (w,s), c') -> case rSvcode (f a) c' of 
+    --                           Right (b, (w',s'), c'') -> Right (b, (w+w', s+s'),c'')
+    --                           Left err' -> Left err'      
+    --        Left err -> Left err
 
 instance Functor Svcode where
   fmap f t = t >>= return . f
@@ -265,6 +273,11 @@ instrInterp (MapDiv s1 s2) =
         then return $ SIVal $ zipWith (div) v1 v2
         else fail "MapDiv: lengths mismatch" 
 
+
+instrInterp (Empty tp) = 
+  case tp of 
+    SInt -> return $ SIVal [] 
+    SBool -> return $ SBVal []
 
 
 -- runtime error check:
