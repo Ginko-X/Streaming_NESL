@@ -383,11 +383,10 @@ interMerge (True:fs1) (True:fs2) = True : interMerge fs1 fs2
 -- 
 segConcat :: [Bool] -> [Bool] -> [Bool]
 segConcat [] [] = []
---segConcat [] (False:fs2) -- This case should be a runtime error
 segConcat (False:fs1) f2@(False:fs2) = False: segConcat fs1 f2
-segConcat (True:fs1) (False:fs2) = segConcat fs1 fs2 
+segConcat (True:fs1) (False:fs2) = segConcat fs1 fs2
 segConcat f1 (True:fs2) = True : segConcat f1 fs2
-
+segConcat (True:fs1) [] = True: segConcat fs1 []  -- special case for empty sequences
 
 -- primitive pack
 -- [1,2,3,4,5] [F,T,F,F,T] = [2,5]
