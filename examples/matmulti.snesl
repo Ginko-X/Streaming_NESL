@@ -1,5 +1,0 @@
--- matrices multiplication 
-let n = 5;
-    matA = {&n : _ in &n};
-    matB = {{1 : _ in &n} : _ in &n} -- matB = {{x : _ in &n} : x in &n}     
-in { (a,b) : a in matA, b in matB}
