@@ -34,15 +34,23 @@ main = do args <- getArgs
 
 
 runFile :: FilePath -> IO () 
-runFile file = do prog <- readFile file 
-                  case testExample prog of 
-                    Left err -> putStrLn err 
-                    Right ((v,w,s),tp,b,(w',s')) 
-                       -> do putStrLn $ show v ++ " :: " ++ show tp 
-                             putStrLn $ "SNESL work: " ++ show w ++ "  step: " ++ show s
-                             putStrLn $ "Compare with SVCODE value: " ++ show b
-                             putStrLn $ "SVCODE work: " ++ show w' ++ "  step: " ++ show s'
- 
+runFile file =
+   do prog <- readFile file 
+      case testExample prog of 
+        Left err -> putStrLn err 
+        Right ((v,w,s),tp, b, sv,(w',s')) 
+           -> if b then 
+                     do putStrLn $ show v ++ " :: " ++ show tp 
+                        putStrLn $ "SNESL [work: " ++ show w ++ "  step: "
+                                      ++ show s ++ "]"
+                        putStrLn $ "SVCODE [work: " ++ show w' ++ "  step: " 
+                                      ++ show s' ++ "]"
+                   else 
+                     do putStrLn $ "SNESL and SVCODE results are different: "
+                        putStrLn $ "SNESL: " ++ show v 
+                        putStrLn $ "SVCODE: " ++ show sv
+
+
 
 -- the last 'Bool' indicates the comparison result 
 --testExample :: String ->  Either String (Val,Type,Bool) 
@@ -53,15 +61,12 @@ testExample p =
        svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
        (svcodeRes,(w',s')) <- runSvcodeProg svcode    -- SVCODE interpreting result
        --return (sneslRes, sneslTy,svcode,svcodeRes)
-       let compRes = compValSvVal sneslRes sneslTy svcodeRes  -- compare the two results       
-       return ((sneslRes,w,s),sneslTy,compRes, (w',s'))
+       let svcodeRes' = dataTransBack sneslTy $ recPair2seq sneslTy svcodeRes
+           compRes = compareVal sneslRes svcodeRes'  -- compare the two results       
+       return ((sneslRes,w,s),sneslTy, compRes, svcodeRes', (w',s'))
 
 
 -- helper functions for comparing a SNESL value and a SVCODE value
-
-compValSvVal :: Val -> Type -> SvVal -> Bool 
-compValSvVal v t sv = compareVal v v'
-    where v' = dataTransBack t $ recPair2seq t sv 
           
 -- compare two SNESL values
 compareVal :: Val -> Val -> Bool
