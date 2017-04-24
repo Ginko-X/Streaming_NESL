@@ -55,7 +55,7 @@ lookupTree (STPair t1 t2) ctx = case lookupTree t1 ctx of
 --runSvcodeProg' (SSym sdefs st) = 
 --  case rSvcode (mapM_ sdefInterp sdefs) [] of 
 --    Right (_, _,ctx) -> 
---        case lookupSpeTree [0..14] ctx of                      
+--        case lookupSpeTree [10..20] ctx of                      
 --            Nothing -> Left "Stream does not exist." 
 --            Just vs -> Right vs
 --    Left err -> Left err 
@@ -191,7 +191,7 @@ instrInterp (Distr s1 s2) =
 instrInterp (SegDistr s1 s2) =
     do v1'@(SBVal v1) <- lookupSid s1
        v2'@(SBVal v2) <- lookupSid s2
-       -- runtime error check: segCountChk
+       segCountChk v1 v2 "SegDistr"
        returnInstrC [v1',v2'] $ SBVal $ segDistr v1 v2          
 
 
@@ -199,15 +199,15 @@ instrInterp (SegFlagDistr s1 s2 s3) =
   do v1'@(SBVal v1) <- lookupSid s1
      v2'@(SBVal v2) <- lookupSid s2
      v3'@(SBVal v3) <- lookupSid s3
-     --segCountChk v2 v3 "SegFlagDistr"
-     --segDescriChk v1 v2 "SegFlagDistr"
+     segCountChk v2 v3 "SegFlagDistr"
+     segDescpChk v1 v2 "SegFlagDistr"
      returnInstrC [v1',v2',v3'] $ SBVal $ segFlagDistr v1 v2 v3 
 
 instrInterp (PrimSegFlagDistr s1 s2 s3) = 
   do v1 <- lookupSid s1
      v2'@(SBVal v2) <- lookupSid s2
      v3'@(SBVal v3) <- lookupSid s3
-     --segCountChk v2 v3 "SegFlagDistr"
+     segCountChk v2 v3 "PrimSegFlagDistr"
      --segElemChk v1 v2 "SegFlagDistr" 
      case v1 of 
         (SIVal is) -> returnInstrC [v1,v2',v3'] $ SIVal $ primSegFlagDistr is v2 v3 
@@ -249,6 +249,7 @@ instrInterp (SegConcat s1 s2) =
 instrInterp (InterMerge s1 s2) = 
   do v1'@(SBVal v1) <- lookupSid s1
      v2'@(SBVal v2) <- lookupSid s2
+     segCountChk v1 v2 "InterMerge"
      returnInstrC [v1',v2'] $ SBVal $ interMerge v1 v2 
 
 instrInterp (SegInter s1 s2 s3 s4) = 
@@ -256,7 +257,9 @@ instrInterp (SegInter s1 s2 s3 s4) =
      v2'@(SBVal v2) <- lookupSid s2
      v3'@(SBVal v3) <- lookupSid s3
      v4'@(SBVal v4) <- lookupSid s4 
-     -- should add segment length check here
+     segCountChk v2 v4 "SegInter" 
+     segDescpChk v1 v2 "SegInter"
+     segDescpChk v3 v4 "SegInter"
      returnInstrC [v1',v2',v3',v4'] $ SBVal $ segInter v1 v2 v3 v4  
 
 instrInterp (PriSegInter s1 s2 s3 s4) = 
@@ -296,13 +299,27 @@ instrInterp (Empty tp) =
 
 -- runtime error check:
 
--- check two bool lists have the same number of segments (i.e. number of 'T's)
+-- check if two bool lists have the same number of segments (i.e. number of 'T's)
 segCountChk :: [Bool] -> [Bool] -> String -> Svcode ()
-segCountChk = undefined
+segCountChk b1 b2 instrName = 
+    do let segCount1 = length [b | b <- b1, b]
+           segCount2 = length [b | b <- b2, b]
+       if segCount1 == segCount2 
+       then return ()
+       else fail $ instrName ++ ": segment numbers mismatch: " 
+                      ++ show b1 ++ ", " ++ show b2 
+
 
 -- the number of 'F's in b2 is equal to the number of 'T's in b1
-segDescriChk :: [Bool] -> [Bool] -> String -> Svcode ()
-segDescriChk b1 b2 instrName = undefined
+segDescpChk :: [Bool] -> [Bool] -> String -> Svcode ()
+segDescpChk b1 b2 instrName = 
+    do let segCount1 = length [b | b <- b1, b]
+           l2 = length [b | b <- b2, not b]
+       if segCount1 == l2
+       then return ()
+       else fail $ instrName ++ ": segment descriptor mismatch: "
+                    ++ show b1 ++ ", " ++ show b2  
+
 
 -- the number of 'F's in bs is equal to the length of as
 segElemChk :: [a] -> [Bool] -> String -> Svcode ()
@@ -448,13 +465,11 @@ primSegFlagDistr v1 v2 v3  = concat $ zipWith segReplicate segs ls3
 
 
 
-
-
 -- replicate [a] 'Int' times
 segReplicate :: [a] -> Int -> [a]
 segReplicate [] _ = []
 segReplicate bs 1 = bs
-segReplicate bs i = bs ++ segReplicate bs (i-1) 
+segReplicate bs i = if i >1 then bs ++ segReplicate bs (i-1) else []
 
 
 
