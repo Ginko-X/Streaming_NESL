@@ -1,2 +1,0 @@
--- square sum
-let n = 10000 in reducePlus({x*x : x in &n})

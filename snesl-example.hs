@@ -41,9 +41,9 @@ runFile file =
         Right ((v,w,s),tp, b, sv,(w',s')) 
            -> if b then 
                      do putStrLn $ show v ++ " :: " ++ show tp 
-                        putStrLn $ "SNESL [work: " ++ show w ++ "  step: "
+                        putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
                                       ++ show s ++ "]"
-                        putStrLn $ "SVCODE [work: " ++ show w' ++ "  step: " 
+                        putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
                                       ++ show s' ++ "]"
                    else 
                      do putStrLn $ "SNESL and SVCODE results are different: "
