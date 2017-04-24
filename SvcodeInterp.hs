@@ -51,11 +51,11 @@ lookupTree (STPair t1 t2) ctx = case lookupTree t1 ctx of
     Nothing -> Nothing
 
 -- only for debug, to show all the SIds and their streams
---runSvcodeProg :: SSym -> Either String SvVal
---runSvcodeProg (SSym sdefs st) = 
+--runSvcodeProg' :: SSym -> Either String SvVal
+--runSvcodeProg' (SSym sdefs st) = 
 --  case rSvcode (mapM_ sdefInterp sdefs) [] of 
---    Right (_, ctx) -> 
---        case lookupSpeTree [22..26] ctx of                      
+--    Right (_, _,ctx) -> 
+--        case lookupSpeTree [0..14] ctx of                      
 --            Nothing -> Left "Stream does not exist." 
 --            Just vs -> Right vs
 --    Left err -> Left err 
@@ -146,7 +146,7 @@ instrInterp (MapAdd s1 s2) =
        v2'@(SIVal v2) <- lookupSid s2
        if (length v1)  == (length v2) 
          then returnInstrC [v1',v2'] $ SIVal $ zipWith (+) v1 v2
-         else fail "MapAdd: lengths mismatch" 
+         else fail $ "MapAdd: lengths mismatch: "++ show v1 ++ ", " ++ show v2 
 
 
 instrInterp (MapEqual s1 s2) = 
@@ -154,7 +154,7 @@ instrInterp (MapEqual s1 s2) =
       v2'@(SIVal v2) <- lookupSid s2
       if (length v1)  == (length v2) 
         then returnInstrC [v1',v2'] $ SBVal $ zipWith (==) v1 v2
-        else fail "MapEqual: lengths mismatch" 
+        else fail $ "MapEqual: lengths mismatch: "++ show v1 ++ ", " ++ show v2 
 
 
 
@@ -178,9 +178,9 @@ instrInterp (UPack s1 s2) =
 
 
 instrInterp (Distr s1 s2) =
-    do v1 <- lookupSid s1
+    do v1 <- lookupSid s1  
        l1 <- streamLenM v1
-       v2'@(SBVal v2) <- lookupSid s2
+       v2'@(SBVal v2) <- lookupSid s2  
        if not $ l1 == (length [v | v <- v2, v])
          then fail "Distr: segments mismatch"
          else let v1' = case v1 of
@@ -277,14 +277,15 @@ instrInterp (MapTimes s1 s2) =
      v2'@(SIVal v2) <- lookupSid s2
      if (length v1)  == (length v2) 
         then returnInstrC [v1',v2'] $ SIVal $ zipWith (*) v1 v2
-        else fail "MapTimes: lengths mismatch" 
+        else fail $ "MapTimes: lengths mismatch: "++ show v1 ++ ", " ++ show v2 
+
 
 instrInterp (MapDiv s1 s2) = 
   do v1'@(SIVal v1) <- lookupSid s1
      v2'@(SIVal v2) <- lookupSid s2
      if (length v1)  == (length v2) 
         then returnInstrC [v1',v2'] $ SIVal $ zipWith (div) v1 v2
-        else fail "MapDiv: lengths mismatch" 
+        else fail $ "MapDiv: lengths mismatch: "++ show v1 ++ ", " ++ show v2 
 
 
 instrInterp (Empty tp) = 

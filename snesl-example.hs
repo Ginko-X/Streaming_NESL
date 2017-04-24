@@ -7,6 +7,8 @@ import SneslSyntax
 import SneslTyping
 import DataTrans
 
+import System.Environment
+
 
 -- An example program: compute all the primes less than the number 'count'
 prog1 = "let count = 50; " ++
@@ -24,6 +26,11 @@ prog2 = "let a = {{&2|T}|T} ++ {{{3|T}|T} |T} ; "++
 prog3 = "let a = {{&2}} ++ {{{3}}} ; "++  
         "    b = {{{4}}} ++ {{{5} ++ {9}}} " ++ 
         " in {a ++ b : _ in &2}"
+
+main = do args <- getArgs
+          case args of
+            [file] -> runFile file 
+            _ -> putStrLn "Input file error."
 
 
 runFile :: FilePath -> IO () 
@@ -45,7 +52,7 @@ testExample p =
        (sneslRes,w,s) <- runSneslInterp absProg  -- SNESL interpreting result
        svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
        (svcodeRes,(w',s')) <- runSvcodeProg svcode    -- SVCODE interpreting result
-       --return (sneslRes, sneslTy, svcodeRes)
+       --return (sneslRes, sneslTy,svcode)
        let compRes = compValSvVal sneslRes sneslTy svcodeRes  -- compare the two results       
        return ((sneslRes,w,s),sneslTy,compRes, (w',s'))
 
