@@ -52,7 +52,7 @@ testExample p =
        (sneslRes,w,s) <- runSneslInterp absProg  -- SNESL interpreting result
        svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
        (svcodeRes,(w',s')) <- runSvcodeProg svcode    -- SVCODE interpreting result
-       --return (sneslRes, sneslTy,svcode)
+       --return (sneslRes, sneslTy,svcode,svcodeRes)
        let compRes = compValSvVal sneslRes sneslTy svcodeRes  -- compare the two results       
        return ((sneslRes,w,s),sneslTy,compRes, (w',s'))
 
@@ -68,7 +68,10 @@ compareVal :: Val -> Val -> Bool
 compareVal (AVal (IVal i1)) (AVal (IVal i2)) = i1 == i2
 compareVal (AVal (BVal b1)) (AVal (BVal b2)) = b1 == b2
 compareVal (TVal v1 v2) (TVal v1' v2') = (compareVal v1 v1') && (compareVal v2 v2')
-compareVal (SVal vs1) (SVal vs2) = all (\x -> x) $ (zipWith (\v1 v2 -> compareVal v1 v2) vs1 vs2)
+compareVal (SVal vs1) (SVal vs2) = 
+    if length vs1 == length vs2 
+    then all (\x -> x) $ zipWith compareVal vs1 vs2
+    else False
 compareVal _ _ = False 
 
 
