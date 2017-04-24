@@ -1,0 +1,2 @@
+-- square sum
+let n = 10 in reducePlus({x*x : x in &n})

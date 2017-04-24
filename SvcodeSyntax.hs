@@ -28,7 +28,7 @@ data Instr = Ctrl
            | MapDiv SId SId 
            | Empty PType
            deriving Show
-           
+         
 data SDef = SDef SId Instr  -- deriving Show 
 
 data SSym = SSym [SDef] STree  -- deriving Show 
