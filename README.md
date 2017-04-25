@@ -3,7 +3,7 @@
     + Add sequence expressions ([some discussion](https://github.com/Ginko-X/Streaming_NESL/issues/4))
     + Add work and step cost to SNESL
     + Add work and step cost to SVCODE, [for details](https://github.com/Ginko-X/Streaming_NESL/commit/8aabcf45a7d26202c738c8d246190cb03646ece1)
-    + Add the folder 'experiments' (and also 'examples' for SNESL programs) to compare the empirical costs of a SNESL program and its translated SVCODE program, (see some results: [prime.snesl](https://github.com/Ginko-X/Streaming_NESL/blob/master/expriments/prime.jpg), [sqsum.snesl](https://github.com/Ginko-X/Streaming_NESL/blob/master/expriments/sqsum.jpg))
+    + Add the folder 'experiments' (and also 'examples' for SNESL programs) to compare the empirical costs of a SNESL program and its translated SVCODE program, ([see some results](https://github.com/Ginko-X/Streaming_NESL/issues/9))
     + Found and fixed some bugs
 
 

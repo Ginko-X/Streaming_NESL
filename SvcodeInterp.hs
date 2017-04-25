@@ -182,7 +182,7 @@ instrInterp (Distr s1 s2) =
        l1 <- streamLenM v1
        v2'@(SBVal v2) <- lookupSid s2  
        if not $ l1 == (length [v | v <- v2, v])
-         then fail "Distr: segments mismatch"
+         then fail $ "Distr: segments mismatch: " ++ show v1 ++ ", " ++ show v2
          else let v1' = case v1 of
                          (SIVal is) -> SIVal $ pdist is v2 
                          (SBVal bs) -> SBVal $ pdist bs v2
@@ -208,7 +208,7 @@ instrInterp (PrimSegFlagDistr s1 s2 s3) =
      v2'@(SBVal v2) <- lookupSid s2
      v3'@(SBVal v3) <- lookupSid s3
      segCountChk v2 v3 "PrimSegFlagDistr"
-     --segElemChk v1 v2 "SegFlagDistr" 
+     --elemDescpChk v1 v2 "SegFlagDistr" 
      case v1 of 
         (SIVal is) -> returnInstrC [v1,v2',v3'] $ SIVal $ primSegFlagDistr is v2 v3 
         (SBVal bs) -> returnInstrC [v1,v2',v3'] $ SBVal $ primSegFlagDistr bs v2 v3 
@@ -320,10 +320,22 @@ segDescpChk b1 b2 instrName =
        else fail $ instrName ++ ": segment descriptor mismatch: "
                     ++ show b1 ++ ", " ++ show b2  
 
+-- the number of 'T's in b2 is equal to the number of elements in b1
+--elemSegChk :: [a] -> [Bool] -> String -> Svcode ()
+--elemSegChk as bs instrName = 
+--    do let al = length as 
+--           segs = length [b | b <- bs, b]
+--       if al == segs 
+--       then return ()
+--       else fail $ instrName ++ ": segment mismatch: " 
+--                      ++ show as ++ ", " ++ show bs
+
+
 
 -- the number of 'F's in bs is equal to the length of as
-segElemChk :: [a] -> [Bool] -> String -> Svcode ()
-segElemChk as bs instrName = undefined
+elemDescpChk :: [a] -> [Bool] -> String -> Svcode ()
+elemDescpChk as bs instrName = undefined
+
 
 
 -- segment interleave
