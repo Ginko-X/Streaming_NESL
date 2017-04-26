@@ -85,9 +85,9 @@ translate (SeqNil tp) (STId ctrl) env tye =
 
 translate (Let pat e1 e2) ctrl env tye = 
     do tp <- compTypeInfer e1 tye
-       let tye' = typeBind pat tp ++ tye
-       t <- translate e1 ctrl env tye'
-       translate e2 ctrl (bind pat t ++ env) tye'
+       patTypes <- typeBindM pat tp
+       t <- translate e1 ctrl env tye
+       translate e2 ctrl (bind pat t ++ env) (patTypes++ tye)
 
 
 translate (Call fname es) ctrl env tye = 
@@ -97,12 +97,13 @@ translate (Call fname es) ctrl env tye =
 
 
 translate (GComp e0 ps) ctrl env tye = 
-     do -- type binds
+     do -- variables' type bindings
         tps <- mapM (\(_,e) -> compTypeInfer e tye) ps
-        let tye' = (concat $ zipWith (\(p,_) (TSeq tp) -> typeBind p tp) ps tps)  ++ tye 
+        bindsTps <- zipWithM (\(p,_) (TSeq tp) -> typeBindM p tp) ps tps
+        let tye' = concat bindsTps ++ tye 
         
-        -- varable binds
-        trs <- mapM (\(_,e) -> translate e ctrl env tye') ps
+        -- varable bindings
+        trs <- mapM (\(_,e) -> translate e ctrl env tye) ps
         let binds = concat $ zipWith (\(p,_) (STPair t (STId s))-> bind p t) ps trs
         
         let (STPair t (STId s0)) = head trs 
@@ -125,11 +126,11 @@ translate (RComp e0 e1) ctrl env tye =
     do (STId s1) <- translate e1 ctrl env tye  
        (STId s2) <- emit (B2u s1)  
        ctrl' <- emit (Usum s2)  
-       let freeVars = getVars e0 
-       usingVarsTps <- mapM (\x -> getVarType x tye) freeVars         
-       usingVarsTrs <- mapM (\x -> translate (Var x) ctrl env tye) freeVars 
+       let usingVars = getVars e0 
+       usingVarsTps <- mapM (\x -> getVarType x tye) usingVars         
+       usingVarsTrs <- mapM (\x -> translate (Var x) ctrl env tye) usingVars 
        newVarTrs <- zipWithM (\x xtp -> pack xtp x s1) usingVarsTrs usingVarsTps
-       let binds = zipWith (\ v t -> (v,t)) freeVars newVarTrs
+       let binds = zipWith (\ v t -> (v,t)) usingVars newVarTrs
        s3 <- translate e0 ctrl' (binds ++ env) tye 
        return (STPair s3 (STId s2)) 
 
@@ -327,4 +328,14 @@ bind PWild s = []
 bind (PTup p1 p2) (STPair t1 t2) = ps1 ++ ps2
     where ps1 = bind p1 t1
           ps2 = bind p2 t2
+
+typeBindM :: Pat -> Type -> SneslTrans TyEnv
+typeBindM (PVar x) t = return [(x,t)]
+typeBindM PWild _ = return []
+typeBindM (PTup p1 p2) (TTup t1 t2) = 
+  do b1 <- typeBindM p1 t1
+     b2 <- typeBindM p2 t2
+     return $ b1 ++ b2 
+typeBindM p@(PTup _ _) t = fail $ "Bad type bindings: " 
+                                    ++ show p ++ ", " ++ show t
 

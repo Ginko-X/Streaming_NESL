@@ -31,8 +31,7 @@ data Exp = Var Id
 data Pat = PVar Id
          | PWild 
          | PTup Pat Pat
-  deriving Show
-
+  --deriving Show
 
 
 instance Show AVal where
@@ -45,6 +44,11 @@ instance Show Val where
   show (TVal v1 v2) = "(" ++ show v1 ++ "," ++ show v2 ++ ")"
   show (SVal vs) = "{" ++ showelts vs ++ "}"
   show (FVal _) = "<function>"
+
+instance  Show Pat where
+  show (PVar i)  = i
+  show PWild = "_"
+  show (PTup p1 p2) = "(" ++ show p1 ++ "," ++ show p2 ++ ")"
 
 
 showelts [] = ""
