@@ -8,6 +8,7 @@ import DataTrans
 import SneslParser
 import SneslTyping
 import Control.Monad (zipWithM)
+import Data.List (union)
 
 
 newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> 
@@ -108,11 +109,12 @@ translate (GComp e0 ps) ctrl env tye =
         ctrl' <- emit (Usum s0) 
         
         -- free variables distribution
-        let freeVars = getVars (GComp e0 ps)
-        freeVarsTps <- mapM (\x -> getVarType x tye') freeVars         
-        freeVarsTrs <- mapM (\x -> translate (Var x) ctrl env tye') freeVars
-        newVarTrs  <- zipWithM (\xtp x -> distr xtp x s0) freeVarsTps freeVarsTrs      
-        let binds' = zipWith (\v t -> (v,t)) freeVars newVarTrs
+        let bindvs = concat $ map (\(p,e) -> getBindVars p) ps  
+            usingVars = filter (\x -> not $ x `elem` bindvs) (getVars e0) 
+        usingVarsTps <- mapM (\x -> getVarType x tye') usingVars         
+        usingVarsTrs <- mapM (\x -> translate (Var x) ctrl env tye') usingVars
+        newVarTrs  <- zipWithM (\xtp x -> distr xtp x s0) usingVarsTps usingVarsTrs      
+        let binds' = zipWith (\v t -> (v,t)) usingVars newVarTrs
 
         -- translate body        
         st <- translate e0 ctrl' (binds ++ binds' ++ env) tye'
@@ -124,9 +126,9 @@ translate (RComp e0 e1) ctrl env tye =
        (STId s2) <- emit (B2u s1)  
        ctrl' <- emit (Usum s2)  
        let freeVars = getVars e0 
-       freeVarsTps <- mapM (\x -> getVarType x tye) freeVars         
-       freeVarsTrs <- mapM (\x -> translate (Var x) ctrl env tye) freeVars 
-       newVarTrs <- zipWithM (\x xtp -> pack xtp x s1) freeVarsTrs freeVarsTps
+       usingVarsTps <- mapM (\x -> getVarType x tye) freeVars         
+       usingVarsTrs <- mapM (\x -> translate (Var x) ctrl env tye) freeVars 
+       newVarTrs <- zipWithM (\x xtp -> pack xtp x s1) usingVarsTrs usingVarsTps
        let binds = zipWith (\ v t -> (v,t)) freeVars newVarTrs
        s3 <- translate e0 ctrl' (binds ++ env) tye 
        return (STPair s3 (STId s2)) 
@@ -215,20 +217,28 @@ pack (TSeq tp) (STPair t (STId s)) b =
 getVars :: Exp -> [Id]
 getVars (Var x) = [x]
 getVars (Lit a) = []
-getVars (Tup e1 e2) = concat $ map getVars [e1,e2]
+getVars (Tup e1 e2) = foldl union [] $ map getVars [e1,e2]
 getVars (SeqNil tp) = []
-getVars (Let p e1 e2) = filter (\x -> not $ x `elem` binds) (getVars e2) 
-    where binds = bindVars p 
-getVars (Call fname es) = concat $ map getVars es     
-getVars (GComp e0 ps) = filter (\x -> not $ x `elem` binds) e0vs
-    where e0vs = getVars e0 
-          binds = concat $ map (\(p,e) -> bindVars p) ps
-getVars (RComp e0 e1) = concat $ map getVars [e0,e1]
 
-bindVars :: Pat -> [Id]
-bindVars (PVar x) = [x]
-bindVars PWild = [] 
-bindVars (PTup p1 p2) = concat $ map bindVars [p1,p2] 
+getVars (Let p e1 e2) = e1Vars ++ filter (\x -> not $ x `elem` binds) (getVars e2) 
+    where binds = getBindVars p 
+          e1Vars = getVars e1 
+
+getVars (Call fname es) = foldl union [] $ map getVars es 
+
+getVars (GComp e0 ps) = pVars ++ filter (\x -> not $ x `elem` binds) e0vs
+    where e0vs = getVars e0
+          binds = foldl union [] $ map (\(p,_) -> getBindVars p) ps
+          pVars = foldl union [] $ map (\(_,e) -> getVars e) ps 
+
+getVars (RComp e0 e1) = foldl union [] $ map getVars [e0,e1]
+
+
+getBindVars :: Pat -> [Id]
+getBindVars (PVar x) = [x]
+getBindVars PWild = [] 
+getBindVars (PTup p1 p2) = concat $ map getBindVars [p1,p2] 
+
 
 
 
