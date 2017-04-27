@@ -36,17 +36,24 @@ def readData(filename):
 
 def subPlot(subFig, xs, sdata, svdata, costLabel):			
 	plt.sca(subFig)  
-	plt.plot(xs, sdata, 'o-',label="SNESL")
-	plt.plot(xs, svdata, 'D-',label="SVCODE")
+	plt.plot(xs, sdata, 'o-',label="SNESL "+ costLabel)  # o- line style
+	plt.plot(xs, svdata, 'D-',label="SVCODE " + costLabel)  # D- : diamond
 	plt.xlabel("input size")
 	plt.ylabel(costLabel)
-	plt.legend(loc='best')
+        f = factor(sdata,svdata)
+	plt.legend(loc='upper left')
+        plt.title(r"$\frac{SVCODE}{SNESL}$="+str(f))
 
+def factor(sdata,svdata):
+        f = []
+        for i in range(len(sdata)): 
+                f.append(round(float(svdata[i]) / sdata[i], 2))
+        return f
 
 cost_file = sys.argv[1]
 (size,res) = readData(cost_file+".cost")
-ax1 = plt.subplot(211) 
-ax2 = plt.subplot(212) 
+ax1 = plt.subplot(3,1,1)   # rows, cols, subplot number 
+ax2 = plt.subplot(3,1,3) 
 subPlot(ax1, size, res[0], res[2], "work")
 subPlot(ax2, size, res[1], res[3], "step")
 plt.savefig(cost_file +".jpg")
