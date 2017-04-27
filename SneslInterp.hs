@@ -160,13 +160,13 @@ r0 = [("_plus", primop cplus),
            let is = [i | AVal (IVal i) <- vs]
                l = length is 
                rs = init $ scanl (+) 0 is  
-            in returnc (l, ceiling (log $ fromIntegral l)) 
+            in returnc (l, 1) 
                       $ SVal [AVal (IVal i) | i <-rs])), 
 
       ("reducePlus", FVal (\ [SVal vs] -> 
            let is = [i | AVal (IVal i) <- vs]
                l = length is 
-            in returnc (l, ceiling (log $ fromIntegral l)) $ AVal $ IVal (sum is) ))]
+            in returnc (l, 1) $ AVal $ IVal (sum is) ))]
    
 
 
