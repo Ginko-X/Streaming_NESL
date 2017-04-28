@@ -10,23 +10,6 @@ import DataTrans
 import System.Environment
 
 
--- An example program: compute all the primes less than the number 'count'
-prog1 = "let count = 50; " ++
-        "    rs1 = {{{x+1 | a / (x+1) * (x+1) == a} : x in &a}: a in &count} ;"  ++
-         "   rs2 = {reducePlus(concat(z)): z in rs1} "  ++
-        "in  concat({{x | x+1 == y}: x in &count, y in rs2})"
-
-
--- An example for '_append', a = {{{0, 1}}, {{3}}} , b = {{{4}},    {{5, 9}}}
-prog2 = "let a = {{&2|T}|T} ++ {{{3|T}|T} |T} ; "++  
-        "    b = {{{4|T}|T}|T} ++ {{{5|T} ++ {9|T}|T}|T} " ++ 
-        " in {x ++ y : x in a, y in b}"
-
--- same as prog2, using primitive sequences instead of guards
-prog3 = "let a = {{&2}} ++ {{{3}}} ; "++  
-        "    b = {{{4}}} ++ {{{5} ++ {9}}} " ++ 
-        " in {a ++ b : _ in &2}"
-
 main = do args <- getArgs
           case args of
             [file] -> runFile file 
@@ -36,9 +19,14 @@ main = do args <- getArgs
 runFile :: FilePath -> IO () 
 runFile file =
    do prog <- readFile file 
-      case testExample prog of 
+      testExample prog
+
+
+testExample :: String -> IO()
+testExample prog =  
+    case runProg prog of 
         Left err -> putStrLn err 
-        Right ((v,w,s),tp, b, sv,(w',s')) 
+        Right ((v,w,s),tp, b, (sv,w',s')) 
            -> if b then 
                      do putStrLn $ show v ++ " :: " ++ show tp 
                         putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
@@ -46,15 +34,13 @@ runFile file =
                         putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
                                       ++ show s' ++ "]"
                    else 
-                     do putStrLn $ "SNESL and SVCODE results are different: "
+                     do putStrLn $ "Error: SNESL and SVCODE results are different!"
                         putStrLn $ "SNESL: " ++ show v 
                         putStrLn $ "SVCODE: " ++ show sv
 
 
-
--- the last 'Bool' indicates the comparison result 
---testExample :: String ->  Either String (Val,Type,Bool) 
-testExample p = 
+runProg :: String ->  Either String ((Val,Int,Int),Type,Bool,(Val,Int,Int)) 
+runProg p = 
     do absProg <- parseString p    -- parse the SNESL expression
        sneslTy <- typing absProg    -- get the expression's type
        (sneslRes,w,s) <- runSneslInterp absProg  -- SNESL interpreting result
@@ -63,7 +49,7 @@ testExample p =
        --return (sneslRes, sneslTy,svcode,svcodeRes)
        let svcodeRes' = dataTransBack sneslTy $ recPair2seq sneslTy svcodeRes
            compRes = compareVal sneslRes svcodeRes'  -- compare the two results       
-       return ((sneslRes,w,s),sneslTy, compRes, svcodeRes', (w',s'))
+       return ((sneslRes,w,s),sneslTy, compRes, (svcodeRes', w',s'))
 
 
 -- helper functions for comparing a SNESL value and a SVCODE value
@@ -90,3 +76,24 @@ recPair2seq (TSeq t) (SPVal v1 (SBVal v2)) = SSVal v1' v2
 recPair2seq (TTup t1 t2) (SPVal v1 v2) = SPVal v1' v2' 
     where v1' = recPair2seq t1 v1 
           v2' = recPair2seq t2 v2
+
+
+-- some examples 
+
+-- An example program: compute all the primes less than the number 'count'
+prog1 = "let count = 50; " ++
+        "    rs1 = {{{x+1 | a / (x+1) * (x+1) == a} : x in &a}: a in &count} ;"  ++
+         "   rs2 = {reducePlus(concat(z)): z in rs1} "  ++
+        "in  concat({{x | x+1 == y}: x in &count, y in rs2})"
+
+
+-- An example for '_append', a = {{{0, 1}}, {{3}}} , b = {{{4}},    {{5, 9}}}
+prog2 = "let a = {{&2|T}|T} ++ {{{3|T}|T} |T} ; "++  
+        "    b = {{{4|T}|T}|T} ++ {{{5|T} ++ {9|T}|T}|T} " ++ 
+        " in {x ++ y : x in a, y in b}"
+
+-- same as prog2, using primitive sequences instead of guards
+prog3 = "let a = {{&2}} ++ {{{3}}} ; "++  
+        "    b = {{{4}}} ++ {{{5} ++ {9}}} " ++ 
+        " in {a ++ b : _ in &2}"
+
