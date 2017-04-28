@@ -94,6 +94,15 @@ streamLen (SIVal s) = length s
 streamLen (SBVal s) = length s 
 
 
+-- look up the function definition of the operation
+lookupOP :: OP -> OpEnv -> Svcode ([SvVal] -> SvVal)  
+lookupOP key ps = 
+  do case lookup key ps of
+       Just v -> return v 
+       Nothing -> fail $ "SVCODE: can't find " ++ show key
+
+
+
 sdefInterp :: SDef -> Svcode SvVal
 sdefInterp (SDef sid i) = 
     do v <- instrInterp i
@@ -141,33 +150,27 @@ instrInterp (Usum sid) =
     do vs'@(SBVal vs) <- lookupSid sid
        returnInstrC [vs'] $ SBVal $ usum vs 
 
-instrInterp (MapAdd s1 s2) = 
-    do v1'@(SIVal v1) <- lookupSid s1
-       v2'@(SIVal v2) <- lookupSid s2
-       if (length v1)  == (length v2) 
-         then returnInstrC [v1',v2'] $ SIVal $ zipWith (+) v1 v2
-         else fail $ "MapAdd: lengths mismatch: "++ show v1 ++ ", " ++ show v2 
-
-
-instrInterp (MapEqual s1 s2) = 
-   do v1'@(SIVal v1) <- lookupSid s1
-      v2'@(SIVal v2) <- lookupSid s2
-      if (length v1)  == (length v2) 
-        then returnInstrC [v1',v2'] $ SBVal $ zipWith (==) v1 v2
-        else fail $ "MapEqual: lengths mismatch: "++ show v1 ++ ", " ++ show v2 
-
+instrInterp (MapOne op s1) = 
+    do v1 <- lookupSid s1
+       fop <- lookupOP op opEnv0
+       returnInstrC [v1] $ fop [v1]
+      
+instrInterp (MapTwo op s1 s2) = 
+    do v1 <- lookupSid s1
+       v2 <- lookupSid s2
+       primLenChk v1 v2 "MapTwo"
+       fop <- lookupOP op opEnv0
+       returnInstrC [v1,v2] $ fop [v1,v2]
 
 
 instrInterp (Pack s1 s2) = 
     do v1 <- lookupSid s1
-       l1 <- streamLenM v1
        v2'@(SBVal v2) <- lookupSid s2
-       if not $ l1 == (length v2)
-         then fail "Pack: lengths mismatch"
-         else let v1' = case v1 of               
-                         (SIVal is) -> SIVal $ ppack is v2 
-                         (SBVal bs) -> SBVal $ ppack bs v2
-              in returnInstrC [v1,v2'] v1'
+       primLenChk v1 v2' "Pack"
+       let v1' = case v1 of               
+                     (SIVal is) -> SIVal $ ppack is v2 
+                     (SBVal bs) -> SBVal $ ppack bs v2
+       returnInstrC [v1,v2'] v1'
 
 instrInterp (UPack s1 s2) = 
     do v1'@(SBVal v1) <- lookupSid s1
@@ -222,6 +225,7 @@ instrInterp (B2u sid) =
 instrInterp (SegscanPlus s1 s2) = 
     do v1'@(SIVal v1) <- lookupSid s1
        v2'@(SBVal v2) <- lookupSid s2 
+       
        if not $ (sum $ flags2len v2) == (length v1)
          then fail "SegscanPlus: segments mismatch"
          else returnInstrC [v1',v2'] $ SIVal $ segExScanPlus v1 v2 
@@ -239,11 +243,6 @@ instrInterp (SegConcat s1 s2) =
     do v1'@(SBVal v1) <- lookupSid s1
        v2'@(SBVal v2) <- lookupSid s2
        returnInstrC [v1',v2'] $ SBVal $ segConcat v1 v2 
-
---instrInterp (Append s1 s2) = 
---  do v1 <- lookupSid s1
---     v2 <- lookupSid s2 
---     return $ appendPrimStream v1 v2  
 
 
 instrInterp (InterMerge s1 s2) = 
@@ -275,66 +274,10 @@ instrInterp (SegMerge s1 s2) =
      returnInstrC [v1',v2'] $ SBVal $ segMerge v1 v2 
 
 
-instrInterp (MapTimes s1 s2) = 
-  do v1'@(SIVal v1) <- lookupSid s1
-     v2'@(SIVal v2) <- lookupSid s2
-     if (length v1)  == (length v2) 
-        then returnInstrC [v1',v2'] $ SIVal $ zipWith (*) v1 v2
-        else fail $ "MapTimes: lengths mismatch: "++ show v1 ++ ", " ++ show v2 
-
-
-instrInterp (MapDiv s1 s2) = 
-  do v1'@(SIVal v1) <- lookupSid s1
-     v2'@(SIVal v2) <- lookupSid s2
-     if (length v1)  == (length v2) 
-        then returnInstrC [v1',v2'] $ SIVal $ zipWith (div) v1 v2
-        else fail $ "MapDiv: lengths mismatch: "++ show v1 ++ ", " ++ show v2 
-
-
 instrInterp (Empty tp) = 
   case tp of 
-    SInt -> returnInstrC [] $ SIVal [] 
-    SBool -> returnInstrC [] $ SBVal []
-
-
--- runtime error check:
-
--- check if two bool lists have the same number of segments (i.e. number of 'T's)
-segCountChk :: [Bool] -> [Bool] -> String -> Svcode ()
-segCountChk b1 b2 instrName = 
-    do let segCount1 = length [b | b <- b1, b]
-           segCount2 = length [b | b <- b2, b]
-       if segCount1 == segCount2 
-       then return ()
-       else fail $ instrName ++ ": segment numbers mismatch: " 
-                      ++ show b1 ++ ", " ++ show b2 
-
-
--- the number of 'F's in b2 is equal to the number of 'T's in b1
-segDescpChk :: [Bool] -> [Bool] -> String -> Svcode ()
-segDescpChk b1 b2 instrName = 
-    do let segCount1 = length [b | b <- b1, b]
-           l2 = length [b | b <- b2, not b]
-       if segCount1 == l2
-       then return ()
-       else fail $ instrName ++ ": segment descriptor mismatch: "
-                    ++ show b1 ++ ", " ++ show b2  
-
--- the number of 'T's in b2 is equal to the number of elements in b1
---elemSegChk :: [a] -> [Bool] -> String -> Svcode ()
---elemSegChk as bs instrName = 
---    do let al = length as 
---           segs = length [b | b <- bs, b]
---       if al == segs 
---       then return ()
---       else fail $ instrName ++ ": segment mismatch: " 
---                      ++ show as ++ ", " ++ show bs
-
-
-
--- the number of 'F's in bs is equal to the length of as
-elemDescpChk :: [a] -> [Bool] -> String -> Svcode ()
-elemDescpChk as bs instrName = undefined
+    TInt -> returnInstrC [] $ SIVal [] 
+    TBool -> returnInstrC [] $ SBVal []
 
 
 
@@ -498,4 +441,51 @@ segSum [] [] = []
 segSum (n:ns) l = (sum $ take n l) : segSum ns (drop n l)
 
 
+
+-- helper functions for runtime error check :
+
+-- check if two primitive streams have the same length
+primLenChk :: SvVal -> SvVal -> String -> Svcode ()
+primLenChk s1 s2 instrName =
+  do l1 <- streamLenM s1
+     l2 <- streamLenM s2 
+     if l1 == l2
+     then return () 
+     else fail $ instrName ++ ": stream lengths mismatch: "
+                   ++ show s1 ++ ", " ++ show s2 
+
+-- check if two bool lists have the same number of segments (i.e. number of 'T's)
+segCountChk :: [Bool] -> [Bool] -> String -> Svcode ()
+segCountChk b1 b2 instrName = 
+    do let segCount1 = length [b | b <- b1, b]
+           segCount2 = length [b | b <- b2, b]
+       if segCount1 == segCount2 
+       then return ()
+       else fail $ instrName ++ ": segment numbers mismatch: " 
+                      ++ show b1 ++ ", " ++ show b2 
+
+-- the number of 'F's in b2 is equal to the number of 'T's in b1
+segDescpChk :: [Bool] -> [Bool] -> String -> Svcode ()
+segDescpChk b1 b2 instrName = 
+    do let segCount1 = length [b | b <- b1, b]
+           l2 = length [b | b <- b2, not b]
+       if segCount1 == l2
+       then return ()
+       else fail $ instrName ++ ": segment descriptor mismatch: "
+                    ++ show b1 ++ ", " ++ show b2  
+
+-- the number of 'T's in b2 is equal to the number of elements in b1
+--elemSegChk :: [a] -> [Bool] -> String -> Svcode ()
+--elemSegChk as bs instrName = 
+--    do let al = length as 
+--           segs = length [b | b <- bs, b]
+--       if al == segs 
+--       then return ()
+--       else fail $ instrName ++ ": segment mismatch: " 
+--                      ++ show as ++ ", " ++ show bs
+
+
+-- the number of 'F's in bs is equal to the length of as
+elemDescpChk :: [a] -> [Bool] -> String -> Svcode ()
+elemDescpChk as bs instrName = undefined
 

@@ -182,9 +182,9 @@ distrSegRecur (TSeq t) (STPair (STPair s0 (STId s1)) (STId s2)) s =
 
 -- for empty sequence
 emptySeq :: Type -> SId -> SneslTrans STree
-emptySeq TInt _ =  emit (Empty SInt)
+emptySeq TInt _ =  emit (Empty TInt)
 
-emptySeq TBool _ = emit (Empty SBool)
+emptySeq TBool _ = emit (Empty TBool)
 
 emptySeq (TSeq tp) ctrl = 
     do s0 <- emptySeq tp ctrl
@@ -250,11 +250,16 @@ emit i = SneslTrans $ \ sid -> Right (STId sid, [SDef sid i] ,sid+1)
 
 
 fe0 :: FuncEnv
-fe0 = [("_plus", \[STId s1, STId s2] _ _ -> emit (MapAdd s1 s2)),
-       ("_times", \[STId s1, STId s2] _ _ -> emit (MapTimes s1 s2)),
-       ("_div", \[STId s1, STId s2] _ _ -> emit (MapDiv s1 s2)),
-       ("_eq",\[STId s1, STId s2] _ _ -> emit (MapEqual s1 s2)),
+fe0 = [("_uminus", \[STId s1] _ _ -> emit (MapOne Uminus s1)),
+       ("not", \[STId s1] _ _ -> emit (MapOne Not s1)),
 
+       ("_plus", \[STId s1, STId s2] _ _ -> emit (MapTwo Add s1 s2)),
+       ("_minus", \[STId s1, STId s2] _ _ -> emit (MapTwo Minus s1 s2)),
+       ("_times", \[STId s1, STId s2] _ _ -> emit (MapTwo Times s1 s2)),
+       ("_div", \[STId s1, STId s2] _ _ -> emit (MapTwo Div s1 s2)),
+       ("_eq",\[STId s1, STId s2] _ _ -> emit (MapTwo Equal s1 s2)),
+       ("_leq",\[STId s1, STId s2] _ _ -> emit (MapTwo Leq s1 s2)),
+        
        ("index", \[STId s] _ ctrl -> iotas s),                     
 
        ("scanExPlus", \[STPair (STId t) (STId s)] _ _ -> scanExPlus t s),

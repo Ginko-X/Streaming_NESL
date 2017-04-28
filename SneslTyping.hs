@@ -75,14 +75,18 @@ typeBind (PTup p1 p2) (TTup t1 t2) = (typeBind p1 t1) ++ (typeBind p2 t2)
 type FuncTyEnv = [(Id, [Type] -> SneslTyping Type)]
 
 funcTyEnv0 :: FuncTyEnv
-funcTyEnv0 = [("_plus", \t -> funcTypeChk "_plus" t [TInt,TInt] TInt),
+funcTyEnv0 = [("not", \t -> funcTypeChk "not" t [TBool] TBool ),
+              ("_uminus", \t -> funcTypeChk "_uminus" t [TInt] TInt),              
+
+              ("_plus", \t -> funcTypeChk "_plus" t [TInt,TInt] TInt),
+              ("_minus", \t -> funcTypeChk "_minus" t [TInt,TInt] TInt),          
               ("_times", \t -> funcTypeChk "_times" t [TInt,TInt] TInt),
               ("_div", \t -> funcTypeChk "_div" t [TInt,TInt] TInt),
-              ("not", \t -> funcTypeChk "not" t [TBool] TBool ),
+              ("_eq", \t -> funcTypeChk "_eq" t [TInt,TInt] TBool),
+              ("_leq", \t -> funcTypeChk "_leq" t [TInt,TInt] TBool),
 
               ("index", \t -> funcTypeChk "index" t [TInt] (TSeq TInt)),              
-              ("_eq", \t -> funcTypeChk "_eq" t [TInt,TInt] TBool),
-              
+
               ("scanExPlus", \t -> funcTypeChk "scanExPlus" t [TSeq TInt] (TSeq TInt)),
              
               ("reducePlus", \t -> funcTypeChk "reducePlus" t [TSeq TInt] TInt),
@@ -96,7 +100,7 @@ funcTypeInfer :: Id -> FuncTyEnv -> [Type] -> SneslTyping Type
 funcTypeInfer f env args = 
     case lookup f env of 
         Just f -> f args
-        Nothing -> fail $ "Undefined function: " ++ f 
+        Nothing -> fail $ "Typing: Undefined function: " ++ f 
 
 funcTypeChk :: Id -> [Type] ->[Type] -> Type -> SneslTyping Type
 funcTypeChk fname t1 t2 ft = 
