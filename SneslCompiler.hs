@@ -11,17 +11,17 @@ import Control.Monad (zipWithM)
 import Data.List (union)
 
 
-newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> 
+newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> CompEnv ->
                                        Either String (a,[SDef], SId)}
 
 instance Monad SneslTrans where
-    return a = SneslTrans $ \ sid -> Right (a, [], sid)
+    return a = SneslTrans $ \ sid e -> Right (a, [], sid)
 
-    m >>= f = SneslTrans $ \ sid -> 
-        case rSneslTrans m sid  of
+    m >>= f = SneslTrans $ \ sid e -> 
+        case rSneslTrans m sid e of
             Left err -> Left err
             Right (a, sv, sid')  -> 
-                case rSneslTrans (f a) sid' of 
+                case rSneslTrans (f a) sid' e of 
                     Left err' -> Left err'
                     Right (a', sv', sid'') -> Right (a', sv++sv', sid'')
 
@@ -37,12 +37,29 @@ instance Applicative SneslTrans where
 
 
 type CompEnv = [(Id, STree)]
+
 env0 :: CompEnv
 env0 = []
 
 
+askEnv :: SneslTrans CompEnv
+askEnv = SneslTrans $ \ sid e0 -> Right (e0, [], sid)
+
+addEnv :: CompEnv -> SneslTrans a -> SneslTrans a
+addEnv newe m = SneslTrans $ \sid e0 -> rSneslTrans m sid (newe++e0)  
+  
+lookupEnv :: Id -> SneslTrans STree
+lookupEnv var = 
+  do env <- askEnv 
+     case lookup var env of 
+        Just stree -> return stree
+        Nothing -> fail "Variable binding Error"
+
+
+
+-- 
 compiler :: Exp ->  Either String SSym 
-compiler e = case rSneslTrans (translate e (STId 0) env0 []) 1   of 
+compiler e = case rSneslTrans (translate e (STId 0) []) 1 env0  of 
                  Right (st, sv, _) -> Right $ SSym (SDef 0 Ctrl:sv) st
                  Left err -> Left err 
 
@@ -60,50 +77,50 @@ getVarType x tye =
         Nothing -> fail "Variable type error" 
 
 
-translate :: Exp -> STree -> CompEnv -> TyEnv -> SneslTrans STree 
 
-translate (Var x) ctrl env tye = 
-    case lookup x env of 
-        Just tr -> return tr
-        Nothing -> fail "Variable binding Error"
 
-translate (Lit l) (STId i) env tye =  
+translate :: Exp -> STree -> TyEnv -> SneslTrans STree 
+
+translate (Var x) ctrl tye = lookupEnv x 
+
+
+translate (Lit l) (STId i) tye =  
        emit (MapConst i l)
 
 
-translate (Tup e1 e2) ctrl env tye = 
-    do t1 <- translate e1 ctrl env tye 
-       t2 <- translate e2 ctrl env tye 
+translate (Tup e1 e2) ctrl tye = 
+    do t1 <- translate e1 ctrl tye 
+       t2 <- translate e2 ctrl tye 
        return (STPair t1 t2)
 
-translate (SeqNil tp) (STId ctrl) env tye = 
+translate (SeqNil tp) (STId ctrl) tye = 
     do s0 <- emptySeq tp ctrl
        (STId c) <- emit (MapConst ctrl (IVal 0))  
        f <- emit (ToFlags c)
        return (STPair s0 f)
 
 
-translate (Let pat e1 e2) ctrl env tye = 
+translate (Let pat e1 e2) ctrl tye = 
     do tp <- compTypeInfer e1 tye
        patTypes <- typeBindM pat tp
-       t <- translate e1 ctrl env tye
-       translate e2 ctrl (bind pat t ++ env) (patTypes++ tye)
+       t <- translate e1 ctrl tye
+       addEnv (bind pat t) $ translate e2 ctrl (patTypes++ tye)
+       
 
-
-translate (Call fname es) ctrl env tye = 
-    do args <- mapM (\e -> translate e ctrl env tye) es
+translate (Call fname es) ctrl tye = 
+    do args <- mapM (\e -> translate e ctrl tye) es
        tys <-  mapM (\e -> compTypeInfer e tye) es 
        transFunc fname fe0 args tys ctrl 
 
 
-translate (GComp e0 ps) ctrl env tye = 
+translate (GComp e0 ps) ctrl tye = 
      do -- variables' type bindings
         tps <- mapM (\(_,e) -> compTypeInfer e tye) ps
         bindsTps <- zipWithM (\(p,_) (TSeq tp) -> typeBindM p tp) ps tps
         let tye' = concat bindsTps ++ tye 
         
         -- varable bindings
-        trs <- mapM (\(_,e) -> translate e ctrl env tye) ps
+        trs <- mapM (\(_,e) -> translate e ctrl tye) ps
         let binds = concat $ zipWith (\(p,_) (STPair t (STId s))-> bind p t) ps trs
         
         let (STPair t (STId s0)) = head trs 
@@ -113,25 +130,26 @@ translate (GComp e0 ps) ctrl env tye =
         let bindvs = concat $ map (\(p,e) -> getBindVars p) ps  
             usingVars = filter (\x -> not $ x `elem` bindvs) (getVars e0) 
         usingVarsTps <- mapM (\x -> getVarType x tye') usingVars         
-        usingVarsTrs <- mapM (\x -> translate (Var x) ctrl env tye') usingVars
+        usingVarsTrs <- mapM (\x -> translate (Var x) ctrl tye') usingVars
         newVarTrs  <- zipWithM (\xtp x -> distr xtp x s0) usingVarsTps usingVarsTrs      
         let binds' = zipWith (\v t -> (v,t)) usingVars newVarTrs
 
-        -- translate body        
-        st <- translate e0 ctrl' (binds ++ binds' ++ env) tye'
+        -- translate body
+
+        st <- addEnv (binds ++ binds') $ translate e0 ctrl' tye'
         return (STPair st (STId s0))
         
 
-translate (RComp e0 e1) ctrl env tye = 
-    do (STId s1) <- translate e1 ctrl env tye  
+translate (RComp e0 e1) ctrl tye = 
+    do (STId s1) <- translate e1 ctrl tye  
        (STId s2) <- emit (B2u s1)  
        ctrl' <- emit (Usum s2)  
        let usingVars = getVars e0 
        usingVarsTps <- mapM (\x -> getVarType x tye) usingVars         
-       usingVarsTrs <- mapM (\x -> translate (Var x) ctrl env tye) usingVars 
+       usingVarsTrs <- mapM (\x -> translate (Var x) ctrl tye) usingVars 
        newVarTrs <- zipWithM (\x xtp -> pack xtp x s1) usingVarsTrs usingVarsTps
        let binds = zipWith (\ v t -> (v,t)) usingVars newVarTrs
-       s3 <- translate e0 ctrl' (binds ++ env) tye 
+       s3 <- addEnv binds $ translate e0 ctrl' tye 
        return (STPair s3 (STId s2)) 
 
 
@@ -245,7 +263,7 @@ getBindVars (PTup p1 p2) = concat $ map getBindVars [p1,p2]
 
 -- emit one instruction
 emit :: Instr -> SneslTrans STree
-emit i = SneslTrans $ \ sid -> Right (STId sid, [SDef sid i] ,sid+1)
+emit i = SneslTrans $ \ sid _ -> Right (STId sid, [SDef sid i] ,sid+1)
 
 
 
