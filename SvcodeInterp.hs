@@ -203,7 +203,7 @@ instrInterp (SegFlagDistr s1 s2 s3) =
      v2'@(SBVal v2) <- lookupSid s2
      v3'@(SBVal v3) <- lookupSid s3
      segCountChk v2 v3 "SegFlagDistr"
-     segDescpChk v1 v2 "SegFlagDistr"
+     --segDescpChk v1 v2 "SegFlagDistr"
      returnInstrC [v1',v2',v3'] $ SBVal $ segFlagDistr v1 v2 v3 
 
 instrInterp (PrimSegFlagDistr s1 s2 s3) = 
@@ -225,7 +225,7 @@ instrInterp (B2u sid) =
 instrInterp (SegscanPlus s1 s2) = 
     do v1'@(SIVal v1) <- lookupSid s1
        v2'@(SBVal v2) <- lookupSid s2 
-       
+
        if not $ (sum $ flags2len v2) == (length v1)
          then fail "SegscanPlus: segments mismatch"
          else returnInstrC [v1',v2'] $ SIVal $ segExScanPlus v1 v2 
@@ -251,14 +251,15 @@ instrInterp (InterMerge s1 s2) =
      segCountChk v1 v2 "InterMerge"
      returnInstrC [v1',v2'] $ SBVal $ interMerge v1 v2 
 
+
 instrInterp (SegInter s1 s2 s3 s4) = 
   do v1'@(SBVal v1) <- lookupSid s1
      v2'@(SBVal v2) <- lookupSid s2
      v3'@(SBVal v3) <- lookupSid s3
      v4'@(SBVal v4) <- lookupSid s4 
      segCountChk v2 v4 "SegInter" 
-     segDescpChk v1 v2 "SegInter"
-     segDescpChk v3 v4 "SegInter"
+     --segDescpChk v1 v2 "SegInter"
+     --segDescpChk v3 v4 "SegInter"
      returnInstrC [v1',v2',v3',v4'] $ SBVal $ segInter v1 v2 v3 v4  
 
 instrInterp (PriSegInter s1 s2 s3 s4) = 
@@ -358,9 +359,17 @@ segConcat :: [Bool] -> [Bool] -> [Bool]
 segConcat [] [] = []
 segConcat (False:fs1) f2@(False:fs2) = False: segConcat fs1 f2
 segConcat (True:fs1) (False:fs2) = segConcat fs1 fs2
-segConcat f1 (True:fs2) = True : segConcat f1 fs2
 
-segConcat (True:fs1) [] = True: segConcat fs1 [] -- special case for empty seqs
+segConcat f1 (True:fs2) = True : segConcat f1 fs2
+-- ^ this is equivalent to the following three cases:
+--segConcat []             (True:fs2) = True : segConcat [] fs2
+--segConcat f1@(False:fs1) (True:fs2) = True : segConcat f1 fs2
+--segConcat f1@(True:fs1) (True:fs2) = True : segConcat f1 fs2 
+
+-- but for empty sequences, the last case should be: 
+-- segConcat (True:fs1) (True:fs2) = True : segConcat fs1 fs2
+segConcat (True:fs1) [] = segConcat fs1 [] -- so add this case for empty seqs
+
 
 -- primitive pack
 -- [1,2,3,4,5] [F,T,F,F,T] = [2,5]
@@ -465,6 +474,7 @@ segCountChk b1 b2 instrName =
                       ++ show b1 ++ ", " ++ show b2 
 
 -- the number of 'F's in b2 is equal to the number of 'T's in b1
+-- NOTE: empty sequences are a special case
 segDescpChk :: [Bool] -> [Bool] -> String -> Svcode ()
 segDescpChk b1 b2 instrName = 
     do let segCount1 = length [b | b <- b1, b]
