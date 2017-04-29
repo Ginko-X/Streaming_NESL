@@ -78,7 +78,13 @@ recPair2seq (TTup t1 t2) (SPVal v1 v2) = SPVal v1' v2'
           v2' = recPair2seq t2 v2
 
 
--- some examples 
+-- some examples
+
+manyTest = 
+  let res = map runProg [prog1,prog2,prog3,prog4,prog5,prog6,prog7,
+                          prog8,prog9]
+  in  [ b | Right (_, _, b, _) <- res ]
+
 
 -- An example program: compute all the primes less than the number 'count'
 prog1 = "let count = 50; " ++
@@ -97,3 +103,19 @@ prog3 = "let a = {{&2}} ++ {{{3}}} ; "++
         "    b = {{{4}}} ++ {{{5} ++ {9}}} " ++ 
         " in {a ++ b : _ in &2}"
 
+-- more fixed programs
+
+prog4 = "let n = 10 in {{x: _ in &n} : x in &n}" -- #8
+
+prog5 = "{concat({}:{int}) : _ in &2}" -- #5
+
+prog6 = "let x = &5 in let x = {x: _ in &2} in x "
+
+prog7 = "let x = ({&2|T}, {3|T}) in x"
+
+prog8 = "let x = {(1,2) : _ in &2} in {{x|T} : _ in &3}"
+
+prog9 = "let x = &2 in {{x: _ in &a} : a in &3}"
+
+-- Wrong example; shoulg throw an Excpetion
+prog10 = "let x = 5; (y,z) = x in 5"  
