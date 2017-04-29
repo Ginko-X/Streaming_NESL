@@ -36,7 +36,12 @@ instance Applicative SneslTrans where
 
 
 
-type CompEnv = [(Id, STree)]
+compiler :: Exp ->  Either String SSym 
+compiler e = case rSneslTrans (translate e (STId 0)) 1 env0  of 
+                 Right (st, sv, _) -> Right $ SSym (SDef 0 Ctrl:sv) st
+                 Left err -> Left err 
+
+type CompEnv = [(Id, (Type, STree))]
 
 env0 :: CompEnv
 env0 = []
@@ -45,110 +50,129 @@ env0 = []
 askEnv :: SneslTrans CompEnv
 askEnv = SneslTrans $ \ sid e0 -> Right (e0, [], sid)
 
+askTyEnv :: SneslTrans TyEnv
+askTyEnv = SneslTrans $ \ sid e0 -> 
+             let tye0 = [(var, tp) | (var,(tp,_)) <- e0] 
+              in Right (tye0, [], sid)
+
+
 addEnv :: CompEnv -> SneslTrans a -> SneslTrans a
 addEnv newe m = SneslTrans $ \sid e0 -> rSneslTrans m sid (newe++e0)  
   
-lookupEnv :: Id -> SneslTrans STree
-lookupEnv var = 
+lookupSTree :: Id -> SneslTrans STree
+lookupSTree var = 
   do env <- askEnv 
      case lookup var env of 
-        Just stree -> return stree
+        Just (_,stree) -> return stree
+        Nothing -> fail "Variable binding Error"
+
+
+lookupType :: Id -> SneslTrans Type
+lookupType var = 
+  do env <- askEnv 
+     case lookup var env of 
+        Just (tp,_) -> return tp 
         Nothing -> fail "Variable binding Error"
 
 
 
--- 
-compiler :: Exp ->  Either String SSym 
-compiler e = case rSneslTrans (translate e (STId 0) []) 1 env0  of 
-                 Right (st, sv, _) -> Right $ SSym (SDef 0 Ctrl:sv) st
-                 Left err -> Left err 
+bindM :: Pat -> Type -> STree -> SneslTrans CompEnv
+bindM (PVar x) t a = return [(x,(t,a))]
+bindM PWild _ _ = return []
+bindM (PTup p1 p2) (TTup tp1 tp2) (STPair st1 st2) = 
+  do b1 <- bindM p1 tp1 st1 
+     b2 <- bindM p2 tp2 st2
+     return $ b1 ++ b2 
+bindM p@(PTup _ _) t v = fail $ "Bad bindings: " ++ show p 
+                                      ++ ", Type: " ++ show t
+                                  
 
 
-compTypeInfer :: Exp -> TyEnv -> SneslTrans Type
-compTypeInfer e tye =  
-    case typeInfer e tye of 
-        Right t -> return t 
-        Left err -> fail err
+compTypeInfer :: Exp -> SneslTrans Type
+compTypeInfer e =  
+  do tye <- askTyEnv 
+     case typeInfer e tye of 
+         Right t -> return t 
+         Left err -> fail err
 
-getVarType :: Id -> TyEnv -> SneslTrans Type
-getVarType x tye = 
-    case lookup x tye of
-        Just t -> return t
-        Nothing -> fail "Variable type error" 
-
-
-
-translate :: Exp -> STree -> TyEnv -> SneslTrans STree 
-
-translate (Var x) ctrl tye = lookupEnv x 
+getVarType :: Id -> SneslTrans Type
+getVarType x =
+  do tye <- askTyEnv 
+     case lookup x tye of
+         Just t -> return t
+         Nothing -> fail "Variable type error" 
 
 
-translate (Lit l) (STId i) tye =  
+--- Translation ---
+
+translate :: Exp -> STree -> SneslTrans STree 
+
+translate (Var x) ctrl = lookupSTree x 
+
+
+translate (Lit l) (STId i) =  
        emit (MapConst i l)
 
 
-translate (Tup e1 e2) ctrl tye = 
-    do t1 <- translate e1 ctrl tye 
-       t2 <- translate e2 ctrl tye 
+translate (Tup e1 e2) ctrl = 
+    do t1 <- translate e1 ctrl  
+       t2 <- translate e2 ctrl 
        return (STPair t1 t2)
 
-translate (SeqNil tp) (STId ctrl) tye = 
+translate (SeqNil tp) (STId ctrl) = 
     do s0 <- emptySeq tp ctrl
-       (STId c) <- emit (MapConst ctrl (IVal 0))  
-       f <- emit (ToFlags c)
+       f <- emit (MapConst ctrl (BVal True))  
        return (STPair s0 f)
 
 
-translate (Let pat e1 e2) ctrl tye = 
-    do tp <- compTypeInfer e1 tye
-       patTypes <- typeBindM pat tp
-       t <- translate e1 ctrl tye
-       addEnv (bind pat t) $ translate e2 ctrl (patTypes++ tye)
+translate (Let pat e1 e2) ctrl = 
+    do tp <- compTypeInfer e1
+       st <- translate e1 ctrl
+       newEnv <- bindM pat tp st
+       addEnv newEnv $ translate e2 ctrl 
        
 
-translate (Call fname es) ctrl tye = 
-    do args <- mapM (\e -> translate e ctrl tye) es
-       tys <-  mapM (\e -> compTypeInfer e tye) es 
+translate (Call fname es) ctrl = 
+    do args <- mapM (\e -> translate e ctrl) es
+       tys <-  mapM (\e -> compTypeInfer e) es 
        transFunc fname fe0 args tys ctrl 
 
 
-translate (GComp e0 ps) ctrl tye = 
-     do -- variables' type bindings
-        tps <- mapM (\(_,e) -> compTypeInfer e tye) ps
-        bindsTps <- zipWithM (\(p,_) (TSeq tp) -> typeBindM p tp) ps tps
-        let tye' = concat bindsTps ++ tye 
-        
-        -- varable bindings
-        trs <- mapM (\(_,e) -> translate e ctrl tye) ps
-        let binds = concat $ zipWith (\(p,_) (STPair t (STId s))-> bind p t) ps trs
-        
+translate (GComp e0 ps) ctrl = 
+     do -- variables bindings
+        tps <- mapM (\(_,e) -> compTypeInfer e) ps 
+        trs <- mapM (\(_,e) -> translate e ctrl) ps        
+        newEnvs <- mapM (\((p,_),TSeq tp,STPair st (STId _)) -> bindM p tp st) (zip3 ps tps trs)
+
+        -- change ctrl
         let (STPair t (STId s0)) = head trs 
         ctrl' <- emit (Usum s0) 
         
         -- free variables distribution
-        let bindvs = concat $ map (\(p,e) -> getBindVars p) ps  
+        let bindvs = concat $ map (\(p,e) -> getPatVars p) ps  
             usingVars = filter (\x -> not $ x `elem` bindvs) (getVars e0) 
-        usingVarsTps <- mapM (\x -> getVarType x tye') usingVars         
-        usingVarsTrs <- mapM (\x -> translate (Var x) ctrl tye') usingVars
+        usingVarsTps <- mapM (\x -> getVarType x) usingVars         
+        usingVarsTrs <- mapM (\x -> translate (Var x) ctrl) usingVars
         newVarTrs  <- zipWithM (\xtp x -> distr xtp x s0) usingVarsTps usingVarsTrs      
-        let binds' = zipWith (\v t -> (v,t)) usingVars newVarTrs
+        usingVarbinds <- mapM (\(v,tp,tr) -> bindM (PVar v) tp tr) 
+                              (zip3 usingVars usingVarsTps newVarTrs)
 
-        -- translate body
-
-        st <- addEnv (binds ++ binds') $ translate e0 ctrl' tye'
+        -- translate the body
+        st <- addEnv (concat $ newEnvs ++ usingVarbinds) $ translate e0 ctrl'
         return (STPair st (STId s0))
         
 
-translate (RComp e0 e1) ctrl tye = 
-    do (STId s1) <- translate e1 ctrl tye  
+translate (RComp e0 e1) ctrl = 
+    do (STId s1) <- translate e1 ctrl  
        (STId s2) <- emit (B2u s1)  
        ctrl' <- emit (Usum s2)  
        let usingVars = getVars e0 
-       usingVarsTps <- mapM (\x -> getVarType x tye) usingVars         
-       usingVarsTrs <- mapM (\x -> translate (Var x) ctrl tye) usingVars 
+       usingVarsTps <- mapM (\x -> getVarType x) usingVars         
+       usingVarsTrs <- mapM (\x -> translate (Var x) ctrl) usingVars 
        newVarTrs <- zipWithM (\x xtp -> pack xtp x s1) usingVarsTrs usingVarsTps
-       let binds = zipWith (\ v t -> (v,t)) usingVars newVarTrs
-       s3 <- addEnv binds $ translate e0 ctrl' tye 
+       binds <- mapM (\(v,tp,tr) -> bindM (PVar v) tp tr) 
+                     (zip3 usingVars usingVarsTps newVarTrs)
+       s3 <- addEnv (concat binds) $ translate e0 ctrl' 
        return (STPair s3 (STId s2)) 
 
 
@@ -205,8 +229,8 @@ emptySeq TBool _ = emit (Empty TBool)
 
 emptySeq (TSeq tp) ctrl = 
     do s0 <- emptySeq tp ctrl
-       (STId c) <- emit (MapConst ctrl (IVal 0)) 
-       f <- emit (ToFlags c)
+       f <- emit (MapConst ctrl (BVal True)) 
+       --f <- emit (ToFlags c)
        return (STPair s0 f)
 
 emptySeq (TTup t1 t2) c = 
@@ -239,23 +263,23 @@ getVars (Tup e1 e2) = foldl union [] $ map getVars [e1,e2]
 getVars (SeqNil tp) = []
 
 getVars (Let p e1 e2) = e1Vars ++ filter (\x -> not $ x `elem` binds) (getVars e2) 
-    where binds = getBindVars p 
+    where binds = getPatVars p 
           e1Vars = getVars e1 
 
 getVars (Call fname es) = foldl union [] $ map getVars es 
 
 getVars (GComp e0 ps) = pVars ++ filter (\x -> not $ x `elem` binds) e0vs
     where e0vs = getVars e0
-          binds = foldl union [] $ map (\(p,_) -> getBindVars p) ps
+          binds = foldl union [] $ map (\(p,_) -> getPatVars p) ps
           pVars = foldl union [] $ map (\(_,e) -> getVars e) ps 
 
 getVars (RComp e0 e1) = foldl union [] $ map getVars [e0,e1]
 
 
-getBindVars :: Pat -> [Id]
-getBindVars (PVar x) = [x]
-getBindVars PWild = [] 
-getBindVars (PTup p1 p2) = concat $ map getBindVars [p1,p2] 
+getPatVars :: Pat -> [Id]
+getPatVars (PVar x) = [x]
+getPatVars PWild = [] 
+getPatVars (PTup p1 p2) = concat $ map getPatVars [p1,p2] 
 
 
 
@@ -344,20 +368,5 @@ appendRecur (TSeq tp) (STPair (STPair t1 (STId s1)) (STId s2))
        return (STPair s6 s5)
 
 
-bind :: Pat ->  STree -> CompEnv
-bind (PVar x) a = [(x, a)]
-bind PWild s = []
-bind (PTup p1 p2) (STPair t1 t2) = ps1 ++ ps2
-    where ps1 = bind p1 t1
-          ps2 = bind p2 t2
-
-typeBindM :: Pat -> Type -> SneslTrans TyEnv
-typeBindM (PVar x) t = return [(x,t)]
-typeBindM PWild _ = return []
-typeBindM (PTup p1 p2) (TTup t1 t2) = 
-  do b1 <- typeBindM p1 t1
-     b2 <- typeBindM p2 t2
-     return $ b1 ++ b2 
-typeBindM p@(PTup _ _) t = fail $ "Bad type bindings: " 
-                                    ++ show p ++ ", " ++ show t
+                                    
 
