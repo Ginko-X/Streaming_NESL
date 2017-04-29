@@ -78,7 +78,6 @@ getVarType x tye =
 
 
 
-
 translate :: Exp -> STree -> TyEnv -> SneslTrans STree 
 
 translate (Var x) ctrl tye = lookupEnv x 
