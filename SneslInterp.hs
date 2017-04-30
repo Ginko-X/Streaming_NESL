@@ -27,7 +27,7 @@ eval (Tup e1 e2) r =
      return $ TVal v1 v2
 
 eval (SeqNil tp) r =
-     return $ SVal []
+     returnc (1,1) $ SVal []
 
 eval (Let p e1 e2) r =
   do v1 <- eval e1 r
@@ -51,7 +51,7 @@ eval (GComp e0 ps) r =
                                (replicate (length vs') ps) vs' 
              vss <- par $ zipWith (\e b -> eval e (b++r)) 
                                   (replicate (length vs') e0) binds
-             return $ SVal vss)
+             returnc (1,1) $ SVal vss)
      else fail "Length mismatch in comprehension"
      
 
@@ -60,7 +60,7 @@ eval (RComp e0 e1) r =
   do (AVal (BVal b)) <- eval e1 r 
      case b of 
         True -> (do v <- eval e0 r; returnc (1,1) (SVal [v]))
-        _ -> return $ SVal []
+        _ -> returnc (1,1) $ SVal []
 
 
 
@@ -84,6 +84,13 @@ par (t : ts) =
 
 returnc :: (Int, Int) -> a -> Snesl a
 returnc (w,s) a = Snesl $ Right (a, w, s)
+
+
+-- For the operation that can consume(and produce) empty sequences
+wrapWork :: Int -> Int 
+wrapWork i = i + 1 
+--wrapWork i = max i 1  -- another possible solution
+
 
 primop :: ([AVal] -> AVal) -> Val
 primop f = FVal (\as -> returnc (1,1) $ AVal (f [v | AVal v <- as]))
@@ -113,17 +120,17 @@ r0 = [("_plus", primop cplus),
       ("not", primop (\ [BVal b] -> BVal (not b))),
 
       -- iota for sequence
-      ("index", FVal (\ [AVal (IVal n)] -> 
-                          returnc (n,1) $ SVal [AVal (IVal i) | i <- [0..n-1]])),
+      ("index", FVal (\ [AVal (IVal n)] ->
+                          returnc (wrapWork n, 1) $ SVal [AVal (IVal i) | i <- [0..n-1]])),
 
       -- sequence append
       ("_append", FVal (\ [SVal v1, SVal v2] -> 
-                         let v = v1 ++ v2
-                         in returnc (length v,1) (SVal v))),
+                         let v = v1 ++ v2 
+                         in returnc (wrapWork $ length v, 1) (SVal v))),
       -- sequence concat
       ("concat", FVal (\ [SVal vs] -> 
                            let v = concat [v | SVal v <- vs]
-                           in returnc (length v,1) (SVal v))),
+                           in returnc (wrapWork $ length v,1) (SVal v))),
 
       ---- sequence empty check, zero work 
       --("empty", FVal(\[SVal vs] -> returnc (0,1) $ AVal (BVal (null vs)))),
@@ -160,13 +167,13 @@ r0 = [("_plus", primop cplus),
            let is = [i | AVal (IVal i) <- vs]
                l = length is 
                rs = init $ scanl (+) 0 is  
-            in returnc (l, 1) 
+            in returnc (wrapWork l, 1) 
                       $ SVal [AVal (IVal i) | i <-rs])), 
 
       ("reducePlus", FVal (\ [SVal vs] -> 
            let is = [i | AVal (IVal i) <- vs]
                l = length is 
-            in returnc (l, 1) $ AVal $ IVal (sum is) ))]
+            in returnc (wrapWork l, 1) $ AVal $ IVal (sum is) ))]
    
 
 
