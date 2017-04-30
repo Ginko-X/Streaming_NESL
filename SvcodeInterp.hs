@@ -6,7 +6,7 @@ import SvcodeSyntax
 import SneslSyntax
 import Control.Monad
 import DataTrans (i2flags)
-import SneslInterp (flags2len, seglist)
+import SneslInterp (flags2len, seglist, wrapWork)
 
 
 type Svctx = [(SId, SvVal)]
@@ -114,13 +114,13 @@ returnsvc :: (Int,Int) -> a -> Svcode a
 returnsvc (w,s) a = Svcode $ \ c -> Right (a, (w,s), c)
 
 
--- compute the cost for an instruction when return the interpretation result
+-- compute the cost of an instruction when return the interpretation result
 returnInstrC :: [SvVal] -> SvVal -> Svcode SvVal
 returnInstrC inVs outV  = 
     do ls <- mapM streamLenM inVs
        let inWork = sum ls  
            outWork = streamLen outV
-       returnsvc (inWork + outWork, 1) outV  -- for each instr, step is 1
+       returnsvc (wrapWork inWork + wrapWork outWork, 1) outV  -- for each instr, step is 1
 
 
  ---- Instruction interpretation  ------ 
@@ -277,8 +277,8 @@ instrInterp (SegMerge s1 s2) =
 
 instrInterp (Empty tp) = 
   case tp of 
-    TInt -> returnInstrC [] $ SIVal [] 
-    TBool -> returnInstrC [] $ SBVal []
+    TInt -> returnsvc (1,1) $ SIVal [] 
+    TBool -> returnsvc (1,1) $ SBVal []
 
 
 
