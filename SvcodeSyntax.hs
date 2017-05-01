@@ -26,6 +26,8 @@ data Instr = Ctrl
            | SegInter SId SId SId SId  -- segment interleave for flags
            | PriSegInter SId SId SId SId  -- segment interleave for primitive streams
            | Empty Type
+           | CheckCtrlStart
+           | CheckCtrlEnd SId SId
            deriving Show
          
 data SDef = SDef SId Instr  -- deriving Show 

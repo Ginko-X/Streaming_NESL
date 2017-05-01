@@ -142,14 +142,16 @@ translate (GComp e0 ps) ctrl =
      do -- variables bindings
         tps <- mapM (\(_,e) -> compTypeInfer e) ps 
         trs <- mapM (\(_,e) -> translate e ctrl) ps        
-        newEnvs <- mapM (\((p,_),TSeq tp,STPair st (STId _)) -> bindM p tp st) (zip3 ps tps trs)
+        newEnvs <- mapM (\((p,_),TSeq tp,STPair st (STId _)) -> bindM p tp st) 
+                        (zip3 ps tps trs)
 
         -- change ctrl
-        let (STPair t (STId s0)) = head trs 
-        ctrl' <- emit (Usum s0) 
-        
+        let (STPair _ (STId s0)) = head trs 
+        ctrl'@(STId c') <- emit (Usum s0) 
+        (STId start) <- emit CheckCtrlStart
+
         -- free variables distribution
-        let bindvs = concat $ map (\(p,e) -> getPatVars p) ps  
+        let bindvs = concat $ map (\(p,_) -> getPatVars p) ps  
             usingVars = filter (\x -> not $ x `elem` bindvs) (getVars e0) 
         usingVarsTps <- mapM (\x -> getVarType x) usingVars         
         usingVarsTrs <- mapM (\x -> translate (Var x) ctrl) usingVars
@@ -159,13 +161,18 @@ translate (GComp e0 ps) ctrl =
 
         -- translate the body
         st <- addEnv (concat $ newEnvs ++ usingVarbinds) $ translate e0 ctrl'
+
+        emit (CheckCtrlEnd c' start)
         return (STPair st (STId s0))
         
 
 translate (RComp e0 e1) ctrl = 
     do (STId s1) <- translate e1 ctrl  
        (STId s2) <- emit (B2u s1)  
-       ctrl' <- emit (Usum s2)  
+       ctrl'@(STId c') <- emit (Usum s2)
+
+       (STId start) <- emit CheckCtrlStart
+
        let usingVars = getVars e0 
        usingVarsTps <- mapM (\x -> getVarType x) usingVars         
        usingVarsTrs <- mapM (\x -> translate (Var x) ctrl) usingVars 
@@ -173,6 +180,9 @@ translate (RComp e0 e1) ctrl =
        binds <- mapM (\(v,tp,tr) -> bindM (PVar v) tp tr) 
                      (zip3 usingVars usingVarsTps newVarTrs)
        s3 <- addEnv (concat binds) $ translate e0 ctrl' 
+       
+       emit (CheckCtrlEnd c' start)
+       
        return (STPair s3 (STId s2)) 
 
 
