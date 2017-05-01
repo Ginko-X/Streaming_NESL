@@ -19,7 +19,22 @@ main = do args <- getArgs
 runFile :: FilePath -> IO () 
 runFile file =
    do prog <- readFile file 
-      testExample prog
+      testExample' prog
+
+-- disregard the expression evaluation values
+testExample' :: String -> IO()
+testExample' prog =  
+    case runProg prog of 
+        Left err -> putStrLn err 
+        Right ((_,w,s),tp, b, (_,w',s')) 
+           -> if b then 
+                     do putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
+                                      ++ show s ++ "]"
+                        putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
+                                      ++ show s' ++ "]"
+                   else 
+                     do putStrLn $ "Error: SNESL and SVCODE results are different!"
+
 
 
 testExample :: String -> IO()
@@ -39,6 +54,7 @@ testExample prog =
                         putStrLn $ "SVCODE: " ++ show sv
 
 
+-- formatted return value
 runProg :: String ->  Either String ((Val,Int,Int),Type,Bool,(Val,Int,Int)) 
 runProg p = 
     do absProg <- parseString p    -- parse the SNESL expression
@@ -46,10 +62,22 @@ runProg p =
        (sneslRes,w,s) <- runSneslInterp absProg  -- SNESL interpreting result
        svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
        (svcodeRes,(w',s')) <- runSvcodeProg svcode    -- SVCODE interpreting result
-       --return (sneslRes, sneslTy,svcode,svcodeRes)
        let svcodeRes' = dataTransBack sneslTy $ recPair2seq sneslTy svcodeRes
            compRes = compareVal sneslRes svcodeRes'  -- compare the two results       
        return ((sneslRes,w,s),sneslTy, compRes, (svcodeRes', w',s'))
+
+
+-- not formatted return value
+runProg' p = 
+    do absProg <- parseString p    -- parse the SNESL expression
+       sneslTy <- typing absProg    -- get the expression's type
+       (sneslRes,w,s) <- runSneslInterp absProg  -- SNESL interpreting result
+       svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
+       (svcodeRes,(w',s')) <- runSvcodeProg svcode    -- SVCODE interpreting result
+       return (sneslRes, sneslTy,svcode,svcodeRes)
+       --let svcodeRes' = dataTransBack sneslTy $ recPair2seq sneslTy svcodeRes
+           --compRes = compareVal sneslRes svcodeRes'  -- compare the two results       
+       --return ((sneslRes,w,s),sneslTy, (svcodeRes', w',s'))
 
 
 -- helper functions for comparing a SNESL value and a SVCODE value
@@ -82,7 +110,7 @@ recPair2seq (TTup t1 t2) (SPVal v1 v2) = SPVal v1' v2'
 
 manyTest = 
   let res = map runProg [prog1,prog2,prog3,prog4,prog5,prog6,prog7,
-                          prog8,prog9]
+                          prog8,prog9, prog10]
   in  [ b | Right (_, _, b, _) <- res ]
 
 
@@ -103,7 +131,7 @@ prog3 = "let a = {{&2}} ++ {{{3}}} ; "++
         "    b = {{{4}}} ++ {{{5} ++ {9}}} " ++ 
         " in {a ++ b : _ in &2}"
 
--- more fixed programs
+-- more bug-fixed  programs
 
 prog4 = "let n = 10 in {{x: _ in &n} : x in &n}" -- #8
 
@@ -117,5 +145,7 @@ prog8 = "let x = {(1,2) : _ in &2} in {{x|T} : _ in &3}"
 
 prog9 = "let x = &2 in {{x: _ in &a} : a in &3}"
 
+prog10 = "{}:{int}++{{1}}"
+
 -- Wrong example; shoulg throw an Excpetion
-prog10 = "let x = 5; (y,z) = x in 5"  
+prog11 = "let x = 5; (y,z) = x in 5"  

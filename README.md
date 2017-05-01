@@ -1,4 +1,7 @@
 # Working Progress
++ Week 17 (24~30 Apr)
+    + ?? 
+  
 + Week 16 (17~23 Apr)
     + Add sequence expressions ([some discussion](https://github.com/Ginko-X/Streaming_NESL/issues/4))
     + Add work and step cost to SNESL
