@@ -42,9 +42,10 @@ eval (Call i es) r =
 -- general comprehension
 eval (GComp e0 ps) r =
   do vs <- mapM (\(_,e) -> eval e r) ps 
-     let vs' = transpose [v | SVal v <- vs] 
-         v0l = length $ head vs'  
-     if all (\v -> length v == v0l) vs'
+     let vs'' = [v | SVal v <- vs] 
+         vs' = transpose vs''
+         v0l = length $ head vs''  
+     if all (\v -> length v == v0l) vs''
      then (do 
              let binds = zipWith (\pl vl -> 
                                  concat $ zipWith (\(p,_) v -> bind p v) pl vl)
