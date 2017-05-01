@@ -1,6 +1,11 @@
 # Working Progress
 + Week 17 (24~30 Apr)
-    + ?? 
+    + Provide a solution for the major problem discussed in [#4](https://github.com/Ginko-X/Streaming_NESL/issues/4), for [details](https://github.com/Ginko-X/Streaming_NESL/issues/10)
+    + Some trivial work that may be not interesting
+     + Bug fix
+	  + Haskell (Monad) review, modify some Monads in the code and some other code optimizations
+	  + NESL papers review
+    
   
 + Week 16 (17~23 Apr)
     + Add sequence expressions ([some discussion](https://github.com/Ginko-X/Streaming_NESL/issues/4))
