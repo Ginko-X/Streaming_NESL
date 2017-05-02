@@ -2,8 +2,8 @@
 + Week 17 (24~30 Apr)
     + Provide a solution for the problems discussed in [#4](https://github.com/Ginko-X/Streaming_NESL/issues/4), for [details](https://github.com/Ginko-X/Streaming_NESL/issues/10)
     + Some trivial work that may be not interesting
-        + Bug fix
-        + Haskell (Monad) review, modify some Monads in the code and some other code optimizations
+        + Bug fix: getVars, let-bindings translation and so on
+        + Haskell (Monad) review, modify some Monads (including SneslTrans, Svcode) and some other code improvement
         + NESL papers review
     
   
