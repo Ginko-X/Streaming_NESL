@@ -1,6 +1,7 @@
 # Working Progress
 + Week 17 (24~30 Apr)
     + Provide a solution for the problems discussed in [#4](https://github.com/Ginko-X/Streaming_NESL/issues/4), for [details](https://github.com/Ginko-X/Streaming_NESL/issues/10)
+    + Cost model experiment and analysis, see [some results](https://github.com/Ginko-X/Streaming_NESL/issues/11)
     + Some trivial work that may be not interesting
         + Bug fix: getVars, let-bindings translation and so on
         + Haskell (Monad) review, modify some Monads (including SneslTrans, Svcode) and some other code improvement

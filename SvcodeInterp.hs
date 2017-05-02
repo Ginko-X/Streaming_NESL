@@ -124,7 +124,7 @@ returnInstrC inVs outV  =
     do ls <- mapM streamLenM inVs
        let inWork = sum ls  
            outWork = streamLen outV
-       returnsvc (wrapWork inWork + wrapWork outWork, 1) outV  -- for each instr, step is 1
+       returnsvc (wrapWork (inWork + outWork), 1) outV  -- for each instr, step is 1
 
 getCost :: Svcode (Int,Int)
 getCost = Svcode $ \ c cost -> Right (cost, cost, c)
