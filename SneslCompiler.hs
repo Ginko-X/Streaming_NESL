@@ -37,7 +37,7 @@ instance Applicative SneslTrans where
 
 
 compiler :: Exp ->  Either String SSym 
-compiler e = case rSneslTrans (translate e (STId 0)) 1 env0  of 
+compiler e = case rSneslTrans (translate e) 1 env0  of 
                  Right (st, sv, _) -> Right $ SSym (SDef 0 Ctrl:sv) st
                  Left err -> Left err 
 
@@ -105,93 +105,93 @@ getVarType x =
 
 --- Translation ---
 
-translate :: Exp -> STree -> SneslTrans STree 
+translate :: Exp -> SneslTrans STree 
 
-translate (Var x) ctrl = lookupSTree x 
-
-
-translate (Lit l) (STId i) =  
-       emit (MapConst i l)
+translate (Var x) = lookupSTree x 
 
 
-translate (Tup e1 e2) ctrl = 
-    do t1 <- translate e1 ctrl  
-       t2 <- translate e2 ctrl 
+translate (Lit l) =  
+       emit (Const l)
+
+
+translate (Tup e1 e2) = 
+    do t1 <- translate e1   
+       t2 <- translate e2 
        return (STPair t1 t2)
 
-translate (SeqNil tp) (STId ctrl) = 
-    do s0 <- emptySeq tp ctrl
-       f <- emit (MapConst ctrl (BVal True))  
+translate (SeqNil tp) = 
+    do s0 <- emptySeq tp
+       f <- emit (Const (BVal True))  
        return (STPair s0 f)
 
 
-translate (Let pat e1 e2) ctrl = 
+translate (Let pat e1 e2) = 
     do tp <- compTypeInfer e1
-       st <- translate e1 ctrl
+       st <- translate e1 
        newEnv <- bindM pat tp st
-       addEnv newEnv $ translate e2 ctrl 
+       addEnv newEnv $ translate e2 
        
 
-translate (Call fname es) ctrl = 
-    do args <- mapM (\e -> translate e ctrl) es
+translate (Call fname es) = 
+    do args <- mapM (\e -> translate e) es
        tys <-  mapM (\e -> compTypeInfer e) es 
-       transFunc fname fe0 args tys ctrl 
+       transFunc fname fe0 args tys 
 
 
-translate (GComp e0 ps) ctrl = 
+translate (GComp e0 ps) = 
      do -- variables bindings
         tps <- mapM (\(_,e) -> compTypeInfer e) ps 
-        trs <- mapM (\(_,e) -> translate e ctrl) ps        
+        trs <- mapM (\(_,e) -> translate e) ps        
         newEnvs <- mapM (\((p,_),TSeq tp,STPair st (STId _)) -> bindM p tp st) 
                         (zip3 ps tps trs)
 
-        -- change ctrl
+        -- new ctrl
         let (STPair _ (STId s0)) = head trs 
-        ctrl'@(STId c') <- emit (Usum s0) 
-        (STId start) <- emit CheckCtrlStart
+        (STId newCtrl) <- emit (Usum s0) 
+        (STId oldCtrl) <- emit GetCtrl 
 
         -- free variables distribution
         let bindvs = concat $ map (\(p,_) -> getPatVars p) ps  
             usingVars = filter (\x -> not $ x `elem` bindvs) (getVars e0) 
         usingVarsTps <- mapM (\x -> getVarType x) usingVars         
-        usingVarsTrs <- mapM (\x -> translate (Var x) ctrl) usingVars
+        usingVarsTrs <- mapM (\x -> translate (Var x)) usingVars
         newVarTrs  <- zipWithM (\xtp x -> distr xtp x s0) usingVarsTps usingVarsTrs      
         usingVarbinds <- mapM (\(v,tp,tr) -> bindM (PVar v) tp tr) 
                               (zip3 usingVars usingVarsTps newVarTrs)
 
         -- translate the body
-        st <- addEnv (concat $ newEnvs ++ usingVarbinds) $ translate e0 ctrl'
-
-        emit (CheckCtrlEnd c' start)
+        emit (SetCtrl newCtrl)
+        st <- addEnv (concat $ newEnvs ++ usingVarbinds) $ translate e0
+        emit (SetCtrl oldCtrl) 
         return (STPair st (STId s0))
         
 
-translate (RComp e0 e1) ctrl = 
-    do (STId s1) <- translate e1 ctrl  
+translate (RComp e0 e1) = 
+    do (STId s1) <- translate e1
        (STId s2) <- emit (B2u s1)  
-       ctrl'@(STId c') <- emit (Usum s2)
-
-       (STId start) <- emit CheckCtrlStart
+       (STId newCtrl) <- emit (Usum s2)
+       (STId oldCtrl) <- emit GetCtrl 
 
        let usingVars = getVars e0 
        usingVarsTps <- mapM (\x -> getVarType x) usingVars         
-       usingVarsTrs <- mapM (\x -> translate (Var x) ctrl) usingVars 
+       usingVarsTrs <- mapM (\x -> translate (Var x)) usingVars 
        newVarTrs <- zipWithM (\x xtp -> pack xtp x s1) usingVarsTrs usingVarsTps
        binds <- mapM (\(v,tp,tr) -> bindM (PVar v) tp tr) 
                      (zip3 usingVars usingVarsTps newVarTrs)
-       s3 <- addEnv (concat binds) $ translate e0 ctrl' 
-       
-       emit (CheckCtrlEnd c' start)
-       
+
+       emit (SetCtrl newCtrl)      
+       s3 <- addEnv (concat binds) $ translate e0 
+       emit (SetCtrl oldCtrl) 
+
        return (STPair s3 (STId s2)) 
 
 
-type FuncEnv = [(Id, [STree] -> [Type] -> STree -> SneslTrans STree)]
+type FuncEnv = [(Id, [STree] -> [Type] -> SneslTrans STree)]
 
 -- [STree] are the arguments
-transFunc :: Id -> FuncEnv -> [STree] -> [Type] -> STree -> SneslTrans STree
-transFunc fid fe0 args tys ctrl = case lookup fid fe0 of 
-    Just f -> f args tys ctrl
+transFunc :: Id -> FuncEnv -> [STree] -> [Type] -> SneslTrans STree
+transFunc fid fe0 args tys = case lookup fid fe0 of 
+    Just f -> f args tys
     Nothing -> fail "Function call error."
 
 
@@ -231,21 +231,21 @@ distrSegRecur (TSeq t) (STPair (STPair s0 (STId s1)) (STId s2)) s =
       return (STPair newS0 newS1)
 
 
--- for empty sequence
-emptySeq :: Type -> SId -> SneslTrans STree
-emptySeq TInt _ =  emit (Empty TInt)
+-- for empty sequences
+emptySeq :: Type  -> SneslTrans STree
+emptySeq TInt =  emit (Empty TInt)
 
-emptySeq TBool _ = emit (Empty TBool)
+emptySeq TBool = emit (Empty TBool)
 
-emptySeq (TSeq tp) ctrl = 
-    do s0 <- emptySeq tp ctrl
-       f <- emit (MapConst ctrl (BVal True)) 
+emptySeq (TSeq tp) = 
+    do s0 <- emptySeq tp
+       f <- emit (Const (BVal True)) 
        --f <- emit (ToFlags c)
        return (STPair s0 f)
 
-emptySeq (TTup t1 t2) c = 
-    do s1 <- emptySeq t1 c  
-       s2 <- emptySeq t2 c 
+emptySeq (TTup t1 t2) = 
+    do s1 <- emptySeq t1
+       s2 <- emptySeq t2
        return (STPair s1 s2)
 
 
@@ -301,26 +301,26 @@ emit i = SneslTrans $ \ sid _ -> Right (STId sid, [SDef sid i] ,sid+1)
 
 
 fe0 :: FuncEnv
-fe0 = [("_uminus", \[STId s1] _ _ -> emit (MapOne Uminus s1)),
-       ("not", \[STId s1] _ _ -> emit (MapOne Not s1)),
+fe0 = [("_uminus", \[STId s1] _ -> emit (MapOne Uminus s1)),
+       ("not", \[STId s1] _ -> emit (MapOne Not s1)),
 
-       ("_plus", \[STId s1, STId s2] _ _ -> emit (MapTwo Add s1 s2)),
-       ("_minus", \[STId s1, STId s2] _ _ -> emit (MapTwo Minus s1 s2)),
-       ("_times", \[STId s1, STId s2] _ _ -> emit (MapTwo Times s1 s2)),
-       ("_div", \[STId s1, STId s2] _ _ -> emit (MapTwo Div s1 s2)),
-       ("_eq",\[STId s1, STId s2] _ _ -> emit (MapTwo Equal s1 s2)),
-       ("_leq",\[STId s1, STId s2] _ _ -> emit (MapTwo Leq s1 s2)),
+       ("_plus", \[STId s1, STId s2] _ -> emit (MapTwo Add s1 s2)),
+       ("_minus", \[STId s1, STId s2] _ -> emit (MapTwo Minus s1 s2)),
+       ("_times", \[STId s1, STId s2] _ -> emit (MapTwo Times s1 s2)),
+       ("_div", \[STId s1, STId s2] _ -> emit (MapTwo Div s1 s2)),
+       ("_eq",\[STId s1, STId s2] _ -> emit (MapTwo Equal s1 s2)),
+       ("_leq",\[STId s1, STId s2] _ -> emit (MapTwo Leq s1 s2)),
         
-       ("index", \[STId s] _ ctrl -> iotas s),                     
+       ("index", \[STId s] _ -> iotas s),                     
 
-       ("scanExPlus", \[STPair (STId t) (STId s)] _ _ -> scanExPlus t s),
+       ("scanExPlus", \[STPair (STId t) (STId s)] _ -> scanExPlus t s),
 
-       ("reducePlus", \[STPair (STId t) (STId s)] _ _ -> reducePlus t s),
+       ("reducePlus", \[STPair (STId t) (STId s)] _ -> reducePlus t s),
        
-        ("_append", \[t1'@(STPair t1 (STId s1)), t2'@(STPair t2 (STId s2))] tys ctrl -> 
+        ("_append", \[t1'@(STPair t1 (STId s1)), t2'@(STPair t2 (STId s2))] tys -> 
                   appendSeq (head tys) t1' t2'), 
 
-       ("concat", \[STPair (STPair t (STId s1)) (STId s2)] _ _ -> concatSeq t s1 s2)]
+       ("concat", \[STPair (STPair t (STId s1)) (STId s2)] _ -> concatSeq t s1 s2)]
 
 
 

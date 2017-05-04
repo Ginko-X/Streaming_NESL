@@ -108,11 +108,13 @@ recPair2seq (TTup t1 t2) (SPVal v1 v2) = SPVal v1' v2'
 
 -- some examples
 
-manyTest = 
-  let res = map runProg [prog1,prog2,prog3,prog4,prog5,prog6,prog7,
-                          prog8,prog9, prog10]
+manyTest ps = 
+  let res = map runProg ps
   in  [ b | Right (_, _, b, _) <- res ]
 
+
+progs = [prog1,prog2,prog3,prog4,prog5,prog6,prog7,prog8,prog9, prog10]
+                          
 
 -- An example program: compute all the primes less than the number 'count'
 prog1 = "let count = 50; " ++

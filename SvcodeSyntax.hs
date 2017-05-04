@@ -4,9 +4,12 @@ import SneslSyntax
 
 type SId = Int  -- stream id
 
-data Instr = Ctrl              
+data Instr = Ctrl  
+           | SetCtrl SId
+           | GetCtrl            
            | ToFlags SId
            | Usum SId
+           | Const AVal
            | MapConst SId AVal
            | MapOne OP SId
            | MapTwo OP SId SId
@@ -19,15 +22,12 @@ data Instr = Ctrl
            | SegFlagDistr SId SId SId
            | PrimSegFlagDistr SId SId SId 
            | B2u SId
-           | MapEqual SId SId
            | SegConcat SId SId
            | SegMerge SId SId 
            | InterMerge SId SId
            | SegInter SId SId SId SId  -- segment interleave for flags
            | PriSegInter SId SId SId SId  -- segment interleave for primitive streams
            | Empty Type
-           | CheckCtrlStart
-           | CheckCtrlEnd SId SId
            deriving Show
          
 data SDef = SDef SId Instr  -- deriving Show 
@@ -35,14 +35,13 @@ data SDef = SDef SId Instr  -- deriving Show
 data SSym = SSym [SDef] STree  -- deriving Show 
 
 
-data OP = Uminus | Not 
-        | Add | Minus | Times | Div | Equal | Leq  
+data OP = Uminus | Not  -- unary 
+        | Add | Minus | Times | Div | Equal | Leq   -- binary
         deriving (Eq,Show)
 
 type OpEnv = [(OP, [SvVal] -> SvVal)]
 opEnv0 = [(Uminus, \[SIVal as] -> SIVal $ map (\x -> -x) as),
           (Not, \[SBVal as] -> SBVal $ map not as),
-
           (Add, \[SIVal as, SIVal bs] -> SIVal $ zipWith (+) as bs),
           (Minus, \[SIVal as, SIVal bs] -> SIVal $ zipWith (-) as bs),
           (Times, \[SIVal as, SIVal bs] -> SIVal $ zipWith (*) as bs),

@@ -11,15 +11,15 @@ import SneslInterp (flags2len, seglist, wrapWork)
 
 type Svctx = [(SId, SvVal)]
 
-newtype Svcode a = Svcode {rSvcode :: Svctx -> (Int, Int) -> Either String (a,(Int,Int), Svctx)}
+newtype Svcode a = Svcode {rSvcode :: Svctx -> SId -> (Int, Int) -> Either String (a,(Int,Int), Svctx, SId)}
 
 instance Monad Svcode where
-    return a = Svcode $ \ ctx cost -> Right (a, cost, ctx)
+    return a = Svcode $ \ ctx ctrl cost -> Right (a, cost, ctx, ctrl)
 
-    m >>= f = Svcode $ \ ctx cost -> 
-        case rSvcode m ctx cost of 
-            Right (a, cost', ctx') -> case rSvcode (f a) ctx' cost' of 
-                               Right (b, cost'', c'') -> Right (b, cost'',c'')
+    m >>= f = Svcode $ \ ctx ctrl cost -> 
+        case rSvcode m ctx ctrl cost of 
+            Right (a, cost', ctx',ctrl') -> case rSvcode (f a) ctx' ctrl' cost' of 
+                               Right (b, cost'', c'',ctrl'') -> Right (b, cost'',c'',ctrl'')
                                Left err' -> Left err'      
             Left err -> Left err
 
@@ -33,8 +33,8 @@ instance Applicative Svcode where
 
 runSvcodeProg :: SSym -> Either String (SvVal, (Int,Int))
 runSvcodeProg (SSym sdefs st) = 
-  case rSvcode (mapM sdefInterp sdefs) [] (0,0) of 
-    Right (_, (w,s), ctx) -> 
+  case rSvcode (mapM sdefInterp sdefs) [] 0 (0,0) of 
+    Right (_, (w,s), ctx, _) -> 
         case lookupTree st ctx of                      
             Nothing -> Left "Stream does not exist." 
             Just vs -> Right (vs, (w,s))
@@ -53,7 +53,7 @@ lookupTree (STPair t1 t2) ctx = case lookupTree t1 ctx of
 -- only for debug, to show all the SIds and their streams
 --runSvcodeProg' :: SSym -> Either String SvVal
 --runSvcodeProg' (SSym sdefs st) = 
---  case rSvcode (mapM_ sdefInterp sdefs) [] of 
+--  case rSvcode (mapM sdefInterp sdefs) [] 0 (0,0) of 
 --    Right (_, _,ctx) -> 
 --        case lookupSpeTree [10..20] ctx of                      
 --            Nothing -> Left "Stream does not exist." 
@@ -73,15 +73,15 @@ lookupTree (STPair t1 t2) ctx = case lookupTree t1 ctx of
 
 -- look up the stream defined by the SId 
 lookupSid :: SId -> Svcode SvVal 
-lookupSid s = Svcode $ \c cost -> 
+lookupSid s = Svcode $ \c ctrl cost -> 
     case lookup s c of 
         Nothing -> Left $ "Referring to a stream that does not exist: " 
                              ++ show s
-        Just v -> Right (v,cost,c)  
+        Just v -> Right (v,cost,c,ctrl)  
 
 
 addCtx :: SId -> SvVal -> Svcode SvVal
-addCtx s v = Svcode $ \c cost -> Right (v, cost, c ++ [(s,v)])
+addCtx s v = Svcode $ \c ctrl cost -> Right (v, cost, c ++ [(s,v)],ctrl)
 
 --addCost :: SId -> SvVal -> Svcode SvVal
 --addCost s v = Svcode $ \c -> Right (v, (0,0), c ++ [(s,v)])
@@ -115,7 +115,7 @@ sdefInterp (SDef sid i) =
 
 -- explicitly add general cost in return
 returnsvc :: (Int,Int) -> a -> Svcode a
-returnsvc (w,s) a = Svcode $ \ c (w0,s0) -> Right (a, (w0+w,s0+s), c)
+returnsvc (w,s) a = Svcode $ \ c ctrl (w0,s0) -> Right (a, (w0+w,s0+s), c, ctrl)
 
 
 -- compute the cost of an instruction when return the interpretation result
@@ -126,11 +126,15 @@ returnInstrC inVs outV  =
            outWork = streamLen outV
        returnsvc (wrapWork (inWork + outWork), 1) outV  -- for each instr, step is 1
 
-getCost :: Svcode (Int,Int)
-getCost = Svcode $ \ c cost -> Right (cost, cost, c)
 
-setCost :: Int -> Int -> Svcode ()
-setCost w s  = Svcode $ \ c _ -> Right ((),(w,s), c)
+getCtrl :: Svcode SId 
+getCtrl = Svcode $ \ ctx ctrl cost -> Right (ctrl, cost, ctx, ctrl)
+
+
+setCtrl :: SId  -> Svcode ()
+setCtrl ctrl = Svcode $ \ ctx _ cost -> Right ((), cost, ctx, ctrl)
+
+
 
 
  ---- Instruction interpretation  ------ 
@@ -139,10 +143,30 @@ instrInterp :: Instr -> Svcode SvVal
 
 instrInterp Ctrl = returnsvc (1,1) (SBVal [False]) 
 
+instrInterp (SetCtrl ctrl) = 
+  do vs <- lookupSid ctrl 
+     setCtrl ctrl
+     returnInstrC [vs] vs
+
+instrInterp GetCtrl = 
+  do ctrl <- getCtrl
+     vs <- lookupSid ctrl
+     returnInstrC [] vs  
+
+
 -- MapConst: Map the const 'a' to the stream 'sid2'
 instrInterp (MapConst sid a) = 
     do v <- lookupSid sid
        l <- streamLenM v
+       let as = case a of 
+                 IVal i -> SIVal $ replicate l i 
+                 BVal b -> SBVal $ replicate l b
+       returnInstrC [v] as
+
+instrInterp (Const a) = 
+    do ctrl <- getCtrl
+       v <- lookupSid ctrl
+       l <- streamLenM v 
        let as = case a of 
                  IVal i -> SIVal $ replicate l i 
                  BVal b -> SBVal $ replicate l b
@@ -195,7 +219,7 @@ instrInterp (Distr s1 s2) =
        l1 <- streamLenM v1
        v2'@(SBVal v2) <- lookupSid s2  
        if not $ l1 == (length [v | v <- v2, v])
-         then fail $ "Distr: segments mismatch: " ++ show v1 ++ ", " ++ show v2
+         then fail $ "Distr: segments mismatch: " ++ show v1 ++ ", " ++ show v2'
          else let v1' = case v1 of
                          (SIVal is) -> SIVal $ pdist is v2 
                          (SBVal bs) -> SBVal $ pdist bs v2
@@ -290,18 +314,6 @@ instrInterp (Empty tp) =
     TInt -> returnsvc (1,1) $ SIVal [] 
     TBool -> returnsvc (1,1) $ SBVal []
 
-
-instrInterp CheckCtrlStart = 
-  do (w,s) <- getCost     
-     returnInstrC [] $ SIVal [w,s]
-     
-instrInterp (CheckCtrlEnd s1 s2) = 
-  do v1'@(SBVal v1) <-  lookupSid s1
-     v2'@(SIVal v2) <-  lookupSid s2
-     if length [v | v <- v1, not v] == 0  -- empty ctrl
-     then (do setCost (v2!!0)  (v2!!1)
-              return v1') 
-     else returnInstrC [v1',v2'] $ v1'
      
 
 -- segment interleave
