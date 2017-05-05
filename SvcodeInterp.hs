@@ -35,16 +35,16 @@ runSvcodeProg :: SSym -> Either String (SvVal, (Int,Int))
 runSvcodeProg (SSym sdefs st) = 
   case rSvcode (mapM sdefInterp sdefs) [] 0 (0,0) of 
     Right (_, (w,s), ctx, _) -> 
-        case lookupTree st ctx of                      
+        case lookupTreeCtx st ctx of                      
             Nothing -> Left "Stream does not exist." 
             Just vs -> Right (vs, (w,s))
     Left err -> Left err 
 
 
-lookupTree :: STree -> Svctx -> Maybe SvVal
-lookupTree (STId t1) ctx = lookup t1 ctx  
-lookupTree (STPair t1 t2) ctx = case lookupTree t1 ctx of 
-    Just v1 -> case lookupTree t2 ctx of 
+lookupTreeCtx :: STree -> Svctx -> Maybe SvVal
+lookupTreeCtx (STId t1) ctx = lookup t1 ctx  
+lookupTreeCtx (STPair t1 t2) ctx = case lookupTreeCtx t1 ctx of 
+    Just v1 -> case lookupTreeCtx t2 ctx of 
                    Just v2 -> Just $ SPVal v1 v2  -- need a 'Type' to indicate 
                                                   -- a SSVal or a SPVal
                    Nothing -> Nothing
@@ -71,6 +71,14 @@ lookupTree (STPair t1 t2) ctx = case lookupTree t1 ctx of
 --    Nothing -> Nothing
 
 
+lookupTreeM :: STree -> Svcode SvVal
+lookupTreeM (STId t) = lookupSid t 
+lookupTreeM (STPair t0 t1) = 
+  do s0 <- lookupTreeM t0
+     s1 <- lookupTreeM t1 
+     return (SPVal s0 s1)
+
+
 -- look up the stream defined by the SId 
 lookupSid :: SId -> Svcode SvVal 
 lookupSid s = Svcode $ \c ctrl cost -> 
@@ -83,18 +91,18 @@ lookupSid s = Svcode $ \c ctrl cost ->
 addCtx :: SId -> SvVal -> Svcode SvVal
 addCtx s v = Svcode $ \c ctrl cost -> Right (v, cost, c ++ [(s,v)],ctrl)
 
---addCost :: SId -> SvVal -> Svcode SvVal
---addCost s v = Svcode $ \c -> Right (v, (0,0), c ++ [(s,v)])
-
 
 streamLenM :: SvVal -> Svcode Int 
-streamLenM (SIVal s) = return $ length s 
-streamLenM (SBVal s) = return $ length s 
+streamLenM s  = return $ streamLen s 
+-- streamLenM (SBVal s) = return $ length s 
 
 
 streamLen :: SvVal -> Int 
 streamLen (SIVal s) = length s 
 streamLen (SBVal s) = length s 
+streamLen (SPVal s1 s2) = s1l + s2l 
+    where s1l = streamLen s1 
+          s2l = streamLen s2
 
 
 -- look up the function definition of the operation
@@ -152,6 +160,18 @@ instrInterp GetCtrl =
   do ctrl <- getCtrl
      vs <- lookupSid ctrl
      returnInstrC [] vs  
+
+instrInterp (WithCtrl s defs st) = 
+  do ctrl@(SBVal bs) <- lookupSid s 
+     if null bs
+     then fail "Empty Ctrl" --returnInstrC [ctrl] $ SIVal [] -- type ?!
+     else 
+       do oldCtrl <- getCtrl
+          setCtrl s 
+          vs <- mapM sdefInterp defs
+          setCtrl oldCtrl
+          ret <- lookupTreeM st 
+          returnInstrC [ctrl] $ ret -- STree 
 
 
 -- MapConst: Map the const 'a' to the stream 'sid2'

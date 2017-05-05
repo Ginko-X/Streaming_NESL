@@ -6,7 +6,8 @@ type SId = Int  -- stream id
 
 data Instr = Ctrl  
            | SetCtrl SId
-           | GetCtrl            
+           | GetCtrl
+           | WithCtrl SId [SDef] STree        
            | ToFlags SId
            | Usum SId
            | Const AVal
