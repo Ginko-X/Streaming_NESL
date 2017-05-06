@@ -71,21 +71,23 @@ lookupTreeCtx (STPair t1 t2) ctx = case lookupTreeCtx t1 ctx of
 --    Nothing -> Nothing
 
 
-lookupTreeM :: STree -> Svcode SvVal
-lookupTreeM (STId t) = lookupSid t 
-lookupTreeM (STPair t0 t1) = 
-  do s0 <- lookupTreeM t0
-     s1 <- lookupTreeM t1 
-     return (SPVal s0 s1)
 
-
--- look up the stream defined by the SId 
+-- look up the stream value according to its SId 
 lookupSid :: SId -> Svcode SvVal 
 lookupSid s = Svcode $ \c ctrl cost -> 
     case lookup s c of 
         Nothing -> Left $ "Referring to a stream that does not exist: " 
                              ++ show s
         Just v -> Right (v,cost,c,ctrl)  
+
+-- look up the streams of an STree 
+lookupTree :: STree -> Svcode SvVal
+lookupTree (STId t) = lookupSid t 
+lookupTree (STPair t0 t1) = 
+  do s0 <- lookupTree t0
+     s1 <- lookupTree t1 
+     return (SPVal s0 s1)
+
 
 
 addCtx :: SId -> SvVal -> Svcode SvVal
@@ -94,7 +96,6 @@ addCtx s v = Svcode $ \c ctrl cost -> Right (v, cost, c ++ [(s,v)],ctrl)
 
 streamLenM :: SvVal -> Svcode Int 
 streamLenM s  = return $ streamLen s 
--- streamLenM (SBVal s) = return $ length s 
 
 
 streamLen :: SvVal -> Int 
@@ -103,7 +104,9 @@ streamLen (SBVal s) = length s
 streamLen (SPVal s1 s2) = s1l + s2l 
     where s1l = streamLen s1 
           s2l = streamLen s2
-
+streamLen (SSVal s1 s2) = s1l + s2l
+    where s1l = streamLen s1 
+          s2l = length s2
 
 -- look up the function definition of the operation
 lookupOP :: OP -> OpEnv -> Svcode ([SvVal] -> SvVal)  
@@ -111,13 +114,6 @@ lookupOP key ps =
   do case lookup key ps of
        Just v -> return v 
        Nothing -> fail $ "SVCODE: can't find " ++ show key
-
-
-
-sdefInterp :: SDef -> Svcode SvVal
-sdefInterp (SDef sid i) = 
-    do v <- instrInterp i
-       addCtx sid v
 
 
 
@@ -143,35 +139,49 @@ setCtrl :: SId  -> Svcode ()
 setCtrl ctrl = Svcode $ \ ctx _ cost -> Right ((), cost, ctx, ctrl)
 
 
+-- set empty streams for the SIds in the STree 
+emptyStream :: STree -> Type -> Svcode SvVal
+emptyStream (STId s) TInt = addCtx s $ SIVal [] 
+emptyStream (STId s) TBool = addCtx s $ SBVal []
+
+emptyStream (STPair st1 st2) (TTup t1 t2) = 
+    do sv1 <- emptyStream st1 t1
+       sv2 <- emptyStream st2 t2
+       return $ SPVal sv1 sv2
+
+emptyStream (STPair st1 (STId st2)) (TSeq t1) = 
+    do sv1 <- emptyStream st1 t1  
+       sv2 <- addCtx st2 $ SBVal []
+       return $ SSVal sv1 []
+
+ 
+
+-- interpreter an SVCODE stream definition
+sdefInterp :: SDef -> Svcode SvVal
+sdefInterp (SDef sid i) = 
+    do v <- instrInterp i
+       addCtx sid v
 
 
- ---- Instruction interpretation  ------ 
+---- Instruction interpretation  ------ 
 
 instrInterp :: Instr -> Svcode SvVal
 
 instrInterp Ctrl = returnsvc (1,1) (SBVal [False]) 
 
-instrInterp (SetCtrl ctrl) = 
-  do vs <- lookupSid ctrl 
-     setCtrl ctrl
-     returnInstrC [vs] vs
-
-instrInterp GetCtrl = 
-  do ctrl <- getCtrl
-     vs <- lookupSid ctrl
-     returnInstrC [] vs  
-
-instrInterp (WithCtrl s defs st) = 
-  do ctrl@(SBVal bs) <- lookupSid s 
-     if null bs
-     then fail "Empty Ctrl" --returnInstrC [ctrl] $ SIVal [] -- type ?!
+instrInterp (WithCtrl c defs st tp) = 
+  do ctrl@(SBVal bs) <- lookupSid c 
+     if null bs 
+     then 
+       do ret <- emptyStream st tp 
+          returnInstrC [ctrl] ret
      else 
        do oldCtrl <- getCtrl
-          setCtrl s 
+          setCtrl c 
           vs <- mapM sdefInterp defs
           setCtrl oldCtrl
-          ret <- lookupTreeM st 
-          returnInstrC [ctrl] $ ret -- STree 
+          ret <- lookupTree st 
+          returnInstrC [ctrl] ret 
 
 
 -- MapConst: Map the const 'a' to the stream 'sid2'

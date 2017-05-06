@@ -5,9 +5,7 @@ import SneslSyntax
 type SId = Int  -- stream id
 
 data Instr = Ctrl  
-           | SetCtrl SId
-           | GetCtrl
-           | WithCtrl SId [SDef] STree        
+           | WithCtrl SId [SDef] STree Type -- 'Type' is the type of the return value
            | ToFlags SId
            | Usum SId
            | Const AVal

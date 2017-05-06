@@ -109,6 +109,13 @@ emit :: Instr -> SneslTrans STree
 emit i = SneslTrans $ \ sid _ -> Right (STId sid, [SDef sid i] ,sid+1)
 
 
+-- get the translated code and the return stream ids(i.e. STree)
+ctrlTrans :: SneslTrans STree -> SneslTrans (STree,[SDef])
+ctrlTrans m = SneslTrans $ \sid env -> 
+    case rSneslTrans m sid env of 
+      Right (st, code, s) -> Right ((st,code), [], s)
+      Left err -> Left err 
+
 
 --- Translation ---
 
@@ -155,7 +162,6 @@ translate (GComp e0 ps) =
         -- new ctrl
         let (STPair _ (STId s0)) = head trs 
         (STId newCtrl) <- emit (Usum s0) 
-        --(STId oldCtrl) <- emit GetCtrl 
 
         -- free variables distribution
         let bindvs = concat $ map (\(p,_) -> getPatVars p) ps  
@@ -167,18 +173,16 @@ translate (GComp e0 ps) =
                               (zip3 usingVars usingVarsTps newVarTrs)
 
         -- translate the body
-        --emit (SetCtrl newCtrl)
+        tp <- addEnv (concat $ newEnvs ++ usingVarbinds) $ compTypeInfer e0 
         (st,defs) <- ctrlTrans $ addEnv (concat $ newEnvs ++ usingVarbinds) $ translate e0 
-        st' <- emit (WithCtrl newCtrl defs st)
-        --emit (SetCtrl oldCtrl) 
-        return (STPair st' (STId s0))
+        emit (WithCtrl newCtrl defs st tp)
+        return (STPair st (STId s0))
         
 
 translate (RComp e0 e1) = 
     do (STId s1) <- translate e1
        (STId s2) <- emit (B2u s1)  
        (STId newCtrl) <- emit (Usum s2)
-       --(STId oldCtrl) <- emit GetCtrl 
 
        let usingVars = getVars e0 
        usingVarsTps <- mapM (\x -> getVarType x) usingVars         
@@ -187,19 +191,12 @@ translate (RComp e0 e1) =
        binds <- mapM (\(v,tp,tr) -> bindM (PVar v) tp tr) 
                      (zip3 usingVars usingVarsTps newVarTrs)
 
-       --emit (SetCtrl newCtrl) 
+       tp <- addEnv (concat binds) $ compTypeInfer e0  
        (s3,defs) <- ctrlTrans $ addEnv (concat binds) $ translate e0 
-       s3' <- emit (WithCtrl newCtrl defs s3)
-       --emit (SetCtrl oldCtrl) 
+       emit (WithCtrl newCtrl defs s3 tp)
 
-       return (STPair s3' (STId s2)) 
+       return (STPair s3 (STId s2)) 
 
-
-ctrlTrans :: SneslTrans STree -> SneslTrans (STree,[SDef])
-ctrlTrans m = SneslTrans $ \sid env -> 
-    case rSneslTrans m sid env of 
-      Right (st, code, s) -> Right ((st,code), [], s)
-      Left err -> Left err 
 
 
 
