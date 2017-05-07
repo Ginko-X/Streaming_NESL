@@ -4,7 +4,8 @@ import SneslSyntax
 
 type SId = Int  -- stream id
 
-data Instr = Ctrl  
+data Instr = Ctrl 
+           | EmptyCtrl 
            | WithCtrl SId [SDef] STree Type -- 'Type' is the type of the return value
            | ToFlags SId
            | Usum SId
@@ -26,7 +27,6 @@ data Instr = Ctrl
            | InterMerge SId SId
            | SegInter SId SId SId SId  -- segment interleave for flags
            | PriSegInter SId SId SId SId  -- segment interleave for primitive streams
-           | Empty Type
            deriving Show
          
 data SDef = SDef SId Instr  -- deriving Show 

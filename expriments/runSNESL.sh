@@ -5,9 +5,9 @@
 
 # Usage: ./runSNESL <SNESLexe> <SNESLprogname> # no need the extension '.sed'
 
-n=(100 300 500 700 1000) # 3000 5000) # input size ranges
+n=(100 300 500 700 1000 3000 5000) # input size ranges
 EXE=$1  
-FILE=(prime) # comp guardF guardT iota)
+FILE=(comp guardF guardT iota) # prime
 
 PLOT=./plot.py
 

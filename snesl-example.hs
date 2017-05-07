@@ -73,8 +73,8 @@ runProg' p =
        sneslTy <- typing absProg    -- get the expression's type
        (sneslRes,w,s) <- runSneslInterp absProg  -- SNESL interpreting result
        svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
-       --(svcodeRes,(w',s')) <- runSvcodeProg svcode    -- SVCODE interpreting result
-       return (sneslRes, sneslTy,svcode)
+       (svcodeRes,(w',s')) <- runSvcodeProg svcode    -- SVCODE interpreting result
+       return (sneslRes, sneslTy,svcode,svcodeRes)
        --let svcodeRes' = dataTransBack sneslTy $ recPair2seq sneslTy svcodeRes
            --compRes = compareVal sneslRes svcodeRes'  -- compare the two results       
        --return ((sneslRes,w,s),sneslTy, (svcodeRes', w',s'))

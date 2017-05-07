@@ -67,7 +67,7 @@ dataTransBack :: Type -> SvVal -> Val
 dataTransBack TInt (SIVal [i]) = AVal $ IVal i 
 dataTransBack TBool (SBVal [b]) = AVal $ BVal b
 
-dataTransBack (TSeq t) (SSVal vs [True]) = SVal [] -- special case for empty sequences
+--dataTransBack (TSeq t) (SSVal vs [True]) = SVal [] -- special case for empty sequences
 
 dataTransBack (TSeq t) (SSVal vs fs) = SVal vs'
     where vs' = seqTransBack t vs

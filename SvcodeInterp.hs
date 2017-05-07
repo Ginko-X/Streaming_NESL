@@ -33,7 +33,7 @@ instance Applicative Svcode where
 
 runSvcodeProg :: SSym -> Either String (SvVal, (Int,Int))
 runSvcodeProg (SSym sdefs st) = 
-  case rSvcode (mapM sdefInterp sdefs) [] 0 (0,0) of 
+  case rSvcode (mapM_ sdefInterp sdefs) [] 0 (0,0) of 
     Right (_, (w,s), ctx, _) -> 
         case lookupTreeCtx st ctx of                      
             Nothing -> Left "Stream does not exist." 
@@ -117,7 +117,7 @@ lookupOP key ps =
 
 
 
--- explicitly add general cost in return
+-- explicitly add a cost
 returnsvc :: (Int,Int) -> a -> Svcode a
 returnsvc (w,s) a = Svcode $ \ c ctrl (w0,s0) -> Right (a, (w0+w,s0+s), c, ctrl)
 
@@ -167,7 +167,9 @@ sdefInterp (SDef sid i) =
 
 instrInterp :: Instr -> Svcode SvVal
 
-instrInterp Ctrl = returnsvc (1,1) (SBVal [False]) 
+instrInterp Ctrl = returnInstrC [] (SBVal [False]) 
+
+instrInterp EmptyCtrl = returnInstrC [] (SBVal [])     
 
 instrInterp (WithCtrl c defs st tp) = 
   do ctrl@(SBVal bs) <- lookupSid c 
@@ -178,10 +180,11 @@ instrInterp (WithCtrl c defs st tp) =
      else 
        do oldCtrl <- getCtrl
           setCtrl c 
-          vs <- mapM sdefInterp defs
+          mapM_ sdefInterp defs
           setCtrl oldCtrl
           ret <- lookupTree st 
           returnInstrC [ctrl] ret 
+
 
 
 -- MapConst: Map the const 'a' to the stream 'sid2'
@@ -267,7 +270,7 @@ instrInterp (SegFlagDistr s1 s2 s3) =
      v2'@(SBVal v2) <- lookupSid s2
      v3'@(SBVal v3) <- lookupSid s3
      segCountChk v2 v3 "SegFlagDistr"
-     --segDescpChk v1 v2 "SegFlagDistr"
+     segDescpChk v1 v2 "SegFlagDistr"
      returnInstrC [v1',v2',v3'] $ SBVal $ segFlagDistr v1 v2 v3 
 
 instrInterp (PrimSegFlagDistr s1 s2 s3) = 
@@ -322,8 +325,8 @@ instrInterp (SegInter s1 s2 s3 s4) =
      v3'@(SBVal v3) <- lookupSid s3
      v4'@(SBVal v4) <- lookupSid s4 
      segCountChk v2 v4 "SegInter" 
-     --segDescpChk v1 v2 "SegInter"
-     --segDescpChk v3 v4 "SegInter"
+     segDescpChk v1 v2 "SegInter"
+     segDescpChk v3 v4 "SegInter"
      returnInstrC [v1',v2',v3',v4'] $ SBVal $ segInter v1 v2 v3 v4  
 
 instrInterp (PriSegInter s1 s2 s3 s4) = 
@@ -338,13 +341,6 @@ instrInterp (SegMerge s1 s2) =
      v2'@(SBVal v2) <- lookupSid s2
      returnInstrC [v1',v2'] $ SBVal $ segMerge v1 v2 
 
-
-instrInterp (Empty tp) = 
-  case tp of 
-    TInt -> returnsvc (1,1) $ SIVal [] 
-    TBool -> returnsvc (1,1) $ SBVal []
-
-     
 
 -- segment interleave
 segInter :: [Bool] -> [Bool] -> [Bool] -> [Bool] -> [Bool]
@@ -423,16 +419,7 @@ segConcat :: [Bool] -> [Bool] -> [Bool]
 segConcat [] [] = []
 segConcat (False:fs1) f2@(False:fs2) = False: segConcat fs1 f2
 segConcat (True:fs1) (False:fs2) = segConcat fs1 fs2
-
 segConcat f1 (True:fs2) = True : segConcat f1 fs2
--- ^ this is equivalent to the following three cases:
---segConcat []             (True:fs2) = True : segConcat [] fs2
---segConcat f1@(False:fs1) (True:fs2) = True : segConcat f1 fs2
---segConcat f1@(True:fs1) (True:fs2) = True : segConcat f1 fs2 
-
--- but for empty sequences, the last case should be: 
--- segConcat (True:fs1) (True:fs2) = True : segConcat fs1 fs2
-segConcat (True:fs1) [] = segConcat fs1 [] -- so add this case for empty seqs
 
 
 -- primitive pack
@@ -538,7 +525,6 @@ segCountChk b1 b2 instrName =
                       ++ show b1 ++ ", " ++ show b2 
 
 -- the number of 'F's in b2 is equal to the number of 'T's in b1
--- NOTE: empty sequences are a special case
 segDescpChk :: [Bool] -> [Bool] -> String -> Svcode ()
 segDescpChk b1 b2 instrName = 
     do let segCount1 = length [b | b <- b1, b]

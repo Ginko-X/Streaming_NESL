@@ -109,6 +109,11 @@ emit :: Instr -> SneslTrans STree
 emit i = SneslTrans $ \ sid _ -> Right (STId sid, [SDef sid i] ,sid+1)
 
 
+-- generate a stream SId without instruction definition
+emitEmpty :: SneslTrans STree
+emitEmpty = SneslTrans $ \ sid _ -> Right (STId sid, [] ,sid+1)
+
+
 -- get the translated code and the return stream ids(i.e. STree)
 ctrlTrans :: SneslTrans STree -> SneslTrans (STree,[SDef])
 ctrlTrans m = SneslTrans $ \sid env -> 
@@ -134,9 +139,11 @@ translate (Tup e1 e2) =
        return (STPair t1 t2)
 
 translate (SeqNil tp) = 
-    do s0 <- emptySeq tp
+    do (st,defs) <- ctrlTrans $ emptySeq tp
+       (STId emptyCtrl) <- emit EmptyCtrl
+       emit (WithCtrl emptyCtrl defs st tp)
        f <- emit (Const (BVal True))  
-       return (STPair s0 f)
+       return (STPair st f)
 
 
 translate (Let pat e1 e2) = 
@@ -245,16 +252,15 @@ distrSegRecur (TSeq t) (STPair (STPair s0 (STId s1)) (STId s2)) s =
       return (STPair newS0 newS1)
 
 
--- for empty sequences
+-- generate empty/undefined stream SIds
 emptySeq :: Type  -> SneslTrans STree
-emptySeq TInt =  emit (Empty TInt)
+emptySeq TInt =  emitEmpty
 
-emptySeq TBool = emit (Empty TBool)
+emptySeq TBool = emitEmpty
 
 emptySeq (TSeq tp) = 
     do s0 <- emptySeq tp
-       f <- emit (Const (BVal True)) 
-       --f <- emit (ToFlags c)
+       f <- emptySeq TBool
        return (STPair s0 f)
 
 emptySeq (TTup t1 t2) = 
