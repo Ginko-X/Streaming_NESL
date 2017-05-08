@@ -1,4 +1,8 @@
 # Working Progress
++ Week 18 (1~7 May)
+    + A new solution to the control change problem, using a new SVCODE instruction "WithCtrl", see [Issue 12](https://github.com/Ginko-X/Streaming_NESL/issues/12)
+    + Implemented sequence expressions in a more efficienty way
+    
 + Week 17 (24~30 Apr)
     + Provide a solution to the problems discussed in [#4](https://github.com/Ginko-X/Streaming_NESL/issues/4), for [details](https://github.com/Ginko-X/Streaming_NESL/issues/10)
     + Cost model experiment and analysis, see [some results](https://github.com/Ginko-X/Streaming_NESL/issues/11)
