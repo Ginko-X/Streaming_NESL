@@ -29,6 +29,10 @@ eval (Tup e1 e2) r =
 eval (SeqNil tp) r =
      returnc (1,1) $ SVal []
 
+eval (Seq es) r = 
+  do vs <- mapM (\e -> eval e r) es  
+     returnc (wrapWork(length vs),1) $ SVal vs
+
 eval (Let p e1 e2) r =
   do v1 <- eval e1 r
      eval e2 (bind p v1 ++ r)
@@ -90,7 +94,6 @@ returnc (w,s) a = Snesl $ Right (a, w, s)
 -- For the operation that can consume(and produce) empty sequences
 wrapWork :: Int -> Int 
 wrapWork i = i + 1 
---wrapWork i = max i 1  -- another possible solution
 
 
 primop :: ([AVal] -> AVal) -> Val

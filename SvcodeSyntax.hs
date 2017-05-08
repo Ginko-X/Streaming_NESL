@@ -24,9 +24,9 @@ data Instr = Ctrl
            | B2u SId
            | SegConcat SId SId
            | SegMerge SId SId 
-           | InterMerge SId SId
-           | SegInter SId SId SId SId  -- segment interleave for flags
-           | PriSegInter SId SId SId SId  -- segment interleave for primitive streams
+           | InterMergeS [SId]
+           | SegInterS [(SId,SId)]
+           | PriSegInterS [(SId,SId)]            
            deriving Show
          
 data SDef = SDef SId Instr  -- deriving Show 

@@ -34,6 +34,12 @@ typeInfer (Tup e1 e2) env =
  --a special case
 typeInfer (SeqNil tp) env = return $ TSeq tp
 
+typeInfer (Seq es) env = 
+    do tps <- mapM (\x -> typeInfer x env) es 
+       let tp0 = head tps
+       if all (==tp0) tps 
+       then return $ TSeq tp0
+       else fail "Sequence elements type error!"
 
 typeInfer (Let p e1 e2) env = 
     do tp <- typeInfer e1 env

@@ -128,10 +128,8 @@ translate :: Exp -> SneslTrans STree
 
 translate (Var x) = lookupSTree x 
 
-
 translate (Lit l) =  
        emit (Const l)
-
 
 translate (Tup e1 e2) = 
     do t1 <- translate e1   
@@ -144,6 +142,14 @@ translate (SeqNil tp) =
        emit (WithCtrl emptyCtrl defs st tp)
        f <- emit (Const (BVal True))  
        return (STPair st f)
+
+translate (Seq es) = 
+    do sts <- mapM translate es
+       tp <- compTypeInfer (Seq es)
+       (STId s0) <- emit (Const (IVal 1))
+       f0 <- emit (ToFlags s0)
+       let sts' = map (\st -> (STPair st f0)) sts
+       mergeSeq tp sts'
 
 
 translate (Let pat e1 e2) = 
@@ -288,9 +294,14 @@ pack (TSeq tp) (STPair t (STId s)) b =
 -- get the free varibales in the expression
 getVars :: Exp -> [Id]
 getVars (Var x) = [x]
+
 getVars (Lit a) = []
+
 getVars (Tup e1 e2) = foldl union [] $ map getVars [e1,e2]
+
 getVars (SeqNil tp) = []
+
+getVars (Seq es) = foldl union [] $ map getVars es
 
 getVars (Let p e1 e2) = e1Vars ++ filter (\x -> not $ x `elem` binds) (getVars e2) 
     where binds = getPatVars p 
@@ -331,7 +342,7 @@ fe0 = [("_uminus", \[STId s1] _ -> emit (MapOne Uminus s1)),
        ("reducePlus", \[STPair (STId t) (STId s)] _ -> reducePlus t s),
        
         ("_append", \[t1'@(STPair t1 (STId s1)), t2'@(STPair t2 (STId s2))] tys -> 
-                  appendSeq (head tys) t1' t2'), 
+                  mergeSeq (head tys) [t1',t2']), 
 
        ("concat", \[STPair (STPair t (STId s1)) (STId s2)] _ -> concatSeq t s1 s2)]
 
@@ -361,35 +372,33 @@ concatSeq t s1 s2 =
 
 
 
--- append 
-appendSeq :: Type -> STree -> STree -> SneslTrans STree
-appendSeq (TSeq tp) t1'@(STPair t1 (STId s1)) t2'@(STPair t2 (STId s2)) =
-    do fs <- emit (InterMerge s1 s2)
-       t <- appendRecur tp t1' t2'
-       return (STPair t fs)
+mergeSeq :: Type -> [STree] -> SneslTrans STree
+mergeSeq (TSeq tp) ts = 
+    do let (_, fs) = unzip $ map (\(STPair t (STId s)) -> (t,s)) ts
+       f <- emit (InterMergeS fs)
+       t <- mergeRecur tp ts
+       return (STPair t f)
 
 
-appendRecur :: Type -> STree -> STree -> SneslTrans STree 
-appendRecur TInt (STPair (STId t1) (STId s1)) (STPair (STId t2) (STId s2)) =
-      emit (PriSegInter t1 s1 t2 s2)
+mergeRecur :: Type -> [STree] -> SneslTrans STree 
+mergeRecur TInt ts = 
+    emit (PriSegInterS $ map (\(STPair (STId t) (STId s)) -> (t,s)) ts)
 
-appendRecur TBool (STPair (STId t1) (STId s1)) (STPair (STId t2) (STId s2)) =
-      emit (PriSegInter t1 s1 t2 s2)
-     
-appendRecur (TTup tp1 tp2) (STPair (STPair t1 s1) (STId s2))
-                           (STPair (STPair t2 s3) (STId s4)) = 
-    do st1 <- appendRecur tp1 (STPair t1 (STId s2)) (STPair t2 (STId s4))
-       st2 <- appendRecur tp2 (STPair s1 (STId s2)) (STPair s3 (STId s4)) 
+mergeRecur TBool ts = 
+    emit (PriSegInterS $ map (\(STPair (STId t) (STId s)) -> (t,s)) ts)   
+
+mergeRecur (TTup tp1 tp2) ts = 
+    do let fsts = [(STPair t1 (STId s)) |(STPair (STPair t1 _) (STId s)) <- ts]
+           snds = [(STPair t2 (STId s)) |(STPair (STPair _ t2) (STId s)) <- ts]
+       st1 <- mergeRecur tp1 fsts
+       st2 <- mergeRecur tp2 snds
        return (STPair st1 st2)
 
-appendRecur (TSeq tp) (STPair (STPair t1 (STId s1)) (STId s2)) 
-                      (STPair (STPair t2 (STId s3)) (STId s4)) =
-    do s5 <- emit (SegInter s1 s2 s3 s4)
-       s1' <- emit (SegMerge s1 s2)
-       s3' <- emit (SegMerge s3 s4)
-       s6 <- appendRecur tp (STPair t1 s1') (STPair t2 s3')
-       return (STPair s6 s5)
-
-
-                                    
+mergeRecur (TSeq tp) ts = 
+    do let (t1s,ps) = unzip 
+               [(t1,(s1,s2)) | (STPair (STPair t1 (STId s1)) (STId s2)) <- ts]
+       s2' <- emit (SegInterS ps)
+       ps' <- mapM (\(x,y) -> emit (SegMerge x y)) ps
+       ts' <- mergeRecur tp (zipWith STPair t1s ps')
+       return (STPair ts' s2')
 

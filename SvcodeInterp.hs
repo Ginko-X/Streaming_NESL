@@ -7,6 +7,7 @@ import SneslSyntax
 import Control.Monad
 import DataTrans (i2flags)
 import SneslInterp (flags2len, seglist, wrapWork)
+import Data.List (transpose)
 
 
 type Svctx = [(SId, SvVal)]
@@ -128,7 +129,7 @@ returnInstrC inVs outV  =
     do ls <- mapM streamLenM inVs
        let inWork = sum ls  
            outWork = streamLen outV
-       returnsvc (wrapWork (inWork + outWork), 1) outV  -- for each instr, step is 1
+       returnsvc (wrapWork (inWork + outWork), 1) outV  
 
 
 getCtrl :: Svcode SId 
@@ -184,7 +185,6 @@ instrInterp (WithCtrl c defs st tp) =
           setCtrl oldCtrl
           ret <- lookupTree st 
           returnInstrC [ctrl] ret 
-
 
 
 -- MapConst: Map the const 'a' to the stream 'sid2'
@@ -312,29 +312,57 @@ instrInterp (SegConcat s1 s2) =
        returnInstrC [v1',v2'] $ SBVal $ segConcat v1 v2 
 
 
-instrInterp (InterMerge s1 s2) = 
-  do v1'@(SBVal v1) <- lookupSid s1
-     v2'@(SBVal v2) <- lookupSid s2
-     segCountChk v1 v2 "InterMerge"
-     returnInstrC [v1',v2'] $ SBVal $ interMerge v1 v2 
+--instrInterp (InterMerge s1 s2) = 
+--  do v1'@(SBVal v1) <- lookupSid s1
+--     v2'@(SBVal v2) <- lookupSid s2
+--     segCountChk v1 v2 "InterMerge"
+--     returnInstrC [v1',v2'] $ SBVal $ interMerge v1 v2 
+
+instrInterp (InterMergeS ss) = 
+  do vs <- mapM lookupSid ss  -- segCountChk v1 v2 "InterMerge"
+     let vs' = map (\(SBVal v) -> v) vs 
+     returnInstrC vs $ SBVal $ interMergeS vs' 
 
 
-instrInterp (SegInter s1 s2 s3 s4) = 
-  do v1'@(SBVal v1) <- lookupSid s1
-     v2'@(SBVal v2) <- lookupSid s2
-     v3'@(SBVal v3) <- lookupSid s3
-     v4'@(SBVal v4) <- lookupSid s4 
-     segCountChk v2 v4 "SegInter" 
-     segDescpChk v1 v2 "SegInter"
-     segDescpChk v3 v4 "SegInter"
-     returnInstrC [v1',v2',v3',v4'] $ SBVal $ segInter v1 v2 v3 v4  
+--instrInterp (SegInter s1 s2 s3 s4) = 
+--  do v1'@(SBVal v1) <- lookupSid s1
+--     v2'@(SBVal v2) <- lookupSid s2
+--     v3'@(SBVal v3) <- lookupSid s3
+--     v4'@(SBVal v4) <- lookupSid s4 
+--     segCountChk v2 v4 "SegInter" 
+--     segDescpChk v1 v2 "SegInter"
+--     segDescpChk v3 v4 "SegInter"
+--     returnInstrC [v1',v2',v3',v4'] $ SBVal $ segInter v1 v2 v3 v4  
 
-instrInterp (PriSegInter s1 s2 s3 s4) = 
-  do v1 <- lookupSid s1
-     v2'@(SBVal v2) <- lookupSid s2
-     v3 <- lookupSid s3
-     v4'@(SBVal v4) <- lookupSid s4
-     returnInstrC [v1,v2',v3,v4'] $ priSegInter v1 v2 v3 v4  
+
+instrInterp (SegInterS ss) = 
+  do vs <- mapM (\(s1,s2) -> 
+                    do v1'@(SBVal v1) <- lookupSid s1
+                       v2'@(SBVal v2) <- lookupSid s2 
+                       return ((v1,v2),[v1',v2'])) 
+                ss  
+     let (vs1,vs2) = unzip vs    
+     --segCountChk v2 v4 "SegInter" 
+     mapM_ (\(v1,v2) -> segDescpChk v1 v2 "SegInter") vs1
+     returnInstrC (concat vs2) $ SBVal $ segInterS vs1
+
+
+--instrInterp (PriSegInter s1 s2 s3 s4) = 
+--  do v1 <- lookupSid s1
+--     v2'@(SBVal v2) <- lookupSid s2
+--     v3 <- lookupSid s3
+--     v4'@(SBVal v4) <- lookupSid s4
+--     returnInstrC [v1,v2',v3,v4'] $ priSegInter v1 v2 v3 v4  
+
+instrInterp (PriSegInterS ss) = 
+  do vs <- mapM (\(s1,s2) -> 
+                     do v1 <- lookupSid s1
+                        v2'@(SBVal v2) <- lookupSid s2
+                        return ((v1,v2),[v1,v2'])) 
+                ss
+     let (vs1,vs2) = unzip vs  
+     returnInstrC (concat vs2) $ priSegInterS vs1 
+
 
 instrInterp (SegMerge s1 s2) = 
   do v1'@(SBVal v1) <- lookupSid s1
@@ -351,17 +379,42 @@ segInter b1 b2 b3 b4 = concat $ interleaveList segs b1' b3'
           b2' = flags2len b2
           b4' = flags2len b4
 
+-- a general version of segInter
+segInterS :: [([Bool],[Bool])] -> [Bool]
+segInterS [(b1,b2)] = b1 
+segInterS bs = fst bs'
+    where bs' = foldl (\(x1,y1) (x2,y2) -> 
+                          ((segInter x1 y1 x2 y2),(interMerge y1 y2))) b0 bs 
+          b0 = ([], replicate n True)
+          n = length.flags2len.snd $ head bs
+          
+--priSegInter :: SvVal -> [Bool] -> SvVal -> [Bool] -> SvVal 
+--priSegInter (SIVal v1) b1 (SIVal v2) b2 = SIVal $ interleaveList segs v1 v2
+--    where b1' = flags2len b1
+--          b2' = flags2len b2 
+--          segs = zip b1' b2'
 
-priSegInter :: SvVal -> [Bool] -> SvVal -> [Bool] -> SvVal 
-priSegInter (SIVal v1) b1 (SIVal v2) b2 = SIVal $ interleaveList segs v1 v2
-    where b1' = flags2len b1
-          b2' = flags2len b2 
-          segs = zip b1' b2'
+--priSegInter (SBVal v1) b1 (SBVal v2) b2 = SBVal $ interleaveList segs v1 v2
+--    where b1' = flags2len b1
+--          b2' = flags2len b2 
+--          segs = zip b1' b2'
 
-priSegInter (SBVal v1) b1 (SBVal v2) b2 = SBVal $ interleaveList segs v1 v2
-    where b1' = flags2len b1
-          b2' = flags2len b2 
-          segs = zip b1' b2'
+-- a general version of priSegInter
+priSegInterS :: [(SvVal,[Bool])] -> SvVal
+priSegInterS [(s,b)] = s  
+
+priSegInterS vs@((SIVal _, _):vs') = SIVal $ concat segs 
+    where (ss,bs) = unzip vs
+          ss' = [v | (SIVal v) <- ss]
+          lens = map flags2len bs  
+          segs = map concat $ transpose $ zipWith seglist lens ss' 
+
+priSegInterS vs@((SBVal _,_):vs') = SBVal $ concat segs 
+    where (ss,bs) = unzip vs
+          ss' = [v | (SBVal v) <- ss]
+          lens = map flags2len bs  
+          segs = map concat $ transpose $ zipWith seglist lens ss' 
+
 
 
 interleaveList :: [(Int, Int)] -> [a] -> [a] -> [a]
@@ -400,10 +453,6 @@ takeSeg (i:is) bs = take i bs ++ [[True]] ++ (takeSeg is (drop i bs))
 
 
 
-appendPrimStream :: SvVal -> SvVal -> SvVal
-appendPrimStream (SIVal v1) (SIVal v2) = SIVal (v1 ++ v2)
-appendPrimStream (SBVal v1) (SBVal v2) = SBVal (v1 ++ v2)
-
 
 -- interleave merge
 -- [F,T,F,T] ++ [F,T,F,F,T]  => [F,F,T,F,F,F,T]
@@ -412,6 +461,17 @@ interMerge [] f2 = f2
 interMerge (False:fs1) f2 = False : interMerge fs1 f2
 interMerge f1@(True:fs1) (False:fs2) = False : interMerge f1 fs2
 interMerge (True:fs1) (True:fs2) = True : interMerge fs1 fs2
+
+-- a general version of interMerge
+interMergeS :: [[Bool]] -> [Bool]
+interMergeS bs = foldl interMerge b0 bs
+    where b0 = replicate n True
+          n = length $ flags2len $ head bs
+
+ --Another implementation of interMergeS without using interMerge
+--interMergeS bs = concat $ map ((++[True]).(filter (==False))) bs'
+--  where bs' = map concat $ transpose $  map partFlags bs 
+
 
 
 -- 
