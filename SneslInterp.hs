@@ -19,7 +19,7 @@ eval (Var s) r =
     Nothing -> error ("bad variable: " ++ s)
 
 eval (Lit l) r = 
-  return (AVal l)
+  returnc (1,1) (AVal l)
 
 eval (Tup e1 e2) r = 
   do v1 <- eval e1 r
