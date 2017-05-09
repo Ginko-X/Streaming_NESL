@@ -7,7 +7,7 @@ import Text.ParserCombinators.Parsec
 
 parseString :: String -> Either String Exp
 parseString s = 
-  case parse parseExp "" s of 
+  case parse (do e <- parseExp; eof; return e) "" s of 
     Right e -> Right e 
     Left _ -> Left "Parsing error"
 
@@ -104,7 +104,6 @@ parseValue = do whitespace
                           return $ RComp e e2)))
                  <|>
                  (do symbol "}" 
-                     symbol ":"
                      tp <- parseType 
                      return $ SeqNil tp))
 
