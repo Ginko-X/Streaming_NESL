@@ -43,11 +43,20 @@ runSvcodeProg (SSym sdefs st) =
 
 
 lookupTreeCtx :: STree -> Svctx -> Maybe SvVal
-lookupTreeCtx (STId t1) ctx = lookup t1 ctx  
-lookupTreeCtx (STPair t1 t2) ctx = case lookupTreeCtx t1 ctx of 
+
+lookupTreeCtx (IStr t1) ctx = lookup t1 ctx
+
+lookupTreeCtx (BStr t1) ctx = lookup t1 ctx  
+
+lookupTreeCtx (PStr t1 t2) ctx = case lookupTreeCtx t1 ctx of 
     Just v1 -> case lookupTreeCtx t2 ctx of 
-                   Just v2 -> Just $ SPVal v1 v2  -- need a 'Type' to indicate 
-                                                  -- a SSVal or a SPVal
+                   Just v2 -> Just $ SPVal v1 v2  
+                   Nothing -> Nothing
+    Nothing -> Nothing
+
+lookupTreeCtx (SStr t1 t2) ctx = case lookupTreeCtx t1 ctx of 
+    Just v1 -> case lookupTreeCtx (BStr t2) ctx of 
+                   Just (SBVal v2) -> Just $ SSVal v1 v2  
                    Nothing -> Nothing
     Nothing -> Nothing
 
@@ -83,8 +92,17 @@ lookupSid s = Svcode $ \c ctrl cost ->
 
 -- look up the streams of an STree 
 lookupTree :: STree -> Svcode SvVal
-lookupTree (STId t) = lookupSid t 
-lookupTree (STPair t0 t1) = 
+
+lookupTree (IStr t) = lookupSid t 
+
+lookupTree (BStr t) = lookupSid t 
+
+lookupTree (SStr t0 t1) = 
+  do s0 <- lookupTree t0
+     (SBVal s1) <- lookupSid t1 
+     return (SSVal s0 s1)
+
+lookupTree (PStr t0 t1) = 
   do s0 <- lookupTree t0
      s1 <- lookupTree t1 
      return (SPVal s0 s1)
@@ -141,17 +159,17 @@ setCtrl ctrl = Svcode $ \ ctx _ cost -> Right ((), cost, ctx, ctrl)
 
 
 -- set empty streams for the SIds in the STree 
-emptyStream :: STree -> Type -> Svcode SvVal
-emptyStream (STId s) TInt = addCtx s $ SIVal [] 
-emptyStream (STId s) TBool = addCtx s $ SBVal []
+emptyStream :: STree -> Svcode SvVal
+emptyStream (IStr s) = addCtx s $ SIVal [] 
+emptyStream (BStr s) = addCtx s $ SBVal []
 
-emptyStream (STPair st1 st2) (TTup t1 t2) = 
-    do sv1 <- emptyStream st1 t1
-       sv2 <- emptyStream st2 t2
+emptyStream (PStr st1 st2)  = 
+    do sv1 <- emptyStream st1
+       sv2 <- emptyStream st2
        return $ SPVal sv1 sv2
 
-emptyStream (STPair st1 (STId st2)) (TSeq t1) = 
-    do sv1 <- emptyStream st1 t1  
+emptyStream (SStr st1 st2) = 
+    do sv1 <- emptyStream st1 
        sv2 <- addCtx st2 $ SBVal []
        return $ SSVal sv1 []
 
@@ -172,11 +190,11 @@ instrInterp Ctrl = returnInstrC [] (SBVal [False])
 
 instrInterp EmptyCtrl = returnInstrC [] (SBVal [])     
 
-instrInterp (WithCtrl c defs st tp) = 
+instrInterp (WithCtrl c defs st) = 
   do ctrl@(SBVal bs) <- lookupSid c 
      if null bs 
      then 
-       do ret <- emptyStream st tp 
+       do ret <- emptyStream st
           returnInstrC [ctrl] ret
      else 
        do oldCtrl <- getCtrl

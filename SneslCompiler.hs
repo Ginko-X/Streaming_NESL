@@ -79,7 +79,7 @@ lookupType var =
 bindM :: Pat -> Type -> STree -> SneslTrans CompEnv
 bindM (PVar x) t a = return [(x,(t,a))]
 bindM PWild _ _ = return []
-bindM (PTup p1 p2) (TTup tp1 tp2) (STPair st1 st2) = 
+bindM (PTup p1 p2) (TTup tp1 tp2) (PStr st1 st2) = 
   do b1 <- bindM p1 tp1 st1 
      b2 <- bindM p2 tp2 st2
      return $ b1 ++ b2 
@@ -105,16 +105,23 @@ getVarType x =
 
 
 -- generate a stream definition
-emit :: Instr -> SneslTrans STree
-emit i = SneslTrans $ \ sid _ -> Right (STId sid, [SDef sid i] ,sid+1)
+emit :: Instr -> SneslTrans SId
+emit i = SneslTrans $ \ sid _ -> Right (sid, [SDef sid i] ,sid+1)
+
+emitIs i = do s <- emit i; return (IStr s)
+emitBs i = do s <- emit i; return (BStr s)
+
 
 
 -- generate a stream SId without instruction definition
-emitEmpty :: SneslTrans STree
-emitEmpty = SneslTrans $ \ sid _ -> Right (STId sid, [] ,sid+1)
+emitEmpty :: SneslTrans SId
+emitEmpty = SneslTrans $ \ sid _ -> Right (sid, [] ,sid+1)
+  --case t of 
+  --      TInt -> Right (IStr sid, [] ,sid+1)
+  --      TBool -> Right (BStr sid, [] ,sid+1)
 
 
--- get the translated code and the return stream ids(i.e. STree)
+ --get the translated code and the return stream ids(i.e. STree)
 ctrlTrans :: SneslTrans STree -> SneslTrans (STree,[SDef])
 ctrlTrans m = SneslTrans $ \sid env -> 
     case rSneslTrans m sid env of 
@@ -128,28 +135,33 @@ translate :: Exp -> SneslTrans STree
 
 translate (Var x) = lookupSTree x 
 
-translate (Lit l) =  
-       emit (Const l)
+translate e@(Lit l) =
+    do tp <- compTypeInfer e 
+       s <- emit (Const l) 
+       case tp of 
+         TInt -> return (IStr s)
+         TBool -> return (BStr s)
+
 
 translate (Tup e1 e2) = 
     do t1 <- translate e1   
        t2 <- translate e2 
-       return (STPair t1 t2)
+       return (PStr t1 t2)
 
 translate (SeqNil tp) = 
     do (st,defs) <- ctrlTrans $ emptySeq tp
-       (STId emptyCtrl) <- emit EmptyCtrl
-       emit (WithCtrl emptyCtrl defs st tp)
-       f <- emit (Const (BVal True))  
-       return (STPair st f)
+       emptyCtrl <- emit EmptyCtrl
+       emit (WithCtrl emptyCtrl defs st)
+       f <- emit (Const (BVal True))
+       return (SStr st f)
 
-translate (Seq es) = 
+translate e@(Seq es) = 
     do sts <- mapM translate es
-       tp <- compTypeInfer (Seq es)
-       (STId s0) <- emit (Const (IVal 1))
+       tp <- compTypeInfer e
+       s0 <- emit (Const (IVal 1)) 
        f0 <- emit (ToFlags s0)
-       let sts' = map (\st -> (STPair st f0)) sts
-       mergeSeq tp sts'
+       --let sts' = map (\st -> (SStr st f0)) sts
+       mergeSeq tp [(SStr st f0) | st <- sts]
 
 
 translate (Let pat e1 e2) = 
@@ -169,12 +181,12 @@ translate (GComp e0 ps) =
      do -- variables bindings
         tps <- mapM (\(_,e) -> compTypeInfer e) ps 
         trs <- mapM (\(_,e) -> translate e) ps        
-        newEnvs <- mapM (\((p,_),TSeq tp,STPair st (STId _)) -> bindM p tp st) 
+        newEnvs <- mapM (\((p,_),TSeq tp,SStr st _ ) -> bindM p tp st) 
                         (zip3 ps tps trs)
 
         -- new ctrl
-        let (STPair _ (STId s0)) = head trs 
-        (STId newCtrl) <- emit (Usum s0) 
+        let (SStr _  s0) = head trs 
+        newCtrl <- emit (Usum s0) 
 
         -- free variables distribution
         let bindvs = concat $ map (\(p,_) -> getPatVars p) ps  
@@ -188,14 +200,14 @@ translate (GComp e0 ps) =
         -- translate the body
         tp <- addEnv (concat $ newEnvs ++ usingVarbinds) $ compTypeInfer e0 
         (st,defs) <- ctrlTrans $ addEnv (concat $ newEnvs ++ usingVarbinds) $ translate e0 
-        emit (WithCtrl newCtrl defs st tp)
-        return (STPair st (STId s0))
+        emit (WithCtrl newCtrl defs st)
+        return (SStr st s0)
         
 
 translate (RComp e0 e1) = 
-    do (STId s1) <- translate e1
-       (STId s2) <- emit (B2u s1)  
-       (STId newCtrl) <- emit (Usum s2)
+    do (BStr s1) <- translate e1
+       s2 <- emit (B2u s1)  
+       newCtrl <- emit (Usum s2)
 
        let usingVars = getVars e0 
        usingVarsTps <- mapM (\x -> getVarType x) usingVars         
@@ -206,88 +218,9 @@ translate (RComp e0 e1) =
 
        tp <- addEnv (concat binds) $ compTypeInfer e0  
        (s3,defs) <- ctrlTrans $ addEnv (concat binds) $ translate e0 
-       emit (WithCtrl newCtrl defs s3 tp)
+       emit (WithCtrl newCtrl defs s3)
 
-       return (STPair s3 (STId s2)) 
-
-
-
-
-type FuncEnv = [(Id, [STree] -> [Type] -> SneslTrans STree)]
-
--- [STree] are the arguments
-transFunc :: Id -> FuncEnv -> [STree] -> [Type] -> SneslTrans STree
-transFunc fid fe0 args tys = case lookup fid fe0 of 
-    Just f -> f args tys
-    Nothing -> fail "Function call error."
-
-
-distr :: Type -> STree -> SId -> SneslTrans STree
-distr TInt (STId s1) s = emit (Distr s1 s)
-distr TBool (STId s1) s = emit (Distr s1 s)
-distr (TTup tp1 tp2) (STPair t1 t2) s = 
-    do st1 <- distr tp1 t1 s
-       st2 <- distr tp2 t2 s
-       return (STPair st1 st2) 
-distr tp@(TSeq _) st s = distrSeg tp st s
-
--- Distributing Sequence
-distrSeg :: Type -> STree -> SId -> SneslTrans STree
-distrSeg (TSeq tp) t@(STPair s0 (STId s1)) s = 
-   do newS1 <- emit (SegDistr s1 s) 
-      newS0 <- distrSegRecur tp t s  
-      return (STPair newS0 newS1)
-
-
-distrSegRecur :: Type -> STree -> SId -> SneslTrans STree       
-distrSegRecur TInt (STPair (STId s0) (STId s1))  s 
-    = emit (PrimSegFlagDistr s0 s1 s)
-
-distrSegRecur TBool (STPair (STId s0) (STId s1))  s 
-    = emit (PrimSegFlagDistr s0 s1 s)
-
-distrSegRecur (TTup tp1 tp2) (STPair (STPair s1 s2) s3) s =     
-    do st1 <- distrSegRecur tp1 (STPair s1 s3) s
-       st2 <- distrSegRecur tp2 (STPair s2 s3) s
-       return (STPair st1 st2) 
-
-distrSegRecur (TSeq t) (STPair (STPair s0 (STId s1)) (STId s2)) s = 
-   do newS1 <- emit (SegFlagDistr s1 s2 s)
-      s1' <- emit (SegMerge s1 s2)
-      newS0 <- distrSegRecur t (STPair s0 s1') s 
-      return (STPair newS0 newS1)
-
-
--- generate empty/undefined stream SIds
-emptySeq :: Type  -> SneslTrans STree
-emptySeq TInt =  emitEmpty
-
-emptySeq TBool = emitEmpty
-
-emptySeq (TSeq tp) = 
-    do s0 <- emptySeq tp
-       f <- emptySeq TBool
-       return (STPair s0 f)
-
-emptySeq (TTup t1 t2) = 
-    do s1 <- emptySeq t1
-       s2 <- emptySeq t2
-       return (STPair s1 s2)
-
-
-pack :: Type -> STree -> SId -> SneslTrans STree
-pack TInt (STId s) b = emit (Pack s b)
-pack TBool (STId s) b = emit (Pack s b)
-pack (TTup tp1 tp2) (STPair t1 t2) b = 
-  do st1 <- pack tp1 t1 b
-     st2 <- pack tp2 t2 b
-     return (STPair st1 st2)  
-
-pack (TSeq tp) (STPair t (STId s)) b = 
-    do (STId st1) <- emit (Distr b s)
-       st2 <- pack tp t st1 
-       st3 <- emit (UPack s b)
-       return (STPair st2 st3)
+       return (SStr s3 s2) 
 
 
 
@@ -323,82 +256,174 @@ getPatVars PWild = []
 getPatVars (PTup p1 p2) = concat $ map getPatVars [p1,p2] 
 
 
+-- generate empty/undefined stream SIds
+emptySeq :: Type  -> SneslTrans STree
+emptySeq TInt =  do s <- emitEmpty; return (IStr s)
+
+emptySeq TBool = do s <- emitEmpty; return (BStr s)
+
+emptySeq (TSeq tp) = 
+    do s0 <- emptySeq tp
+       (BStr f) <- emptySeq TBool
+       return (SStr s0 f)
+
+emptySeq (TTup t1 t2) = 
+    do s1 <- emptySeq t1
+       s2 <- emptySeq t2
+       return (PStr s1 s2)
+
+
+
+distr :: Type -> STree -> SId -> SneslTrans STree
+distr TInt (IStr s1) s = emitIs (Distr s1 s)
+
+distr TBool (BStr s1) s = emitBs (Distr s1 s)
+
+distr (TTup tp1 tp2) (PStr t1 t2) s = 
+    do st1 <- distr tp1 t1 s
+       st2 <- distr tp2 t2 s
+       return (PStr st1 st2) 
+
+--distr tp@(TSeq _) st s = fail "Sequences can't be distributed ." 
+distr tp@(TSeq _) st s = distrSeg tp st s
+
+-- Distributing Sequence
+distrSeg :: Type -> STree -> SId -> SneslTrans STree
+distrSeg (TSeq tp) t@(SStr s0 s1) s = 
+   do newS1 <- emit (SegDistr s1 s) 
+      newS0 <- distrSegRecur tp t s  
+      return (SStr newS0 newS1)
+
+
+distrSegRecur :: Type -> STree -> SId -> SneslTrans STree       
+distrSegRecur TInt (SStr (IStr s0) s1)  s 
+    = emitIs (PrimSegFlagDistr s0 s1 s)
+
+distrSegRecur TBool (SStr (BStr s0) s1)  s 
+    = emitBs (PrimSegFlagDistr s0 s1 s)
+
+distrSegRecur (TTup tp1 tp2) (SStr (PStr s1 s2) s3) s =     
+    do st1 <- distrSegRecur tp1 (SStr s1 s3) s
+       st2 <- distrSegRecur tp2 (SStr s2 s3) s
+       return (PStr st1 st2) 
+
+distrSegRecur (TSeq t) (SStr (SStr s0 s1) s2) s = 
+   do newS1 <- emit (SegFlagDistr s1 s2 s)
+      s1' <- emit (SegMerge s1 s2)
+      newS0 <- distrSegRecur t (SStr s0 s1') s 
+      return (SStr newS0 newS1)
+
+
+-- don't need Type any more ?
+pack :: Type -> STree -> SId -> SneslTrans STree
+
+pack TInt (IStr s) b = emitIs (Pack s b)
+
+pack TBool (BStr s) b = emitBs (Pack s b) 
+
+pack (TTup tp1 tp2) (PStr t1 t2) b = 
+  do st1 <- pack tp1 t1 b
+     st2 <- pack tp2 t2 b
+     return (PStr st1 st2)  
+
+pack (TSeq tp) (SStr t s) b = 
+    do st1 <- emit (Distr b s) 
+       st2 <- pack tp t st1 
+       st3 <- emit (UPack s b)
+       return (SStr st2 st3)
+
+
+
+
+
+
+type FuncEnv = [(Id, [STree] -> [Type] -> SneslTrans STree)]
+
+-- [STree] are the arguments
+transFunc :: Id -> FuncEnv -> [STree] -> [Type] -> SneslTrans STree
+transFunc fid fe0 args tys = case lookup fid fe0 of 
+    Just f -> f args tys
+    Nothing -> fail "Function call error."
+
+
+
 
 fe0 :: FuncEnv
-fe0 = [("_uminus", \[STId s1] _ -> emit (MapOne Uminus s1)),
-       ("not", \[STId s1] _ -> emit (MapOne Not s1)),
+fe0 = [("_uminus", \[IStr s1] _ -> emitIs (MapOne Uminus s1)),
+       ("not", \[BStr s1] _ -> emitBs (MapOne Not s1)),
 
-       ("_plus", \[STId s1, STId s2] _ -> emit (MapTwo Add s1 s2)),
-       ("_minus", \[STId s1, STId s2] _ -> emit (MapTwo Minus s1 s2)),
-       ("_times", \[STId s1, STId s2] _ -> emit (MapTwo Times s1 s2)),
-       ("_div", \[STId s1, STId s2] _ -> emit (MapTwo Div s1 s2)),
-       ("_eq",\[STId s1, STId s2] _ -> emit (MapTwo Equal s1 s2)),
-       ("_leq",\[STId s1, STId s2] _ -> emit (MapTwo Leq s1 s2)),
+       ("_plus", \[IStr s1, IStr s2] _ -> emitIs (MapTwo Add s1 s2)),
+       ("_minus", \[IStr s1, IStr s2] _ -> emitIs (MapTwo Minus s1 s2)),
+       ("_times", \[IStr s1, IStr s2] _ -> emitIs (MapTwo Times s1 s2)),
+       ("_div", \[IStr s1, IStr s2] _ -> emitIs (MapTwo Div s1 s2)),
+       ("_eq",\[IStr s1, IStr s2] _ -> emitBs (MapTwo Equal s1 s2)),
+       ("_leq",\[IStr s1, IStr s2] _ -> emitBs (MapTwo Leq s1 s2)),
         
-       ("index", \[STId s] _ -> iotas s),                     
+       ("index", \[IStr s] _ -> iotas s),                
 
-       ("scanExPlus", \[STPair (STId t) (STId s)] _ -> scanExPlus t s),
+       ("scanExPlus", \[SStr (IStr t) s] _ -> scanExPlus t s),
 
-       ("reducePlus", \[STPair (STId t) (STId s)] _ -> reducePlus t s),
+       ("reducePlus", \[SStr (IStr t) s] _ -> reducePlus t s),
        
-        ("_append", \[t1'@(STPair t1 (STId s1)), t2'@(STPair t2 (STId s2))] tys -> 
+        ("_append", \[t1'@(SStr t1 s1), t2'@(SStr t2 s2)] tys -> 
                   mergeSeq (head tys) [t1',t2']), 
 
-       ("concat", \[STPair (STPair t (STId s1)) (STId s2)] _ -> concatSeq t s1 s2)]
+       ("concat", \[SStr (SStr t s1) s2] _ -> concatSeq t s1 s2)]
 
 
 
 iotas :: SId -> SneslTrans STree
 iotas s = 
-    do (STId s1) <- emit (ToFlags s)
-       (STId s2) <- emit (Usum s1)
-       (STId s3) <- emit (MapConst s2 (IVal 1))
-       (STId s4) <- emit (SegscanPlus s3 s1)
-       return (STPair (STId s4) (STId s1)) 
+    do s1 <- emit (ToFlags s)
+       s2 <- emit (Usum s1)
+       s3 <- emit (MapConst s2 (IVal 1))
+       s4 <- emit (SegscanPlus s3 s1)
+       return (SStr (IStr s4) s1) 
 
 
 scanExPlus :: SId -> SId -> SneslTrans STree
 scanExPlus t s = 
-   do v <- emit (SegscanPlus t s)
-      return (STPair v (STId s))
+    do v <- emitIs (SegscanPlus t s)
+       return (SStr v s)
 
 
-reducePlus t s = emit (ReducePlus t s)
+reducePlus t s = emitIs (ReducePlus t s)
+
 
 concatSeq :: STree -> SId -> SId -> SneslTrans STree
 concatSeq t s1 s2 = 
-    do s' <- emit (SegConcat s1 s2)
-       return (STPair t s')
+    do f <- emit (SegConcat s1 s2)
+       return (SStr t f)
 
 
 
 mergeSeq :: Type -> [STree] -> SneslTrans STree
-mergeSeq (TSeq tp) ts = 
-    do let (_, fs) = unzip $ map (\(STPair t (STId s)) -> (t,s)) ts
+mergeSeq (TSeq tp) trs = 
+    do let (_, fs) = unzip $ map (\(SStr t f) -> (t,f)) trs
        f <- emit (InterMergeS fs)
-       t <- mergeRecur tp ts
-       return (STPair t f)
+       t <- mergeRecur tp trs
+       return (SStr t f)
 
 
 mergeRecur :: Type -> [STree] -> SneslTrans STree 
-mergeRecur TInt ts = 
-    emit (PriSegInterS $ map (\(STPair (STId t) (STId s)) -> (t,s)) ts)
+mergeRecur TInt trs = 
+    emitIs (PriSegInterS $ map (\(SStr (IStr t) s) -> (t,s)) trs)
 
-mergeRecur TBool ts = 
-    emit (PriSegInterS $ map (\(STPair (STId t) (STId s)) -> (t,s)) ts)   
+mergeRecur TBool trs = 
+    emitBs (PriSegInterS $ map (\(SStr (BStr t) s) -> (t,s)) trs)   
 
-mergeRecur (TTup tp1 tp2) ts = 
-    do let fsts = [(STPair t1 (STId s)) |(STPair (STPair t1 _) (STId s)) <- ts]
-           snds = [(STPair t2 (STId s)) |(STPair (STPair _ t2) (STId s)) <- ts]
+mergeRecur (TTup tp1 tp2) trs = 
+    do let fsts = [(SStr t1 s) | (SStr (PStr t1 _) s) <- trs]
+           snds = [(SStr t2 s) | (SStr (PStr _ t2) s) <- trs]
        st1 <- mergeRecur tp1 fsts
        st2 <- mergeRecur tp2 snds
-       return (STPair st1 st2)
+       return (PStr st1 st2)
 
-mergeRecur (TSeq tp) ts = 
+mergeRecur (TSeq tp) trs = 
     do let (t1s,ps) = unzip 
-               [(t1,(s1,s2)) | (STPair (STPair t1 (STId s1)) (STId s2)) <- ts]
+               [(t1,(s1,s2)) | (SStr (SStr t1 s1) s2) <- trs]
        s2' <- emit (SegInterS ps)
        ps' <- mapM (\(x,y) -> emit (SegMerge x y)) ps
-       ts' <- mergeRecur tp (zipWith STPair t1s ps')
-       return (STPair ts' s2')
+       trs' <- mergeRecur tp (zipWith SStr t1s ps')
+       return (SStr trs' s2')
 

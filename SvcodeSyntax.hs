@@ -6,7 +6,7 @@ type SId = Int  -- stream id
 
 data Instr = Ctrl 
            | EmptyCtrl 
-           | WithCtrl SId [SDef] STree Type -- 'Type' is the type of the return value
+           | WithCtrl SId [SDef] STree
            | ToFlags SId
            | Usum SId
            | Const AVal
@@ -75,7 +75,12 @@ showseq delim [x] = show x
 showseq delim (x:xs) = show x ++ delim ++ showseq delim xs
 
 -- stream trees 
-data STree = STId SId
-           | STPair STree STree
-           deriving Show
+--data STree = STId SId
+--           | STPair STree STree
+--           deriving Show
 
+data STree = IStr SId
+           | BStr SId
+           | SStr STree SId
+           | PStr STree STree
+           deriving Show

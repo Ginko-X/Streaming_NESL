@@ -62,7 +62,7 @@ runProg p =
        (sneslRes,w,s) <- runSneslInterp absProg  -- SNESL interpreting result
        svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
        (svcodeRes,(w',s')) <- runSvcodeProg svcode    -- SVCODE interpreting result
-       let svcodeRes' = dataTransBack sneslTy $ recPair2seq sneslTy svcodeRes
+       let svcodeRes' = dataTransBack sneslTy svcodeRes -- $ recPair2seq sneslTy svcodeRes
            compRes = compareVal sneslRes svcodeRes'  -- compare the two results       
        return ((sneslRes,w,s),sneslTy, compRes, (svcodeRes', w',s'))
 
@@ -75,7 +75,7 @@ runProg' p =
        svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
        (svcodeRes,(w',s')) <- runSvcodeProg svcode    -- SVCODE interpreting result
        return (sneslRes, sneslTy,svcode,svcodeRes)
-       --let svcodeRes' = dataTransBack sneslTy $ recPair2seq sneslTy svcodeRes
+       --let svcodeRes' = dataTransBack sneslTy svcodeRes
            --compRes = compareVal sneslRes svcodeRes'  -- compare the two results       
        --return ((sneslRes,w,s),sneslTy, (svcodeRes', w',s'))
 
@@ -93,17 +93,6 @@ compareVal (SVal vs1) (SVal vs2) =
     else False
 compareVal _ _ = False 
 
-
--- recursively change SPVal back to SSVal if the SVCODE value 
--- is a sequence not a pair according to its high-level type
-recPair2seq :: Type -> SvVal -> SvVal
-recPair2seq TInt s = s 
-recPair2seq TBool s = s 
-recPair2seq (TSeq t) (SPVal v1 (SBVal v2)) = SSVal v1' v2
-    where v1' = recPair2seq t v1 
-recPair2seq (TTup t1 t2) (SPVal v1 v2) = SPVal v1' v2' 
-    where v1' = recPair2seq t1 v1 
-          v2' = recPair2seq t2 v2
 
 
 -- some examples
