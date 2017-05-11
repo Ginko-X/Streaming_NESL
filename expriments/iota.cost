@@ -1,0 +1,30 @@
+For input size: 100 300 500 700 1000 3000 5000
+
+SNESL [work: 102, step: 2]
+SVCODE [work: 813, step: 6]
+
+
+SNESL [work: 302, step: 2]
+SVCODE [work: 2413, step: 6]
+
+
+SNESL [work: 502, step: 2]
+SVCODE [work: 4013, step: 6]
+
+
+SNESL [work: 702, step: 2]
+SVCODE [work: 5613, step: 6]
+
+
+SNESL [work: 1002, step: 2]
+SVCODE [work: 8013, step: 6]
+
+
+SNESL [work: 3002, step: 2]
+SVCODE [work: 24013, step: 6]
+
+
+SNESL [work: 5002, step: 2]
+SVCODE [work: 40013, step: 6]
+
+
