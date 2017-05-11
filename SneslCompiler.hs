@@ -137,7 +137,6 @@ translate e@(Lit l) =
          TInt -> emitIs (Const l)
          TBool -> emitBs (Const l)
 
-
 translate (Tup e1 e2) = 
     do t1 <- translate e1   
        t2 <- translate e2 
@@ -150,12 +149,12 @@ translate (SeqNil tp) =
        f <- emit (Const (BVal True))
        return (SStr st f)
 
+
 translate e@(Seq es) = 
     do sts <- mapM translate es
        tp <- compTypeInfer e
        s0 <- emit (Const (IVal 1)) 
        f0 <- emit (ToFlags s0)
-       --let sts' = map (\st -> (SStr st f0)) sts
        mergeSeq tp [(SStr st f0) | st <- sts]
 
 
@@ -216,7 +215,6 @@ translate (RComp e0 e1) =
        emit (WithCtrl newCtrl defs s3)
 
        return (SStr s3 s2) 
-
 
 
 -- get the free varibales in the expression

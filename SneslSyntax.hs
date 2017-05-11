@@ -10,8 +10,8 @@ data AVal = IVal Int
 
 
 data Val = AVal AVal  
-         | TVal Val Val -- tuple
-         | SVal [Val]   -- sequence
+         | TVal Val Val 
+         | SVal [Val]   
          | FVal ([Val] -> Snesl Val) 
 
 

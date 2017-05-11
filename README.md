@@ -1,4 +1,8 @@
 # Working Progress
++ Week 19 (8~14 May)
+    + Modified/optimized the structure of STree as discussed in [#12](https://github.com/Ginko-X/Streaming_NESL/issues/12)
+    
+    
 + Week 18 (1~7 May)
     + A new solution to the control change problem, using a new SVCODE instruction "WithCtrl", [see details Issue 12](https://github.com/Ginko-X/Streaming_NESL/issues/12)
     + Implemented the sequence expression in a more cost-efficient way instead of desugaring it to a fold of calling `_append` function, [see details Issue 13](https://github.com/Ginko-X/Streaming_NESL/issues/13)
