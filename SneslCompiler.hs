@@ -112,13 +112,9 @@ emitIs i = do s <- emit i; return (IStr s)
 emitBs i = do s <- emit i; return (BStr s)
 
 
-
 -- generate a stream SId without instruction definition
 emitEmpty :: SneslTrans SId
 emitEmpty = SneslTrans $ \ sid _ -> Right (sid, [] ,sid+1)
-  --case t of 
-  --      TInt -> Right (IStr sid, [] ,sid+1)
-  --      TBool -> Right (BStr sid, [] ,sid+1)
 
 
  --get the translated code and the return stream ids(i.e. STree)
@@ -137,10 +133,9 @@ translate (Var x) = lookupSTree x
 
 translate e@(Lit l) =
     do tp <- compTypeInfer e 
-       s <- emit (Const l) 
        case tp of 
-         TInt -> return (IStr s)
-         TBool -> return (BStr s)
+         TInt -> emitIs (Const l)
+         TBool -> emitBs (Const l)
 
 
 translate (Tup e1 e2) = 
