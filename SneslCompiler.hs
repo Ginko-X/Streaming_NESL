@@ -188,7 +188,7 @@ translate (GComp e0 ps) =
             usingVars = filter (\x -> not $ x `elem` bindvs) (getVars e0) 
         usingVarsTps <- mapM (\x -> getVarType x) usingVars         
         usingVarsTrs <- mapM (\x -> translate (Var x)) usingVars
-        newVarTrs  <- zipWithM (\xtp x -> distr xtp x s0) usingVarsTps usingVarsTrs      
+        newVarTrs  <- mapM (\x -> distr x s0) usingVarsTrs      
         usingVarbinds <- mapM (\(v,tp,tr) -> bindM (PVar v) tp tr) 
                               (zip3 usingVars usingVarsTps newVarTrs)
 
@@ -269,43 +269,43 @@ emptySeq (TTup t1 t2) =
 
 
 
-distr :: Type -> STree -> SId -> SneslTrans STree
-distr TInt (IStr s1) s = emitIs (Distr s1 s)
+distr :: STree -> SId -> SneslTrans STree
+distr (IStr s1) s = emitIs (Distr s1 s)
 
-distr TBool (BStr s1) s = emitBs (Distr s1 s)
+distr (BStr s1) s = emitBs (Distr s1 s)
 
-distr (TTup tp1 tp2) (PStr t1 t2) s = 
-    do st1 <- distr tp1 t1 s
-       st2 <- distr tp2 t2 s
+distr (PStr t1 t2) s = 
+    do st1 <- distr t1 s
+       st2 <- distr t2 s
        return (PStr st1 st2) 
 
---distr tp@(TSeq _) st s = fail "Sequences can't be distributed ." 
-distr tp@(TSeq _) st s = distrSeg tp st s
+--distr st s = fail "Sequences can't be distributed ." 
+distr st@(SStr _ _) s = distrSeg st s
 
 -- Distributing Sequence
-distrSeg :: Type -> STree -> SId -> SneslTrans STree
-distrSeg (TSeq tp) t@(SStr s0 s1) s = 
+distrSeg :: STree -> SId -> SneslTrans STree
+distrSeg t@(SStr s0 s1) s = 
    do newS1 <- emit (SegDistr s1 s) 
-      newS0 <- distrSegRecur tp t s  
+      newS0 <- distrSegRecur t s  
       return (SStr newS0 newS1)
 
 
-distrSegRecur :: Type -> STree -> SId -> SneslTrans STree       
-distrSegRecur TInt (SStr (IStr s0) s1)  s 
+distrSegRecur :: STree -> SId -> SneslTrans STree       
+distrSegRecur (SStr (IStr s0) s1)  s 
     = emitIs (PrimSegFlagDistr s0 s1 s)
 
-distrSegRecur TBool (SStr (BStr s0) s1)  s 
+distrSegRecur (SStr (BStr s0) s1)  s 
     = emitBs (PrimSegFlagDistr s0 s1 s)
 
-distrSegRecur (TTup tp1 tp2) (SStr (PStr s1 s2) s3) s =     
-    do st1 <- distrSegRecur tp1 (SStr s1 s3) s
-       st2 <- distrSegRecur tp2 (SStr s2 s3) s
+distrSegRecur (SStr (PStr s1 s2) s3) s =     
+    do st1 <- distrSegRecur (SStr s1 s3) s
+       st2 <- distrSegRecur (SStr s2 s3) s
        return (PStr st1 st2) 
 
-distrSegRecur (TSeq t) (SStr (SStr s0 s1) s2) s = 
+distrSegRecur (SStr (SStr s0 s1) s2) s = 
    do newS1 <- emit (SegFlagDistr s1 s2 s)
       s1' <- emit (SegMerge s1 s2)
-      newS0 <- distrSegRecur t (SStr s0 s1') s 
+      newS0 <- distrSegRecur (SStr s0 s1') s 
       return (SStr newS0 newS1)
 
 
