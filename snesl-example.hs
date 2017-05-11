@@ -126,7 +126,7 @@ prog3 = "let a = {{&2}} ++ {{{3}}} ; "++
 
 prog4 = "let n = 10 in {{x: _ in &n} : x in &n}" -- #8
 
-prog5 = "{concat({}:{int}) : _ in &2}" -- #5
+prog5 = "{concat({}{int}) : _ in &2}" -- #5
 
 prog6 = "let x = &5 in let x = {x: _ in &2} in x "
 
@@ -136,7 +136,7 @@ prog8 = "let x = {(1,2) : _ in &2} in {{x|T} : _ in &3}"
 
 prog9 = "let x = &2 in {{x: _ in &a} : a in &3}"
 
-prog10 = "{}:{int}++{{1}}"
+prog10 = "{}{int}++{{1}}"
 
 -- Wrong example; shoulg throw an Excpetion
 prog11 = "let x = 5; (y,z) = x in 5"  

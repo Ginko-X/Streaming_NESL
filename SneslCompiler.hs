@@ -207,7 +207,7 @@ translate (RComp e0 e1) =
        let usingVars = getVars e0 
        usingVarsTps <- mapM (\x -> getVarType x) usingVars         
        usingVarsTrs <- mapM (\x -> translate (Var x)) usingVars 
-       newVarTrs <- zipWithM (\x xtp -> pack xtp x s1) usingVarsTrs usingVarsTps
+       newVarTrs <- mapM (\x -> pack x s1) usingVarsTrs
        binds <- mapM (\(v,tp,tr) -> bindM (PVar v) tp tr) 
                      (zip3 usingVars usingVarsTps newVarTrs)
 
@@ -309,26 +309,23 @@ distrSegRecur (TSeq t) (SStr (SStr s0 s1) s2) s =
       return (SStr newS0 newS1)
 
 
--- don't need Type any more ?
-pack :: Type -> STree -> SId -> SneslTrans STree
+-- don't need 'Type' any more 
+pack :: STree -> SId -> SneslTrans STree
 
-pack TInt (IStr s) b = emitIs (Pack s b)
+pack (IStr s) b = emitIs (Pack s b)
 
-pack TBool (BStr s) b = emitBs (Pack s b) 
+pack (BStr s) b = emitBs (Pack s b) 
 
-pack (TTup tp1 tp2) (PStr t1 t2) b = 
-  do st1 <- pack tp1 t1 b
-     st2 <- pack tp2 t2 b
+pack (PStr t1 t2) b = 
+  do st1 <- pack t1 b
+     st2 <- pack t2 b
      return (PStr st1 st2)  
 
-pack (TSeq tp) (SStr t s) b = 
+pack (SStr t s) b = 
     do st1 <- emit (Distr b s) 
-       st2 <- pack tp t st1 
+       st2 <- pack t st1 
        st3 <- emit (UPack s b)
        return (SStr st2 st3)
-
-
-
 
 
 
