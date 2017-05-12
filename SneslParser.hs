@@ -1,4 +1,4 @@
-{- A basic Streaming NESL Parser   -}
+{- Streaming NESL Parser -}
 
 module SneslParser where 
 
@@ -7,7 +7,7 @@ import Text.ParserCombinators.Parsec
 
 parseString :: String -> Either String Exp
 parseString s = 
-  case parse (do e <- parseExp; eof; return e) "" s of 
+  case parse (do e <- parseTop; eof; return e) "" s of 
     Right e -> Right e 
     Left _ -> Left "Parsing error"
 
@@ -15,7 +15,7 @@ parseString s =
 parseFile file = do input <- readFile file 
                     return (parseString input)                                     
 
-
+-- zero or more spaces
 whitespace :: Parser ()
 whitespace = skipMany (do space
                           return ()
@@ -24,6 +24,8 @@ whitespace = skipMany (do space
                           manyTill anyChar (try newline)
                           return ())
 
+-- consume the symbol from the beginning, including spaces at the end
+-- if failed, go to the next parsing option
 symbol :: String ->  Parser ()
 symbol s = do try (string s)
               whitespace
@@ -50,9 +52,8 @@ parsePat = do x <- parseVar
               return $ PTup p1 p2
 
 
-parseValue :: Parser Exp 
-parseValue = do whitespace
-                s <- many1 digit           
+parseAtom :: Parser Exp 
+parseAtom =  do s <- many1 digit           
                 whitespace
                 return $ Lit $ IVal (read s)
              <|>  
@@ -171,7 +172,7 @@ parsePrefix =
 
 
 parseSub :: Parser Exp
-parseSub = do e <- parseValue <|> (do e' <- parseVar; return $ Var e')
+parseSub = do e <- parseAtom <|> (do e' <- parseVar; return $ Var e')
               ss <- many sub
               return $ foldl (\e1 e2 -> (Call "_sub" [e1,e2])) e ss
             where sub = do symbol "["
@@ -181,9 +182,7 @@ parseSub = do e <- parseValue <|> (do e' <- parseVar; return $ Var e')
 
 
 parseExp :: Parser Exp
-parseExp = do whitespace
-              symbol "let"
-              whitespace
+parseExp = do symbol "let"                    
               binds <- (do p <- parsePat
                            symbol "="
                            e1 <- parseExp
@@ -208,6 +207,10 @@ parseComp = do e <- parseSum
                             do {symbol ">"; return $ \x y -> Call "not" [Call "_leq" [x,y]]}
 
 
+parseTop :: Parser Exp 
+parseTop = do whitespace
+              parseExp
+           
 
 
 

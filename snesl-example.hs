@@ -21,7 +21,7 @@ runFile file =
    do prog <- readFile file 
       testExample' prog
 
--- disregard the expression evaluation values
+-- disregard the expression evaluation results
 testExample' :: String -> IO()
 testExample' prog =  
     case runProg prog of 
