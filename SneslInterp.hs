@@ -8,34 +8,34 @@ import Data.Char (chr, ord)
 import Data.List (transpose)
 
 
-runSneslInterp :: [Def] -> Either String (Env,Int,Int)
+runSneslInterp :: [Def] -> Either String (Env, Int,Int)
 runSneslInterp defs = 
     let id0 = fst $ unzip r0
-    in case rSnesl (sneslInterp defs (r0,0,0)) of 
-          Right ((r,w,s), nw, ns) -> Right (takeWhile (\(x,_) -> not $ x `elem` id0) r,w,s)
+    in case rSnesl (sneslInterp defs r0) of 
+          Right (r, nw, ns) -> Right (takeWhile (\(x,_) -> not $ x `elem` id0) r, nw, ns)
           Left s -> Left ("SNESL interpretating error: " ++ s)
 
 
 -- interpreter a list of Defs 
-sneslInterp :: [Def] -> (Env,Int,Int) -> Snesl (Env,Int,Int)
+sneslInterp :: [Def] -> Env -> Snesl Env
 sneslInterp [] r = return r
-sneslInterp (d:defs) (r,w,s) = 
-  do (r',nw,ns) <- sneslDefInterp d r 
-     sneslInterp defs (r', w+nw,s+ns)
+sneslInterp (d:defs) r = 
+  do r' <- sneslDefInterp d r 
+     sneslInterp defs r'
 
 
 -- interpreter one Def independently
-sneslDefInterp :: Def -> Env -> Snesl (Env,Int,Int)
+sneslDefInterp :: Def -> Env -> Snesl Env
 
 sneslDefInterp (EDef i e) r = 
   case rSnesl (eval e r) of
-    Right (v, nw, ns) ->  return ((i,v):r,nw,ns)
+    Right (v, nw, ns) ->  return ((i,v):r)
     Left s -> fail $ "Snesl runtime error: "++s
 
 sneslDefInterp (FDef fname args e) r = 
   do let f vs = Snesl (rSnesl (eval e (zip args vs ++ r1)))
          r1 = (fname, FVal f) : r
-     return (r1,0,0)
+     return r1 
 
 
 
