@@ -1,2 +1,5 @@
 -- square sum
-reducePlus({x*x : x in &10})
+function args() = {1,2,3,4} 
+
+  def x = reducePlus({x*x : x in args()})
+

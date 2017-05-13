@@ -8,6 +8,36 @@ import Data.Char (chr, ord)
 import Data.List (transpose)
 
 
+runSneslInterp :: [Def] -> Either String (Env,Int,Int)
+runSneslInterp defs = 
+    let id0 = fst $ unzip r0
+    in case rSnesl (sneslInterp defs (r0,0,0)) of 
+          Right ((r,w,s), nw, ns) -> Right (takeWhile (\(x,_) -> not $ x `elem` id0) r,w,s)
+          Left s -> Left ("SNESL interpretating error: " ++ s)
+
+
+-- interpreter a list of Defs 
+sneslInterp :: [Def] -> (Env,Int,Int) -> Snesl (Env,Int,Int)
+sneslInterp [] r = return r
+sneslInterp (d:defs) (r,w,s) = 
+  do (r',nw,ns) <- sneslDefInterp d r 
+     sneslInterp defs (r', w+nw,s+ns)
+
+
+-- interpreter one Def independently
+sneslDefInterp :: Def -> Env -> Snesl (Env,Int,Int)
+
+sneslDefInterp (EDef i e) r = 
+  case rSnesl (eval e r) of
+    Right (v, nw, ns) ->  return ((i,v):r,nw,ns)
+    Left s -> fail $ "Snesl runtime error: "++s
+
+sneslDefInterp (FDef fname args e) r = 
+  do let f vs = Snesl (rSnesl (eval e (zip args vs ++ r1)))
+         r1 = (fname, FVal f) : r
+     return (r1,0,0)
+
+
 
 type Env = [(Id, Val)]
 
@@ -193,20 +223,23 @@ seglist [] [] = []
 seglist (n:ns) l = take n l : seglist ns (drop n l)
 
 
-runSneslInterp :: Exp -> Either String (Val,Int,Int)
-runSneslInterp e = 
+runSneslExp :: Exp -> Either String (Val,Int,Int)
+runSneslExp e = 
   case rSnesl (eval e r0) of
     Right (v, nw, ns) ->  Right (v,nw,ns) 
     Left s -> Left $ "Snesl runtime error: "++s
 
 
-doExp :: String -> IO ()
-doExp s = 
-    case parseString s of
-        Right e ->
-            case rSnesl (eval e r0) of
-               Right (v, nw, ns) ->  
-                  do putStrLn (show v)             
-                     putStrLn ("[Work: " ++ show nw ++ ", step: " ++ show ns ++ "]")
-               Left s -> putStrLn ("Runtime error: " ++ s)
-        Left err -> putStrLn ("Parsing error")
+--doDef :: FilePath -> IO ()
+--doDef file = 
+--   do input <- readFile file 
+--      case parseString input of
+--          Right e ->
+--              case rSnesl (sneslInterp e r0) of
+--                 Right (v, nw, ns) ->  
+--                    do putStrLn (show v)             
+--                       putStrLn ("[Work: " ++ show nw ++ ", step: " ++ show ns ++ "]")
+--                 Left s -> putStrLn ("Runtime error: " ++ s)
+--          Left err -> putStrLn ("Parsing error")
+
+

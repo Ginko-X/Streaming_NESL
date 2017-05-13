@@ -9,17 +9,13 @@ import DataTrans
 
 import System.Environment
 
-
+{-
 main = do args <- getArgs
           case args of
             [file] -> runFile file 
             _ -> putStrLn "Input file error."
 
 
-runFile :: FilePath -> IO () 
-runFile file =
-   do prog <- readFile file 
-      testExample' prog
 
 -- disregard the expression evaluation results
 testExample' :: String -> IO()
@@ -37,9 +33,33 @@ testExample' prog =
 
 
 
+
+-}
+
+--runFile :: FilePath -> IO () 
+runFile file =
+   do prog <- readFile file 
+      return $ runProg prog
+
+-- formatted return value
+--runProg :: String ->  Either String (Val,Int,Int) -- ((Val,Int,Int),Type,Bool,(Val,Int,Int)) 
+runProg p = 
+    do absProg <- parseString p
+       --sneslTy <- typing absProg   
+       (sneslInterEnv,w,s) <- runSneslInterp absProg
+       return (sneslInterEnv, w,s)
+       --svcode <- compiler absProg     
+       --(svcodeRes,(w',s')) <- runSvcodeProg svcode   
+       --let svcodeRes' = dataTransBack sneslTy svcodeRes 
+       --    compRes = compareVal sneslInterEnv svcodeRes'  
+       --return ((sneslInterEnv,w,s),sneslTy, compRes, (svcodeRes', w',s'))
+
+
+
+-- only for expressions
 testExample :: String -> IO()
 testExample prog =  
-    case runProg prog of 
+    case runExp prog of 
         Left err -> putStrLn err 
         Right ((v,w,s),tp, b, (sv,w',s')) 
            -> if b then 
@@ -54,30 +74,18 @@ testExample prog =
                         putStrLn $ "SVCODE: " ++ show sv
 
 
--- formatted return value
-runProg :: String ->  Either String ((Val,Int,Int),Type,Bool,(Val,Int,Int)) 
-runProg p = 
-    do absProg <- parseString p    -- parse the SNESL expression
-       sneslTy <- typing absProg    -- get the expression's type
-       (sneslRes,w,s) <- runSneslInterp absProg  -- SNESL interpreting result
-       svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
-       (svcodeRes,(w',s')) <- runSvcodeProg svcode    -- SVCODE interpreting result
-       let svcodeRes' = dataTransBack sneslTy svcodeRes -- $ recPair2seq sneslTy svcodeRes
-           compRes = compareVal sneslRes svcodeRes'  -- compare the two results       
+
+runExp p = 
+    do absProg <- parseStringExp p    
+       sneslTy <- typing absProg    
+       (sneslRes,w,s) <- runSneslExp absProg 
+       svcode <- compiler absProg     
+       (svcodeRes,(w',s')) <- runSvcodeProg svcode   
+       return (sneslRes, sneslTy,svcode,svcodeRes)
+       let svcodeRes' = dataTransBack sneslTy svcodeRes
+           compRes = compareVal sneslRes svcodeRes'  
        return ((sneslRes,w,s),sneslTy, compRes, (svcodeRes', w',s'))
 
-
--- not formatted return value
-runProg' p = 
-    do absProg <- parseString p    -- parse the SNESL expression
-       sneslTy <- typing absProg    -- get the expression's type
-       (sneslRes,w,s) <- runSneslInterp absProg  -- SNESL interpreting result
-       svcode <- compiler absProg     -- SVCODE generated from the SNESL expression
-       (svcodeRes,(w',s')) <- runSvcodeProg svcode    -- SVCODE interpreting result
-       return (sneslRes, sneslTy,svcode,svcodeRes)
-       --let svcodeRes' = dataTransBack sneslTy svcodeRes
-           --compRes = compareVal sneslRes svcodeRes'  -- compare the two results       
-       --return ((sneslRes,w,s),sneslTy, (svcodeRes', w',s'))
 
 
 -- helper functions for comparing a SNESL value and a SVCODE value
@@ -97,9 +105,9 @@ compareVal _ _ = False
 
 -- some examples
 
-manyTest ps = 
-  let res = map runProg ps
-  in  [ b | Right (_, _, b, _) <- res ]
+manyTest ps = map runProg ps
+  --let res = map runProg ps
+  --in  [ b | Right (_, _, b, _) <- res ]
 
 
 progs = [prog1,prog2,prog3,prog4,prog5,prog6,prog7,prog8,prog9, prog10]

@@ -5,15 +5,21 @@ module SneslParser where
 import SneslSyntax
 import Text.ParserCombinators.Parsec
 
-parseString :: String -> Either String Exp
+
+parseString :: String -> Either String [Def]
 parseString s = 
-  case parse (do e <- parseTop; eof; return e) "" s of 
-    Right e -> Right e 
-    Left _ -> Left "Parsing error"
+  case parse (do es <- parseTop; eof; return es) "" s of 
+    Right es -> Right es 
+    Left _ -> Left "SNESL Parsing error"
 
 
-parseFile file = do input <- readFile file 
-                    return (parseString input)                                     
+parseStringExp :: String -> Either String Exp 
+parseStringExp s = 
+  case parse (do e <- parseExp; eof; return e) "" s of 
+    Right e -> Right e
+    Left _ -> Left "SNESL Parsing error"
+
+                                            
 
 -- zero or more spaces
 whitespace :: Parser ()
@@ -195,7 +201,6 @@ parseExp = do symbol "let"
            parseComp
 
                    
-
 parseComp = do e <- parseSum
                option e (do o <- compop
                             e' <- parseSum
@@ -207,9 +212,26 @@ parseComp = do e <- parseSum
                             do {symbol ">"; return $ \x y -> Call "not" [Call "_leq" [x,y]]}
 
 
-parseTop :: Parser Exp 
+parseDef :: Parser Def 
+parseDef =  do symbol "function"
+               fname <- parseVar
+               symbol "("
+               args <- parseVar `sepBy` (symbol ",") 
+               symbol ")"
+               symbol "="
+               e <- parseExp 
+               return $ FDef fname args e
+            <|>
+            do symbol "def"
+               var <- parseVar
+               symbol "="
+               e <- parseExp
+               return $ EDef var e  
+
+
+parseTop :: Parser [Def] 
 parseTop = do whitespace
-              parseExp
+              parseDef  `sepBy` whitespace
            
 
 

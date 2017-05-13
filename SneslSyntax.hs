@@ -29,6 +29,12 @@ data Exp = Var Id
          deriving Show
 
 
+data Def = FDef Id [Id] Exp  -- function definition
+         | EDef Id Exp   -- expression definition
+         --deriving Show
+
+
+
 data Pat = PVar Id
          | PWild 
          | PTup Pat Pat
@@ -50,6 +56,10 @@ instance  Show Pat where
   show (PVar i)  = i
   show PWild = "_"
   show (PTup p1 p2) = "(" ++ show p1 ++ "," ++ show p2 ++ ")"
+
+instance Show Def where
+  show (FDef fname args e) = "<function> " ++ fname
+  show (EDef i e) = i ++ ": " ++ show e 
 
 
 showelts [] = ""
