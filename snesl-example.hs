@@ -45,10 +45,10 @@ runFile file =
 --runProg :: String ->  Either String (Val,Int,Int) -- ((Val,Int,Int),Type,Bool,(Val,Int,Int)) 
 runProg p = 
     do absProg <- parseString p
-       --sneslTy <- typing absProg   
+       sneslTyEnv <- runTyping absProg   
        (sneslInterEnv,w,s) <- runSneslInterp absProg
-       return (sneslInterEnv, w,s)
-       --svcode <- compiler absProg     
+       return (sneslInterEnv, sneslTyEnv)
+       --svcode <- compiler absProg      
        --(svcodeRes,(w',s')) <- runSvcodeProg svcode   
        --let svcodeRes' = dataTransBack sneslTy svcodeRes 
        --    compRes = compareVal sneslInterEnv svcodeRes'  
@@ -77,11 +77,10 @@ testExample prog =
 
 runExp p = 
     do absProg <- parseStringExp p    
-       sneslTy <- typing absProg    
+       sneslTy <- typingExp absProg    
        (sneslRes,w,s) <- runSneslExp absProg 
        svcode <- compiler absProg     
        (svcodeRes,(w',s')) <- runSvcodeProg svcode   
-       return (sneslRes, sneslTy,svcode,svcodeRes)
        let svcodeRes' = dataTransBack sneslTy svcodeRes
            compRes = compareVal sneslRes svcodeRes'  
        return ((sneslRes,w,s),sneslTy, compRes, (svcodeRes', w',s'))
@@ -105,9 +104,9 @@ compareVal _ _ = False
 
 -- some examples
 
-manyTest ps = map runProg ps
-  --let res = map runProg ps
-  --in  [ b | Right (_, _, b, _) <- res ]
+manyTest ps = 
+  let res = map runExp ps
+  in  [ b | Right (_, _, b, _) <- res ]
 
 
 progs = [prog1,prog2,prog3,prog4,prog5,prog6,prog7,prog8,prog9, prog10]

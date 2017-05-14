@@ -33,7 +33,7 @@ sneslDefInterp (EDef i e) r =
     Left s -> fail $ "Snesl runtime error: "++s
 
 sneslDefInterp (FDef fname args e) r = 
-  do let f vs = Snesl (rSnesl (eval e (zip args vs ++ r1)))
+  do let f vs = eval e (zip args vs ++ r1)
          r1 = (fname, FVal f) : r
      return r1 
 

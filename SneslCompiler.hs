@@ -53,7 +53,7 @@ askEnv = SneslTrans $ \ sid e0 -> Right (e0, [], sid)
 askTyEnv :: SneslTrans TyEnv
 askTyEnv = SneslTrans $ \ sid e0 -> 
              let tye0 = [(var, tp) | (var,(tp,_)) <- e0] 
-              in Right (tye0, [], sid)
+              in Right (tye0 ++ tyEnv0, [], sid)
 
 
 addEnv :: CompEnv -> SneslTrans a -> SneslTrans a

@@ -3,6 +3,8 @@
 
 module SneslSyntax where
 
+import Data.Bits ((.&.))
+
 
 data AVal = IVal Int 
           | BVal Bool 
@@ -73,7 +75,8 @@ data Type = TInt
           | TBool
           | TTup Type Type
           | TSeq Type
-          deriving Eq 
+          | TFun ([Type] -> SneslTyping Type)
+          --deriving Eq 
 
 
 instance Show Type where
@@ -81,8 +84,17 @@ instance Show Type where
   show TBool = "bool"
   show (TTup t1 t2) = "(" ++ show t1 ++ "," ++ show t2 ++ ")"
   show (TSeq t) = "{" ++ show t ++"}" 
+  show (TFun _) = "<function>"
 
 
+instance Eq Type where
+  TInt == TInt = True
+  TBool == TBool = True
+  (TTup t1 t2) == (TTup t3 t4) = (t1 == t3) .&. (t2 == t4)
+  (TSeq t1) == (TSeq t2) = t1 == t2
+
+
+type SneslTyping a = Either String a 
 
 
 newtype Snesl a = Snesl {rSnesl :: Either String (a, Int,Int)}
