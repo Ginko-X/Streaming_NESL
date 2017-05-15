@@ -7,43 +7,23 @@ import SvcodeSyntax
 import DataTrans
 import SneslParser
 import SneslTyping
-import Control.Monad (zipWithM)
 import Data.List (union)
 
 
-newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> CompEnv ->
-                                       Either String (a,[SDef], SId)}
 
-instance Monad SneslTrans where
-    return a = SneslTrans $ \ sid e -> Right (a, [], sid)
-
-    m >>= f = SneslTrans $ \ sid e -> 
-        case rSneslTrans m sid e of
-            Left err -> Left err
-            Right (a, sv, sid')  -> 
-                case rSneslTrans (f a) sid' e of 
-                    Left err' -> Left err'
-                    Right (a', sv', sid'') -> Right (a', sv++sv', sid'')
-
-
-
-instance Functor SneslTrans where
-  fmap f t = t >>= return . f
-
-instance Applicative SneslTrans where
-  pure = return
-  tf <*> ta = tf >>= \f -> fmap f ta
-
-
-
-compiler :: Exp ->  Either String SSym 
-compiler e = case rSneslTrans (translate e) 1 []  of 
+compileExp :: Exp -> CompEnv ->  Either String SSym 
+compileExp e r = case rSneslTrans (translate e) 1 r  of 
                    Right (st, sv, _) -> Right $ SSym (SDef 0 Ctrl:sv) st
                    Left err -> Left err 
 
 
+-- old API
+compiler :: Exp ->  Either String SSym 
+compiler e = case rSneslTrans (translate e) 1 compEnv0  of 
+                   Right (st, sv, _) -> Right $ SSym (SDef 0 Ctrl:sv) st
+                   Left err -> Left err 
 
-type CompEnv = [(Id, STree)]
+
 
 askEnv :: SneslTrans CompEnv
 askEnv = SneslTrans $ \ sid e0 -> Right (e0, [], sid)
@@ -84,7 +64,7 @@ emitEmpty :: SneslTrans SId
 emitEmpty = SneslTrans $ \ sid _ -> Right (sid, [] ,sid+1)
 
 
- --get the translated code and the return stream ids(i.e. STree)
+ --get the translated code and the returned stream ids(i.e. STree)
 ctrlTrans :: SneslTrans STree -> SneslTrans (STree,[SDef])
 ctrlTrans m = SneslTrans $ \sid env -> 
     case rSneslTrans m sid env of 
@@ -131,7 +111,10 @@ translate (Let pat e1 e2) =
 
 translate (Call fname es) = 
     do args <- mapM (\e -> translate e) es
-       transFunc fname fe0 args 
+       env <- askEnv
+       case lookup fname env of 
+         Just (FStr f) -> f args 
+         Nothing -> fail "SNESL compiler: function call error."
 
 
 translate (GComp e0 ps) = 
@@ -177,15 +160,10 @@ translate (RComp e0 e1) =
 -- get the free varibales in the expression
 getVars :: Exp -> [Id]
 getVars (Var x) = [x]
-
 getVars (Lit a) = []
-
 getVars (Tup e1 e2) = foldl union [] $ map getVars [e1,e2]
-
 getVars (SeqNil tp) = []
-
 getVars (Seq es) = foldl union [] $ map getVars es
-
 getVars (Let p e1 e2) = e1Vars ++ filter (\x -> not $ x `elem` binds) (getVars e2) 
     where binds = getPatVars p 
           e1Vars = getVars e1 
@@ -209,7 +187,6 @@ getPatVars (PTup p1 p2) = concat $ map getPatVars [p1,p2]
 -- generate empty/undefined stream SIds
 emptySeq :: Type  -> SneslTrans STree
 emptySeq TInt =  do s <- emitEmpty; return (IStr s)
-
 emptySeq TBool = do s <- emitEmpty; return (BStr s)
 
 emptySeq (TSeq tp) = 
@@ -223,12 +200,9 @@ emptySeq (TTup t1 t2) =
        return (PStr s1 s2)
 
 
-
 distr :: STree -> SId -> SneslTrans STree
 distr (IStr s1) s = emitIs (Distr s1 s)
-
 distr (BStr s1) s = emitBs (Distr s1 s)
-
 distr (PStr t1 t2) s = 
     do st1 <- distr t1 s
        st2 <- distr t2 s
@@ -236,6 +210,7 @@ distr (PStr t1 t2) s =
 
 --distr st s = fail "Sequences can't be distributed ." 
 distr st@(SStr _ _) s = distrSeg st s
+
 
 -- Distributing Sequence
 distrSeg :: STree -> SId -> SneslTrans STree
@@ -246,11 +221,8 @@ distrSeg t@(SStr s0 s1) s =
 
 
 distrSegRecur :: STree -> SId -> SneslTrans STree       
-distrSegRecur (SStr (IStr s0) s1)  s 
-    = emitIs (PrimSegFlagDistr s0 s1 s)
-
-distrSegRecur (SStr (BStr s0) s1)  s 
-    = emitBs (PrimSegFlagDistr s0 s1 s)
+distrSegRecur (SStr (IStr s0) s1) s = emitIs (PrimSegFlagDistr s0 s1 s)
+distrSegRecur (SStr (BStr s0) s1) s = emitBs (PrimSegFlagDistr s0 s1 s)
 
 distrSegRecur (SStr (PStr s1 s2) s3) s =     
     do st1 <- distrSegRecur (SStr s1 s3) s
@@ -264,11 +236,8 @@ distrSegRecur (SStr (SStr s0 s1) s2) s =
       return (SStr newS0 newS1)
 
 
--- don't need 'Type' any more 
 pack :: STree -> SId -> SneslTrans STree
-
 pack (IStr s) b = emitIs (Pack s b)
-
 pack (BStr s) b = emitBs (Pack s b) 
 
 pack (PStr t1 t2) b = 
@@ -283,39 +252,28 @@ pack (SStr t s) b =
        return (SStr st2 st3)
 
 
+--- translation of built-in functions ---
 
-type FuncEnv = [(Id, [STree] -> SneslTrans STree)]
+compEnv0 = [ ("_uminus", FStr (\[IStr s1] -> emitIs (MapOne Uminus s1))),
+             ("not", FStr (\[BStr s1] -> emitBs (MapOne Not s1))),
 
--- [STree] are the arguments
-transFunc :: Id -> FuncEnv -> [STree] -> SneslTrans STree
-transFunc fid fe0 args = case lookup fid fe0 of 
-    Just f -> f args 
-    Nothing -> fail "Function call error."
+             ("_plus", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Add s1 s2))),
+             ("_minus", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Minus s1 s2))),
+             ("_times", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Times s1 s2))),
+             ("_div", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Div s1 s2))),
+             ("_eq",FStr (\[IStr s1, IStr s2] -> emitBs (MapTwo Equal s1 s2))),
+             ("_leq",FStr (\[IStr s1, IStr s2] -> emitBs (MapTwo Leq s1 s2))),
+              
+             ("index", FStr (\[IStr s] -> iotas s)),                
 
+             ("scanExPlus", FStr (\[SStr (IStr t) s] -> scanExPlus t s)),
 
+             ("reducePlus", FStr (\[SStr (IStr t) s] -> reducePlus t s)),
+             
+              ("_append", FStr (\[t1'@(SStr t1 s1), t2'@(SStr t2 s2)] -> 
+                        mergeSeq [t1',t2'])), 
 
-
-fe0 :: FuncEnv
-fe0 = [("_uminus", \[IStr s1] -> emitIs (MapOne Uminus s1)),
-       ("not", \[BStr s1] -> emitBs (MapOne Not s1)),
-
-       ("_plus", \[IStr s1, IStr s2] -> emitIs (MapTwo Add s1 s2)),
-       ("_minus", \[IStr s1, IStr s2] -> emitIs (MapTwo Minus s1 s2)),
-       ("_times", \[IStr s1, IStr s2] -> emitIs (MapTwo Times s1 s2)),
-       ("_div", \[IStr s1, IStr s2] -> emitIs (MapTwo Div s1 s2)),
-       ("_eq",\[IStr s1, IStr s2] -> emitBs (MapTwo Equal s1 s2)),
-       ("_leq",\[IStr s1, IStr s2] -> emitBs (MapTwo Leq s1 s2)),
-        
-       ("index", \[IStr s] -> iotas s),                
-
-       ("scanExPlus", \[SStr (IStr t) s] -> scanExPlus t s),
-
-       ("reducePlus", \[SStr (IStr t) s] -> reducePlus t s),
-       
-        ("_append", \[t1'@(SStr t1 s1), t2'@(SStr t2 s2)] -> 
-                  mergeSeq [t1',t2']), 
-
-       ("concat", \[SStr (SStr t s1) s2] -> concatSeq t s1 s2)]
+             ("concat", FStr (\[SStr (SStr t s1) s2] -> concatSeq t s1 s2))]
 
 
 

@@ -74,13 +74,45 @@ showseq delim [] = ""
 showseq delim [x] = show x
 showseq delim (x:xs) = show x ++ delim ++ showseq delim xs
 
--- stream trees 
---data STree = STId SId
---           | STPair STree STree
---           deriving Show
+
+
 
 data STree = IStr SId
            | BStr SId
            | SStr STree SId
            | PStr STree STree
-           deriving Show
+           | FStr ([STree] -> SneslTrans STree)
+
+instance Show STree where
+  show (IStr i) = "IStr "++ show i 
+  show (BStr b) = "BStr " ++ show b 
+  show (SStr t s) = "SStr <" ++ show t ++ "," ++ show s ++ ">"
+  show (PStr t1 t2) = "PSTr (" ++ show t1 ++ "," ++ show t2 ++ ")"
+  show (FStr _) = "<function STree>"
+
+
+type CompEnv = [(Id, STree)]
+
+newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> CompEnv ->
+                                       Either String (a,[SDef], SId)}
+
+instance Monad SneslTrans where
+    return a = SneslTrans $ \ sid e -> Right (a, [], sid)
+
+    m >>= f = SneslTrans $ \ sid e -> 
+        case rSneslTrans m sid e of
+            Left err -> Left err
+            Right (a, sv, sid')  -> 
+                case rSneslTrans (f a) sid' e of 
+                    Left err' -> Left err'
+                    Right (a', sv', sid'') -> Right (a', sv++sv', sid'')
+
+
+
+instance Functor SneslTrans where
+  fmap f t = t >>= return . f
+
+instance Applicative SneslTrans where
+  pure = return
+  tf <*> ta = tf >>= \f -> fmap f ta
+
