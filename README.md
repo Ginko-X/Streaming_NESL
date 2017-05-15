@@ -1,7 +1,12 @@
 # Working Progress
 + Week 19 (8~14 May)
-    + Modified/optimized the structure of STree as discussed in [#12](https://github.com/Ginko-X/Streaming_NESL/issues/12)
-    
+    + Modified/optimized the structure of STree as discussed in [#12](https://github.com/Ginko-X/Streaming_NESL/issues/12). The new STree includes not only the SIds but also the type information (of the value it represents). This helps simplify the SNESL compiler code.
+    + Add user-defined functions, **in process** : 
+        - support reading an SNESL program from a file             
+            - syntax: `def x = exp`, `function f(x1,...,xn) = exp` 
+            - usage (after loading `snesl-example.hs`): `runFile <filename>`, e.g. `runFile "examples/sqsum.snesl"`
+        - SNESL parser, interpreter, typing **done** 
+        - Compiler **in process**
     
 + Week 18 (1~7 May)
     + A new solution to the control change problem, using a new SVCODE instruction "WithCtrl", [see details Issue 12](https://github.com/Ginko-X/Streaming_NESL/issues/12)

@@ -1,7 +1,7 @@
 -- square sum
-function gt(x,y) = x > y
 
-def x = {gt(2,3)|gt(4,3) }
--- def x = reducePlus({x*x : x in args()})
+function args(n) = &n
+
+def sqsum = reducePlus({x*x : x in args(10)})
 
 

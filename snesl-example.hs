@@ -47,8 +47,9 @@ runProg p =
     do absProg <- parseString p
        sneslTyEnv <- runTyping absProg   
        (sneslInterEnv,w,s) <- runSneslInterp absProg
-       return (sneslInterEnv, sneslTyEnv)
-       --svcode <- compiler absProg      
+       return (sneslInterEnv,sneslTyEnv)
+       --svcode <- runCompiler absProg      
+       --return (sneslInterEnv, svcode)
        --(svcodeRes,(w',s')) <- runSvcodeProg svcode   
        --let svcodeRes' = dataTransBack sneslTy svcodeRes 
        --    compRes = compareVal sneslInterEnv svcodeRes'  
