@@ -92,7 +92,7 @@ instance Eq Type where
   TBool == TBool = True
   (TTup t1 t2) == (TTup t3 t4) = (t1 == t3) .&. (t2 == t4)
   (TSeq t1) == (TSeq t2) = t1 == t2
-
+  _ == _ = False
 
 type SneslTyping a = Either String a 
 
