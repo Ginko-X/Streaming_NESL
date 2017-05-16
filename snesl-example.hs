@@ -49,19 +49,26 @@ runProg p =
        (sneslInterEnv,w,s) <- runSneslInterp absProg
        svcode <- runCompiler absProg      
        svcodeRes <- runSvcodeProgs svcode
-       return svcodeRes   
-       --let (ids,svcodeval) = unzip svcodeRes
-       --    (svVal, svcost) = unzip svcodeval
-       --tps <- lookupMany ids sneslTyEnv
-       --sneslVals <- lookupMany ids sneslInterEnv
-
-       --let svVal' =  zipWith dataTransBack tps svVal 
-       --    compRes = zipWith compareVal sneslVals svVal'  
-       -- return (zip ids compRes)
+       let (ids,svcodeval) = unzip svcodeRes
+           (svVal, svcost) = unzip svcodeval
+       tps <- lookupMany ids sneslTyEnv
+       sneslVals <- lookupMany ids sneslInterEnv
+       let svVal' =  zipWith dataTransBack tps svVal 
+           compRes = zipWith compareVal sneslVals svVal'  
+       return (zip (zip ids sneslVals) compRes)
        --return ((sneslInterEnv,w,s),sneslTy, compRes, (svcodeRes', w',s'))
 
 
---lookupMany :: [Id] -> [()] 
+
+lookupMany :: [Id] -> [(Id,a)] -> Either String [a]
+lookupMany [] _ = Right []
+lookupMany (i:is) env = 
+    case lookup i env of 
+      Just a -> 
+         case lookupMany is env of 
+           Right as -> Right (a:as)
+           Left err -> Left err 
+      Nothing -> Left "LookupMany: undefined Id"  
 
 
 -- only for expressions
