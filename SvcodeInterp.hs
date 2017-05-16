@@ -32,6 +32,15 @@ instance Applicative Svcode where
   tf <*> ta = tf >>= \f -> fmap f ta
 
 
+
+runSvcodeProgs :: [(Id,SSym)] -> Either String [(Id, (SvVal, (Int,Int)))]
+runSvcodeProgs ss =  
+    do let (ids, syms) = unzip ss 
+       vs <- mapM runSvcodeProg syms
+       return (zip ids vs)
+
+ 
+
 runSvcodeProg :: SSym -> Either String (SvVal, (Int,Int))
 runSvcodeProg (SSym sdefs st) = 
   case rSvcode (mapM_ sdefInterp sdefs) [] 0 (0,0) of 

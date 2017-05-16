@@ -47,14 +47,21 @@ runProg p =
     do absProg <- parseString p
        sneslTyEnv <- runTyping absProg   
        (sneslInterEnv,w,s) <- runSneslInterp absProg
-       return (sneslInterEnv,sneslTyEnv)
-       --svcode <- runCompiler absProg      
-       --return (sneslInterEnv, svcode)
-       --(svcodeRes,(w',s')) <- runSvcodeProg svcode   
-       --let svcodeRes' = dataTransBack sneslTy svcodeRes 
-       --    compRes = compareVal sneslInterEnv svcodeRes'  
+       svcode <- runCompiler absProg      
+       svcodeRes <- runSvcodeProgs svcode
+       return svcodeRes   
+       --let (ids,svcodeval) = unzip svcodeRes
+       --    (svVal, svcost) = unzip svcodeval
+       --tps <- lookupMany ids sneslTyEnv
+       --sneslVals <- lookupMany ids sneslInterEnv
+
+       --let svVal' =  zipWith dataTransBack tps svVal 
+       --    compRes = zipWith compareVal sneslVals svVal'  
+       -- return (zip ids compRes)
        --return ((sneslInterEnv,w,s),sneslTy, compRes, (svcodeRes', w',s'))
 
+
+--lookupMany :: [Id] -> [()] 
 
 
 -- only for expressions

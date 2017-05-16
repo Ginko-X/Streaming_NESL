@@ -9,9 +9,32 @@ import SneslParser
 import SneslTyping
 import Data.List (union)
 
- 
-runCompiler :: [Def] -> Either String SSym
-runCompiler = undefined 
+
+
+runEDef :: [Def] -> CompEnv -> Either String [(Id, SSym)]
+runEDef [] r0 = Right []
+runEDef ((FDef _ _ _ ):ds) r0 = runEDef ds r0 
+runEDef ((EDef i e):ds) r0 = 
+    case lookup i r0 of  
+       Just (EStr m) -> 
+           case rSneslTrans m 1 r0 of 
+             Right (st, sv, _) -> 
+                 case runEDef ds r0 of 
+                   Right ss -> Right $ (i, SSym (SDef 0 Ctrl:sv) st) : ss  
+                   Left err -> Left err 
+             Left err' -> Left err' 
+       Nothing -> Left "SNESL compiler: Expression undefined. "
+
+
+
+runCompiler :: [Def] -> Either String [(Id,SSym)]
+runCompiler defs = 
+      case rSneslTrans (compileDefs defs []) 1 [] of 
+        Right (env,_, _ ) ->  
+            case runEDef defs (env++compEnv0) of 
+              Right ss -> Right ss 
+              Left err' -> Left err'
+        Left err -> Left err 
 
 
 compileDefs :: [Def] -> CompEnv  -> SneslTrans CompEnv
@@ -21,6 +44,9 @@ compileDefs (d:ds) r =
        compileDefs ds (r'++r)  
 
 
+--type SSymEnv = [(Id, SSym)]
+
+
 compileDef :: Def -> SneslTrans CompEnv
 compileDef (EDef i e) = return [(i, EStr (translate e))]
 
@@ -28,7 +54,6 @@ compileDef (FDef fname args e) =
      do let f vs = addEnv (zip args vs) $ translate e 
             r1 = [(fname, FStr f)]
         return r1 
-
 
 
 compileExp :: Exp -> CompEnv -> SId ->  Either String SSym 
