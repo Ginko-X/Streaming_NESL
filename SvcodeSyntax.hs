@@ -82,13 +82,16 @@ data STree = IStr SId
            | SStr STree SId
            | PStr STree STree
            | FStr ([STree] -> SneslTrans STree)
+           | EStr (SneslTrans STree)
+
 
 instance Show STree where
-  show (IStr i) = "IStr "++ show i 
-  show (BStr b) = "BStr " ++ show b 
+  show (IStr i) = "(IStr "++ show i ++ ")"
+  show (BStr b) = "(BStr " ++ show b ++ ")"
   show (SStr t s) = "SStr <" ++ show t ++ "," ++ show s ++ ">"
   show (PStr t1 t2) = "PSTr (" ++ show t1 ++ "," ++ show t2 ++ ")"
   show (FStr _) = "<function STree>"
+  show (EStr _) = "<expression STree>"
 
 
 type CompEnv = [(Id, STree)]
