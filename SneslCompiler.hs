@@ -9,12 +9,32 @@ import SneslParser
 import SneslTyping
 import Data.List (union)
 
+ 
+runCompiler :: [Def] -> Either String SSym
+runCompiler = undefined 
 
 
-compileExp :: Exp -> CompEnv ->  Either String SSym 
-compileExp e r = case rSneslTrans (translate e) 1 r  of 
-                   Right (st, sv, _) -> Right $ SSym (SDef 0 Ctrl:sv) st
-                   Left err -> Left err 
+compileDefs :: [Def] -> CompEnv  -> SneslTrans CompEnv
+compileDefs [] r = return r 
+compileDefs (d:ds) r = 
+    do r' <- compileDef d 
+       compileDefs ds (r'++r)  
+
+
+compileDef :: Def -> SneslTrans CompEnv
+compileDef (EDef i e) = return [(i, EStr (translate e))]
+
+compileDef (FDef fname args e) = 
+     do let f vs = addEnv (zip args vs) $ translate e 
+            r1 = [(fname, FStr f)]
+        return r1 
+
+
+
+compileExp :: Exp -> CompEnv -> SId ->  Either String SSym 
+compileExp e r i = case rSneslTrans (translate e) i r  of 
+                     Right (st, sv, _) -> Right $ SSym (SDef 0 Ctrl:sv) st
+                     Left err -> Left err 
 
 
 -- old API
@@ -114,7 +134,7 @@ translate (Call fname es) =
        env <- askEnv
        case lookup fname env of 
          Just (FStr f) -> f args 
-         Nothing -> fail "SNESL compiler: function call error."
+         Nothing -> fail $ "SNESL compiler function call error: " ++ fname
 
 
 translate (GComp e0 ps) = 
@@ -270,7 +290,7 @@ compEnv0 = [ ("_uminus", FStr (\[IStr s1] -> emitIs (MapOne Uminus s1))),
 
              ("reducePlus", FStr (\[SStr (IStr t) s] -> reducePlus t s)),
              
-              ("_append", FStr (\[t1'@(SStr t1 s1), t2'@(SStr t2 s2)] -> 
+             ("_append", FStr (\[t1'@(SStr t1 s1), t2'@(SStr t2 s2)] -> 
                         mergeSeq [t1',t2'])), 
 
              ("concat", FStr (\[SStr (SStr t s1) s2] -> concatSeq t s1 s2))]
