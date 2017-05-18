@@ -4,9 +4,10 @@ import SneslSyntax
 
 type SId = Int  -- stream id
 
-data Instr = Ctrl 
+data SExp = Ctrl 
            | EmptyCtrl 
-           | WithCtrl SId [SDef] STree
+           | WithCtrl SId [SInstr] STree
+           | SCall [(SId,SId)] [SInstr] [(SId,SId)] STree 
            | ToFlags SId
            | Usum SId
            | Const AVal
@@ -29,9 +30,11 @@ data Instr = Ctrl
            | PriSegInterS [(SId,SId)]            
            deriving Show
          
-data SDef = SDef SId Instr  -- deriving Show 
+data SInstr  = SDef SId SExp  -- deriving Show 
+             -- | SCall [SId] FId [SId]  -- call user-definied functions
 
-data SSym = SSym [SDef] STree  -- deriving Show 
+
+data SSym = SSym [STree] STree [SInstr]  -- deriving Show 
 
 
 data OP = Uminus | Not  -- unary 
@@ -49,12 +52,13 @@ opEnv0 = [(Uminus, \[SIVal as] -> SIVal $ map (\x -> -x) as),
           (Leq, \[SIVal as, SIVal bs] -> SBVal $ zipWith (<=) as bs)]
 
 
-instance Show SDef where
+instance Show SInstr where
   show (SDef sid i) = "S" ++ show sid ++ " := " ++ show i 
-
+  --show (SCall rs f as) = "S " ++ show rs ++ " :=" ++ "SCall " ++ f ++ show as 
 
 instance Show SSym where
-  show (SSym sdefs t) = "\n" ++ showseq "; \n" sdefs ++ "\nReturn: " ++ show t
+  show (SSym args ret is) = "\n" ++ show args ++ "\n" ++ showseq "; \n" is ++ 
+                             "\nReturn: " ++ show ret
 
 -- svcode values
 data SvVal = SIVal [Int]
@@ -82,31 +86,31 @@ data STree = IStr SId
            | SStr STree SId
            | PStr STree STree
            | FStr ([STree] -> SneslTrans STree)
-           | EStr (SneslTrans STree)
 
 
 instance Show STree where
-  show (IStr i) = "(IStr "++ show i ++ ")"
-  show (BStr b) = "(BStr " ++ show b ++ ")"
-  show (SStr t s) = "SStr <" ++ show t ++ "," ++ show s ++ ">"
+  show (IStr i) = "IStr:"++ show i
+  show (BStr b) = "BStr:" ++ show b 
+  show (SStr t s) = "SStr <" ++ show t ++ "," ++ "BStr:" ++ show s ++ ">"
   show (PStr t1 t2) = "PSTr (" ++ show t1 ++ "," ++ show t2 ++ ")"
   show (FStr _) = "<function STree>"
-  show (EStr _) = "<expression STree>"
 
 
-type CompEnv = [(Id, STree)]
+type VEnv = [(Id, STree)]
 
-newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> CompEnv ->
-                                       Either String (a,[SDef], SId)}
+type FEnv = [(FId, SSym)]
+
+newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> VEnv -> FEnv -> 
+                                       Either String (a,[SInstr], SId)}
 
 instance Monad SneslTrans where
-    return a = SneslTrans $ \ sid e -> Right (a, [], sid)
+    return a = SneslTrans $ \ sid ve fe -> Right (a, [], sid)
 
-    m >>= f = SneslTrans $ \ sid e -> 
-        case rSneslTrans m sid e of
+    m >>= f = SneslTrans $ \ sid ve fe -> 
+        case rSneslTrans m sid ve fe of
             Left err -> Left err
             Right (a, sv, sid')  -> 
-                case rSneslTrans (f a) sid' e of 
+                case rSneslTrans (f a) sid' ve fe of 
                     Left err' -> Left err'
                     Right (a', sv', sid'') -> Right (a', sv++sv', sid'')
 

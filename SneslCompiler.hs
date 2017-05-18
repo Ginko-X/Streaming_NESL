@@ -11,81 +11,94 @@ import Data.List (union)
 
 
 
-runEDef :: [Def] -> CompEnv -> Either String [(Id, SSym)]
-runEDef [] r0 = Right []
-runEDef ((FDef _ _ _ ):ds) r0 = runEDef ds r0 
-runEDef ((EDef i e):ds) r0 = 
-    case lookup i r0 of  
-       Just (EStr m) -> 
-           case rSneslTrans m 1 r0 of 
-             Right (st, sv, _) -> 
-                 case runEDef ds r0 of 
-                   Right ss -> Right $ (i, SSym (SDef 0 Ctrl:sv) st) : ss  
-                   Left err -> Left err 
-             Left err' -> Left err' 
-       Nothing -> Left "SNESL compiler: Expression undefined. "
+--runEDef :: [Def] -> VEnv -> Either String [(Id, SSym)]
+--runEDef [] r0 = Right []
+--runEDef ((FDef _ _ _ ):ds) r0 = runEDef ds r0 
+--runEDef ((EDef i e):ds) r0 = 
+--    case lookup i r0 of  
+--       Just (EStr m) -> 
+--           case rSneslTrans m 1 r0 of 
+--             Right (st, sv, _) -> 
+--                 case runEDef ds r0 of 
+--                   Right ss -> Right $ (i, SSym (SDef 0 Ctrl:sv) st) : ss  
+--                   Left err -> Left err 
+--             Left err' -> Left err' 
+--       Nothing -> Left "SNESL compiler: Expression undefined. "
 
 
 
-runCompiler :: [Def] -> Either String [(Id,SSym)]
-runCompiler defs = 
-      case rSneslTrans (compileDefs defs []) 1 [] of 
-        Right (env,_, _ ) ->  
-            case runEDef defs (env++compEnv0) of 
-              Right ss -> Right ss 
-              Left err' -> Left err'
-        Left err -> Left err 
+runCompilerEnv :: [Def] -> Either String [(Id,SSym)]
+runCompilerEnv defs = compileDefs defs []
 
 
-compileDefs :: [Def] -> CompEnv  -> SneslTrans CompEnv
+compileDefs :: [Def] -> FEnv  -> Either String FEnv
 compileDefs [] r = return r 
 compileDefs (d:ds) r = 
-    do r' <- compileDef d 
+    do r' <- compileDef d r
        compileDefs ds (r'++r)  
 
 
---type SSymEnv = [(Id, SSym)]
 
 
-compileDef :: Def -> SneslTrans CompEnv
-compileDef (EDef i e) = return [(i, EStr (translate e))]
+compileDef :: Def -> FEnv -> Either String FEnv
 
-compileDef (FDef fname args e) = 
-     do let f vs = addEnv (zip args vs) $ translate e 
-            r1 = [(fname, FStr f)]
-        return r1 
-
-
-compileExp :: Exp -> CompEnv -> SId ->  Either String SSym 
-compileExp e r i = case rSneslTrans (translate e) i r  of 
-                     Right (st, sv, _) -> Right $ SSym (SDef 0 Ctrl:sv) st
-                     Left err -> Left err 
+compileDef (FDef fname args rtp e) se0 = 
+    let (s0,arge) = argsSTree args 0
+        (_, sts) = unzip arge
+    in  case rSneslTrans (translate e) s0 (arge++compEnv0) se0 of 
+            Right (st,svs,_) -> Right [(fname,SSym sts st svs)]
+            Left err -> Left $ "Compiling error: " ++ fname ++ ":" ++ err
 
 
--- old API
-compiler :: Exp ->  Either String SSym 
-compiler e = case rSneslTrans (translate e) 1 compEnv0  of 
-                   Right (st, sv, _) -> Right $ SSym (SDef 0 Ctrl:sv) st
-                   Left err -> Left err 
+argsSTree :: [(Id,Type)] -> SId -> (SId,[(Id,STree)])
+argsSTree [] i = (i,[])
+argsSTree [(v,t)] i = (i',[(v,st)])
+    where  (st,i') = tp2st t i 
+
+argsSTree (v:vs) i = (i'', st ++ sts)
+    where (i',st) = argsSTree [v] i 
+          (i'',sts) = argsSTree vs i'
+
+tp2st :: Type -> SId -> (STree, SId)
+tp2st TInt i = (IStr i, i+1)
+tp2st TBool i = (BStr i, i+1) 
+tp2st (TSeq t) i = (SStr s i, i')
+    where (s,i') = tp2st t (i+1)
+
+tp2st (TTup t1 t2) i = (PStr s1 s2, i'') 
+    where (s1,i') = tp2st t1 i
+          (s2, i'') = tp2st t2 i'
 
 
 
-askEnv :: SneslTrans CompEnv
-askEnv = SneslTrans $ \ sid e0 -> Right (e0, [], sid)
+compileExp :: Exp -> FEnv -> Either String SSym 
+compileExp e fe = 
+    case rSneslTrans (translate e) 1 compEnv0 fe  of 
+        Right (st, sv, _) -> Right $ SSym [] st (SDef 0 Ctrl:sv)
+        Left err -> Left err 
 
 
-addEnv :: CompEnv -> SneslTrans a -> SneslTrans a
-addEnv newe m = SneslTrans $ \sid e0 -> rSneslTrans m sid (newe++e0)  
+
+askEnv :: SneslTrans (VEnv,FEnv)
+askEnv = SneslTrans $ \ sid ve fe -> Right ((ve,fe), [], sid)
+
+
+askVEnv :: SneslTrans VEnv
+askVEnv = SneslTrans $ \ sid e0 _ -> Right (e0, [], sid)
+
+
+addVEnv :: VEnv -> SneslTrans a -> SneslTrans a
+addVEnv newe m = SneslTrans $ \sid e0 fe -> rSneslTrans m sid (newe++e0) fe 
   
 lookupSTree :: Id -> SneslTrans STree
 lookupSTree var = 
-  do env <- askEnv 
+  do env <- askVEnv 
      case lookup var env of 
         Just stree -> return stree
         Nothing -> fail "Variable binding Error"
 
 
-bindM :: Pat -> STree -> SneslTrans CompEnv
+bindM :: Pat -> STree -> SneslTrans VEnv
 bindM (PVar x) t = return [(x,t)]
 bindM PWild _  = return []
 bindM (PTup p1 p2) (PStr st1 st2) = 
@@ -97,8 +110,8 @@ bindM p@(PTup _ _) t = fail $ "Bad bindings: " ++ show p
                                                  
 
 -- generate a stream definition
-emit :: Instr -> SneslTrans SId
-emit i = SneslTrans $ \ sid _ -> Right (sid, [SDef sid i] ,sid+1)
+emit :: SExp -> SneslTrans SId
+emit i = SneslTrans $ \ sid _ _ -> Right (sid, [SDef sid i] ,sid+1)
 
 emitIs i = do s <- emit i; return (IStr s)
 emitBs i = do s <- emit i; return (BStr s)
@@ -106,15 +119,59 @@ emitBs i = do s <- emit i; return (BStr s)
 
 -- generate a stream SId without the instruction definition 
 emitEmpty :: SneslTrans SId
-emitEmpty = SneslTrans $ \ sid _ -> Right (sid, [] ,sid+1)
+emitEmpty = SneslTrans $ \ sid _ _ -> Right (sid, [] ,sid+1)
 
 
  --get the translated code and the returned stream ids(i.e. STree)
-ctrlTrans :: SneslTrans STree -> SneslTrans (STree,[SDef])
-ctrlTrans m = SneslTrans $ \sid env -> 
-    case rSneslTrans m sid env of 
+ctrlTrans :: SneslTrans STree -> SneslTrans (STree,[SInstr])
+ctrlTrans m = SneslTrans $ \sid ve fe -> 
+    case rSneslTrans m sid ve fe of 
       Right (st, code, s) -> Right ((st,code), [], s)
       Left err -> Left err 
+
+
+scall :: [STree] -> SSym -> SneslTrans STree
+scall args (SSym sts st sv) = 
+  do argbs <- sidBinds args sts
+     rettr <- streeCopy st 
+     retbs <- sidBinds [st] [rettr]
+     emit (SCall argbs sv retbs rettr)
+     return rettr 
+
+
+streeCopy :: STree -> SneslTrans STree
+streeCopy (IStr _) = do s <- emitEmpty; return (IStr s)
+streeCopy (BStr _) = do s <- emitEmpty; return (BStr s)
+streeCopy (SStr s f) = 
+    do s0 <- streeCopy s
+       (BStr f') <- streeCopy (BStr f)
+       return (SStr s0 f')
+streeCopy (PStr t1 t2) = 
+    do s1 <- streeCopy t1
+       s2 <- streeCopy t2
+       return (PStr s1 s2)
+
+
+sidBinds :: [STree] -> [STree] -> SneslTrans [(SId,SId)]
+sidBinds [] [] = return []
+sidBinds (a:as) (b:bs) = 
+  do ab <- sidBind a b
+     abs <- sidBinds as bs
+     return $ ab ++ abs 
+sidBinds _ _ = fail "function argumennts passing error."
+
+sidBind :: STree -> STree -> SneslTrans [(SId,SId)]
+sidBind (IStr s1) (IStr s2) = return [(s1,s2)]
+sidBind (BStr s1) (BStr s2) = return [(s1,s2)]
+sidBind (SStr s1 s2) (SStr s3 s4) = 
+  do s13 <- sidBind s1 s3 
+     return $ s13 ++ [(s2,s4)]
+sidBind (PStr s1 s2) (PStr s3 s4) = 
+  do s13 <- sidBind s1 s3 
+     s24 <- sidBind s2 s4 
+     return $ s13 ++ s24
+sidBind _ _ = fail "function argumennts passing error."
+
 
 
 --- Translation ---
@@ -151,15 +208,18 @@ translate e@(Seq es) =
 translate (Let pat e1 e2) = 
     do st <- translate e1 
        newEnv <- bindM pat st
-       addEnv newEnv $ translate e2 
+       addVEnv newEnv $ translate e2 
        
 
 translate (Call fname es) = 
     do args <- mapM (\e -> translate e) es
-       env <- askEnv
-       case lookup fname env of 
-         Just (FStr f) -> f args 
-         Nothing -> fail $ "SNESL compiler function call error: " ++ fname
+       (ve,fe) <- askEnv
+       case lookup fname ve of 
+         Just (FStr f) -> f args
+         Nothing -> 
+             case lookup fname fe of 
+                Just ss@(SSym _ _ _) -> scall args ss 
+                Nothing -> fail $ "Compiling error: undefined function "++fname
 
 
 translate (GComp e0 ps) = 
@@ -179,7 +239,7 @@ translate (GComp e0 ps) =
                               (zip usingVars newVarTrs)
 
         -- translate the body
-        (st,defs) <- ctrlTrans $ addEnv (concat $ newEnvs ++ usingVarbinds) 
+        (st,defs) <- ctrlTrans $ addVEnv (concat $ newEnvs ++ usingVarbinds) 
                                   $ translate e0 
         emit (WithCtrl newCtrl defs st)
         return (SStr st s0)
@@ -197,9 +257,11 @@ translate (RComp e0 e1) =
        binds <- mapM (\(v,tr) -> bindM (PVar v) tr) 
                      (zip usingVars newVarTrs)
 
-       (s3,defs) <- ctrlTrans $ addEnv (concat binds) $ translate e0 
+       (s3,defs) <- ctrlTrans $ addVEnv (concat binds) $ translate e0 
        emit (WithCtrl newCtrl defs s3)
        return (SStr s3 s2) 
+
+
 
 
 -- get the free varibales in the expression
@@ -298,8 +360,8 @@ pack (SStr t s) b =
 
 
 --- translation of built-in functions ---
-
-compEnv0 = [ ("_uminus", FStr (\[IStr s1] -> emitIs (MapOne Uminus s1))),
+compEnv0 = [ 
+             ("_uminus", FStr (\[IStr s1] -> emitIs (MapOne Uminus s1))),
              ("not", FStr (\[BStr s1] -> emitBs (MapOne Not s1))),
 
              ("_plus", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Add s1 s2))),

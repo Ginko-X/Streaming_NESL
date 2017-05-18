@@ -8,8 +8,8 @@ import Data.Char (chr, ord)
 import Data.List (transpose)
 
 
-runSneslInterp :: [Def] -> Either String (Env, Int,Int)
-runSneslInterp defs = 
+runSneslInterpEnv :: [Def] -> Either String (Env, Int,Int)
+runSneslInterpEnv defs = 
     let id0 = fst $ unzip r0
     in case rSnesl (sneslInterp defs r0) of 
           Right (r, nw, ns) -> Right (takeWhile (\(x,_) -> not $ x `elem` id0) r, nw, ns)
@@ -27,15 +27,24 @@ sneslInterp (d:defs) r =
 -- interpreter one Def independently
 sneslDefInterp :: Def -> Env -> Snesl Env
 
-sneslDefInterp (EDef i e) r = 
-  case rSnesl (eval e r) of
-    Right (v, nw, ns) ->  return ((i,v):r)
-    Left s -> fail $ "Snesl runtime error: "++s
+--sneslDefInterp (EDef i e) r = 
+--  case rSnesl (eval e r) of
+--    Right (v, nw, ns) ->  return ((i,v):r)
+--    Left s -> fail $ "Snesl runtime error: "++s
 
-sneslDefInterp (FDef fname args e) r = 
-  do let f vs = eval e (zip args vs ++ r1)
+sneslDefInterp (FDef fname args _ e) r = 
+  do let ids = fst $ unzip args 
+         f vs = eval e (zip ids vs ++ r1)
          r1 = (fname, FVal f) : r
      return r1 
+
+
+
+runSneslExp :: Exp -> Env -> Either String (Val,Int,Int)
+runSneslExp e env = 
+  case rSnesl (eval e (env++r0)) of
+    Right (v, nw, ns) ->  Right (v,nw,ns) 
+    Left s -> Left $ "Snesl runtime error: "++s
 
 
 
@@ -223,11 +232,6 @@ seglist [] [] = []
 seglist (n:ns) l = take n l : seglist ns (drop n l)
 
 
-runSneslExp :: Exp -> Either String (Val,Int,Int)
-runSneslExp e = 
-  case rSnesl (eval e r0) of
-    Right (v, nw, ns) ->  Right (v,nw,ns) 
-    Left s -> Left $ "Snesl runtime error: "++s
 
 
 --doDef :: FilePath -> IO ()

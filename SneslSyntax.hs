@@ -19,6 +19,8 @@ data Val = AVal AVal
 
 type Id = String
 
+type FId = String
+
 data Exp = Var Id
          | Lit AVal    
          | Tup Exp Exp 
@@ -31,8 +33,8 @@ data Exp = Var Id
          deriving Show
 
 
-data Def = FDef Id [Id] Exp  -- function definition
-         | EDef Id Exp   -- expression definition
+data Def = FDef FId [(Id,Type)] Type Exp  -- function definition
+         -- | EDef Id Exp   -- expression definition
          --deriving Show
 
 
@@ -51,7 +53,7 @@ instance Show AVal where
 instance Show Val where
   show (AVal a) = show a
   show (TVal v1 v2) = "(" ++ show v1 ++ "," ++ show v2 ++ ")"
-  show (SVal vs) = "{" ++ showelts vs ++ "}"
+  show (SVal vs) = "{" ++ showelts vs "," ++ "}"
   show (FVal _) = "<function>"
 
 instance  Show Pat where
@@ -60,22 +62,25 @@ instance  Show Pat where
   show (PTup p1 p2) = "(" ++ show p1 ++ "," ++ show p2 ++ ")"
 
 instance Show Def where
-  show (FDef fname args e) = "<function> " ++ fname
-  show (EDef i e) = i ++ ": " ++ show e 
+  show (FDef fname _ _ _) = "function: " ++ fname
+  --show (EDef i e) = i ++ ": " ++ show e 
 
 
-showelts [] = ""
-showelts [x] = show x
-showelts (x:xs) = show x ++ ", " ++ showelts xs
+showelts :: Show a => [a] -> String -> String
+showelts [] _ = ""
+showelts [x] _ = show x
+showelts (x:xs) symbol = show x ++ symbol ++ (showelts xs symbol)
 
 
+type TId = String 
 
 -- Snesl types
 data Type = TInt 
           | TBool
           | TTup Type Type
           | TSeq Type
-          | TFun ([Type] -> SneslTyping Type)
+          | TFun [Type] Type 
+          | TVar ([Type] -> SneslTyping Type)
           --deriving Eq 
 
 
@@ -84,7 +89,8 @@ instance Show Type where
   show TBool = "bool"
   show (TTup t1 t2) = "(" ++ show t1 ++ "," ++ show t2 ++ ")"
   show (TSeq t) = "{" ++ show t ++"}" 
-  show (TFun _) = "<function>"
+  show (TFun tps tp) = showelts tps "->" ++ "->" ++ show tp
+  show (TVar _)  = "<Type Var>" 
 
 
 instance Eq Type where
@@ -92,7 +98,8 @@ instance Eq Type where
   TBool == TBool = True
   (TTup t1 t2) == (TTup t3 t4) = (t1 == t3) .&. (t2 == t4)
   (TSeq t1) == (TSeq t2) = t1 == t2
-  _ == _ = False
+  (TFun tps1 t1) == (TFun tps2 t2) = (tps1 == tps2) .&. (t1 == t2)
+  _ == _ = False 
 
 type SneslTyping a = Either String a 
 

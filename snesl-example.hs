@@ -37,41 +37,33 @@ testExample' prog =
 -}
 
 --runFile :: FilePath -> IO () 
-runFile file =
-   do prog <- readFile file 
-      return $ runProg prog
+runFile file exp =
+   do  funcs <- readFile file 
+       return $ runProg funcs exp
 
--- formatted return value
+      
+
 --runProg :: String ->  Either String (Val,Int,Int) -- ((Val,Int,Int),Type,Bool,(Val,Int,Int)) 
-runProg p = 
-    do absProg <- parseString p
-       sneslTyEnv <- runTyping absProg   
-       (sneslInterEnv,w,s) <- runSneslInterp absProg
-       svcode <- runCompiler absProg      
-       svcodeRes <- runSvcodeProgs svcode
-       let (ids,svcodeval) = unzip svcodeRes
-           (svVal, svcost) = unzip svcodeval
-       tps <- lookupMany ids sneslTyEnv
-       sneslVals <- lookupMany ids sneslInterEnv
-       let svVal' =  zipWith dataTransBack tps svVal 
-           compRes = zipWith compareVal sneslVals svVal'  
-       return (zip (zip ids sneslVals) compRes)
-       --return ((sneslInterEnv,w,s),sneslTy, compRes, (svcodeRes', w',s'))
+runProg str exp = 
+       -- compile function definitions
+    do funcs <- parseString str  
+       funcTyEnv <- runTypingEnv funcs    
+       (sneslEnv,_,_) <- runSneslInterpEnv funcs
+       svcodeEnv <- runCompilerEnv funcs  
+       
+       -- compile and run the expression in the environment 
+       e1 <- parseStringExp exp 
+       sneslTy <- typingExp e1 funcTyEnv    
+       (sneslRes,w,s) <- runSneslExp e1 sneslEnv
+       svcode <- compileExp e1 svcodeEnv 
+       (svcodeRes,(w',s')) <- runSvcodeProg svcode
+       let svcodeRes' = dataTransBack sneslTy svcodeRes
+           compRes = compareVal sneslRes svcodeRes'  
+       return (sneslRes, compRes)
 
 
 
-lookupMany :: [Id] -> [(Id,a)] -> Either String [a]
-lookupMany [] _ = Right []
-lookupMany (i:is) env = 
-    case lookup i env of 
-      Just a -> 
-         case lookupMany is env of 
-           Right as -> Right (a:as)
-           Left err -> Left err 
-      Nothing -> Left "LookupMany: undefined Id"  
-
-
--- only for expressions
+-- old API, only for expressions
 testExample :: String -> IO()
 testExample prog =  
     case runExp prog of 
@@ -89,12 +81,11 @@ testExample prog =
                         putStrLn $ "SVCODE: " ++ show sv
 
 
-
 runExp p = 
     do absProg <- parseStringExp p    
-       sneslTy <- typingExp absProg    
-       (sneslRes,w,s) <- runSneslExp absProg 
-       svcode <- compiler absProg     
+       sneslTy <- typingExp absProg []   
+       (sneslRes,w,s) <- runSneslExp absProg []
+       svcode <- compileExp absProg []     
        (svcodeRes,(w',s')) <- runSvcodeProg svcode   
        let svcodeRes' = dataTransBack sneslTy svcodeRes
            compRes = compareVal sneslRes svcodeRes'  

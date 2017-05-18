@@ -1,11 +1,8 @@
 -- square sum
-function sqsum(n) = reducePlus({x*x : x in &n})
+function sqsum(n:int) :int = reducePlus({x*x : x in &n})
 
-def test10 = sqsum(10)
+function comp(x:int,y:int) :bool = x > y
 
-function comp(x,y) = x > y
-
-def compsum = comp(300,sqsum(10))
 
 
 

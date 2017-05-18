@@ -216,17 +216,19 @@ parseDef :: Parser Def
 parseDef =  do symbol "function"
                fname <- parseVar
                symbol "("
-               args <- parseVar `sepBy` (symbol ",") 
+               args <- (do arg <- parseVar; symbol ":"; tp <- parseType; return (arg,tp)) `sepBy` (symbol ",") 
                symbol ")"
+               symbol ":"
+               rettp <- parseType 
                symbol "="
                e <- parseExp 
-               return $ FDef fname args e
-            <|>
-            do symbol "def"
-               var <- parseVar
-               symbol "="
-               e <- parseExp
-               return $ EDef var e  
+               return $ FDef fname args rettp e
+            -- <|>
+            --do symbol "def"
+            --   var <- parseVar
+            --   symbol "="
+            --   e <- parseExp
+            --   return $ EDef var e  
 
 
 parseTop :: Parser [Def] 
