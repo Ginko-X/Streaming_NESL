@@ -7,7 +7,7 @@ type SId = Int  -- stream id
 data SExp = Ctrl 
            | EmptyCtrl 
            | WithCtrl SId [SInstr] STree
-           | SCall [(SId,SId)] [SInstr] [(SId,SId)] STree 
+           | SCall [(SId,SId)] [SInstr] [(SId,SId)] 
            | ToFlags SId
            | Usum SId
            | Const AVal
@@ -34,7 +34,7 @@ data SInstr  = SDef SId SExp  -- deriving Show
              -- | SCall [SId] FId [SId]  -- call user-definied functions
 
 
-data SSym = SSym [STree] STree [SInstr]  -- deriving Show 
+data SFun = SFun [STree] STree [SInstr]  -- deriving Show 
 
 
 data OP = Uminus | Not  -- unary 
@@ -54,10 +54,10 @@ opEnv0 = [(Uminus, \[SIVal as] -> SIVal $ map (\x -> -x) as),
 
 instance Show SInstr where
   show (SDef sid i) = "S" ++ show sid ++ " := " ++ show i 
-  --show (SCall rs f as) = "S " ++ show rs ++ " :=" ++ "SCall " ++ f ++ show as 
 
-instance Show SSym where
-  show (SSym args ret is) = "\n" ++ show args ++ "\n" ++ showseq "; \n" is ++ 
+
+instance Show SFun where
+  show (SFun args ret code) = "\nArguments: " ++ show args ++ "\n " ++ showseq "; \n" code ++ 
                              "\nReturn: " ++ show ret
 
 -- svcode values
@@ -98,7 +98,7 @@ instance Show STree where
 
 type VEnv = [(Id, STree)]
 
-type FEnv = [(FId, SSym)]
+type FEnv = [(FId, SFun)]
 
 newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> VEnv -> FEnv -> 
                                        Either String (a,[SInstr], SId)}

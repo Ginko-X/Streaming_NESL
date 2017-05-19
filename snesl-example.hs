@@ -37,7 +37,7 @@ testExample' prog =
 -}
 
 --runFile :: FilePath -> IO () 
-runFile file exp =
+runFile file exp = 
    do  funcs <- readFile file 
        return $ runProg funcs exp
 
@@ -45,18 +45,18 @@ runFile file exp =
 
 --runProg :: String ->  Either String (Val,Int,Int) -- ((Val,Int,Int),Type,Bool,(Val,Int,Int)) 
 runProg str exp = 
-       -- compile function definitions
+       -- compile function definitions from a file
     do funcs <- parseString str  
        funcTyEnv <- runTypingEnv funcs    
        (sneslEnv,_,_) <- runSneslInterpEnv funcs
        svcodeEnv <- runCompilerEnv funcs  
        
-       -- compile and run the expression in the environment 
+       -- compile and evaluate the expression 
        e1 <- parseStringExp exp 
        sneslTy <- typingExp e1 funcTyEnv    
        (sneslRes,w,s) <- runSneslExp e1 sneslEnv
        svcode <- compileExp e1 svcodeEnv 
-       (svcodeRes,(w',s')) <- runSvcodeProg svcode
+       (svcodeRes,(w',s')) <- runSvcodeExp svcode
        let svcodeRes' = dataTransBack sneslTy svcodeRes
            compRes = compareVal sneslRes svcodeRes'  
        return (sneslRes, compRes)
@@ -86,7 +86,7 @@ runExp p =
        sneslTy <- typingExp absProg []   
        (sneslRes,w,s) <- runSneslExp absProg []
        svcode <- compileExp absProg []     
-       (svcodeRes,(w',s')) <- runSvcodeProg svcode   
+       (svcodeRes,(w',s')) <- runSvcodeExp svcode   
        let svcodeRes' = dataTransBack sneslTy svcodeRes
            compRes = compareVal sneslRes svcodeRes'  
        return ((sneslRes,w,s),sneslTy, compRes, (svcodeRes', w',s'))

@@ -11,23 +11,7 @@ import Data.List (union)
 
 
 
---runEDef :: [Def] -> VEnv -> Either String [(Id, SSym)]
---runEDef [] r0 = Right []
---runEDef ((FDef _ _ _ ):ds) r0 = runEDef ds r0 
---runEDef ((EDef i e):ds) r0 = 
---    case lookup i r0 of  
---       Just (EStr m) -> 
---           case rSneslTrans m 1 r0 of 
---             Right (st, sv, _) -> 
---                 case runEDef ds r0 of 
---                   Right ss -> Right $ (i, SSym (SDef 0 Ctrl:sv) st) : ss  
---                   Left err -> Left err 
---             Left err' -> Left err' 
---       Nothing -> Left "SNESL compiler: Expression undefined. "
-
-
-
-runCompilerEnv :: [Def] -> Either String [(Id,SSym)]
+runCompilerEnv :: [Def] -> Either String [(Id,SFun)]
 runCompilerEnv defs = compileDefs defs []
 
 
@@ -38,18 +22,17 @@ compileDefs (d:ds) r =
        compileDefs ds (r'++r)  
 
 
-
-
+-- compile a user-defined function  
 compileDef :: Def -> FEnv -> Either String FEnv
-
 compileDef (FDef fname args rtp e) se0 = 
     let (s0,arge) = argsSTree args 0
         (_, sts) = unzip arge
     in  case rSneslTrans (translate e) s0 (arge++compEnv0) se0 of 
-            Right (st,svs,_) -> Right [(fname,SSym sts st svs)]
+            Right (st,svs,_) -> Right [(fname,SFun sts st svs)]
             Left err -> Left $ "Compiling error: " ++ fname ++ ":" ++ err
 
 
+-- transform the argument list to STrees
 argsSTree :: [(Id,Type)] -> SId -> (SId,[(Id,STree)])
 argsSTree [] i = (i,[])
 argsSTree [(v,t)] i = (i',[(v,st)])
@@ -70,11 +53,11 @@ tp2st (TTup t1 t2) i = (PStr s1 s2, i'')
           (s2, i'') = tp2st t2 i'
 
 
-
-compileExp :: Exp -> FEnv -> Either String SSym 
+-- compile an expression
+compileExp :: Exp -> FEnv -> Either String SFun 
 compileExp e fe = 
     case rSneslTrans (translate e) 1 compEnv0 fe  of 
-        Right (st, sv, _) -> Right $ SSym [] st (SDef 0 Ctrl:sv)
+        Right (st, sv, _) -> Right $ SFun [] st (SDef 0 Ctrl:sv)
         Left err -> Left err 
 
 
@@ -130,15 +113,16 @@ ctrlTrans m = SneslTrans $ \sid ve fe ->
       Left err -> Left err 
 
 
-scall :: [STree] -> SSym -> SneslTrans STree
-scall args (SSym sts st sv) = 
-  do argbs <- sidBinds args sts
+scall :: [STree] -> SFun -> SneslTrans STree
+scall args (SFun sts st sv) = 
+  do argmap <- sidMaps args sts
      rettr <- streeCopy st 
-     retbs <- sidBinds [st] [rettr]
-     emit (SCall argbs sv retbs rettr)
+     retmap <- sidMap st rettr
+     emit (SCall argmap sv retmap)
      return rettr 
 
 
+-- copy the structure of a STree, a type copy indeed
 streeCopy :: STree -> SneslTrans STree
 streeCopy (IStr _) = do s <- emitEmpty; return (IStr s)
 streeCopy (BStr _) = do s <- emitEmpty; return (BStr s)
@@ -152,25 +136,26 @@ streeCopy (PStr t1 t2) =
        return (PStr s1 s2)
 
 
-sidBinds :: [STree] -> [STree] -> SneslTrans [(SId,SId)]
-sidBinds [] [] = return []
-sidBinds (a:as) (b:bs) = 
-  do ab <- sidBind a b
-     abs <- sidBinds as bs
+-- create argument/return passing mappings 
+sidMaps :: [STree] -> [STree] -> SneslTrans [(SId,SId)]
+sidMaps [] [] = return []
+sidMaps (a:as) (b:bs) = 
+  do ab <- sidMap a b
+     abs <- sidMaps as bs
      return $ ab ++ abs 
-sidBinds _ _ = fail "function argumennts passing error."
+sidMaps _ _ = fail "function argumennts passing error."
 
-sidBind :: STree -> STree -> SneslTrans [(SId,SId)]
-sidBind (IStr s1) (IStr s2) = return [(s1,s2)]
-sidBind (BStr s1) (BStr s2) = return [(s1,s2)]
-sidBind (SStr s1 s2) (SStr s3 s4) = 
-  do s13 <- sidBind s1 s3 
+sidMap :: STree -> STree -> SneslTrans [(SId,SId)]
+sidMap (IStr s1) (IStr s2) = return [(s1,s2)]
+sidMap (BStr s1) (BStr s2) = return [(s1,s2)]
+sidMap (SStr s1 s2) (SStr s3 s4) = 
+  do s13 <- sidMap s1 s3 
      return $ s13 ++ [(s2,s4)]
-sidBind (PStr s1 s2) (PStr s3 s4) = 
-  do s13 <- sidBind s1 s3 
-     s24 <- sidBind s2 s4 
+sidMap (PStr s1 s2) (PStr s3 s4) = 
+  do s13 <- sidMap s1 s3 
+     s24 <- sidMap s2 s4 
      return $ s13 ++ s24
-sidBind _ _ = fail "function argumennts passing error."
+sidMap _ _ = fail "function argumennts passing error."
 
 
 
@@ -218,7 +203,7 @@ translate (Call fname es) =
          Just (FStr f) -> f args
          Nothing -> 
              case lookup fname fe of 
-                Just ss@(SSym _ _ _) -> scall args ss 
+                Just ss@(SFun _ _ _) -> scall args ss 
                 Nothing -> fail $ "Compiling error: undefined function "++fname
 
 

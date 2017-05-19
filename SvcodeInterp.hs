@@ -12,7 +12,8 @@ import Data.List (transpose)
 
 type Svctx = [(SId, SvVal)]
 
-newtype Svcode a = Svcode {rSvcode :: Svctx -> SId -> (Int, Int) -> Either String (a,(Int,Int), Svctx, SId)}
+newtype Svcode a = Svcode {rSvcode :: Svctx -> SId -> (Int, Int) -> 
+                                  Either String (a,(Int,Int), Svctx, SId)}
 
 instance Monad Svcode where
     return a = Svcode $ \ ctx ctrl cost -> Right (a, cost, ctx, ctrl)
@@ -32,15 +33,9 @@ instance Applicative Svcode where
   tf <*> ta = tf >>= \f -> fmap f ta
 
 
-
---runSvcodeProgs :: [(Id,SSym)] -> Either String [(Id, (SvVal, (Int,Int)))]
---runSvcodeProgs ss =  map (\(i,s) -> (i, runSvcodeProg s)) ss
---    do let (ids, syms) = unzip ss 
---       vs <- mapM runSvcodeProg syms
-
-
-runSvcodeProg :: SSym -> Either String (SvVal, (Int,Int))
-runSvcodeProg (SSym [] st code) = 
+-- run the svcode translated from an SNESL expression
+runSvcodeExp :: SFun -> Either String (SvVal, (Int,Int))
+runSvcodeExp (SFun [] st code) = 
   case rSvcode (mapM_ sinstrInterp code) [] 0 (0,0) of 
     Right (_, (w,s), ctx, _) -> 
         case lookupTreeCtx st ctx of                      
@@ -66,27 +61,6 @@ lookupTreeCtx (SStr t1 t2) ctx = case lookupTreeCtx t1 ctx of
                    Just (SBVal v2) -> Just $ SSVal v1 v2  
                    Nothing -> Nothing
     Nothing -> Nothing
-
--- only for debug, to show all the SIds and their streams
---runSvcodeProg' :: SSym -> Either String SvVal
---runSvcodeProg' (SSym sdefs st) = 
---  case rSvcode (mapM sinstrInterp sdefs) [] 0 (0,0) of 
---    Right (_, _,ctx) -> 
---        case lookupSpeTree [10..20] ctx of                      
---            Nothing -> Left "Stream does not exist." 
---            Just vs -> Right vs
---    Left err -> Left err 
-
---lookupSpeTree :: [SId] -> Svctx -> Maybe SvVal
---lookupSpeTree [] ctx = Just (SIVal [])
---lookupSpeTree [t1] ctx = lookup t1 ctx  
---lookupSpeTree (t1:ts) ctx = case lookupSpeTree [t1] ctx of 
---    Just v1 -> case lookupSpeTree ts ctx of 
---                   Just v2 -> Just $ SPVal v1 v2  -- need a 'Type' to indicate 
---                                                  -- a SSVal or a SPVal
---                   Nothing -> Nothing
---    Nothing -> Nothing
-
 
 
 -- look up the stream value according to its SId 
@@ -228,15 +202,14 @@ instrInterp (WithCtrl c defs st) =
 
 
 
-instrInterp (SCall map1 code map2 st) = 
+instrInterp (SCall map1 code map2) = 
   do c <- makeCtx map1 
      oldCtx <- getCtx 
      setCtx c
      mapM_ sinstrInterp code
      retc <- makeCtx map2
      setCtx $ oldCtx ++ retc
-     ret <- lookupTree st 
-     returnInstrC [] ret 
+     returnInstrC [] (SBVal [True]) -- cost needs to fix 
 
 
 
