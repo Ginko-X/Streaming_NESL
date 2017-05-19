@@ -35,8 +35,8 @@ instance Applicative Svcode where
 
 -- run the svcode translated from an SNESL expression
 runSvcodeExp :: SFun -> Either String (SvVal, (Int,Int))
-runSvcodeExp (SFun [] st code) = 
-  case rSvcode (mapM_ sinstrInterp code) [] 0 (0,0) of 
+runSvcodeExp (SFun ctrl [] st code) = 
+  case rSvcode (mapM_ sinstrInterp code) [] ctrl (0,0) of 
     Right (_, (w,s), ctx, _) -> 
         case lookupTreeCtx st ctx of                      
             Nothing -> Left "Stream does not exist." 
@@ -202,12 +202,15 @@ instrInterp (WithCtrl c defs st) =
 
 
 
-instrInterp (SCall map1 code map2) = 
-  do c <- makeCtx map1 
-     oldCtx <- getCtx 
+instrInterp (SCall ctrl map1 code map2) = 
+  do gloCtrl <- getCtrl
+     oldCtx <- getCtx
+     c <- makeCtx $ (gloCtrl,ctrl):map1
+     setCtrl ctrl 
      setCtx c
      mapM_ sinstrInterp code
      retc <- makeCtx map2
+     setCtrl gloCtrl
      setCtx $ oldCtx ++ retc
      returnInstrC [] (SBVal [True]) -- cost needs to fix 
 

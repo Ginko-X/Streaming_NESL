@@ -1,6 +1,24 @@
 -- compute all the primes less than 'count'
-def primes =
- let count = 100; 
-    rs1 = {{{x+1 | a / (x+1) * (x+1) == a} : x in &a}: a in &count} ;
-    rs2 = {reducePlus(concat(z)): z in rs1} 
- in  concat({{x | x+1 == y}: x in &count, y in rs2})
+function prime(count:int) :{int} =
+    let rs1 = {{{x+1 | a / (x+1) * (x+1) == a} : x in &a}: a in &count} ;
+        rs2 = {reducePlus(concat(z)): z in rs1} 
+    in  concat({{x | x+1 == y}: x in &count, y in rs2})
+
+-- square sum
+function sqsum(n:int) :int = reducePlus({x*x : x in &n})
+
+
+-- square matrices multiplication
+function matmul(n:int) :{{int}} = 
+ let matA = {&n : _ in &n};
+     matB = {{x : _ in &n} : x in &n} -- transposition of matA
+ in {{ reducePlus({x*y : x in a, y in b}) : a in matA} : b in matB}
+
+
+-- An example for '_append' 
+-- a = {{{0, 1}}, {{3}}} 
+-- b = {{{4}},    {{5, 9}}}
+function append():{{{int}}} = 
+ let a = {{&2|T}|T} ++ {{{3|T}|T} |T} ; 
+    b = {{{4|T}|T}|T} ++ {{{5|T} ++ {9|T}|T}|T} 
+ in {x ++ y : x in a, y in b}

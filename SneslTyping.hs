@@ -21,18 +21,19 @@ typingDefs (d:defs) r =
 
 
 typingDef :: Def -> TyEnv -> SneslTyping TyEnv
+typingDef (FDef fname args rettp e) r =
+    do let argtps = snd $ unzip args 
+       tp <- typeInfer e (args ++ r)           
+       if tp == rettp
+       then return $ (fname, TFun argtps rettp) : r
+       else fail $ "Function type mismatch: " ++ fname ++ show tp ++ "," ++ show rettp
 
 --typingDef (EDef i e) r = 
 --    case typeInfer e r of 
 --        Right t -> Right ((i,t):r)
 --        Left err -> Left err 
 
-typingDef (FDef fname args rettp e) r =
-    do let argtps = snd $ unzip args 
-       tp <- typeInfer e (args ++ r)           
-       if tp == rettp
-       then return $ (fname, TFun argtps rettp) : r
-       else fail $ "Function type mismatch: " ++ fname
+
 
 
 

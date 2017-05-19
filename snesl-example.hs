@@ -51,7 +51,8 @@ runProg str exp =
        (sneslEnv,_,_) <- runSneslInterpEnv funcs
        svcodeEnv <- runCompilerEnv funcs  
        
-       -- compile and evaluate the expression 
+       --return (funcs)
+       --compile and evaluate the expression 
        e1 <- parseStringExp exp 
        sneslTy <- typingExp e1 funcTyEnv    
        (sneslRes,w,s) <- runSneslExp e1 sneslEnv

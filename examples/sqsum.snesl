@@ -1,9 +1,7 @@
 -- square sum
 function sqsum(n:int) :int = reducePlus({x*x : x in &n})
 
-function comp(x:int,y:int) :bool = x > y
-
-function index(x:int) : int = x+1
+function comp(x:int,y:int) :bool = sqsum(x) > y
 
 
 

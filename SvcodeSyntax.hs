@@ -7,7 +7,7 @@ type SId = Int  -- stream id
 data SExp = Ctrl 
            | EmptyCtrl 
            | WithCtrl SId [SInstr] STree
-           | SCall [(SId,SId)] [SInstr] [(SId,SId)] 
+           | SCall SId [(SId,SId)] [SInstr] [(SId,SId)] 
            | ToFlags SId
            | Usum SId
            | Const AVal
@@ -31,10 +31,8 @@ data SExp = Ctrl
            deriving Show
          
 data SInstr  = SDef SId SExp  -- deriving Show 
-             -- | SCall [SId] FId [SId]  -- call user-definied functions
 
-
-data SFun = SFun [STree] STree [SInstr]  -- deriving Show 
+data SFun = SFun SId [STree] STree [SInstr]  -- deriving Show 
 
 
 data OP = Uminus | Not  -- unary 
@@ -57,7 +55,7 @@ instance Show SInstr where
 
 
 instance Show SFun where
-  show (SFun args ret code) = "\nArguments: " ++ show args ++ "\n " ++ showseq "; \n" code ++ 
+  show (SFun ctrl args ret code) = "\nArguments: " ++ show args ++ "\n" ++ showseq "; \n" code ++ 
                              "\nReturn: " ++ show ret
 
 -- svcode values
@@ -93,7 +91,7 @@ instance Show STree where
   show (BStr b) = "BStr:" ++ show b 
   show (SStr t s) = "SStr <" ++ show t ++ "," ++ "BStr:" ++ show s ++ ">"
   show (PStr t1 t2) = "PSTr (" ++ show t1 ++ "," ++ show t2 ++ ")"
-  show (FStr _) = "<function STree>"
+  show (FStr _) = "<Built-in function STree>"
 
 
 type VEnv = [(Id, STree)]

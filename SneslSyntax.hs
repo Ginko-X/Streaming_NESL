@@ -80,7 +80,7 @@ data Type = TInt
           | TTup Type Type
           | TSeq Type
           | TFun [Type] Type 
-          | TVar ([Type] -> SneslTyping Type)
+          | TVar ([Type] -> SneslTyping Type)  -- type variable
           --deriving Eq 
 
 

@@ -25,10 +25,10 @@ compileDefs (d:ds) r =
 -- compile a user-defined function  
 compileDef :: Def -> FEnv -> Either String FEnv
 compileDef (FDef fname args rtp e) se0 = 
-    let (s0,arge) = argsSTree args 0
+    let (s0,arge) = argsSTree args 1
         (_, sts) = unzip arge
     in  case rSneslTrans (translate e) s0 (arge++compEnv0) se0 of 
-            Right (st,svs,_) -> Right [(fname,SFun sts st svs)]
+            Right (st,svs,_) -> Right [(fname,SFun 0 sts st svs)]
             Left err -> Left $ "Compiling error: " ++ fname ++ ":" ++ err
 
 
@@ -57,7 +57,7 @@ tp2st (TTup t1 t2) i = (PStr s1 s2, i'')
 compileExp :: Exp -> FEnv -> Either String SFun 
 compileExp e fe = 
     case rSneslTrans (translate e) 1 compEnv0 fe  of 
-        Right (st, sv, _) -> Right $ SFun [] st (SDef 0 Ctrl:sv)
+        Right (st, sv, _) -> Right $ SFun 0 [] st (SDef 0 Ctrl:sv)
         Left err -> Left err 
 
 
@@ -114,11 +114,11 @@ ctrlTrans m = SneslTrans $ \sid ve fe ->
 
 
 scall :: [STree] -> SFun -> SneslTrans STree
-scall args (SFun sts st sv) = 
+scall args (SFun c sts st sv) = 
   do argmap <- sidMaps args sts
      rettr <- streeCopy st 
      retmap <- sidMap st rettr
-     emit (SCall argmap sv retmap)
+     emit (SCall c argmap sv retmap)
      return rettr 
 
 
@@ -203,7 +203,7 @@ translate (Call fname es) =
          Just (FStr f) -> f args
          Nothing -> 
              case lookup fname fe of 
-                Just ss@(SFun _ _ _) -> scall args ss 
+                Just ss@(SFun _ _ _ _) -> scall args ss 
                 Nothing -> fail $ "Compiling error: undefined function "++fname
 
 

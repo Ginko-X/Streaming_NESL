@@ -1,7 +1,6 @@
--- matrices multiplication
-def matmul = 
- let n = 3;
-    matA = {&n : _ in &n};
-    matB = {{x : _ in &n} : x in &n} -- transposition of matA
-in {{ reducePlus({x*y : x in a, y in b}) : a in matA} : b in matB}
+-- square matrices multiplication
+function matmul(n:int) :{{int}} = 
+ let matA = {&n : _ in &n};
+     matB = {{x : _ in &n} : x in &n} -- transposition of matA
+ in {{ reducePlus({x*y : x in a, y in b}) : a in matA} : b in matB}
 
