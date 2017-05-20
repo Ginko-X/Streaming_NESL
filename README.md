@@ -2,8 +2,8 @@
 + Week 20 (15~21 May)
     + Modified the implementation of user-defined functions
         - syntax: `function f(x1:type1,...,xn:typen) : type = exp`
-        - examples: see "examples/prime.snesl"
-    + Implemented an interactive interperting mode (using Haskeline)
+        - examples: see `examples/prime.snesl`
+    + Implemented interactive interpretation (using Haskeline)
         - `runhaskell Snesl.hs`
         - Usage:          
             - `<expression>` evaluate an expression (also include type-check, compiling to SVCODE, and comparison of SNESL and SVCODE results)
