@@ -8,6 +8,91 @@ import SneslTyping
 import DataTrans
 
 import System.Environment
+import System.Console.Haskeline
+import Control.Monad.Trans (lift)
+
+type InterEnv = (SEnv, TyEnv, VEnv, FEnv)
+
+ie0 :: InterEnv
+ie0 = (se0,tyEnv0, compEnv0,[])
+
+
+main :: IO ()
+main = runInputT defaultSettings (loop ie0)
+   where
+       loop :: InterEnv -> InputT IO ()
+       loop env = do
+           minput <- getInputLine "> "
+           case minput of
+               Nothing -> return ()
+               Just "" -> loop env
+               Just input -> 
+                   case runParseTop input of
+                     Right TExit -> lift $ putStrLn "Bye!" 
+                     Right top -> lift (runTop top env) >>= loop
+                     Left err -> (lift $ putStrLn err) >> loop env
+
+
+
+runTop :: Top -> InterEnv -> IO InterEnv
+runTop (TDef def@(FDef fname _ _ _)) env =
+    case runDef def env of 
+      Right env' -> (putStrLn $ "Defined function: " ++ fname) >> return env'
+      Left err -> putStrLn err >> return env
+
+runTop (TExp e) env = 
+    case runExp e env of 
+      Left err -> do putStrLn err; return env
+      Right (v,t,(w,s),(w',s')) -> -- do putStrLn $ show v; return env
+          do putStrLn $ show v ++ " :: " ++ show t
+             putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
+                          ++ show s ++ "]"
+             putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
+                          ++ show s' ++ "]"
+             return env 
+
+
+runTop (TFile file) env =
+    do str <- readFile file
+       case runFile str env of 
+           Right env' -> (putStrLn $ "Loading file done.") >> return env'
+           Left err -> putStrLn err >> return env
+
+
+
+runExp :: Exp -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
+runExp e env@(e0,t0,v0,f0) = 
+    do sneslTy <- runTypingExp e t0   
+       (sneslRes,w,s) <- runSneslExp e e0 
+       svcode <- runCompileExp e v0 f0     
+       (svcodeRes,(w',s')) <- runSvcodeExp svcode   
+       let svcodeRes' = dataTransBack sneslTy svcodeRes
+           compRes = compareVal sneslRes svcodeRes'  
+       if compRes then return (sneslRes, sneslTy,(w,s),(w',s')) 
+           else fail "SNESL and SVCODE results are different." 
+
+  
+runDef ::  Def -> InterEnv -> Either String InterEnv
+runDef def env@(e0,t0,v0,f0) = 
+   do funcTyEnv <- runTypingDefs [def] t0
+      sneslEnv <- runSneslInterpDefs [def] e0 
+      svcodeEnv <- runCompileDefs [def] v0 f0 
+      return $ addInterEnv (sneslEnv,funcTyEnv,[],svcodeEnv) env 
+
+
+runFile :: String -> InterEnv -> Either String InterEnv
+runFile str env@(e0,t0,v0,f0) = 
+   do funcs <- runParseDefs str 
+      funcTyEnv <- runTypingDefs funcs t0
+      sneslEnv <- runSneslInterpDefs funcs e0
+      svcodeEnv <- runCompileDefs funcs v0 f0
+      return $ addInterEnv (sneslEnv,funcTyEnv,[],svcodeEnv) env 
+
+
+
+addInterEnv :: InterEnv -> InterEnv -> InterEnv
+addInterEnv (a1,a2,a3,a4) (b1,b2,b3,b4) = (a1++b1, a2++b2,a3++b3,a4++b4)
+
 
 {-
 main = do args <- getArgs
@@ -32,67 +117,34 @@ testExample' prog =
                      do putStrLn $ "Error: SNESL and SVCODE results are different!"
 
 
-
-
 -}
 
---runFile :: FilePath -> IO () 
-runFile file exp = 
-   do  funcs <- readFile file 
-       return $ runProg funcs exp
-
-      
-
---runProg :: String ->  Either String (Val,Int,Int) -- ((Val,Int,Int),Type,Bool,(Val,Int,Int)) 
-runProg str exp = 
-       -- compile function definitions from a file
-    do funcs <- parseString str  
-       funcTyEnv <- runTypingEnv funcs    
-       (sneslEnv,_,_) <- runSneslInterpEnv funcs
-       svcodeEnv <- runCompilerEnv funcs  
-       
-       --return (funcs)
-       --compile and evaluate the expression 
-       e1 <- parseStringExp exp 
-       sneslTy <- typingExp e1 funcTyEnv    
-       (sneslRes,w,s) <- runSneslExp e1 sneslEnv
-       svcode <- compileExp e1 svcodeEnv 
-       (svcodeRes,(w',s')) <- runSvcodeExp svcode
-       let svcodeRes' = dataTransBack sneslTy svcodeRes
-           compRes = compareVal sneslRes svcodeRes'  
-       return (sneslRes, compRes)
-
-
-
--- old API, only for expressions
-testExample :: String -> IO()
-testExample prog =  
-    case runExp prog of 
-        Left err -> putStrLn err 
-        Right ((v,w,s),tp, b, (sv,w',s')) 
-           -> if b then 
-                     do putStrLn $ show v ++ " :: " ++ show tp 
-                        putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
-                                      ++ show s ++ "]"
-                        putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
-                                      ++ show s' ++ "]"
-                   else 
-                     do putStrLn $ "Error: SNESL and SVCODE results are different!"
-                        putStrLn $ "SNESL: " ++ show v 
-                        putStrLn $ "SVCODE: " ++ show sv
-
-
-runExp p = 
-    do absProg <- parseStringExp p    
-       sneslTy <- typingExp absProg []   
-       (sneslRes,w,s) <- runSneslExp absProg []
-       svcode <- compileExp absProg []     
+--runString :: String -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
+runString str env@(e0,t0,v0,f0) = 
+    do e <- runParseExp str
+       sneslTy <- runTypingExp e t0   
+       (sneslRes,w,s) <- runSneslExp e e0 
+       svcode <- runCompileExp e v0 f0 
+       return svcode    
        (svcodeRes,(w',s')) <- runSvcodeExp svcode   
        let svcodeRes' = dataTransBack sneslTy svcodeRes
            compRes = compareVal sneslRes svcodeRes'  
-       return ((sneslRes,w,s),sneslTy, compRes, (svcodeRes', w',s'))
+       if compRes then return (sneslRes, sneslTy,(w,s),(w',s')) 
+           else fail "SNESL and SVCODE results are different." 
 
 
+-- old API, for interpreting an independent expression
+testExample :: String -> IO()
+testExample str = 
+    case runString str ie0 of 
+        Left err' -> putStrLn err' 
+        Right (v,tp,(w,s),(w',s')) ->
+               do putStrLn $ show v ++ " :: " ++ show tp 
+                  putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
+                                ++ show s ++ "]"
+                  putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
+                                ++ show s' ++ "]"
+  
 
 -- helper functions for comparing a SNESL value and a SVCODE value
           
@@ -110,10 +162,14 @@ compareVal _ _ = False
 
 
 -- some examples
-
+manyTest :: [String] -> Either String String
 manyTest ps = 
-  let res = map runExp ps
-  in  [ b | Right (_, _, b, _) <- res ]
+  case mapM runParseExp ps of 
+    Left err -> fail err 
+    Right es -> 
+        do res <- mapM (\e -> runExp e ie0) es
+           return "All correct!"
+
 
 
 progs = [prog1,prog2,prog3,prog4,prog5,prog6,prog7,prog8,prog9, prog10]

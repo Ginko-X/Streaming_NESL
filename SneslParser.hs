@@ -6,18 +6,47 @@ import SneslSyntax
 import Text.ParserCombinators.Parsec
 
 
-parseString :: String -> Either String [Def]
-parseString s = 
-  case parse (do es <- parseTop; eof; return es) "" s of 
+runParseDefs :: String -> Either String [Def]
+runParseDefs s = 
+  case parse (do whitespace; es <- parseDefs; eof; return es) "" s of 
     Right es -> Right es 
     Left _ -> Left "SNESL Parsing error"
 
 
-parseStringExp :: String -> Either String Exp 
-parseStringExp s = 
-  case parse (do e <- parseExp; eof; return e) "" s of 
+runParseExp :: String -> Either String Exp 
+runParseExp s = 
+  case parse (do whitespace; e <- parseExp; eof; return e) "" s of 
     Right e -> Right e
     Left _ -> Left "SNESL Parsing error"
+
+
+
+runParseTop :: String -> Either String Top
+runParseTop s = 
+  case parse (do whitespace; es <- parseTop; eof; return es) "" s of 
+    Right es -> Right es 
+    Left _ -> Left "SNESL Parsing error"
+
+           
+data Top = TExp Exp 
+         | TDef Def 
+         | TExit 
+         | TFile String
+
+
+parseTop :: Parser Top
+parseTop =  do d <- parseDef 
+               return $ TDef d 
+            <|>
+            do e <- parseExp 
+               return $ TExp e 
+            <|>
+            do symbol ":quit"
+               return TExit
+            <|> 
+            do symbol ":load"
+               file <- many1 anyChar
+               return $ TFile file
 
                                             
 
@@ -231,10 +260,9 @@ parseDef =  do symbol "function"
             --   return $ EDef var e  
 
 
-parseTop :: Parser [Def] 
-parseTop = do whitespace
-              parseDef  `sepBy` whitespace
-           
+parseDefs :: Parser [Def] 
+parseDefs = do whitespace
+               parseDef  `sepBy` whitespace
 
 
 

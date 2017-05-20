@@ -11,25 +11,29 @@ import Data.List (union)
 
 
 
-runCompilerEnv :: [Def] -> Either String [(Id,SFun)]
-runCompilerEnv defs = compileDefs defs []
-
-
-compileDefs :: [Def] -> FEnv  -> Either String FEnv
-compileDefs [] r = return r 
-compileDefs (d:ds) r = 
-    do r' <- compileDef d r
-       compileDefs ds (r'++r)  
+runCompileDefs :: [Def] -> VEnv -> FEnv  -> Either String FEnv
+runCompileDefs [] _ fe = return fe 
+runCompileDefs (d:ds) ve fe = runCompileDef d ve fe >>= runCompileDefs ds ve
 
 
 -- compile a user-defined function  
-compileDef :: Def -> FEnv -> Either String FEnv
-compileDef (FDef fname args rtp e) se0 = 
+runCompileDef :: Def -> VEnv -> FEnv -> Either String FEnv
+runCompileDef (FDef fname args rtp e) ve fe = 
     let (s0,arge) = argsSTree args 1
         (_, sts) = unzip arge
-    in  case rSneslTrans (translate e) s0 (arge++compEnv0) se0 of 
-            Right (st,svs,_) -> Right [(fname,SFun 0 sts st svs)]
+    in  case rSneslTrans (translate e) s0 (arge++ve) fe of 
+            Right (st,svs,_) -> Right $ (fname,SFun 0 sts st svs):fe
             Left err -> Left $ "Compiling error: " ++ fname ++ ":" ++ err
+
+
+-- compile an expression
+runCompileExp :: Exp -> VEnv -> FEnv -> Either String SFun 
+runCompileExp e ve fe = 
+    case rSneslTrans (translate e) 1 ve fe  of 
+        Right (st, sv, _) -> Right $ SFun 0 [] st (SDef 0 Ctrl:sv)
+        Left err -> Left err 
+
+
 
 
 -- transform the argument list to STrees
@@ -51,15 +55,6 @@ tp2st (TSeq t) i = (SStr s i, i')
 tp2st (TTup t1 t2) i = (PStr s1 s2, i'') 
     where (s1,i') = tp2st t1 i
           (s2, i'') = tp2st t2 i'
-
-
--- compile an expression
-compileExp :: Exp -> FEnv -> Either String SFun 
-compileExp e fe = 
-    case rSneslTrans (translate e) 1 compEnv0 fe  of 
-        Right (st, sv, _) -> Right $ SFun 0 [] st (SDef 0 Ctrl:sv)
-        Left err -> Left err 
-
 
 
 askEnv :: SneslTrans (VEnv,FEnv)

@@ -3,21 +3,17 @@ module SneslTyping where
 import SneslSyntax
 
 
-runTypingEnv :: [Def] -> Either String TyEnv
-runTypingEnv defs = 
-    let id0 = fst $ unzip tyEnv0
-    in case typingDefs defs tyEnv0 of 
-         Right t -> Right $ takeWhile (\(x,_) -> not $ x `elem` id0) t 
-         Left err -> Left $ "SNESL typing error: " ++ err 
-
+runTypingDefs :: [Def] -> TyEnv -> Either String TyEnv
+runTypingDefs defs env = 
+    case typingDefs defs env of 
+        Right t -> Right t 
+        Left err -> Left $ "SNESL typing error: " ++ err 
 
 
 
 typingDefs :: [Def] -> TyEnv -> SneslTyping TyEnv
 typingDefs [] r = return r  
-typingDefs (d:defs) r = 
-    do r' <- typingDef d r 
-       typingDefs defs r'
+typingDefs (d:defs) r = typingDef d r >>= typingDefs defs
 
 
 typingDef :: Def -> TyEnv -> SneslTyping TyEnv
@@ -26,7 +22,8 @@ typingDef (FDef fname args rettp e) r =
        tp <- typeInfer e (args ++ r)           
        if tp == rettp
        then return $ (fname, TFun argtps rettp) : r
-       else fail $ "Function type mismatch: " ++ fname ++ show tp ++ "," ++ show rettp
+       else fail $ "Function type mismatch: " ++ 
+                      fname ++ show tp ++ "," ++ show rettp
 
 --typingDef (EDef i e) r = 
 --    case typeInfer e r of 
@@ -35,11 +32,9 @@ typingDef (FDef fname args rettp e) r =
 
 
 
-
-
-typingExp :: Exp -> TyEnv -> Either String Type
-typingExp e env = 
-    case typeInfer e (env++tyEnv0) of 
+runTypingExp :: Exp -> TyEnv -> Either String Type
+runTypingExp e env = 
+    case typeInfer e env of 
         Right t -> Right t 
         Left err -> Left $ "Typing error: " ++ err 
 

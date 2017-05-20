@@ -44,12 +44,10 @@ runSvcodeExp (SFun ctrl [] st code) =
     Left err -> Left err  
 
 
+
 lookupTreeCtx :: STree -> Svctx -> Maybe SvVal
-
 lookupTreeCtx (IStr t1) ctx = lookup t1 ctx
-
 lookupTreeCtx (BStr t1) ctx = lookup t1 ctx  
-
 lookupTreeCtx (PStr t1 t2) ctx = case lookupTreeCtx t1 ctx of 
     Just v1 -> case lookupTreeCtx t2 ctx of 
                    Just v2 -> Just $ SPVal v1 v2  
@@ -73,11 +71,8 @@ lookupSid s = Svcode $ \c ctrl cost ->
 
 -- look up the streams of an STree 
 lookupTree :: STree -> Svcode SvVal
-
 lookupTree (IStr t) = lookupSid t 
-
 lookupTree (BStr t) = lookupSid t 
-
 lookupTree (SStr t0 t1) = 
   do s0 <- lookupTree t0
      (SBVal s1) <- lookupSid t1 
@@ -476,7 +471,6 @@ interMergeS bs = foldl interMerge b0 bs
  --Another implementation of interMergeS without using interMerge
 --interMergeS bs = concat $ map ((++[True]).(filter (==False))) bs'
 --  where bs' = map concat $ transpose $  map partFlags bs 
-
 
 
 -- 

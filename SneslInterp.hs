@@ -8,49 +8,43 @@ import Data.Char (chr, ord)
 import Data.List (transpose)
 
 
-runSneslInterpEnv :: [Def] -> Either String (Env, Int,Int)
-runSneslInterpEnv defs = 
-    let id0 = fst $ unzip r0
-    in case rSnesl (sneslInterp defs r0) of 
-          Right (r, nw, ns) -> Right (takeWhile (\(x,_) -> not $ x `elem` id0) r, nw, ns)
-          Left s -> Left ("SNESL interpretating error: " ++ s)
+runSneslInterpDefs :: [Def] -> SEnv -> Either String SEnv
+runSneslInterpDefs defs e0 = 
+    case rSnesl (sneslInterpDefs defs e0) of 
+        Right (r, _, _) -> Right r
+        Left s -> Left $ "SNESL interpretating error: " ++ s
 
 
 -- interpreter a list of Defs 
-sneslInterp :: [Def] -> Env -> Snesl Env
-sneslInterp [] r = return r
-sneslInterp (d:defs) r = 
-  do r' <- sneslDefInterp d r 
-     sneslInterp defs r'
+sneslInterpDefs :: [Def] -> SEnv -> Snesl SEnv
+sneslInterpDefs [] r = return r
+sneslInterpDefs (d:defs) r = sneslInterpDef d r >>= sneslInterpDefs defs
 
 
--- interpreter one Def independently
-sneslDefInterp :: Def -> Env -> Snesl Env
-
---sneslDefInterp (EDef i e) r = 
---  case rSnesl (eval e r) of
---    Right (v, nw, ns) ->  return ((i,v):r)
---    Left s -> fail $ "Snesl runtime error: "++s
-
-sneslDefInterp (FDef fname args _ e) r = 
+sneslInterpDef :: Def -> SEnv -> Snesl SEnv
+sneslInterpDef (FDef fname args _ e) r = 
   do let ids = fst $ unzip args 
          f vs = eval e (zip ids vs ++ r1)
          r1 = (fname, FVal f) : r
      return r1 
 
+--sneslInterpDef (EDef i e) r = 
+--  case rSnesl (eval e r) of
+--    Right (v, nw, ns) ->  return ((i,v):r)
+--    Left s -> fail $ "Snesl runtime error: "++s
 
 
-runSneslExp :: Exp -> Env -> Either String (Val,Int,Int)
+runSneslExp :: Exp -> SEnv -> Either String (Val,Int,Int)
 runSneslExp e env = 
-  case rSnesl (eval e (env++r0)) of
+  case rSnesl (eval e env) of
     Right (v, nw, ns) ->  Right (v,nw,ns) 
-    Left s -> Left $ "Snesl runtime error: "++s
+    Left s -> Left $ "SNESL interpretating error: " ++ s
 
 
 
-type Env = [(Id, Val)]
+type SEnv = [(Id, Val)]
 
-eval :: Exp -> Env -> Snesl Val
+eval :: Exp -> SEnv -> Snesl Val
 
 eval (Var s) r = 
   case lookup s r of
@@ -108,7 +102,7 @@ eval (RComp e0 e1) r =
 
 
 
-bind :: Pat -> Val -> Env
+bind :: Pat -> Val -> SEnv
 bind (PVar x) v = [(x,v)]
 bind PWild v = []
 bind (PTup p1 p2) (TVal v1 v2) = (bind p1 v1) ++ (bind p2 v2)
@@ -152,8 +146,8 @@ cleq [IVal n1, IVal n2] = BVal (n1 <= n2)
 
 
 
-r0 :: Env
-r0 = [("_plus", primop cplus),
+se0 :: SEnv
+se0 = [("_plus", primop cplus),
       ("_minus", primop cminus),
       ("_uminus", primop cuminus),
       ("_times", primop ctimes),
@@ -230,20 +224,4 @@ flags2len fs = zipWith (\x y -> x-y-1) tidx (-1:(init tidx))
 seglist :: [Int] -> [a] -> [[a]]
 seglist [] [] = []
 seglist (n:ns) l = take n l : seglist ns (drop n l)
-
-
-
-
---doDef :: FilePath -> IO ()
---doDef file = 
---   do input <- readFile file 
---      case parseString input of
---          Right e ->
---              case rSnesl (sneslInterp e r0) of
---                 Right (v, nw, ns) ->  
---                    do putStrLn (show v)             
---                       putStrLn ("[Work: " ++ show nw ++ ", step: " ++ show ns ++ "]")
---                 Left s -> putStrLn ("Runtime error: " ++ s)
---          Left err -> putStrLn ("Parsing error")
-
 
