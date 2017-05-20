@@ -2,7 +2,14 @@
 + Week 20 (15~21 May)
     + Modified the implementation of user-defined functions
         - syntax: `function f(x1:type1,...,xn:typen) : type = exp`
-        - examples: `runFile "examples/prime.snesl" "prime(10)"`
+        - examples: see "examples/prime.snesl"
+    + Implemented an interactive interperting mode (using Haskeline)
+        - `runhaskell Snesl.hs`
+        - Usage: 
+            - <expression>   Evaluate an expression (also include type-check, compiling to SVCODE, and the comparison of SNESL and SVCODE results)
+            - <function>     Syntax: `function f(x1:type1,...,xn:typen):type = exp`
+		    - :load <file>   Load functions from a file
+			- :quit          Exit
     
 + Week 19 (8~14 May)
     + Modified/optimized the structure of STree as discussed in [#12](https://github.com/Ginko-X/Streaming_NESL/issues/12). The new STree includes not only the SIds but also the type information (of the value it represents). This helps simplify the SNESL compiler code.

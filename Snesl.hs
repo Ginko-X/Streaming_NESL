@@ -19,18 +19,18 @@ ie0 = (se0,tyEnv0, compEnv0,[])
 
 main :: IO ()
 main = runInputT defaultSettings (loop ie0)
-   where
-       loop :: InterEnv -> InputT IO ()
-       loop env = do
-           minput <- getInputLine "> "
-           case minput of
-               Nothing -> return ()
-               Just "" -> loop env
-               Just input -> 
-                   case runParseTop input of
-                     Right TExit -> lift $ putStrLn "Bye!" 
-                     Right top -> lift (runTop top env) >>= loop
-                     Left err -> (lift $ putStrLn err) >> loop env
+     where
+         loop :: InterEnv -> InputT IO ()
+         loop env = do
+             minput <- getInputLine "> "
+             case minput of
+                 Nothing -> return ()
+                 Just "" -> loop env
+                 Just input -> 
+                     case runParseTop input of
+                       Right TExit -> return ()
+                       Right top -> lift (runTop top env) >>= loop
+                       Left err -> (lift $ putStrLn err) >> loop env
 
 
 
