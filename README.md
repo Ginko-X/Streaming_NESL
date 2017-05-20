@@ -6,10 +6,10 @@
     + Implemented an interactive interperting mode (using Haskeline)
         - `runhaskell Snesl.hs`
         - Usage:          
-            - `<expression>` evaluate an expression (also include type-check, compiling to SVCODE, and the comparison of SNESL and SVCODE results)
+            - `<expression>` evaluate an expression (also include type-check, compiling to SVCODE, and comparison of SNESL and SVCODE results)
             - `<function definition>` 
 		    - `:load <filename>`   load functions from a file
-			- `:quit`          exit
+			- `:quit`
 
 + Week 19 (8~14 May)
     + Modified/optimized the structure of STree as discussed in [#12](https://github.com/Ginko-X/Streaming_NESL/issues/12). The new STree includes not only the SIds but also the type information (of the value it represents). This helps simplify the SNESL compiler code.

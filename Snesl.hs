@@ -11,6 +11,16 @@ import System.Environment
 import System.Console.Haskeline
 import Control.Monad.Trans (lift)
 
+
+{- Usage: 
+   <expression>   Evaluate an expression (also include type-check, compiling
+                    to SVCODE, and comparison of SNESL and SVCODE results)
+   <function>     Syntax: function f(x1:type1,...,xn:typen):type = expression
+   :load <file>   Load functions from a file
+   :quit          
+-}
+
+
 type InterEnv = (SEnv, TyEnv, VEnv, FEnv)
 
 ie0 :: InterEnv
@@ -95,6 +105,7 @@ addInterEnv (a1,a2,a3,a4) (b1,b2,b3,b4) = (a1++b1, a2++b2,a3++b3,a4++b4)
 
 
 
+-- old API, for interpreting an independent expression
 --runString :: String -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
 runString str env@(e0,t0,v0,f0) = 
     do e <- runParseExp str
@@ -109,7 +120,6 @@ runString str env@(e0,t0,v0,f0) =
            else fail "SNESL and SVCODE results are different." 
 
 
--- old API, for interpreting an independent expression
 testExample :: String -> IO()
 testExample str = 
     case runString str ie0 of 
