@@ -94,30 +94,6 @@ addInterEnv :: InterEnv -> InterEnv -> InterEnv
 addInterEnv (a1,a2,a3,a4) (b1,b2,b3,b4) = (a1++b1, a2++b2,a3++b3,a4++b4)
 
 
-{-
-main = do args <- getArgs
-          case args of
-            [file] -> runFile file 
-            _ -> putStrLn "Input file error."
-
-
-
--- disregard the expression evaluation results
-testExample' :: String -> IO()
-testExample' prog =  
-    case runProg prog of 
-        Left err -> putStrLn err 
-        Right ((_,w,s),tp, b, (_,w',s')) 
-           -> if b then 
-                     do putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
-                                      ++ show s ++ "]"
-                        putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
-                                      ++ show s' ++ "]"
-                   else 
-                     do putStrLn $ "Error: SNESL and SVCODE results are different!"
-
-
--}
 
 --runString :: String -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
 runString str env@(e0,t0,v0,f0) = 
@@ -145,6 +121,30 @@ testExample str =
                   putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
                                 ++ show s' ++ "]"
   
+
+
+{-
+main = do args <- getArgs
+          case args of
+            [file] -> runFile file 
+            _ -> putStrLn "Input file error."
+
+-- disregard the expression evaluation results
+testExample' :: String -> IO()
+testExample' prog =  
+    case runProg prog of 
+        Left err -> putStrLn err 
+        Right ((_,w,s),tp, b, (_,w',s')) 
+           -> if b then 
+                     do putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
+                                      ++ show s ++ "]"
+                        putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
+                                      ++ show s' ++ "]"
+                   else 
+                     do putStrLn $ "Error: SNESL and SVCODE results are different!"
+
+
+-}
 
 -- helper functions for comparing a SNESL value and a SVCODE value
           
