@@ -23,7 +23,7 @@ typingDef (FDef fname args rettp e) r =
        if tp == rettp
        then return $ (fname, TFun argtps rettp) : r
        else fail $ "Function type mismatch: " ++ 
-                      fname ++ show tp ++ "," ++ show rettp
+                      fname ++ "," ++ show tp ++ "," ++ show rettp
 
 --typingDef (EDef i e) r = 
 --    case typeInfer e r of 

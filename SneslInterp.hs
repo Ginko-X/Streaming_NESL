@@ -90,7 +90,7 @@ eval (GComp e0 ps) r =
              vss <- par $ zipWith (\e b -> eval e (b++r)) 
                                   (replicate (length vs') e0) binds
              returnc (1,1) $ SVal vss)
-     else fail "Length mismatch in comprehension"
+     else fail "length mismatch in comprehension"
      
 
 --restricted comprehension

@@ -193,13 +193,12 @@ translate (Let pat e1 e2) =
 translate (Call fname es) = 
     do args <- mapM (\e -> translate e) es
        (ve,fe) <- askEnv
-       case lookup fname ve of 
-         Just (FStr f) -> f args
+       case lookup fname fe of -- check user-defined functions first
+         Just ss@(SFun _ _ _ _) -> scall args ss 
          Nothing -> 
-             case lookup fname fe of 
-                Just ss@(SFun _ _ _ _) -> scall args ss 
-                Nothing -> fail $ "Compiling error: undefined function "++fname
-
+           case lookup fname ve of  -- check built-in functions
+             Just (FStr f) -> f args
+             Nothing -> fail $ "Compiling error: undefined function "++fname                        
 
 translate (GComp e0 ps) = 
     do  trs <- mapM (\(_,e) -> translate e) ps        

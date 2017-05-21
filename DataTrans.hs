@@ -63,37 +63,43 @@ i2flags i = replicate i (False) ++ [True]
 
 ---- transformation from SVCODE to SNESL ------
 
-dataTransBack :: Type -> SvVal -> Val
-dataTransBack TInt (SIVal [i]) = AVal $ IVal i 
-dataTransBack TBool (SBVal [b]) = AVal $ BVal b
+dataTransBack :: Type -> SvVal -> Either String Val
+dataTransBack TInt (SIVal [i]) = return $ AVal $ IVal i 
+dataTransBack TBool (SBVal [b]) = return $ AVal $ BVal b
 
---dataTransBack (TSeq t) (SSVal vs [True]) = SVal [] -- special case for empty sequences
+dataTransBack (TSeq t) (SSVal vs fs) = 
+    do vs' <- seqTransBack t vs
+       return $ SVal vs'
 
-dataTransBack (TSeq t) (SSVal vs fs) = SVal vs'
-    where vs' = seqTransBack t vs
+dataTransBack (TTup t1 t2) (SPVal v1 v2) = 
+    do v1' <- dataTransBack t1 v1 
+       v2' <- dataTransBack t2 v2 
+       return $ TVal v1' v2'
 
-dataTransBack (TTup t1 t2) (SPVal v1 v2) = TVal v1' v2'
-    where v1' = dataTransBack t1 v1 
-          v2' = dataTransBack t2 v2 
+dataTransBack t v = Left $ "dataTransBack: type and value does not mismatch:" 
+                           ++ show t ++ "," ++ show v 
 
 
+seqTransBack :: Type -> SvVal -> Either String [Val]
 
-seqTransBack :: Type -> SvVal -> [Val]
-
-seqTransBack TInt (SIVal vs) = vs'
+seqTransBack TInt (SIVal vs) = Right vs'
     where vs' = [AVal (IVal i) | i <- vs]
 
-seqTransBack TBool (SBVal vs) = vs' 
+seqTransBack TBool (SBVal vs) = Right vs' 
     where vs' = [AVal (BVal b) | b <- vs] 
 
-seqTransBack (TSeq t) (SSVal vs fs) = vs'
-    where vss = seqTransBack t vs
-          vs' = flagSeg vss fs  
+seqTransBack (TSeq t) (SSVal vs fs) = 
+    do vss <- seqTransBack t vs
+       return $ flagSeg vss fs  
 
-seqTransBack (TTup t1 t2) (SPVal v1 v2) = vs'
-    where v1s = seqTransBack t1 v1 
-          v2s = seqTransBack t2 v2 
-          vs' = zipWith TVal v1s v2s
+seqTransBack (TTup t1 t2) (SPVal v1 v2) = 
+    do v1s <- seqTransBack t1 v1 
+       v2s <- seqTransBack t2 v2 
+       return $ zipWith TVal v1s v2s
+
+seqTransBack t v = Left $ "seqTransBack: type and value does not mismatch."
+                           ++ show t ++ "," ++ show v                            
+
 
 -- e.g. {1,2,3} <F,F,T,T,F,T> => {{1,2}, {}, {3}}
 flagSeg :: [Val] -> [Bool] -> [Val]

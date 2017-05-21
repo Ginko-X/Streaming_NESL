@@ -76,10 +76,10 @@ runExp e env@(e0,t0,v0,f0) =
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0 f0     
        (svcodeRes,(w',s')) <- runSvcodeExp svcode   
-       let svcodeRes' = dataTransBack sneslTy svcodeRes
-           compRes = compareVal sneslRes svcodeRes'  
-       if compRes then return (sneslRes, sneslTy,(w,s),(w',s')) 
-           else fail "SNESL and SVCODE results are different." 
+       svcodeRes' <- dataTransBack sneslTy svcodeRes
+       if compareVal sneslRes svcodeRes' 
+         then return (sneslRes, sneslTy,(w,s),(w',s')) 
+         else fail "SNESL and SVCODE results are different." 
 
   
 runDef ::  Def -> InterEnv -> Either String InterEnv
@@ -113,10 +113,10 @@ runString str env@(e0,t0,v0,f0) =
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0 f0 
        (svcodeRes,(w',s')) <- runSvcodeExp svcode   
-       let svcodeRes' = dataTransBack sneslTy svcodeRes
-           compRes = compareVal sneslRes svcodeRes'  
-       if compRes then return (sneslRes, sneslTy,(w,s),(w',s')) 
-           else fail "SNESL and SVCODE results are different." 
+       svcodeRes' <- dataTransBack sneslTy svcodeRes
+       if compareVal sneslRes svcodeRes'  
+         then return (sneslRes, sneslTy,(w,s),(w',s')) 
+         else fail "SNESL and SVCODE results are different." 
 
 
 testExample :: String -> IO()
