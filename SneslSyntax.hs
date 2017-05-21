@@ -101,7 +101,28 @@ instance Eq Type where
   (TFun tps1 t1) == (TFun tps2 t2) = (tps1 == tps2) .&. (t1 == t2)
   _ == _ = False 
 
-type SneslTyping a = Either String a 
+
+newtype SneslTyping a = SneslTyping {rTyping :: Either String a}
+
+instance Monad SneslTyping where
+  return a = SneslTyping $ Right a 
+
+  m >>= f = SneslTyping $ 
+      case rTyping m of 
+        Right a -> case rTyping (f a) of 
+                     Right a' -> Right a'
+                     Left err' -> Left err'
+        Left err -> Left err
+
+  fail err = SneslTyping $ Left err
+
+instance Functor SneslTyping where
+  fmap f t = t >>= return . f
+
+instance Applicative SneslTyping where
+  pure = return
+  tf <*> ta = tf >>= \f -> fmap f ta
+
 
 
 newtype Snesl a = Snesl {rSnesl :: Either String (a, Int,Int)}
@@ -115,7 +136,8 @@ instance Monad Snesl where
        Right (a,w,d) -> case rSnesl (f a) of 
                           Left err' -> Left err'
                           Right (a',w',d') -> Right (a',w+w',d+d')
-
+ 
+  fail err = Snesl $ Left err
 
 
 instance Functor Snesl where

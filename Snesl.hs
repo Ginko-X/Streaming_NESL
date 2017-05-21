@@ -16,8 +16,8 @@ import Control.Monad.Trans (lift)
    <expression>   Evaluate an expression (also include type-check, compiling
                     to SVCODE, and comparison of SNESL and SVCODE results)
    <function>     Syntax: function f(x1:type1,...,xn:typen):type = expression
-   :load <file>   Load functions from a file
-   :quit          
+   :l <file>   Load functions from a file
+   :q          
 -}
 
 
@@ -39,7 +39,7 @@ main = runInputT defaultSettings (loop ie0)
                  Just input -> 
                      case runParseTop input of
                        Right TExit -> return ()
-                       Right top -> lift (runTop top env) >>= loop
+                       Right top -> (lift $ runTop top env) >>= loop
                        Left err -> (lift $ putStrLn err) >> loop env
 
 
@@ -52,8 +52,8 @@ runTop (TDef def@(FDef fname _ _ _)) env =
 
 runTop (TExp e) env = 
     case runExp e env of 
-      Left err -> do putStrLn err; return env
-      Right (v,t,(w,s),(w',s')) -> -- do putStrLn $ show v; return env
+      Left err -> putStrLn err >> return env             
+      Right (v,t,(w,s),(w',s')) ->
           do putStrLn $ show v ++ " :: " ++ show t
              putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
                           ++ show s ++ "]"
@@ -112,7 +112,6 @@ runString str env@(e0,t0,v0,f0) =
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0 f0 
-       return svcode    
        (svcodeRes,(w',s')) <- runSvcodeExp svcode   
        let svcodeRes' = dataTransBack sneslTy svcodeRes
            compRes = compareVal sneslRes svcodeRes'  

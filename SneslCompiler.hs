@@ -84,7 +84,6 @@ bindM (PTup p1 p2) (PStr st1 st2) =
      b2 <- bindM p2 st2
      return $ b1 ++ b2 
 bindM p@(PTup _ _) t = fail $ "Bad bindings: " ++ show p 
-                                      ++ ", STree: " ++ show t
                                                  
 
 -- generate a stream definition

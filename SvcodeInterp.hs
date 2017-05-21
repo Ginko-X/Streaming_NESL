@@ -25,12 +25,15 @@ instance Monad Svcode where
                                Left err' -> Left err'      
             Left err -> Left err
 
+    fail err = Svcode $ \ _ _ _ -> Left err 
+
 instance Functor Svcode where
   fmap f t = t >>= return . f
 
 instance Applicative Svcode where
   pure = return
   tf <*> ta = tf >>= \f -> fmap f ta
+
 
 
 -- run the svcode translated from an SNESL expression

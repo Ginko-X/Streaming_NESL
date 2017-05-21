@@ -41,10 +41,10 @@ parseTop =  do d <- parseDef
             do e <- parseExp 
                return $ TExp e 
             <|>
-            do symbol ":quit"
+            do (try (symbol ":quit") <|> try (symbol ":q"))
                return TExit
             <|> 
-            do symbol ":load"
+            do (try (symbol ":load ") <|> try (symbol ":l "))
                file <- many1 anyChar
                return $ TFile file
 
@@ -60,7 +60,6 @@ whitespace = skipMany (do space
                           return ())
 
 -- consume the symbol from the beginning, including spaces at the end
--- if failed, go to the next parsing option
 symbol :: String ->  Parser ()
 symbol s = do try (string s)
               whitespace

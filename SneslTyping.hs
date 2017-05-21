@@ -5,9 +5,9 @@ import SneslSyntax
 
 runTypingDefs :: [Def] -> TyEnv -> Either String TyEnv
 runTypingDefs defs env = 
-    case typingDefs defs env of 
+    case rTyping $ typingDefs defs env of 
         Right t -> Right t 
-        Left err -> Left $ "SNESL typing error: " ++ err 
+        Left err -> Left $ "Type-check error: " ++ err 
 
 
 
@@ -34,9 +34,9 @@ typingDef (FDef fname args rettp e) r =
 
 runTypingExp :: Exp -> TyEnv -> Either String Type
 runTypingExp e env = 
-    case typeInfer e env of 
+    case  rTyping $ typeInfer e env of 
         Right t -> Right t 
-        Left err -> Left $ "Typing error: " ++ err 
+        Left err -> Left $ "Type-check error: " ++ err 
 
 
 
@@ -47,7 +47,7 @@ typeInfer :: Exp -> TyEnv  -> SneslTyping Type
 typeInfer (Var x) env = 
     case lookup x env of
         Just t -> return t
-        Nothing -> fail $ "Bad variable: " ++ x
+        Nothing -> fail $ "bad variable: " ++ x
 
 typeInfer (Lit a) env = 
     case a of 
@@ -67,7 +67,7 @@ typeInfer (Seq es) env =
        let tp0 = head tps
        if all (==tp0) tps 
        then return $ TSeq tp0
-       else fail "Sequence elements type error!"
+       else fail "sequence elements type error!"
 
 typeInfer (Let p e1 e2) env = 
     do tp <- typeInfer e1 env
@@ -76,10 +76,11 @@ typeInfer (Let p e1 e2) env =
 typeInfer (Call i es) env = 
     do ts <- mapM (\x -> typeInfer x env) es
        case lookup i env of 
-          Just (TFun atps rtp) -> if ts == atps then return rtp
-                                  else fail $ "Function type mismatch: " ++ i
+          Just (TFun atps rtp) -> 
+             if ts == atps then return rtp
+                else fail $ "function arguments type mismatch: " ++ i
           Just (TVar f) -> f ts  
-          Nothing -> fail $ "SNESL type error: undefined function " ++ i
+          Nothing -> fail $ "undefined function " ++ i
 
 
 typeInfer (GComp e0 ps) env = 

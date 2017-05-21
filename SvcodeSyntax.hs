@@ -112,6 +112,7 @@ instance Monad SneslTrans where
                     Left err' -> Left err'
                     Right (a', sv', sid'') -> Right (a', sv++sv', sid'')
 
+    fail err = SneslTrans $ \ _ _ _ -> Left err 
 
 
 instance Functor SneslTrans where
