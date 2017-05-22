@@ -101,11 +101,6 @@ runFile str env@(e0,t0,v0,f0) =
 
 
 
---addInterEnv :: InterEnv -> InterEnv -> InterEnv
---addInterEnv (a1,a2,a3,a4) (b1,b2,b3,b4) = (a1++b1, a2++b2,a3,a4++b4)
-
-
-
 -- old API, for interpreting an independent expression
 --testString :: String -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
 testString str env@(e0,t0,v0,f0) = 

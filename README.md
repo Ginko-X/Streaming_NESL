@@ -6,9 +6,9 @@
         - `runhaskell Snesl.hs`
         - Usage:          
             - `<expression>` evaluate an expression (also include type-check, compiling to SVCODE, and comparison of SNESL and SVCODE results)
-            - `<function definition>` 
-		    - `:l <filename>`   load functions from a file
-    			- `:q`    quit
+            - `<function definition>`
+            - `:l <filename>`   load functions from a file
+            - `:q`    quit
     + Implemented recursion
         - examples: see `examples/uc_scan.snesl`
     

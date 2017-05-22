@@ -405,18 +405,8 @@ segInterS bs = fst bs'
                           ((segInter x1 y1 x2 y2),(interMerge y1 y2))) b0 bs 
           b0 = ([], replicate n True)
           n = length.flags2len.snd $ head bs
-          
---priSegInter :: SvVal -> [Bool] -> SvVal -> [Bool] -> SvVal 
---priSegInter (SIVal v1) b1 (SIVal v2) b2 = SIVal $ interleaveList segs v1 v2
---    where b1' = flags2len b1
---          b2' = flags2len b2 
---          segs = zip b1' b2'
-
---priSegInter (SBVal v1) b1 (SBVal v2) b2 = SBVal $ interleaveList segs v1 v2
---    where b1' = flags2len b1
---          b2' = flags2len b2 
---          segs = zip b1' b2'
-
+ 
+ 
 -- a general version of priSegInter
 priSegInterS :: [(SvVal,[Bool])] -> SvVal
 priSegInterS [(s,b)] = s  

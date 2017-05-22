@@ -195,13 +195,6 @@ se0 = [("_plus", primop cplus),
       --                         else fail "part: flags mismatch")),
 
 
-      --("scanIncPlus", FVal (\ [SVal vs] -> 
-      --     let is = [i | AVal (IVal i) <- vs]
-      --         l = length is 
-      --         rs = tail $ scanl (+) 0 is  
-      --      in returnc (l, ceiling (log $ fromIntegral l)) 
-      --                $ SVal [AVal (IVal i) | i <-rs])),
-
       ("scanExPlus", FVal (\ [SVal vs] -> 
            let is = [i | AVal (IVal i) <- vs]
                l = length is 

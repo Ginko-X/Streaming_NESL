@@ -187,12 +187,13 @@ translate (Call fname es) =
        case lookup fname ve of  
          Just fd@(FDStr _ _) -> scall fname args fd  -- user-defined
          Just (FStr f) -> f args -- built-in 
-         Just _ -> fail $ "function and varibale names are identical: "++ fname        
-         Nothing -> fail $ "Compiling error: undefined function "++fname                      
+         Just _ -> fail $ "function and varibale names are identical: "++ fname
+         Nothing -> fail $ "Compiling error: undefined function "++fname
+
 
 translate (GComp e0 ps) = 
     do  trs <- mapM (\(_,e) -> translate e) ps        
-        newEnvs <- mapM (\((p,_), SStr st _) -> bindM p st) (zip ps trs)                        
+        newEnvs <- mapM (\((p,_), SStr st _) -> bindM p st) (zip ps trs)
 
         -- new ctrl
         let (SStr _  s0) = head trs 
@@ -214,16 +215,13 @@ translate (GComp e0 ps) =
         
 
 translate (RComp e0 e1) = 
-    do (BStr s1) <- translate e1
-       
+    do (BStr s1) <- translate e1       
        s2 <- emit (B2u s1)  
        newCtrl <- emit (Usum s2)
-
        let usingVars = getVars e0 
        usingVarsTrs <- mapM (\x -> translate (Var x)) usingVars 
        newVarTrs <- mapM (\x -> pack x s1) usingVarsTrs
-       binds <- mapM (\(v,tr) -> bindM (PVar v) tr) (zip usingVars newVarTrs)                     
-
+       binds <- mapM (\(v,tr) -> bindM (PVar v) tr) (zip usingVars newVarTrs)
        (s3,defs) <- ctrlTrans $ addVEnv (concat binds) $ translate e0 
        emit (WithCtrl newCtrl defs s3)
        return (SStr s3 s2) 

@@ -85,7 +85,7 @@ data STree = IStr SId
            | BStr SId
            | SStr STree SId
            | PStr STree STree
-           | FStr ([STree] -> SneslTrans STree)   -- built-in functions
+           | FStr ([STree] -> SneslTrans STree)   -- for built-in functions
            | FDStr [STree] STree   -- user-defined functions
 
 
