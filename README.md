@@ -10,7 +10,7 @@
             - `:l <filename>`   load functions from a file
             - `:q`    quit
     + Implemented recursion 
-        - examples: see `examples/uc_scan.snesl`
+        - examples: see [`examples/uc_scan.snesl`](https://github.com/Ginko-X/Streaming_NESL/blob/master/examples/uc_scan.snesl)
     + [See some explainations/notes about function(and recursion) implementation](https://github.com/Ginko-X/Streaming_NESL/issues/14)
     
 + Week 19 (8~14 May)
