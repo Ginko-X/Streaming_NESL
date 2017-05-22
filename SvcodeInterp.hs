@@ -4,28 +4,30 @@ module SvcodeInterp where
 
 import SvcodeSyntax
 import SneslSyntax
-import Control.Monad
+import SneslCompiler (sidMap)
 import DataTrans (i2flags)
 import SneslInterp (flags2len, seglist, wrapWork)
+
+import Control.Monad
 import Data.List (transpose)
 
 
 type Svctx = [(SId, SvVal)]
 
-newtype Svcode a = Svcode {rSvcode :: Svctx -> SId -> (Int, Int) -> 
+newtype Svcode a = Svcode {rSvcode :: Svctx -> SId -> (Int, Int) -> FEnv -> 
                                   Either String (a,(Int,Int), Svctx, SId)}
 
 instance Monad Svcode where
-    return a = Svcode $ \ ctx ctrl cost -> Right (a, cost, ctx, ctrl)
+    return a = Svcode $ \ ctx ctrl cost _ -> Right (a, cost, ctx, ctrl)
 
-    m >>= f = Svcode $ \ ctx ctrl cost -> 
-        case rSvcode m ctx ctrl cost of 
-            Right (a, cost', ctx',ctrl') -> case rSvcode (f a) ctx' ctrl' cost' of 
+    m >>= f = Svcode $ \ ctx ctrl cost fe -> 
+        case rSvcode m ctx ctrl cost fe of 
+            Right (a, cost', ctx',ctrl') -> case rSvcode (f a) ctx' ctrl' cost' fe of 
                                Right (b, cost'', c'',ctrl'') -> Right (b, cost'',c'',ctrl'')
                                Left err' -> Left err'      
             Left err -> Left err
 
-    fail err = Svcode $ \ _ _ _ -> Left err 
+    fail err = Svcode $ \ _ _ _ _ -> Left $ "SVCODE runtime error: " ++ err 
 
 instance Functor Svcode where
   fmap f t = t >>= return . f
@@ -37,12 +39,12 @@ instance Applicative Svcode where
 
 
 -- run the svcode translated from an SNESL expression
-runSvcodeExp :: SFun -> Either String (SvVal, (Int,Int))
-runSvcodeExp (SFun ctrl [] st code) = 
-  case rSvcode (mapM_ sinstrInterp code) [] ctrl (0,0) of 
+runSvcodeExp :: SFun -> FEnv -> Either String (SvVal, (Int,Int))
+runSvcodeExp (SFun ctrl [] st code) fe = 
+  case rSvcode (mapM_ sinstrInterp code) [] ctrl (0,0) fe of 
     Right (_, (w,s), ctx, _) -> 
         case lookupTreeCtx st ctx of                      
-            Nothing -> Left "Stream does not exist." 
+            Nothing -> Left "SVCODE runtime error: undefined streams." 
             Just vs -> Right (vs, (w,s))
     Left err -> Left err  
 
@@ -66,11 +68,17 @@ lookupTreeCtx (SStr t1 t2) ctx = case lookupTreeCtx t1 ctx of
 
 -- look up the stream value according to its SId 
 lookupSid :: SId -> Svcode SvVal 
-lookupSid s = Svcode $ \c ctrl cost -> 
+lookupSid s = Svcode $ \c ctrl cost _ -> 
     case lookup s c of 
-        Nothing -> Left $ "Referring to a stream that does not exist: " 
-                             ++ show s
+        Nothing -> Left $ "referring to an undefined stream: " ++ show s  
         Just v -> Right (v,cost,c,ctrl)  
+
+
+lookupFId :: FId -> Svcode SFun
+lookupFId fid = Svcode $ \c ctrl cost fe -> 
+    case lookup fid fe of 
+        Nothing -> Left $ "undefined function: "  ++ show fid
+        Just f -> Right (f,cost,c,ctrl)  
 
 -- look up the streams of an STree 
 lookupTree :: STree -> Svcode SvVal
@@ -89,7 +97,7 @@ lookupTree (PStr t0 t1) =
 
 
 addCtx :: SId -> SvVal -> Svcode SvVal
-addCtx s v = Svcode $ \c ctrl cost -> Right (v, cost, c ++ [(s,v)],ctrl)
+addCtx s v = Svcode $ \c ctrl cost _ -> Right (v, cost, c ++ [(s,v)],ctrl)
 
 
 streamLenM :: SvVal -> Svcode Int 
@@ -117,7 +125,7 @@ lookupOP key ps =
 
 -- explicitly add a cost
 returnsvc :: (Int,Int) -> a -> Svcode a
-returnsvc (w,s) a = Svcode $ \ c ctrl (w0,s0) -> Right (a, (w0+w,s0+s), c, ctrl)
+returnsvc (w,s) a = Svcode $ \ c ctrl (w0,s0) _ -> Right (a, (w0+w,s0+s), c, ctrl)
 
 
 -- compute the cost of an instruction when return the interpretation result
@@ -130,19 +138,19 @@ returnInstrC inVs outV  =
 
 
 getCtrl :: Svcode SId 
-getCtrl = Svcode $ \ ctx ctrl cost -> Right (ctrl, cost, ctx, ctrl)
+getCtrl = Svcode $ \ ctx ctrl cost _ -> Right (ctrl, cost, ctx, ctrl)
 
 
 setCtrl :: SId  -> Svcode ()
-setCtrl ctrl = Svcode $ \ ctx _ cost -> Right ((), cost, ctx, ctrl)
+setCtrl ctrl = Svcode $ \ ctx _ cost _ -> Right ((), cost, ctx, ctrl)
 
 
 getCtx :: Svcode Svctx
-getCtx = Svcode $ \ ctx ctrl cost -> Right (ctx, cost, ctx, ctrl)
+getCtx = Svcode $ \ ctx ctrl cost _ -> Right (ctx, cost, ctx, ctrl)
 
 
 setCtx :: Svctx -> Svcode ()
-setCtx c = Svcode $ \ _ ctrl cost -> Right ((), cost, c, ctrl)
+setCtx c = Svcode $ \ _ ctrl cost _ -> Right ((), cost, c, ctrl)
 
 
 -- set empty streams for the SIds in the STree 
@@ -161,7 +169,7 @@ emptyStream (SStr st1 st2) =
        return $ SSVal sv1 []
 
 
-makeCtx :: [(SId,SId)] -> Svcode [(SId,SvVal)]
+makeCtx :: [(SId,SId)] -> Svcode Svctx
 makeCtx [] = return []
 makeCtx ((s1,s2):ss) = 
   do v <- lookupSid s1
@@ -199,19 +207,19 @@ instrInterp (WithCtrl c defs st) =
           returnInstrC [ctrl] ret 
 
 
-
-instrInterp (SCall ctrl map1 code map2) = 
-  do gloCtrl <- getCtrl
+instrInterp (SCall fid map1 rettr) = 
+  do (SFun ctrl _ st code) <- lookupFId fid 
+     gloCtrl <- getCtrl
      oldCtx <- getCtx
      c <- makeCtx $ (gloCtrl,ctrl):map1
      setCtrl ctrl 
      setCtx c
      mapM_ sinstrInterp code
-     retc <- makeCtx map2
+     let map2 = sidMap st rettr
+     retc <- makeCtx map2     
      setCtrl gloCtrl
      setCtx $ oldCtx ++ retc
-     returnInstrC [] (SBVal [True]) -- cost needs to fix 
-
+     returnInstrC [] (SBVal []) -- this return value is meaningless
 
 
 -- MapConst: Map the const 'a' to the stream 'sid2'
@@ -371,6 +379,13 @@ instrInterp (SegMerge s1 s2) =
   do v1'@(SBVal v1) <- lookupSid s1
      v2'@(SBVal v2) <- lookupSid s2
      returnInstrC [v1',v2'] $ SBVal $ segMerge v1 v2 
+
+
+instrInterp (Check s1 s2) = 
+   do v1 <- lookupSid s1
+      v2 <- lookupSid s2
+      if v1 == v2 then returnInstrC [v1,v2] $ SBVal []
+        else fail $ "streams are not identical:" ++ show v1 ++ "," ++ show v2
 
 
 -- segment interleave

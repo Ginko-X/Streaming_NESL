@@ -7,7 +7,7 @@ type SId = Int  -- stream id
 data SExp = Ctrl 
            | EmptyCtrl 
            | WithCtrl SId [SInstr] STree
-           | SCall SId [(SId,SId)] [SInstr] [(SId,SId)] 
+           | SCall FId [(SId,SId)] STree
            | ToFlags SId
            | Usum SId
            | Const AVal
@@ -27,12 +27,13 @@ data SExp = Ctrl
            | SegMerge SId SId 
            | InterMergeS [SId]
            | SegInterS [(SId,SId)]
-           | PriSegInterS [(SId,SId)]            
+           | PriSegInterS [(SId,SId)] 
+           | Check SId SId           
            deriving Show
          
 data SInstr  = SDef SId SExp  -- deriving Show 
 
-data SFun = SFun SId [STree] STree [SInstr]  -- deriving Show 
+data SFun = SFun SId [STree] STree [SInstr] -- deriving Show 
 
 
 data OP = Uminus | Not  -- unary 
@@ -55,15 +56,16 @@ instance Show SInstr where
 
 
 instance Show SFun where
-  show (SFun ctrl args ret code) = "\nArguments: " ++ show args ++ "\n" ++ showseq "; \n" code ++ 
-                             "\nReturn: " ++ show ret
+  show (SFun ctrl args ret code) = "\nCtrl:" ++ show ctrl ++ "\nArguments: " 
+      ++ show args ++ "\n" ++ showseq "; \n" code ++ "\nReturn: " ++ show ret
+                             
 
 -- svcode values
 data SvVal = SIVal [Int]
            | SBVal [Bool] 
            | SSVal SvVal [Bool]  -- Sequence
            | SPVal SvVal SvVal -- Pair
-           --deriving Show
+           deriving Eq
 
 instance Show SvVal where
     show (SIVal is) = "Ints <" ++ showseq "," is ++ ">"
@@ -83,14 +85,15 @@ data STree = IStr SId
            | BStr SId
            | SStr STree SId
            | PStr STree STree
-           | FStr ([STree] -> SneslTrans STree)
+           | FStr ([STree] -> SneslTrans STree)   -- built-in functions
+           | FDStr [STree] STree   -- user-defined functions
 
 
 instance Show STree where
-  show (IStr i) = "IStr:"++ show i
-  show (BStr b) = "BStr:" ++ show b 
-  show (SStr t s) = "SStr <" ++ show t ++ "," ++ "BStr:" ++ show s ++ ">"
-  show (PStr t1 t2) = "PSTr (" ++ show t1 ++ "," ++ show t2 ++ ")"
+  show (IStr i) = "(IStr "++ show i ++ ")"
+  show (BStr b) = "(BStr " ++ show b ++ ")"
+  show (SStr t s) = "(SStr " ++ show t ++ "," ++ show s ++ ")"
+  show (PStr t1 t2) = "(PSTr " ++ show t1 ++ "," ++ show t2 ++ ")"
   show (FStr _) = "<Built-in function STree>"
 
 

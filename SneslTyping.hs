@@ -19,7 +19,7 @@ typingDefs (d:defs) r = typingDef d r >>= typingDefs defs
 typingDef :: Def -> TyEnv -> SneslTyping TyEnv
 typingDef (FDef fname args rettp e) r =
     do let argtps = snd $ unzip args 
-       tp <- typeInfer e (args ++ r)           
+       tp <- typeInfer e ((fname, TFun argtps rettp): args ++ r)           
        if tp == rettp
        then return $ (fname, TFun argtps rettp) : r
        else fail $ "Function type mismatch: " ++ 
@@ -76,10 +76,11 @@ typeInfer (Let p e1 e2) env =
 typeInfer (Call i es) env = 
     do ts <- mapM (\x -> typeInfer x env) es
        case lookup i env of 
-          Just (TFun atps rtp) -> 
+          Just (TFun atps rtp) ->  -- user-defined functions
              if ts == atps then return rtp
                 else fail $ "function arguments type mismatch: " ++ i
-          Just (TVar f) -> f ts  
+          Just (TVar f) -> f ts  -- built-in functions
+          Just _ -> fail $ "function and variable names are identical: " ++ i
           Nothing -> fail $ "undefined function " ++ i
 
 
@@ -124,14 +125,11 @@ tyEnv0 = [("not", TFun [TBool] TBool ),
           ("_leq", TFun [TInt,TInt] TBool ),
 
           ("index", TFun [TInt] (TSeq TInt)),              
-
-          ("scanExPlus", TFun [TSeq TInt] (TSeq TInt)),
-         
+          ("scanExPlus", TFun [TSeq TInt] (TSeq TInt)),         
           ("reducePlus", TFun [TSeq TInt] TInt ),
-
           ("_append", TVar (\t -> funcTypeChkAppend t)),
-
-          ("concat",TVar (\t  -> funcTypeChkConcat t))]
+          ("concat",TVar (\t  -> funcTypeChkConcat t)),
+          ("the",TVar (\t -> funcTypeChkThe t)) ]
 
 
 funcTypeChkConcat t = 
@@ -146,3 +144,8 @@ funcTypeChkAppend t =
                               else fail "Function type mismatch: _append"
        _ -> fail "Function type or arity mismatch: _append"
 
+
+funcTypeChkThe t = 
+    case t of 
+       [TSeq t'] -> return t'
+       _ -> fail "Function type or arity mismatch: the"

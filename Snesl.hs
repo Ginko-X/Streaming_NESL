@@ -75,19 +75,20 @@ runExp e env@(e0,t0,v0,f0) =
     do sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0 f0     
-       (svcodeRes,(w',s')) <- runSvcodeExp svcode   
+       (svcodeRes,(w',s')) <- runSvcodeExp svcode f0  
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes' 
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
-         else fail "SNESL and SVCODE results are different." 
+         else Left $ "SNESL and SVCODE results are different:" ++ show sneslRes 
+                     ++ ", " ++ show svcodeRes' 
 
   
 runDef ::  Def -> InterEnv -> Either String InterEnv
 runDef def env@(e0,t0,v0,f0) = 
    do funcTyEnv <- runTypingDefs [def] t0
       sneslEnv <- runSneslInterpDefs [def] e0 
-      svcodeEnv <- runCompileDefs [def] v0 f0 
-      return $ addInterEnv (sneslEnv,funcTyEnv,[],svcodeEnv) env 
+      (ve,fe) <- runCompileDefs [def] (v0,f0) 
+      return (sneslEnv,funcTyEnv,ve,fe)
 
 
 runFile :: String -> InterEnv -> Either String InterEnv
@@ -95,40 +96,42 @@ runFile str env@(e0,t0,v0,f0) =
    do funcs <- runParseDefs str 
       funcTyEnv <- runTypingDefs funcs t0
       sneslEnv <- runSneslInterpDefs funcs e0
-      svcodeEnv <- runCompileDefs funcs v0 f0
-      return $ addInterEnv (sneslEnv,funcTyEnv,[],svcodeEnv) env 
+      (ve,fe) <- runCompileDefs funcs (v0,f0)
+      return (sneslEnv,funcTyEnv,ve,fe)
 
 
 
-addInterEnv :: InterEnv -> InterEnv -> InterEnv
-addInterEnv (a1,a2,a3,a4) (b1,b2,b3,b4) = (a1++b1, a2++b2,a3++b3,a4++b4)
+--addInterEnv :: InterEnv -> InterEnv -> InterEnv
+--addInterEnv (a1,a2,a3,a4) (b1,b2,b3,b4) = (a1++b1, a2++b2,a3,a4++b4)
 
 
 
 -- old API, for interpreting an independent expression
---runString :: String -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
-runString str env@(e0,t0,v0,f0) = 
+--testString :: String -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
+testString str env@(e0,t0,v0,f0) = 
     do e <- runParseExp str
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0 f0 
-       (svcodeRes,(w',s')) <- runSvcodeExp svcode   
+       --return svcode
+       (svcodeRes,(w',s')) <- runSvcodeExp svcode f0
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes'  
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
          else fail "SNESL and SVCODE results are different." 
 
 
-testExample :: String -> IO()
-testExample str = 
-    case runString str ie0 of 
-        Left err' -> putStrLn err' 
-        Right (v,tp,(w,s),(w',s')) ->
-               do putStrLn $ show v ++ " :: " ++ show tp 
-                  putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
-                                ++ show s ++ "]"
-                  putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
-                                ++ show s' ++ "]"
+
+--testExample :: String -> IO()
+--testExample str = 
+--    case testString str ie0 of 
+--        Left err' -> putStrLn err' 
+--        Right (v,tp,(w,s),(w',s')) ->
+--               do putStrLn $ show v ++ " :: " ++ show tp 
+--                  putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
+--                                ++ show s ++ "]"
+--                  putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
+--                                ++ show s' ++ "]"
   
 
 

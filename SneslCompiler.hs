@@ -11,18 +11,20 @@ import Data.List (union)
 
 
 
-runCompileDefs :: [Def] -> VEnv -> FEnv  -> Either String FEnv
-runCompileDefs [] _ fe = return fe 
-runCompileDefs (d:ds) ve fe = runCompileDef d ve fe >>= runCompileDefs ds ve
+runCompileDefs :: [Def] -> (VEnv, FEnv)  -> Either String (VEnv,FEnv)
+runCompileDefs [] e = return e 
+runCompileDefs (d:ds) e = runCompileDef d e >>= runCompileDefs ds 
 
 
 -- compile a user-defined function  
-runCompileDef :: Def -> VEnv -> FEnv -> Either String FEnv
-runCompileDef (FDef fname args rtp e) ve fe = 
+runCompileDef :: Def -> (VEnv, FEnv) -> Either String (VEnv,FEnv)
+runCompileDef (FDef fname args rtp e) (ve,fe) = 
     let (s0,arge) = argsSTree args 1
         (_, sts) = unzip arge
-    in  case rSneslTrans (translate e) s0 (arge++ve) fe of 
-            Right (st,svs,_) -> Right $ (fname,SFun 0 sts st svs):fe
+        (st,s1) = tp2st rtp s0 
+        newVe = (fname, FDStr sts st):ve
+    in  case rSneslTrans (translate e) s1 (arge++newVe) fe of 
+            Right (st',svs,_) -> Right $ (newVe,(fname,SFun 0 sts st' svs):fe)
             Left err -> Left $ "Compiling error: " ++ fname ++ ":" ++ err
 
 
@@ -107,12 +109,11 @@ ctrlTrans m = SneslTrans $ \sid ve fe ->
       Left err -> Left err 
 
 
-scall :: [STree] -> SFun -> SneslTrans STree
-scall args (SFun c sts st sv) = 
-  do argmap <- sidMaps args sts
+scall :: FId -> [STree] -> STree -> SneslTrans STree
+scall f args (FDStr sts st) = 
+  do let argmap = sidMaps args sts
      rettr <- streeCopy st 
-     retmap <- sidMap st rettr
-     emit (SCall c argmap sv retmap)
+     emit (SCall f argmap rettr)
      return rettr 
 
 
@@ -131,25 +132,15 @@ streeCopy (PStr t1 t2) =
 
 
 -- create argument/return passing mappings 
-sidMaps :: [STree] -> [STree] -> SneslTrans [(SId,SId)]
-sidMaps [] [] = return []
-sidMaps (a:as) (b:bs) = 
-  do ab <- sidMap a b
-     abs <- sidMaps as bs
-     return $ ab ++ abs 
-sidMaps _ _ = fail "function argumennts passing error."
+sidMaps :: [STree] -> [STree] -> [(SId,SId)]
+sidMaps [] [] = []
+sidMaps (a:as) (b:bs) = (sidMap a b) ++ (sidMaps as bs)
 
-sidMap :: STree -> STree -> SneslTrans [(SId,SId)]
-sidMap (IStr s1) (IStr s2) = return [(s1,s2)]
-sidMap (BStr s1) (BStr s2) = return [(s1,s2)]
-sidMap (SStr s1 s2) (SStr s3 s4) = 
-  do s13 <- sidMap s1 s3 
-     return $ s13 ++ [(s2,s4)]
-sidMap (PStr s1 s2) (PStr s3 s4) = 
-  do s13 <- sidMap s1 s3 
-     s24 <- sidMap s2 s4 
-     return $ s13 ++ s24
-sidMap _ _ = fail "function argumennts passing error."
+sidMap :: STree -> STree -> [(SId,SId)]
+sidMap (IStr s1) (IStr s2) = [(s1,s2)]
+sidMap (BStr s1) (BStr s2) = [(s1,s2)]
+sidMap (SStr s1 s2) (SStr s3 s4) = (sidMap s1 s3) ++ [(s2,s4)]  
+sidMap (PStr s1 s2) (PStr s3 s4) = (sidMap s1 s3) ++ (sidMap s2 s4)
 
 
 
@@ -192,13 +183,12 @@ translate (Let pat e1 e2) =
 
 translate (Call fname es) = 
     do args <- mapM (\e -> translate e) es
-       (ve,fe) <- askEnv
-       case lookup fname fe of -- check user-defined functions first
-         Just ss@(SFun _ _ _ _) -> scall args ss 
-         Nothing -> 
-           case lookup fname ve of  -- check built-in functions
-             Just (FStr f) -> f args
-             Nothing -> fail $ "Compiling error: undefined function "++fname                        
+       (ve,_) <- askEnv
+       case lookup fname ve of  
+         Just fd@(FDStr _ _) -> scall fname args fd  -- user-defined
+         Just (FStr f) -> f args -- built-in 
+         Just _ -> fail $ "function and varibale names are identical: "++ fname        
+         Nothing -> fail $ "Compiling error: undefined function "++fname                      
 
 translate (GComp e0 ps) = 
     do  trs <- mapM (\(_,e) -> translate e) ps        
@@ -232,8 +222,7 @@ translate (RComp e0 e1) =
        let usingVars = getVars e0 
        usingVarsTrs <- mapM (\x -> translate (Var x)) usingVars 
        newVarTrs <- mapM (\x -> pack x s1) usingVarsTrs
-       binds <- mapM (\(v,tr) -> bindM (PVar v) tr) 
-                     (zip usingVars newVarTrs)
+       binds <- mapM (\(v,tr) -> bindM (PVar v) tr) (zip usingVars newVarTrs)                     
 
        (s3,defs) <- ctrlTrans $ addVEnv (concat binds) $ translate e0 
        emit (WithCtrl newCtrl defs s3)
@@ -358,8 +347,16 @@ compEnv0 = [
              ("_append", FStr (\[t1'@(SStr t1 s1), t2'@(SStr t2 s2)] -> 
                         mergeSeq [t1',t2'])), 
 
-             ("concat", FStr (\[SStr (SStr t s1) s2] -> concatSeq t s1 s2))]
+             ("concat", FStr (\[SStr (SStr t s1) s2] -> concatSeq t s1 s2)),
 
+             ("the", FStr(\[t@(SStr t1 s1)] -> the(t)) ) ]
+
+the :: STree -> SneslTrans STree
+the (SStr t f) = 
+    do s1 <- emit (Const (IVal 1))
+       s2 <- emit (ToFlags s1)
+       s3 <- emit (Check f s2)
+       return t 
 
 
 iotas :: SId -> SneslTrans STree

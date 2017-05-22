@@ -74,7 +74,8 @@ eval (Call i es) r =
   do vs <- mapM (\e -> eval e r) es
      case lookup i r of
        Just (FVal f) -> f vs
-       Nothing -> error ("bad function: " ++ i)
+       Just _ -> fail $ "function and variable names are identical: " ++ i
+       Nothing -> fail $ "bad function: " ++ i
 
 -- general comprehension
 eval (GComp e0 ps) r =
@@ -169,14 +170,15 @@ se0 = [("_plus", primop cplus),
                            let v = concat [v | SVal v <- vs]
                            in returnc (wrapWork $ length v,1) (SVal v))),
 
+       -- singleton seq
+      ("the", FVal (\[SVal x ] -> 
+          if (length x == 1) 
+          then returnc (0,1) $ head x
+          else fail "the: length mismatch")),
+
       ---- sequence empty check, zero work 
       --("empty", FVal(\[SVal vs] -> returnc (0,1) $ AVal (BVal (null vs)))),
-
-      ---- singleton seq
-      --("the", FVal (\[SVal x ] -> 
-      --    if (length x == 1) 
-      --    then returnc (0,1) $ head x
-      --    else fail "the: length mismatch")),
+     
 
       -- -- zip for two seqs, zero work
       --("zip", FVal (\[SVal v1, SVal v2] -> 
