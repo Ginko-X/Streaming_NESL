@@ -1,0 +1,57 @@
+--- helper functions  ---
+
+-- length of a sequence of int
+function length(v:{int}) : int =
+   reducePlus({1 : _ in v})
+
+-- length of a sequence of sequence
+function lengths(v:{{int}}) : int = 
+   reducePlus({1 : _ in v})
+
+
+-- take the first `n` integers of `v`
+function take(n:int, v:{int}) : {int} =
+    let l = length(v)
+    in concat ({{x|i<n} : i in &l, x in v })
+
+function drop(n:int, v:{int}) :{int} =
+    let l = length(v)
+    in concat({{x|i>=n} : i in &l, x in v})
+
+-- get the `n`th integer of `v`
+function get(v:{int}, n:int):int =
+    the(concat({{x| i==n } : x in v, i in &length(v)}))
+
+-- get the `n`th sequence of `v`
+function gets(v:{{int}}, n :int) :{int} =
+    the(concat({{x | i ==n } : x in v, i in &lengths(v)}))
+
+
+function odd(n:int): bool = n / 2 *2 < n
+
+
+--- recursive functions  ---- 
+
+-- recursive partition  -- 
+function partRecur(v:{int},lens:{int}) : {{int}} =
+    concat({
+       concat({ let l1 = get(lens,0);
+                    (v1,v2) = (take(l1,v), drop(l1,v))
+                 in {v1} ++ partRecur(v2,drop(1,lens))
+	      | not(length(v) == 0) })
+          | length(v) == reducePlus(lens) })  
+
+
+-- unite-and-conquer scan 
+function uc_scan(v:{int}) : {int} =
+   let l = length(v)
+   in the({&0 | l == 0} ++ {{0} | l == 1} ++
+          {the( { let vp = partRecur(v,{l-1,1});
+	              vs = uc_scan(gets(vp,0))
+	  	  in (vs ++ {get(vs,length(vs)-1) + get(v,l-2)})
+	        | odd(l)} ++
+	        { let vp = partRecur(v, {2: _ in &(l/2)});
+		      ps = {get(p,0)+ get(p,1) : p in vp}
+		   in concat({{s, s + get(p,0)} : s in uc_scan(ps), p in vp})
+		| not(odd(l))})
+	   | l >1 } )

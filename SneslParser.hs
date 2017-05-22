@@ -190,10 +190,10 @@ parseSum = parseTerm `chainl1` (do o <- addop
 
 parsePrefix :: Parser Exp
 parsePrefix =
-  do symbol "#"
-     e <- parsePrefix
-     return (Call "_length" [e])
-  <|>
+  --do symbol "#"
+  --   e <- parsePrefix
+  --   return (Call "_length" [e])
+  -- <|>
   do symbol "&"
      e <- parsePrefix
      return (Call "index" [e])
