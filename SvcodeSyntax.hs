@@ -56,7 +56,7 @@ instance Show SInstr where
 
 
 instance Show SFun where
-  show (SFun ctrl args ret code) = "\nCtrl:" ++ show ctrl ++ "\nArguments: " 
+  show (SFun ctrl args ret code) = "\nCtrl SId:" ++ show ctrl ++ "\nArguments: " 
       ++ show args ++ "\n" ++ showseq "; \n" code ++ "\nReturn: " ++ show ret
                              
 
@@ -92,9 +92,10 @@ data STree = IStr SId
 instance Show STree where
   show (IStr i) = "(IStr "++ show i ++ ")"
   show (BStr b) = "(BStr " ++ show b ++ ")"
-  show (SStr t s) = "(SStr " ++ show t ++ "," ++ show s ++ ")"
-  show (PStr t1 t2) = "(PSTr " ++ show t1 ++ "," ++ show t2 ++ ")"
+  show (SStr t s) = "(SStr " ++ show t ++ ", " ++ show s ++ ")"
+  show (PStr t1 t2) = "(PSTr " ++ show t1 ++ ", " ++ show t2 ++ ")"
   show (FStr _) = "<Built-in function STree>"
+  show (FDStr sts st) = "(FDStr "++ show sts ++ ", " ++ show st ++ ")"
 
 
 type VEnv = [(Id, STree)]

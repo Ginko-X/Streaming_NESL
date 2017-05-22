@@ -9,8 +9,9 @@
             - `<function definition>`
             - `:l <filename>`   load functions from a file
             - `:q`    quit
-    + Implemented recursion
+    + Implemented recursion 
         - examples: see `examples/uc_scan.snesl`
+    + [See some explainations/notes about function(and recursion) implementation](https://github.com/Ginko-X/Streaming_NESL/issues/14)
     
 + Week 19 (8~14 May)
     + Modified/optimized the structure of STree as discussed in [#12](https://github.com/Ginko-X/Streaming_NESL/issues/12). The new STree includes not only the SIds but also the type information (of the value it represents). This helps simplify the SNESL compiler code.

@@ -108,7 +108,6 @@ testString str env@(e0,t0,v0,f0) =
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0 f0 
-       --return svcode
        (svcodeRes,(w',s')) <- runSvcodeExp svcode f0
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes'  
@@ -117,16 +116,16 @@ testString str env@(e0,t0,v0,f0) =
 
 
 
---testExample :: String -> IO()
---testExample str = 
---    case testString str ie0 of 
---        Left err' -> putStrLn err' 
---        Right (v,tp,(w,s),(w',s')) ->
---               do putStrLn $ show v ++ " :: " ++ show tp 
---                  putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
---                                ++ show s ++ "]"
---                  putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
---                                ++ show s' ++ "]"
+testExample :: String -> IO()
+testExample str = 
+    case testString str ie0 of 
+        Left err' -> putStrLn err' 
+        Right (v,tp,(w,s),(w',s')) ->
+               do putStrLn $ show v ++ " :: " ++ show tp 
+                  putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
+                                ++ show s ++ "]"
+                  putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
+                                ++ show s' ++ "]"
   
 
 
