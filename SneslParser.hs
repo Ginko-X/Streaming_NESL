@@ -10,14 +10,14 @@ runParseDefs :: String -> Either String [Def]
 runParseDefs s = 
   case parse (do whitespace; es <- parseDefs; eof; return es) "" s of 
     Right es -> Right es 
-    Left _ -> Left "SNESL Parsing error"
+    Left err -> Left "Parsing error: " ++ show err 
 
 
 runParseExp :: String -> Either String Exp 
 runParseExp s = 
   case parse (do whitespace; e <- parseExp; eof; return e) "" s of 
     Right e -> Right e
-    Left _ -> Left "SNESL Parsing error"
+    Left err -> Left "Parsing error: " ++ show err 
 
 
 
@@ -25,7 +25,7 @@ runParseTop :: String -> Either String Top
 runParseTop s = 
   case parse (do whitespace; es <- parseTop; eof; return es) "" s of 
     Right es -> Right es 
-    Left _ -> Left "SNESL Parsing error"
+    Left err -> Left "Parsing error: " ++ show err 
 
            
 data Top = TExp Exp 
