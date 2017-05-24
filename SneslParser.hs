@@ -10,14 +10,14 @@ runParseDefs :: String -> Either String [Def]
 runParseDefs s = 
   case parse (do whitespace; es <- parseDefs; eof; return es) "" s of 
     Right es -> Right es 
-    Left err -> Left "Parsing error: " ++ show err 
+    Left err -> Left $ "Parsing error: " ++ show err 
 
 
 runParseExp :: String -> Either String Exp 
 runParseExp s = 
   case parse (do whitespace; e <- parseExp; eof; return e) "" s of 
     Right e -> Right e
-    Left err -> Left "Parsing error: " ++ show err 
+    Left err -> Left $ "Parsing error: " ++ show err 
 
 
 
@@ -25,7 +25,7 @@ runParseTop :: String -> Either String Top
 runParseTop s = 
   case parse (do whitespace; es <- parseTop; eof; return es) "" s of 
     Right es -> Right es 
-    Left err -> Left "Parsing error: " ++ show err 
+    Left err -> Left $ "Parsing error: " ++ show err 
 
            
 data Top = TExp Exp 
@@ -92,12 +92,18 @@ parseAtom =  do s <- many1 digit
                 return $ Lit $ IVal (read s)
              <|>  
              do symbol "T" 
-                whitespace
                 return $ Lit $ BVal True
              <|> 
              do symbol "F"
-                whitespace
                 return $ Lit $ BVal False           
+             <|> 
+             do symbol "if"
+                e0 <- parseExp
+                symbol "then"
+                e1 <- parseExp
+                symbol "else"
+                e2 <- parseExp
+                return $ Call "the" [Call "_append" [RComp e1 e0, RComp e2 (Call "not" [e0])]]
              <|> 
              do e <- parseVar
                 ((do 
