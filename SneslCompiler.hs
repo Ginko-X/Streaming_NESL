@@ -23,15 +23,15 @@ runCompileDef (FDef fname args rtp e) (ve,fe) =
         (_, sts) = unzip arge
         (st,s1) = tp2st rtp s0 
         newVe = (fname, FDStr sts st):ve
-    in  case rSneslTrans (translate e) s1 (arge++newVe) fe of 
+    in  case rSneslTrans (translate e) s1 (arge++newVe) of 
             Right (st',svs,_) -> Right $ (newVe,(fname,SFun sts st' svs):fe)
             Left err -> Left $ "Compiling error: " ++ fname ++ ":" ++ err
 
 
 -- compile an expression
-runCompileExp :: Exp -> VEnv -> FEnv -> Either String SFun 
-runCompileExp e ve fe = 
-    case rSneslTrans (translate e) 1 ve fe  of 
+runCompileExp :: Exp -> VEnv -> Either String SFun 
+runCompileExp e ve = 
+    case rSneslTrans (translate e) 1 ve of 
         Right (st, sv, _) -> Right $ SFun [] st (SDef 0 Ctrl : sv)
         Left err -> Left err 
 
@@ -59,16 +59,12 @@ tp2st (TTup t1 t2) i = (PStr s1 s2, i'')
           (s2, i'') = tp2st t2 i'
 
 
-askEnv :: SneslTrans (VEnv,FEnv)
-askEnv = SneslTrans $ \ sid ve fe -> Right ((ve,fe), [], sid)
-
-
 askVEnv :: SneslTrans VEnv
-askVEnv = SneslTrans $ \ sid e0 _ -> Right (e0, [], sid)
+askVEnv = SneslTrans $ \ sid e0 -> Right (e0, [], sid)
 
 
 addVEnv :: VEnv -> SneslTrans a -> SneslTrans a
-addVEnv newe m = SneslTrans $ \sid e0 fe -> rSneslTrans m sid (newe++e0) fe 
+addVEnv newe m = SneslTrans $ \sid e0 -> rSneslTrans m sid (newe++e0)
   
 lookupSTree :: Id -> SneslTrans STree
 lookupSTree var = 
@@ -90,7 +86,7 @@ bindM p@(PTup _ _) t = fail $ "Bad bindings: " ++ show p
 
 -- generate a stream definition
 emit :: SExp -> SneslTrans SId
-emit i = SneslTrans $ \ sid _ _ -> Right (sid, [SDef sid i] ,sid+1)
+emit i = SneslTrans $ \ sid _ -> Right (sid, [SDef sid i] ,sid+1)
 
 emitIs i = do s <- emit i; return (IStr s)
 emitBs i = do s <- emit i; return (BStr s)
@@ -98,13 +94,13 @@ emitBs i = do s <- emit i; return (BStr s)
 
 -- generate a stream SId without the instruction definition 
 emitEmpty :: SneslTrans SId
-emitEmpty = SneslTrans $ \ sid _ _ -> Right (sid, [] ,sid+1)
+emitEmpty = SneslTrans $ \ sid _ -> Right (sid, [] ,sid+1)
 
 
  --get the translated code and the returned stream ids(i.e. STree)
 ctrlTrans :: SneslTrans STree -> SneslTrans (STree,[SInstr])
-ctrlTrans m = SneslTrans $ \sid ve fe -> 
-    case rSneslTrans m sid ve fe of 
+ctrlTrans m = SneslTrans $ \sid ve -> 
+    case rSneslTrans m sid ve of 
       Right (st, code, s) -> Right ((st,code), [], s)
       Left err -> Left err 
 
@@ -183,7 +179,7 @@ translate (Let pat e1 e2) =
 
 translate (Call fname es) = 
     do args <- mapM (\e -> translate e) es
-       (ve,_) <- askEnv
+       ve <- askVEnv
        case lookup fname ve of  
          Just fd@(FDStr _ _) -> scall fname args fd  -- user-defined
          Just (FStr f) -> f args -- built-in 

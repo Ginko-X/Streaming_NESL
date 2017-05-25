@@ -102,21 +102,21 @@ type VEnv = [(Id, STree)]
 
 type FEnv = [(FId, SFun)]
 
-newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> VEnv -> FEnv -> 
+newtype SneslTrans a = SneslTrans {rSneslTrans :: SId -> VEnv -> 
                                        Either String (a,[SInstr], SId)}
 
 instance Monad SneslTrans where
-    return a = SneslTrans $ \ sid ve fe -> Right (a, [], sid)
+    return a = SneslTrans $ \ sid _ -> Right (a, [], sid)
 
-    m >>= f = SneslTrans $ \ sid ve fe -> 
-        case rSneslTrans m sid ve fe of
+    m >>= f = SneslTrans $ \ sid ve -> 
+        case rSneslTrans m sid ve of
             Left err -> Left err
             Right (a, sv, sid')  -> 
-                case rSneslTrans (f a) sid' ve fe of 
+                case rSneslTrans (f a) sid' ve of 
                     Left err' -> Left err'
                     Right (a', sv', sid'') -> Right (a', sv++sv', sid'')
 
-    fail err = SneslTrans $ \ _ _ _ -> Left err 
+    fail err = SneslTrans $ \ _ _ -> Left err 
 
 
 instance Functor SneslTrans where

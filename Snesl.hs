@@ -74,7 +74,7 @@ runExp :: Exp -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int))
 runExp e env@(e0,t0,v0,f0) = 
     do sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
-       svcode <- runCompileExp e v0 f0     
+       svcode <- runCompileExp e v0     
        (svcodeRes,(w',s')) <- runSvcodeExp svcode f0  
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes' 
@@ -107,7 +107,7 @@ testString str env@(e0,t0,v0,f0) =
     do e <- runParseExp str
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
-       svcode <- runCompileExp e v0 f0 
+       svcode <- runCompileExp e v0 
        (svcodeRes,(w',s')) <- runSvcodeExp svcode f0
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes'  
