@@ -173,11 +173,11 @@ se0 = [("_plus", primop cplus),
        -- singleton seq
       ("the", FVal (\[SVal x ] -> 
           if (length x == 1) 
-          then returnc (0,1) $ head x
+          then returnc (wrapWork 1, 1) $ head x
           else fail "the: length mismatch")),
 
-      ---- sequence empty check, zero work 
-      --("empty", FVal(\[SVal vs] -> returnc (0,1) $ AVal (BVal (null vs)))),
+      -- sequence empty check, zero work 
+      ("empty", FVal(\[SVal vs] -> returnc (wrapWork 0,1) $ AVal (BVal (null vs)))),
      
 
       -- -- zip for two seqs, zero work

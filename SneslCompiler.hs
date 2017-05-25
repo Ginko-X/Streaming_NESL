@@ -347,7 +347,21 @@ compEnv0 = [
 
              ("concat", FStr (\[SStr (SStr t s1) s2] -> concatSeq t s1 s2)),
 
-             ("the", FStr(\[t@(SStr t1 s1)] -> the(t)) ) ]
+             ("the", FStr(\[t@(SStr t1 s1)] -> the　t) ),
+
+             ("empty", FStr(\[t@(SStr t1 f)] -> empty t)) ]
+
+
+
+empty :: STree -> SneslTrans STree
+empty (SStr t f) = 
+    do s1 <- emit (Usum f)
+       s2 <- emit (MapConst s1 (IVal 1))
+       s3 <- emit (ReducePlus s2 f)
+       s4 <- emit (Const (IVal 0))
+       s5 <- emitBs (MapTwo Equal s3 s4)
+       return s5
+
 
 the :: STree -> SneslTrans STree
 the (SStr t f) = 

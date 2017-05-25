@@ -129,8 +129,13 @@ tyEnv0 = [("not", TFun [TBool] TBool ),
           ("reducePlus", TFun [TSeq TInt] TInt ),
           ("_append", TVar (\t -> funcTypeChkAppend t)),
           ("concat",TVar (\t  -> funcTypeChkConcat t)),
-          ("the",TVar (\t -> funcTypeChkThe t)) ]
+          ("the",TVar (\t -> funcTypeChkThe t)),
+          ("empty", TVar(\t -> funcTypeChkEmpty t))]
 
+funcTypeChkEmpty t = 
+    case t of 
+      [TSeq t'] -> return $ TBool
+      _ -> fail "Function type or arity mismatch: the "
 
 funcTypeChkConcat t = 
     case t of 
