@@ -33,7 +33,7 @@ data SExp = Ctrl
          
 data SInstr  = SDef SId SExp  -- deriving Show 
 
-data SFun = SFun SId [STree] STree [SInstr] -- deriving Show 
+data SFun = SFun [STree] STree [SInstr] -- deriving Show 
 
 
 data OP = Uminus | Not  -- unary 
@@ -56,7 +56,7 @@ instance Show SInstr where
 
 
 instance Show SFun where
-  show (SFun ctrl args ret code) = "\nCtrl SId:" ++ show ctrl ++ "\nArguments: " 
+  show (SFun args ret code) = "\nArguments: " 
       ++ show args ++ "\n" ++ showseq "; \n" code ++ "\nReturn: " ++ show ret
                              
 

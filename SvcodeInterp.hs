@@ -15,15 +15,15 @@ import Data.List (transpose)
 type Svctx = [(SId, SvVal)]
 
 newtype Svcode a = Svcode {rSvcode :: Svctx -> SId -> (Int, Int) -> FEnv -> 
-                                  Either String (a,(Int,Int), Svctx, SId)}
+                                  Either String (a,(Int,Int), Svctx)}
 
 instance Monad Svcode where
-    return a = Svcode $ \ ctx ctrl cost _ -> Right (a, cost, ctx, ctrl)
+    return a = Svcode $ \ ctx ctrl cost _ -> Right (a, cost, ctx)
 
     m >>= f = Svcode $ \ ctx ctrl cost fe -> 
         case rSvcode m ctx ctrl cost fe of 
-            Right (a, cost', ctx',ctrl') -> case rSvcode (f a) ctx' ctrl' cost' fe of 
-                               Right (b, cost'', c'',ctrl'') -> Right (b, cost'',c'',ctrl'')
+            Right (a, cost', ctx') -> case rSvcode (f a) ctx' ctrl cost' fe of 
+                               Right (b, cost'', c'') -> Right (b, cost'',c'')
                                Left err' -> Left err'      
             Left err -> Left err
 
@@ -40,9 +40,9 @@ instance Applicative Svcode where
 
 -- run the svcode translated from an SNESL expression
 runSvcodeExp :: SFun -> FEnv -> Either String (SvVal, (Int,Int))
-runSvcodeExp (SFun ctrl [] st code) fe = 
-  case rSvcode (mapM_ sinstrInterp code) [] ctrl (0,0) fe of 
-    Right (_, (w,s), ctx, _) -> 
+runSvcodeExp (SFun [] st code) fe = 
+  case rSvcode (mapM_ sinstrInterp code) [] 0 (0,0) fe of 
+    Right (_, (w,s), ctx) -> 
         case lookupTreeCtx st ctx of                      
             Nothing -> Left "SVCODE runtime error: undefined streams." 
             Just vs -> Right (vs, (w,s))
@@ -71,38 +71,37 @@ lookupSid :: SId -> Svcode SvVal
 lookupSid s = Svcode $ \c ctrl cost _ -> 
     case lookup s c of 
         Nothing -> Left $ "referring to an undefined stream: " ++ show s  
-        Just v -> Right (v,cost,c,ctrl)  
+        Just v -> Right (v,cost,c)  
 
 
 lookupFId :: FId -> Svcode SFun
 lookupFId fid = Svcode $ \c ctrl cost fe -> 
     case lookup fid fe of 
         Nothing -> Left $ "undefined function: "  ++ show fid
-        Just f -> Right (f,cost,c,ctrl)  
+        Just f -> Right (f,cost,c)  
 
--- look up the streams of an STree 
-lookupTree :: STree -> Svcode SvVal
-lookupTree (IStr t) = lookupSid t 
-lookupTree (BStr t) = lookupSid t 
-lookupTree (SStr t0 t1) = 
-  do s0 <- lookupTree t0
-     (SBVal s1) <- lookupSid t1 
-     return (SSVal s0 s1)
+---- look up the streams of an STree 
+--lookupTree :: STree -> Svcode SvVal
+--lookupTree (IStr t) = lookupSid t 
+--lookupTree (BStr t) = lookupSid t 
+--lookupTree (SStr t0 t1) = 
+--  do s0 <- lookupTree t0
+--     (SBVal s1) <- lookupSid t1 
+--     return (SSVal s0 s1)
 
-lookupTree (PStr t0 t1) = 
-  do s0 <- lookupTree t0
-     s1 <- lookupTree t1 
-     return (SPVal s0 s1)
+--lookupTree (PStr t0 t1) = 
+--  do s0 <- lookupTree t0
+--     s1 <- lookupTree t1 
+--     return (SPVal s0 s1)
 
 
 
 addCtx :: SId -> SvVal -> Svcode SvVal
-addCtx s v = Svcode $ \c ctrl cost _ -> Right (v, cost, c ++ [(s,v)],ctrl)
+addCtx s v = Svcode $ \c ctrl cost _ -> Right (v, cost, c ++ [(s,v)])
 
 
 streamLenM :: SvVal -> Svcode Int 
 streamLenM s  = return $ streamLen s 
-
 
 streamLen :: SvVal -> Int 
 streamLen (SIVal s) = length s 
@@ -125,7 +124,7 @@ lookupOP key ps =
 
 -- explicitly add a cost
 returnsvc :: (Int,Int) -> a -> Svcode a
-returnsvc (w,s) a = Svcode $ \ c ctrl (w0,s0) _ -> Right (a, (w0+w,s0+s), c, ctrl)
+returnsvc (w,s) a = Svcode $ \ c ctrl (w0,s0) _ -> Right (a, (w0+w,s0+s), c)
 
 
 -- compute the cost of an instruction when return the interpretation result
@@ -138,19 +137,19 @@ returnInstrC inVs outV  =
 
 
 getCtrl :: Svcode SId 
-getCtrl = Svcode $ \ ctx ctrl cost _ -> Right (ctrl, cost, ctx, ctrl)
+getCtrl = Svcode $ \ ctx ctrl cost _ -> Right (ctrl, cost, ctx)
 
-
-setCtrl :: SId  -> Svcode ()
-setCtrl ctrl = Svcode $ \ ctx _ cost _ -> Right ((), cost, ctx, ctrl)
+localCtrl :: SId -> Svcode a -> Svcode a 
+localCtrl ctrl m = Svcode $ \ ctx _ cost fe -> rSvcode m ctx ctrl cost fe
 
 
 getCtx :: Svcode Svctx
-getCtx = Svcode $ \ ctx ctrl cost _ -> Right (ctx, cost, ctx, ctrl)
+getCtx = Svcode $ \ ctx ctrl cost _ -> Right (ctx, cost, ctx)
 
 
 setCtx :: Svctx -> Svcode ()
-setCtx c = Svcode $ \ _ ctrl cost _ -> Right ((), cost, c, ctrl)
+setCtx c = Svcode $ \ _ ctrl cost _ -> Right ((), cost, c)
+
 
 
 -- set empty streams for the SIds in the STree 
@@ -184,6 +183,7 @@ sinstrInterp (SDef sid i) =
        addCtx sid v
 
 
+
 ---- Instruction interpretation  ------ 
 
 instrInterp :: SExp -> Svcode SvVal
@@ -199,25 +199,19 @@ instrInterp (WithCtrl c defs st) =
        do ret <- emptyStream st
           returnInstrC [ctrl] ret
      else 
-       do oldCtrl <- getCtrl
-          setCtrl c 
-          mapM_ sinstrInterp defs
-          setCtrl oldCtrl
-          ret <- lookupTree st 
-          returnInstrC [ctrl] ret 
+       do localCtrl c $ mapM_ sinstrInterp defs
+          returnInstrC [] (SBVal []) 
 
 
 instrInterp (SCall fid map1 rettr) = 
-  do (SFun ctrl _ st code) <- lookupFId fid 
+  do (SFun _ st code) <- lookupFId fid 
      gloCtrl <- getCtrl
      oldCtx <- getCtx
-     c <- makeCtx $ (gloCtrl,ctrl):map1
-     setCtrl ctrl 
+     c <- makeCtx ((gloCtrl,0):map1)
      setCtx c
-     mapM_ sinstrInterp code
+     localCtrl 0 $ mapM_ sinstrInterp code
      let map2 = sidMap st rettr
      retc <- makeCtx map2     
-     setCtrl gloCtrl
      setCtx $ oldCtx ++ retc
      returnInstrC [] (SBVal []) -- this return value is meaningless
 
@@ -406,7 +400,7 @@ segInterS bs = fst bs'
           b0 = ([], replicate n True)
           n = length.flags2len.snd $ head bs
  
- 
+
 -- a general version of priSegInter
 priSegInterS :: [(SvVal,[Bool])] -> SvVal
 priSegInterS [(s,b)] = s  

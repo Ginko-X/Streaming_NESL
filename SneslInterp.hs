@@ -180,19 +180,13 @@ se0 = [("_plus", primop cplus),
       ("empty", FVal(\[SVal vs] -> returnc (wrapWork 0,1) $ AVal (BVal (null vs)))),
      
 
-      -- -- zip for two seqs, zero work
-      --("zip", FVal (\[SVal v1, SVal v2] -> 
-      --           if (length v1) == (length v2)
-      --           then returnc (0,1) $ SVal (map (\(x,y) -> TVal x y) (zip v1 v2) )
-      --           else fail "zip: lengths mismatch")),
-      
-      ---- seq partition with flags     
-      --("part", FVal (\ [SVal vs, SVal flags] -> 
-      --                      let bs = [b | AVal (BVal b) <- flags]
-      --                          l = length vs
-      --                      in if sum [1| b <- bs, not b] == l then
-      --                           returnc (l,1) $ SVal [SVal v | v <- seglist (flags2len bs) vs]
-      --                         else fail "part: flags mismatch")),
+      -- seq partition with flags     
+      ("part", FVal (\ [SVal vs, SVal flags] -> 
+                            let bs = [b | AVal (BVal b) <- flags]
+                                l = length vs
+                            in if sum [1| b <- bs, not b] == l then
+                                 returnc (wrapWork l,1) $ SVal [SVal v | v <- seglist (flags2len bs) vs]
+                               else fail "part: flags mismatch")),
 
 
       ("scanExPlus", FVal (\ [SVal vs] -> 

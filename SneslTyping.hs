@@ -130,7 +130,13 @@ tyEnv0 = [("not", TFun [TBool] TBool ),
           ("_append", TVar (\t -> funcTypeChkAppend t)),
           ("concat",TVar (\t  -> funcTypeChkConcat t)),
           ("the",TVar (\t -> funcTypeChkThe t)),
-          ("empty", TVar(\t -> funcTypeChkEmpty t))]
+          ("empty", TVar(\t -> funcTypeChkEmpty t)),
+          ("part", TVar (\t -> funcTypeChkPart t))]
+
+funcTypeChkPart t = 
+    case t of 
+      [TSeq t', TSeq TBool] -> return $ TSeq (TSeq t')
+      _ -> fail "Function type or arity mismatch: part "
 
 funcTypeChkEmpty t = 
     case t of 

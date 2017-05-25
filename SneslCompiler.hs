@@ -24,7 +24,7 @@ runCompileDef (FDef fname args rtp e) (ve,fe) =
         (st,s1) = tp2st rtp s0 
         newVe = (fname, FDStr sts st):ve
     in  case rSneslTrans (translate e) s1 (arge++newVe) fe of 
-            Right (st',svs,_) -> Right $ (newVe,(fname,SFun 0 sts st' svs):fe)
+            Right (st',svs,_) -> Right $ (newVe,(fname,SFun sts st' svs):fe)
             Left err -> Left $ "Compiling error: " ++ fname ++ ":" ++ err
 
 
@@ -32,7 +32,7 @@ runCompileDef (FDef fname args rtp e) (ve,fe) =
 runCompileExp :: Exp -> VEnv -> FEnv -> Either String SFun 
 runCompileExp e ve fe = 
     case rSneslTrans (translate e) 1 ve fe  of 
-        Right (st, sv, _) -> Right $ SFun 0 [] st (SDef 0 Ctrl:sv)
+        Right (st, sv, _) -> Right $ SFun [] st (SDef 0 Ctrl : sv)
         Left err -> Left err 
 
 
@@ -337,20 +337,26 @@ compEnv0 = [
              ("_leq",FStr (\[IStr s1, IStr s2] -> emitBs (MapTwo Leq s1 s2))),
               
              ("index", FStr (\[IStr s] -> iotas s)),                
-
              ("scanExPlus", FStr (\[SStr (IStr t) s] -> scanExPlus t s)),
-
-             ("reducePlus", FStr (\[SStr (IStr t) s] -> reducePlus t s)),
-             
+             ("reducePlus", FStr (\[SStr (IStr t) s] -> reducePlus t s)),             
              ("_append", FStr (\[t1'@(SStr t1 s1), t2'@(SStr t2 s2)] -> 
                         mergeSeq [t1',t2'])), 
 
              ("concat", FStr (\[SStr (SStr t s1) s2] -> concatSeq t s1 s2)),
+             ("the", FStr (\[t@(SStr _ _)] -> the　t) ),
+             ("empty", FStr (\[t@(SStr _ _)] -> empty t)),
+             ("part",  FStr (\[t1'@(SStr _ _), t2'@(SStr (BStr _) _)] -> part t1' t2') )]
 
-             ("the", FStr(\[t@(SStr t1 s1)] -> the　t) ),
 
-             ("empty", FStr(\[t@(SStr t1 f)] -> empty t)) ]
-
+part :: STree -> STree -> SneslTrans STree
+part = undefined
+--part (SStr t1 _) (SStr (BStr t2) _) = 
+--    do s1 <- emit (B2u t2)
+--       s2 <- emit (Usum s1)
+--       s3 <- emit (MapConst s2 (IVal 1))
+--       s4 <- emit (ReducePlus s3 t2)
+--       s5 <- emit (ToFlags s4)
+--       return (SStr (SStr t1 t2) s5)
 
 
 empty :: STree -> SneslTrans STree
