@@ -19,12 +19,13 @@ runCompileDefs (d:ds) e = runCompileDef d e >>= runCompileDefs ds
 -- compile a user-defined function  
 runCompileDef :: Def -> (VEnv, FEnv) -> Either String (VEnv,FEnv)
 runCompileDef (FDef fname args rtp e) (ve,fe) = 
-    let (s0,arge) = argsSTree args 1
-        (_, sts) = unzip arge
-        (st,s1) = tp2st rtp s0 
+    let (argSts, s0) = args2tree args 1 
+        (st, s1) = type2tree rtp s0 
+        sts = snd $ unzip argSts
         newVe = (fname, FDStr sts st):ve
-    in  case rSneslTrans (translate e) s1 (arge++newVe) of 
-            Right (st',svs,_) -> Right $ (newVe,(fname,SFun sts st' svs):fe)
+        sids = concat $ map tree2Sids sts  
+    in  case rSneslTrans (translate e) s1 (argSts++newVe) of 
+            Right (st',svs,_) -> Right $ (newVe,(fname,SFun sids st' svs):fe)
             Left err -> Left $ "Compiling error: " ++ fname ++ ":" ++ err
 
 
@@ -36,27 +37,34 @@ runCompileExp e ve =
         Left err -> Left err 
 
 
-
-
 -- transform the argument list to STrees
-argsSTree :: [(Id,Type)] -> SId -> (SId,[(Id,STree)])
-argsSTree [] i = (i,[])
-argsSTree [(v,t)] i = (i',[(v,st)])
-    where  (st,i') = tp2st t i 
+args2tree :: [(Id,Type)] -> SId -> ([(Id,STree)], SId)
+args2tree [] i = ([],i)
+args2tree [(v,t)] i = ([(v,st)], i')
+    where  (st,i') = type2tree t i 
 
-argsSTree (v:vs) i = (i'', st ++ sts)
-    where (i',st) = argsSTree [v] i 
-          (i'',sts) = argsSTree vs i'
+args2tree (v:vs) i = (st ++ sts, i'')
+    where (st, i') = args2tree [v] i 
+          (sts, i'') = args2tree vs i'
 
-tp2st :: Type -> SId -> (STree, SId)
-tp2st TInt i = (IStr i, i+1)
-tp2st TBool i = (BStr i, i+1) 
-tp2st (TSeq t) i = (SStr s i, i')
-    where (s,i') = tp2st t (i+1)
 
-tp2st (TTup t1 t2) i = (PStr s1 s2, i'') 
-    where (s1,i') = tp2st t1 i
-          (s2, i'') = tp2st t2 i'
+type2tree :: Type -> SId -> (STree, SId)
+type2tree TInt i = (IStr i, i+1)
+type2tree TBool i = (BStr i, i+1) 
+type2tree (TSeq t) i = (SStr s i, i')
+    where (s,i') = type2tree t (i+1)
+
+type2tree (TTup t1 t2) i = (PStr s1 s2, i'') 
+    where (s1,i') = type2tree t1 i
+          (s2, i'') = type2tree t2 i'
+
+
+tree2Sids :: STree -> [SId]
+tree2Sids (IStr s1) = [s1]
+tree2Sids (BStr s1) = [s1]
+tree2Sids (SStr s1 s2) = (tree2Sids s1) ++ [s2]  
+tree2Sids (PStr s1 s2) = (tree2Sids s1) ++ (tree2Sids s2)
+
 
 
 askVEnv :: SneslTrans VEnv
@@ -106,37 +114,24 @@ ctrlTrans m = SneslTrans $ \sid ve ->
 
 
 scall :: FId -> [STree] -> STree -> SneslTrans STree
-scall f args (FDStr sts st) = 
-  do let argmap = sidMaps args sts
-     rettr <- streeCopy st 
-     emit (SCall f argmap rettr)
+scall f argSts (FDStr _ st) = 
+  do let sids = concat $ map tree2Sids argSts 
+     rettr <- treeGene st 
+     emit (SCall f sids $ tree2Sids rettr)
      return rettr 
 
 
--- copy the structure of a STree, a type copy indeed
-streeCopy :: STree -> SneslTrans STree
-streeCopy (IStr _) = do s <- emitEmpty; return (IStr s)
-streeCopy (BStr _) = do s <- emitEmpty; return (BStr s)
-streeCopy (SStr s f) = 
-    do s0 <- streeCopy s
-       (BStr f') <- streeCopy (BStr f)
-       return (SStr s0 f')
-streeCopy (PStr t1 t2) = 
-    do s1 <- streeCopy t1
-       s2 <- streeCopy t2
+treeGene :: STree -> SneslTrans STree
+treeGene (IStr _) = do s <- emitEmpty; return (IStr s)
+treeGene (BStr _) = do s <- emitEmpty; return (BStr s)
+treeGene (SStr s _) = 
+    do f <- emitEmpty
+       s0 <- treeGene s       
+       return (SStr s0 f)
+treeGene (PStr t1 t2) = 
+    do s1 <- treeGene t1
+       s2 <- treeGene t2
        return (PStr s1 s2)
-
-
--- create argument/return passing mappings 
-sidMaps :: [STree] -> [STree] -> [(SId,SId)]
-sidMaps [] [] = []
-sidMaps (a:as) (b:bs) = (sidMap a b) ++ (sidMaps as bs)
-
-sidMap :: STree -> STree -> [(SId,SId)]
-sidMap (IStr s1) (IStr s2) = [(s1,s2)]
-sidMap (BStr s1) (BStr s2) = [(s1,s2)]
-sidMap (SStr s1 s2) (SStr s3 s4) = (sidMap s1 s3) ++ [(s2,s4)]  
-sidMap (PStr s1 s2) (PStr s3 s4) = (sidMap s1 s3) ++ (sidMap s2 s4)
 
 
 

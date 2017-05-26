@@ -4,7 +4,7 @@ module SvcodeInterp where
 
 import SvcodeSyntax
 import SneslSyntax
-import SneslCompiler (sidMap)
+import SneslCompiler (tree2Sids)
 import DataTrans (i2flags)
 import SneslInterp (flags2len, seglist, wrapWork)
 
@@ -168,13 +168,11 @@ emptyStream (SStr st1 st2) =
        return $ SSVal sv1 []
 
 
-makeCtx :: [(SId,SId)] -> Svcode Svctx
-makeCtx [] = return []
-makeCtx ((s1,s2):ss) = 
-  do v <- lookupSid s1
-     vs <- makeCtx ss 
-     return $ (s2,v):vs   
-
+makeCtx :: [SId] -> [SId] -> Svcode Svctx
+makeCtx s1s s2s = --mapM lookupSid s1s >>= return $ zip s2s 
+  do vs <- mapM lookupSid s1s 
+     return $ zip s2s vs 
+ 
 
 -- interpreter an SVCODE stream definition
 sinstrInterp :: SInstr -> Svcode SvVal
@@ -203,15 +201,14 @@ instrInterp (WithCtrl c defs st) =
           returnInstrC [] (SBVal []) 
 
 
-instrInterp (SCall fid map1 rettr) = 
-  do (SFun _ st code) <- lookupFId fid 
+instrInterp (SCall fid sids retSids) = 
+  do (SFun sids' st code) <- lookupFId fid 
      gloCtrl <- getCtrl
      oldCtx <- getCtx
-     c <- makeCtx ((gloCtrl,0):map1)
+     c <- makeCtx (gloCtrl:sids) (0:sids')
      setCtx c
      localCtrl 0 $ mapM_ sinstrInterp code
-     let map2 = sidMap st rettr
-     retc <- makeCtx map2     
+     retc <- makeCtx (tree2Sids st) retSids     
      setCtx $ oldCtx ++ retc
      returnInstrC [] (SBVal []) -- this return value is meaningless
 
@@ -224,6 +221,7 @@ instrInterp (MapConst sid a) =
                  IVal i -> SIVal $ replicate l i 
                  BVal b -> SBVal $ replicate l b
        returnInstrC [v] as
+
 
 instrInterp (Const a) = 
     do ctrl <- getCtrl
