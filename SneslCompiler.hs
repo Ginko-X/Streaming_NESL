@@ -100,6 +100,10 @@ emitIs i = do s <- emit i; return (IStr s)
 emitBs i = do s <- emit i; return (BStr s)
 
 
+emitInstr :: SInstr -> SneslTrans ()
+emitInstr i = SneslTrans $ \ sid _ -> Right ((), [i], sid)
+
+
 -- generate a stream SId without the instruction definition 
 emitEmpty :: SneslTrans SId
 emitEmpty = SneslTrans $ \ sid _ -> Right (sid, [] ,sid+1)
@@ -117,7 +121,7 @@ scall :: FId -> [STree] -> STree -> SneslTrans STree
 scall f argSts (FDStr _ st) = 
   do let sids = concat $ map tree2Sids argSts 
      rettr <- treeGene st 
-     emit (SCall f sids $ tree2Sids rettr)
+     emitInstr (SCall f sids $ tree2Sids rettr)
      return rettr 
 
 
@@ -154,7 +158,7 @@ translate (Tup e1 e2) =
 translate (SeqNil tp) = 
     do (st,defs) <- ctrlTrans $ emptySeq tp
        emptyCtrl <- emit EmptyCtrl
-       emit (WithCtrl emptyCtrl defs st)
+       emitInstr (WithCtrl emptyCtrl defs st)
        f <- emit (Const (BVal True))
        return (SStr st f)
 
@@ -201,7 +205,7 @@ translate (GComp e0 ps) =
         -- translate the body
         (st,defs) <- ctrlTrans $ addVEnv (concat $ newEnvs ++ usingVarbinds) 
                                   $ translate e0 
-        emit (WithCtrl newCtrl defs st)
+        emitInstr (WithCtrl newCtrl defs st)
         return (SStr st s0)
         
 
@@ -214,7 +218,7 @@ translate (RComp e0 e1) =
        newVarTrs <- mapM (\x -> pack x s1) usingVarsTrs
        binds <- mapM (\(v,tr) -> bindM (PVar v) tr) (zip usingVars newVarTrs)
        (s3,defs) <- ctrlTrans $ addVEnv (concat binds) $ translate e0 
-       emit (WithCtrl newCtrl defs s3)
+       emitInstr (WithCtrl newCtrl defs s3)
        return (SStr s3 s2) 
 
 

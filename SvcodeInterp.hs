@@ -41,7 +41,7 @@ instance Applicative Svcode where
 -- run the svcode translated from an SNESL expression
 runSvcodeExp :: SFun -> FEnv -> Either String (SvVal, (Int,Int))
 runSvcodeExp (SFun [] st code) fe = 
-  case rSvcode (mapM_ sinstrInterp code) [] 0 (0,0) fe of 
+  case rSvcode (mapM_ sInstrInterp code) [] 0 (0,0) fe of 
     Right (_, (w,s), ctx) -> 
         case lookupTreeCtx st ctx of                      
             Nothing -> Left "SVCODE runtime error: undefined streams." 
@@ -80,24 +80,10 @@ lookupFId fid = Svcode $ \c ctrl cost fe ->
         Nothing -> Left $ "undefined function: "  ++ show fid
         Just f -> Right (f,cost,c)  
 
----- look up the streams of an STree 
---lookupTree :: STree -> Svcode SvVal
---lookupTree (IStr t) = lookupSid t 
---lookupTree (BStr t) = lookupSid t 
---lookupTree (SStr t0 t1) = 
---  do s0 <- lookupTree t0
---     (SBVal s1) <- lookupSid t1 
---     return (SSVal s0 s1)
-
---lookupTree (PStr t0 t1) = 
---  do s0 <- lookupTree t0
---     s1 <- lookupTree t1 
---     return (SPVal s0 s1)
 
 
-
-addCtx :: SId -> SvVal -> Svcode SvVal
-addCtx s v = Svcode $ \c ctrl cost _ -> Right (v, cost, c ++ [(s,v)])
+addCtx :: SId -> SvVal -> Svcode ()
+addCtx s v = Svcode $ \c ctrl cost _ -> Right ((), cost, c ++ [(s,v)])
 
 
 streamLenM :: SvVal -> Svcode Int 
@@ -153,68 +139,51 @@ setCtx c = Svcode $ \ _ ctrl cost _ -> Right ((), cost, c)
 
 
 -- set empty streams for the SIds in the STree 
-emptyStream :: STree -> Svcode SvVal
+emptyStream :: STree -> Svcode ()
 emptyStream (IStr s) = addCtx s $ SIVal [] 
 emptyStream (BStr s) = addCtx s $ SBVal []
-
-emptyStream (PStr st1 st2)  = 
-    do sv1 <- emptyStream st1
-       sv2 <- emptyStream st2
-       return $ SPVal sv1 sv2
-
-emptyStream (SStr st1 st2) = 
-    do sv1 <- emptyStream st1 
-       sv2 <- addCtx st2 $ SBVal []
-       return $ SSVal sv1 []
-
+emptyStream (PStr st1 st2)  = emptyStream st1 >> emptyStream st2
+emptyStream (SStr st1 st2) = emptyStream st1 >> (addCtx st2 $ SBVal [])
+ 
 
 makeCtx :: [SId] -> [SId] -> Svcode Svctx
-makeCtx s1s s2s = --mapM lookupSid s1s >>= return $ zip s2s 
+makeCtx s1s s2s =　
   do vs <- mapM lookupSid s1s 
      return $ zip s2s vs 
  
 
 -- interpreter an SVCODE stream definition
-sinstrInterp :: SInstr -> Svcode SvVal
-sinstrInterp (SDef sid i) = 
-    do v <- instrInterp i
-       addCtx sid v
+sInstrInterp :: SInstr -> Svcode ()
+sInstrInterp (SDef sid i) = sExpInterp i >>= addCtx sid 
 
-
-
----- Instruction interpretation  ------ 
-
-instrInterp :: SExp -> Svcode SvVal
-
-instrInterp Ctrl = returnInstrC [] (SBVal [False]) 
-
-instrInterp EmptyCtrl = returnInstrC [] (SBVal [])     
-
-instrInterp (WithCtrl c defs st) = 
+sInstrInterp (WithCtrl c defs st) =
   do ctrl@(SBVal bs) <- lookupSid c 
-     if null bs 
-     then 
-       do ret <- emptyStream st
-          returnInstrC [ctrl] ret
-     else 
-       do localCtrl c $ mapM_ sinstrInterp defs
-          returnInstrC [] (SBVal []) 
+     if null bs  
+       then emptyStream st    
+       else localCtrl c $ mapM_ sInstrInterp defs
 
-
-instrInterp (SCall fid sids retSids) = 
+sInstrInterp (SCall fid sids retSids) = 
   do (SFun sids' st code) <- lookupFId fid 
      gloCtrl <- getCtrl
      oldCtx <- getCtx
      c <- makeCtx (gloCtrl:sids) (0:sids')
      setCtx c
-     localCtrl 0 $ mapM_ sinstrInterp code
+     localCtrl 0 $ mapM_ sInstrInterp code
      retc <- makeCtx (tree2Sids st) retSids     
      setCtx $ oldCtx ++ retc
-     returnInstrC [] (SBVal []) -- this return value is meaningless
 
+
+
+---- Instruction interpretation  ------ 
+
+sExpInterp :: SExp -> Svcode SvVal
+
+sExpInterp Ctrl = returnInstrC [] (SBVal [False]) 
+
+sExpInterp EmptyCtrl = returnInstrC [] (SBVal [])     
 
 -- MapConst: Map the const 'a' to the stream 'sid2'
-instrInterp (MapConst sid a) = 
+sExpInterp (MapConst sid a) = 
     do v <- lookupSid sid
        l <- streamLenM v
        let as = case a of 
@@ -223,7 +192,7 @@ instrInterp (MapConst sid a) =
        returnInstrC [v] as
 
 
-instrInterp (Const a) = 
+sExpInterp (Const a) = 
     do ctrl <- getCtrl
        v <- lookupSid ctrl
        l <- streamLenM v 
@@ -234,22 +203,22 @@ instrInterp (Const a) =
 
 -- toflags: generate flag segments for a stream of integers
 -- e.g. <1,4,0,2> => <F,T,F,F,F,F,T,T,F,F,T>
-instrInterp (ToFlags sid) = 
+sExpInterp (ToFlags sid) = 
     do v'@(SIVal v) <- lookupSid sid
        returnInstrC [v'] $ SBVal $ concat $ map i2flags v  
 
 
 -- count the number of 'False'
-instrInterp (Usum sid) = 
+sExpInterp (Usum sid) = 
     do vs'@(SBVal vs) <- lookupSid sid
        returnInstrC [vs'] $ SBVal $ usum vs 
 
-instrInterp (MapOne op s1) = 
+sExpInterp (MapOne op s1) = 
     do v1 <- lookupSid s1
        fop <- lookupOP op opEnv0
        returnInstrC [v1] $ fop [v1]
       
-instrInterp (MapTwo op s1 s2) = 
+sExpInterp (MapTwo op s1 s2) = 
     do v1 <- lookupSid s1
        v2 <- lookupSid s2
        primLenChk v1 v2 "MapTwo"
@@ -257,7 +226,7 @@ instrInterp (MapTwo op s1 s2) =
        returnInstrC [v1,v2] $ fop [v1,v2]
 
 
-instrInterp (Pack s1 s2) = 
+sExpInterp (Pack s1 s2) = 
     do v1 <- lookupSid s1
        v2'@(SBVal v2) <- lookupSid s2
        primLenChk v1 v2' "Pack"
@@ -266,7 +235,7 @@ instrInterp (Pack s1 s2) =
                      (SBVal bs) -> SBVal $ ppack bs v2
        returnInstrC [v1,v2'] v1'
 
-instrInterp (UPack s1 s2) = 
+sExpInterp (UPack s1 s2) = 
     do v1'@(SBVal v1) <- lookupSid s1
        v2'@(SBVal v2) <- lookupSid s2 
        if (length [v | v <- v1, v] ) == (length v2)
@@ -274,7 +243,7 @@ instrInterp (UPack s1 s2) =
          else fail "UPack: segments mismatch"
 
 
-instrInterp (Distr s1 s2) =
+sExpInterp (Distr s1 s2) =
     do v1 <- lookupSid s1  
        l1 <- streamLenM v1
        v2'@(SBVal v2) <- lookupSid s2  
@@ -285,14 +254,14 @@ instrInterp (Distr s1 s2) =
                          (SBVal bs) -> SBVal $ pdist bs v2
               in returnInstrC [v1,v2'] v1'
 
-instrInterp (SegDistr s1 s2) =
+sExpInterp (SegDistr s1 s2) =
     do v1'@(SBVal v1) <- lookupSid s1
        v2'@(SBVal v2) <- lookupSid s2
        segCountChk v1 v2 "SegDistr"
        returnInstrC [v1',v2'] $ SBVal $ segDistr v1 v2          
 
 
-instrInterp (SegFlagDistr s1 s2 s3) = 
+sExpInterp (SegFlagDistr s1 s2 s3) = 
   do v1'@(SBVal v1) <- lookupSid s1
      v2'@(SBVal v2) <- lookupSid s2
      v3'@(SBVal v3) <- lookupSid s3
@@ -300,7 +269,7 @@ instrInterp (SegFlagDistr s1 s2 s3) =
      segDescpChk v1 v2 "SegFlagDistr"
      returnInstrC [v1',v2',v3'] $ SBVal $ segFlagDistr v1 v2 v3 
 
-instrInterp (PrimSegFlagDistr s1 s2 s3) = 
+sExpInterp (PrimSegFlagDistr s1 s2 s3) = 
   do v1 <- lookupSid s1
      v2'@(SBVal v2) <- lookupSid s2
      v3'@(SBVal v3) <- lookupSid s3
@@ -311,12 +280,12 @@ instrInterp (PrimSegFlagDistr s1 s2 s3) =
         (SBVal bs) -> returnInstrC [v1,v2',v3'] $ SBVal $ primSegFlagDistr bs v2 v3 
 
 
-instrInterp (B2u sid) = 
+sExpInterp (B2u sid) = 
     do v'@(SBVal v) <- lookupSid sid 
        returnInstrC [v'] $ SBVal $ b2u v
 
 
-instrInterp (SegscanPlus s1 s2) = 
+sExpInterp (SegscanPlus s1 s2) = 
     do v1'@(SIVal v1) <- lookupSid s1
        v2'@(SBVal v2) <- lookupSid s2 
 
@@ -325,7 +294,7 @@ instrInterp (SegscanPlus s1 s2) =
          else returnInstrC [v1',v2'] $ SIVal $ segExScanPlus v1 v2 
 
 
-instrInterp (ReducePlus s1 s2) =
+sExpInterp (ReducePlus s1 s2) =
     do v1'@(SIVal v1) <- lookupSid s1
        v2'@(SBVal v2) <- lookupSid s2 
        let ls = flags2len v2          
@@ -333,19 +302,19 @@ instrInterp (ReducePlus s1 s2) =
 
 
 -- remove all the 'T' flags except for the last one
-instrInterp (SegConcat s1 s2) = 
+sExpInterp (SegConcat s1 s2) = 
     do v1'@(SBVal v1) <- lookupSid s1
        v2'@(SBVal v2) <- lookupSid s2
        returnInstrC [v1',v2'] $ SBVal $ segConcat v1 v2 
 
 
-instrInterp (InterMergeS ss) = 
+sExpInterp (InterMergeS ss) = 
   do vs <- mapM lookupSid ss  -- segCountChk v1 v2 "InterMerge"
      let vs' = map (\(SBVal v) -> v) vs 
      returnInstrC vs $ SBVal $ interMergeS vs' 
 
 
-instrInterp (SegInterS ss) = 
+sExpInterp (SegInterS ss) = 
   do vs <- mapM (\(s1,s2) -> 
                     do v1'@(SBVal v1) <- lookupSid s1
                        v2'@(SBVal v2) <- lookupSid s2 
@@ -357,7 +326,7 @@ instrInterp (SegInterS ss) =
      returnInstrC (concat vs2) $ SBVal $ segInterS vs1
 
 
-instrInterp (PriSegInterS ss) = 
+sExpInterp (PriSegInterS ss) = 
   do vs <- mapM (\(s1,s2) -> 
                      do v1 <- lookupSid s1
                         v2'@(SBVal v2) <- lookupSid s2
@@ -367,13 +336,13 @@ instrInterp (PriSegInterS ss) =
      returnInstrC (concat vs2) $ priSegInterS vs1 
 
 
-instrInterp (SegMerge s1 s2) = 
+sExpInterp (SegMerge s1 s2) = 
   do v1'@(SBVal v1) <- lookupSid s1
      v2'@(SBVal v2) <- lookupSid s2
      returnInstrC [v1',v2'] $ SBVal $ segMerge v1 v2 
 
 
-instrInterp (Check s1 s2) = 
+sExpInterp (Check s1 s2) = 
    do v1 <- lookupSid s1
       v2 <- lookupSid s2
       if v1 == v2 then returnInstrC [v1,v2] $ SBVal []

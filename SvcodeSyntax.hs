@@ -6,8 +6,6 @@ type SId = Int  -- stream id
 
 data SExp = Ctrl 
            | EmptyCtrl 
-           | WithCtrl SId [SInstr] STree
-           | SCall FId [SId] [SId]
            | ToFlags SId
            | Usum SId
            | Const AVal
@@ -31,7 +29,10 @@ data SExp = Ctrl
            | Check SId SId           
            deriving Show
          
-data SInstr  = SDef SId SExp  -- deriving Show 
+         
+data SInstr = SDef SId SExp  -- deriving Show 
+            | WithCtrl SId [SInstr] STree
+            | SCall FId [SId] [SId]
 
 data SFun = SFun [SId] STree [SInstr] -- deriving Show 
 
