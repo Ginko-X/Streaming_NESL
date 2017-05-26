@@ -125,19 +125,22 @@ instance Applicative SneslTyping where
 
 
 
-newtype Snesl a = Snesl {rSnesl :: Either String (a, Int,Int)}
+
+type SEnv = [(Id, Val)]
+
+newtype Snesl a = Snesl {rSnesl :: SEnv -> Either String (a, Int,Int)}
 
 instance Monad Snesl where
-  return a = Snesl $ Right (a,0,0)
+  return a = Snesl $ \ _ -> Right (a,0,0)
 
-  m >>= f = Snesl $ 
-    case rSnesl m of 
+  m >>= f = Snesl $ \ env ->
+    case rSnesl m env of 
        Left err -> Left err
-       Right (a,w,d) -> case rSnesl (f a) of 
+       Right (a,w,d) -> case rSnesl (f a) env of 
                           Left err' -> Left err'
                           Right (a',w',d') -> Right (a',w+w',d+d')
  
-  fail err = Snesl $ Left err
+  fail err = Snesl $ \ _ -> Left err
 
 
 instance Functor Snesl where

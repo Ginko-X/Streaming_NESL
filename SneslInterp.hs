@@ -9,24 +9,23 @@ import Data.List (transpose)
 
 
 runSneslInterpDefs :: [Def] -> SEnv -> Either String SEnv
-runSneslInterpDefs defs e0 = 
-    case rSnesl (sneslInterpDefs defs e0) of 
-        Right (r, _, _) -> Right r
-        Left s -> Left $ "SNESL interpretating error: " ++ s
+runSneslInterpDefs [] e = Right e 
+runSneslInterpDefs (d:ds) e0 = 
+    case rSnesl (sneslInterpDef d) e0 of 
+        Right (e1, _, _) -> 
+            case  runSneslInterpDefs ds (e1++e0) of 
+              Right es -> Right es 
+              Left err -> Left $ "SNESL interpreting error: " ++ err
+        Left err' -> Left $ "SNESL interpreting error: " ++ err'
 
 
--- interpreter a list of Defs 
-sneslInterpDefs :: [Def] -> SEnv -> Snesl SEnv
-sneslInterpDefs [] r = return r
-sneslInterpDefs (d:defs) r = sneslInterpDef d r >>= sneslInterpDefs defs
-
-
-sneslInterpDef :: Def -> SEnv -> Snesl SEnv
-sneslInterpDef (FDef fname args _ e) r = 
+sneslInterpDef :: Def -> Snesl SEnv
+sneslInterpDef (FDef fname args _ e) = 
   do let ids = fst $ unzip args 
-         f vs = eval e (zip ids vs ++ r1)
-         r1 = (fname, FVal f) : r
-     return r1 
+         f vs = localSEnv (zip ids vs ++ e1) $ eval e
+         e1 = [(fname, FVal f)]
+     return e1
+
 
 --sneslInterpDef (EDef i e) r = 
 --  case rSnesl (eval e r) of
@@ -36,50 +35,63 @@ sneslInterpDef (FDef fname args _ e) r =
 
 runSneslExp :: Exp -> SEnv -> Either String (Val,Int,Int)
 runSneslExp e env = 
-  case rSnesl (eval e env) of
+  case rSnesl (eval e) env of
     Right (v, nw, ns) ->  Right (v,nw,ns) 
-    Left s -> Left $ "SNESL interpretating error: " ++ s
+    Left s -> Left $ "SNESL interpreting error: " ++ s
+
+
+lookupVar :: Id -> Snesl Val 
+lookupVar i = 
+  do env <- askSEnv 
+     case lookup i env of
+        Just a -> return a
+        Nothing -> fail $ "bad variable: " ++ i
+
+
+askSEnv :: Snesl SEnv
+askSEnv = Snesl $ \ env -> Right (env, 0,0) 
+
+
+localSEnv :: SEnv -> Snesl a -> Snesl a 
+localSEnv env m = Snesl $ \ env0 -> rSnesl m (env++env0) 
 
 
 
-type SEnv = [(Id, Val)]
+eval :: Exp -> Snesl Val
 
-eval :: Exp -> SEnv -> Snesl Val
+eval (Var i) = lookupVar i 
 
-eval (Var s) r = 
-  case lookup s r of
-    Just a -> return a
-    Nothing -> error ("bad variable: " ++ s)
-
-eval (Lit l) r = 
+eval (Lit l) = 
   returnc (1,1) (AVal l)
 
-eval (Tup e1 e2) r = 
-  do v1 <- eval e1 r
-     v2 <- eval e2 r 
+eval (Tup e1 e2) = 
+  do v1 <- eval e1
+     v2 <- eval e2 
      return $ TVal v1 v2
 
-eval (SeqNil tp) r =
+eval (SeqNil tp) =
      returnc (1,1) $ SVal []
 
-eval (Seq es) r = 
-  do vs <- mapM (\e -> eval e r) es  
+eval (Seq es) = 
+  do vs <- mapM (\e -> eval e) es  
      returnc (wrapWork(length vs),1) $ SVal vs
 
-eval (Let p e1 e2) r =
-  do v1 <- eval e1 r
-     eval e2 (bind p v1 ++ r)
+eval (Let p e1 e2) =
+  do v1 <- eval e1
+     localSEnv (bind p v1) $ eval e2 
 
-eval (Call i es) r =
-  do vs <- mapM (\e -> eval e r) es
-     case lookup i r of
+eval (Call i es) =
+  do vs <- mapM (\e -> eval e) es
+     env <- askSEnv
+     case lookup i env of
        Just (FVal f) -> f vs
        Just _ -> fail $ "function and variable names are identical: " ++ i
        Nothing -> fail $ "bad function: " ++ i
 
+
 -- general comprehension
-eval (GComp e0 ps) r =
-  do vs <- mapM (\(_,e) -> eval e r) ps 
+eval (GComp e0 ps) =
+  do vs <- mapM (\(_,e) -> eval e) ps 
      let vs'' = [v | SVal v <- vs] 
          vs' = transpose vs''
          v0l = length $ head vs''  
@@ -88,17 +100,17 @@ eval (GComp e0 ps) r =
              let binds = zipWith (\pl vl -> 
                                  concat $ zipWith (\(p,_) v -> bind p v) pl vl)
                                (replicate (length vs') ps) vs' 
-             vss <- par $ zipWith (\e b -> eval e (b++r)) 
+             vss <- par $ zipWith (\e b -> localSEnv b $ eval e) 
                                   (replicate (length vs') e0) binds
              returnc (1,1) $ SVal vss)
      else fail "length mismatch in comprehension"
      
 
 --restricted comprehension
-eval (RComp e0 e1) r = 
-  do (AVal (BVal b)) <- eval e1 r 
+eval (RComp e0 e1) = 
+  do (AVal (BVal b)) <- eval e1
      case b of 
-        True -> (do v <- eval e0 r; returnc (1,1) (SVal [v]))
+        True -> (do v <- eval e0; returnc (1,1) (SVal [v]))
         _ -> returnc (1,1) $ SVal []
 
 
@@ -111,18 +123,18 @@ bind (PTup p1 p2) (TVal v1 v2) = (bind p1 v1) ++ (bind p2 v2)
 
 par :: [Snesl a] -> Snesl [a]
 par [] = return []
-par (t : ts) = 
-  Snesl (case rSnesl t of
-           Right (a, w1, s1) -> 
-             case rSnesl (par ts) of
-               Right (as, w2, s2) -> Right (a:as, w1+w2, s1 `max` s2)
-               Left e -> Left e
-           Left e -> Left e)
+par (t : ts) = Snesl $ \ env -> 
+    case rSnesl t env of
+       Right (a, w1, s1) -> 
+         case rSnesl (par ts) env of
+           Right (as, w2, s2) -> Right (a:as, w1+w2, s1 `max` s2)
+           Left e -> Left e
+       Left e' -> Left e'
 
 
 
 returnc :: (Int, Int) -> a -> Snesl a
-returnc (w,s) a = Snesl $ Right (a, w, s)
+returnc (w,s) a = Snesl $ \ _  -> Right (a, w, s)
 
 
 -- For the operation that can consume(and produce) empty sequences
