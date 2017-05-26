@@ -56,9 +56,13 @@ runTop (TExp e) env =
       Right (v,t,(w,s),(w',s')) ->
           do putStrLn $ show v ++ " :: " ++ show t
              putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
-                          ++ show s ++ "]"
-             putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
+                          ++ show s ++ "]" ++ ", " ++ 
+                        "SVCODE [work: " ++ show w' ++ ", step: " 
                           ++ show s' ++ "]"
+             putStrLn $ "SVCODE/SNESL ratio [work: " 
+                ++ show (ceiling $ (fromIntegral w')/ (fromIntegral w)) 
+                ++ ", step: " ++
+                 show ((ceiling $ (fromIntegral s')/ (fromIntegral s))) ++ "]" 
              return env 
 
 
