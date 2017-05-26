@@ -182,7 +182,7 @@ manyTest ps =
 
 
 
-progs = [prog1,prog2,prog3,prog4,prog5,prog6,prog7,prog8,prog9, prog10]
+progs = [prog1,prog2,prog3,prog4,prog5,prog6,prog7,prog8,prog9, prog10, prog11]
                           
 
 -- An example program: compute all the primes less than the number 'count'
@@ -218,5 +218,8 @@ prog9 = "let x = &2 in {{x: _ in &a} : a in &3}"
 
 prog10 = "{}{int}++{{1}}"
 
--- Wrong example; shoulg throw an Excpetion
-prog11 = "let x = 5; (y,z) = x in 5"  
+prog11 = "let bs = {{T,T},{F,T,F,F,T,T}} in {part(a,b): a in {{}int, {4,5,6}}, b in bs}"
+
+
+-- bads example; should throw an Excpetion
+prog12 = "let x = 5; (y,z) = x in 5"  

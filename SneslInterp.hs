@@ -6,6 +6,7 @@ import SneslSyntax
 import SneslParser
 import Data.Char (chr, ord)
 import Data.List (transpose)
+import Data.Bits ((.&.))
 
 
 runSneslInterpDefs :: [Def] -> SEnv -> Either String SEnv
@@ -196,9 +197,9 @@ se0 = [("_plus", primop cplus),
       ("part", FVal (\ [SVal vs, SVal flags] -> 
                             let bs = [b | AVal (BVal b) <- flags]
                                 l = length vs
-                            in if sum [1| b <- bs, not b] == l then
+                            in if (sum [1| b <- bs, not b] == l) .&. (last bs) then
                                  returnc (wrapWork l,1) $ SVal [SVal v | v <- seglist (flags2len bs) vs]
-                               else fail "part: flags mismatch")),
+                               else fail "part: flag mismatch")),
 
 
       ("scanExPlus", FVal (\ [SVal vs] -> 

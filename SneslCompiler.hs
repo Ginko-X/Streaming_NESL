@@ -344,14 +344,9 @@ compEnv0 = [
 
 
 part :: STree -> STree -> SneslTrans STree
-part = undefined
---part (SStr t1 _) (SStr (BStr t2) _) = 
---    do s1 <- emit (B2u t2)
---       s2 <- emit (Usum s1)
---       s3 <- emit (MapConst s2 (IVal 1))
---       s4 <- emit (ReducePlus s3 t2)
---       s5 <- emit (ToFlags s4)
---       return (SStr (SStr t1 t2) s5)
+part (SStr t1 _) (SStr (BStr t2) f2) = 
+    do s1 <- emit (USegCount t2 f2) 
+       return (SStr (SStr t1 t2) s1)
 
 
 empty :: STree -> SneslTrans STree

@@ -1,6 +1,7 @@
 module SneslTyping where
 
 import SneslSyntax
+import Data.Bits ((.&.))
 
 
 runTypingDefs :: [Def] -> TyEnv -> Either String TyEnv

@@ -22,6 +22,7 @@ data SExp = Ctrl
            | PrimSegFlagDistr SId SId SId 
            | B2u SId
            | SegConcat SId SId
+           | USegCount SId SId
            | SegMerge SId SId 
            | InterMergeS [SId]
            | SegInterS [(SId,SId)]
@@ -29,7 +30,7 @@ data SExp = Ctrl
            | Check SId SId           
            deriving Show
          
-         
+
 data SInstr = SDef SId SExp  -- deriving Show 
             | WithCtrl SId [SInstr] STree
             | SCall FId [SId] [SId]

@@ -10,6 +10,7 @@ import SneslInterp (flags2len, seglist, wrapWork)
 
 import Control.Monad
 import Data.List (transpose)
+import Data.Bits ((.&.))
 
 
 type Svctx = [(SId, SvVal)]
@@ -308,6 +309,13 @@ sExpInterp (SegConcat s1 s2) =
        returnInstrC [v1',v2'] $ SBVal $ segConcat v1 v2 
 
 
+sExpInterp (USegCount s1 s2) = 
+    do v1'@(SBVal v1) <- lookupSid s1
+       v2'@(SBVal v2) <- lookupSid s2
+       elemDescpChk v1 v2 "USegCount"
+       returnInstrC [v1',v2'] $ SBVal $ uSegCount v1 v2 
+
+
 sExpInterp (InterMergeS ss) = 
   do vs <- mapM lookupSid ss  -- segCountChk v1 v2 "InterMerge"
      let vs' = map (\(SBVal v) -> v) vs 
@@ -449,6 +457,15 @@ segConcat (False:fs1) f2@(False:fs2) = False: segConcat fs1 f2
 segConcat (True:fs1) (False:fs2) = segConcat fs1 fs2
 segConcat f1 (True:fs2) = True : segConcat f1 fs2
 
+-- count unary segments
+-- [F,T,F,F,T, F,F,T]  [FFFFFT,FFFT](flags) -> [F,F,T, F,T]
+uSegCount :: [Bool] -> [Bool] -> [Bool]
+uSegCount [] [] = []
+uSegCount (False:fs1) (False:fs2) = uSegCount fs1 fs2
+uSegCount (True:fs1) (False:fs2) = False : uSegCount fs1 fs2
+uSegCount f1 (True:fs2) = True : uSegCount f1 fs2
+
+
 
 -- primitive pack
 -- [1,2,3,4,5] [F,T,F,F,T] = [2,5]
@@ -574,6 +591,12 @@ segDescpChk b1 b2 instrName =
 
 
 -- the number of 'F's in bs is equal to the length of as
-elemDescpChk :: [a] -> [Bool] -> String -> Svcode ()
-elemDescpChk as bs instrName = undefined
+-- and the last element of bs must be a 'T'
+elemDescpChk :: Show a => [a] -> [Bool] -> String -> Svcode ()
+elemDescpChk as bs instrName = 
+    do let fs = [b | b <- bs , not b]
+       if (length as == length fs) .&. (last bs) 
+        then return ()
+        else fail $ instrName ++ ": segment descriptor mismatch "
+                     ++ show as  ++ ", " ++ show bs 
 
