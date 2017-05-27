@@ -55,10 +55,14 @@ opEnv0 = [(Uminus, \[SIVal as] -> SIVal $ map (\x -> -x) as),
 
 instance Show SInstr where
   show (SDef sid i) = "S" ++ show sid ++ " := " ++ show i 
-
+  show (WithCtrl sid instrs st) = "WithCtrl S" ++ show sid ++ " :" ++ "\n" 
+         ++ concat (map (("\t"++).show) instrs) ++ "\n\tReturn: " ++ show st 
+  show (SCall f s1 s2) = "SCall " ++ f ++  "\n\tParameters: " 
+         ++ show s1 ++ "\n\tReturn: " ++ show s2
+         
 
 instance Show SFun where
-  show (SFun args ret code) = "\nArguments: " 
+  show (SFun args ret code) = "\nParameters: " 
       ++ show args ++ "\n" ++ showseq "; \n" code ++ "\nReturn: " ++ show ret
                              
 

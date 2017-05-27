@@ -29,12 +29,40 @@ runCompileDef (FDef fname args rtp e) (ve,fe) =
             Left err -> Left $ "Compiling error: " ++ fname ++ ":" ++ err
 
 
+
 -- compile an expression
 runCompileExp :: Exp -> VEnv -> Either String SFun 
 runCompileExp e ve = 
     case rSneslTrans (translate e) 1 ve of 
         Right (st, sv, _) -> Right $ SFun [] st (SDef 0 Ctrl : sv)
         Left err -> Left err 
+
+
+--- Streaming Compiler APIs -----
+
+runSCompileDefs :: [Def] -> (VEnv,FEnv) -> Either String (VEnv,FEnv)
+runSCompileDefs [] e = return e 
+runSCompileDefs (d:ds) (ve,fe) = 
+    case rSneslTrans (runSCompileDef d) 1 ve of 
+        Right (ve', _, _) -> 
+            case runSCompileDefs ds ((ve'++ve),fe) of 
+              Right e -> Right e 
+              Left err -> Left $ "SCompiling error: " ++ err
+        Left err' -> Left $ "Compiling error: " ++ err'
+
+
+runSCompileDef :: Def -> SneslTrans VEnv
+runSCompileDef (FDef fname args _ e) = 
+    do let (argSts, _) = args2tree args 1
+           (ids, _) = unzip argSts 
+           f ids = localVEnv argSts $ translate e 
+           r1 = [(fname, FStr f)]
+       return r1 
+
+
+
+-------------------------------
+
 
 
 -- transform the argument list to STrees
@@ -71,8 +99,8 @@ askVEnv :: SneslTrans VEnv
 askVEnv = SneslTrans $ \ sid e0 -> Right (e0, [], sid)
 
 
-addVEnv :: VEnv -> SneslTrans a -> SneslTrans a
-addVEnv newe m = SneslTrans $ \sid e0 -> rSneslTrans m sid (newe++e0)
+localVEnv :: VEnv -> SneslTrans a -> SneslTrans a
+localVEnv newe m = SneslTrans $ \sid e0 -> rSneslTrans m sid (newe++e0)
   
 lookupSTree :: Id -> SneslTrans STree
 lookupSTree var = 
@@ -173,7 +201,7 @@ translate e@(Seq es) =
 translate (Let pat e1 e2) = 
     do st <- translate e1 
        newEnv <- bindM pat st
-       addVEnv newEnv $ translate e2 
+       localVEnv newEnv $ translate e2 
        
 
 translate (Call fname es) = 
@@ -203,7 +231,7 @@ translate (GComp e0 ps) =
                               (zip usingVars newVarTrs)
 
         -- translate the body
-        (st,defs) <- ctrlTrans $ addVEnv (concat $ newEnvs ++ usingVarbinds) 
+        (st,defs) <- ctrlTrans $ localVEnv (concat $ newEnvs ++ usingVarbinds) 
                                   $ translate e0 
         emitInstr (WithCtrl newCtrl defs st)
         return (SStr st s0)
@@ -217,7 +245,7 @@ translate (RComp e0 e1) =
        usingVarsTrs <- mapM (\x -> translate (Var x)) usingVars 
        newVarTrs <- mapM (\x -> pack x s1) usingVarsTrs
        binds <- mapM (\(v,tr) -> bindM (PVar v) tr) (zip usingVars newVarTrs)
-       (s3,defs) <- ctrlTrans $ addVEnv (concat binds) $ translate e0 
+       (s3,defs) <- ctrlTrans $ localVEnv (concat binds) $ translate e0 
        emitInstr (WithCtrl newCtrl defs s3)
        return (SStr s3 s2) 
 

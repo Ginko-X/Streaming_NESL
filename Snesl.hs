@@ -28,8 +28,16 @@ ie0 = (se0,tyEnv0, compEnv0,[])
 
 
 main :: IO ()
-main = runInputT defaultSettings (loop ie0)
-     where
+main = do args <- getArgs
+          case args of
+            ["-s"] -> sCompiler True
+            _ -> sCompiler False 
+
+
+sCompiler :: Bool -> IO ()
+sCompiler b =
+    runInputT defaultSettings (loop ie0)
+    where
          loop :: InterEnv -> InputT IO ()
          loop env = do
              minput <- getInputLine "> "
@@ -39,18 +47,18 @@ main = runInputT defaultSettings (loop ie0)
                  Just input -> 
                      case runParseTop input of
                        Right TExit -> return ()
-                       Right top -> (lift $ runTop top env) >>= loop
+                       Right top -> (lift $ runTop b top env) >>= loop
                        Left err -> (lift $ putStrLn err) >> loop env
 
 
 
-runTop :: Top -> InterEnv -> IO InterEnv
-runTop (TDef def@(FDef fname _ _ _)) env =
-    case runDef def env of 
+runTop :: Bool -> Top -> InterEnv -> IO InterEnv
+runTop b (TDef def@(FDef fname _ _ _)) env =
+    case runDef b def env of 
       Right env' -> (putStrLn $ "Defined function: " ++ fname) >> return env'
       Left err -> putStrLn err >> return env
 
-runTop (TExp e) env = 
+runTop _ (TExp e) env = 
     case runExp e env of 
       Left err -> putStrLn err >> return env             
       Right (v,t,(w,s),(w',s')) ->
@@ -66,9 +74,9 @@ runTop (TExp e) env =
              return env 
 
 
-runTop (TFile file) env =
+runTop b (TFile file) env =
     do str <- readFile file
-       case runFile str env of 
+       case runFile b str env of 
            Right env' -> (putStrLn $ "Loading file done.") >> return env'
            Left err -> putStrLn err >> return env
 
@@ -77,7 +85,7 @@ runTop (TFile file) env =
 runExp :: Exp -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
 runExp e env@(e0,t0,v0,f0) = 
     do sneslTy <- runTypingExp e t0   
-       (sneslRes,w,s) <- runSneslExp e e0 
+       (sneslRes,w,s) <- runSneslExp e e0        
        svcode <- runCompileExp e v0     
        (svcodeRes,(w',s')) <- runSvcodeExp svcode f0  
        svcodeRes' <- dataTransBack sneslTy svcodeRes
@@ -87,20 +95,20 @@ runExp e env@(e0,t0,v0,f0) =
                      ++ ", " ++ show svcodeRes' 
 
   
-runDef ::  Def -> InterEnv -> Either String InterEnv
-runDef def env@(e0,t0,v0,f0) = 
+runDef :: Bool -> Def -> InterEnv -> Either String InterEnv
+runDef b def env@(e0,t0,v0,f0) = 
    do funcTyEnv <- runTypingDefs [def] t0
       sneslEnv <- runSneslInterpDefs [def] e0 
-      (ve,fe) <- runCompileDefs [def] (v0,f0) 
+      (ve,fe) <- (if b then runSCompileDefs else runCompileDefs) [def] (v0,f0) 
       return (sneslEnv,funcTyEnv,ve,fe)
 
 
-runFile :: String -> InterEnv -> Either String InterEnv
-runFile str env@(e0,t0,v0,f0) = 
+runFile :: Bool -> String -> InterEnv -> Either String InterEnv
+runFile b str env@(e0,t0,v0,f0) = 
    do funcs <- runParseDefs str 
       funcTyEnv <- runTypingDefs funcs t0
       sneslEnv <- runSneslInterpDefs funcs e0
-      (ve,fe) <- runCompileDefs funcs (v0,f0)
+      (ve,fe) <- (if b then runSCompileDefs else runCompileDefs) funcs (v0,f0)
       return (sneslEnv,funcTyEnv,ve,fe)
 
 
@@ -111,25 +119,26 @@ testString str env@(e0,t0,v0,f0) =
     do e <- runParseExp str
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
-       svcode <- runCompileExp e v0 
-       (svcodeRes,(w',s')) <- runSvcodeExp svcode f0
-       svcodeRes' <- dataTransBack sneslTy svcodeRes
-       if compareVal sneslRes svcodeRes'  
-         then return (sneslRes, sneslTy,(w,s),(w',s')) 
-         else fail "SNESL and SVCODE results are different." 
+       svcode <- runCompileExp e v0
+       return svcode
+       --(svcodeRes,(w',s')) <- runSvcodeExp svcode f0
+       --svcodeRes' <- dataTransBack sneslTy svcodeRes
+       --if compareVal sneslRes svcodeRes'  
+       --  then return (sneslRes, sneslTy,(w,s),(w',s')) 
+       --  else fail "SNESL and SVCODE results are different." 
 
 
 
-testExample :: String -> IO()
-testExample str = 
-    case testString str ie0 of 
-        Left err' -> putStrLn err' 
-        Right (v,tp,(w,s),(w',s')) ->
-               do putStrLn $ show v ++ " :: " ++ show tp 
-                  putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
-                                ++ show s ++ "]"
-                  putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
-                                ++ show s' ++ "]"
+--testExample :: String -> IO()
+--testExample str = 
+--    case testString str ie0 of 
+--        Left err' -> putStrLn err' 
+--        Right (v,tp,(w,s),(w',s')) ->
+--               do putStrLn $ show v ++ " :: " ++ show tp 
+--                  putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
+--                                ++ show s ++ "]"
+--                  putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
+--                                ++ show s' ++ "]"
   
 
 
