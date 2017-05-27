@@ -2,12 +2,12 @@
 + Week 21 (22~28 May)
     + Many small modifications to make the language and code clean and clear, include:
         - added if-else-then expressions
-	- added two built-in functions: empty, part
-	- modified `SFun SId [STree] STree [SInstr]` to `SFun [SId] STree [SInstr]`
-	- modified `SCall FId [(SId,SId)] STree` to `SCall FId [SId] [SId]`
-	- made `WithCtrl` and `SCall` independent SVCODE instructions
-	- removed the `FEnv` component from the compiler monad
-	- added `SEnv` into the evaluation monad
+        - added two built-in functions: empty, part
+        - modified `SFun SId [STree] STree [SInstr]` to `SFun [SId] STree [SInstr]`
+        - modified `SCall FId [(SId,SId)] STree` to `SCall FId [SId] [SId]`
+        - made `WithCtrl` and `SCall` independent SVCODE instructions
+        - removed the `FEnv` component from the compiler monad
+        - added `SEnv` into the evaluation monad
     + Streaming SVCODE interpreter start:
         - added an option for specifying a Streaming compiler when run `Snesl.hs`
         
