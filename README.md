@@ -9,9 +9,9 @@
         - removed the `FEnv` component from the compiler monad
         - added `SEnv` into the evaluation monad
     + SVCODE Streaming interpreter start:
-        - implemented a basic streaming interpreting model
-	    - only support several instrutions at this point (and have bugs in `ToFlag`)
-	    - specifying streaming compiler/interpreter: `runhaskell Snesl.hs -s`
+        - implemented a basic streaming interpreting model [`SvcodeSInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeSInterp.hs)
+            - only support several instrutions at this point (and have bugs in `ToFlag`)
+            - specifying streaming compiler/interpreter: `runhaskell Snesl.hs -s`
         
      
 + Week 20 (15~21 May)
