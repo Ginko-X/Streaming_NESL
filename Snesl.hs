@@ -7,6 +7,8 @@ import SneslSyntax
 import SneslTyping
 import DataTrans
 
+import SvcodeSInterp
+
 import System.Environment
 import System.Console.Haskeline
 import Control.Monad.Trans (lift)
@@ -58,8 +60,8 @@ runTop b (TDef def@(FDef fname _ _ _)) env =
       Right env' -> (putStrLn $ "Defined function: " ++ fname) >> return env'
       Left err -> putStrLn err >> return env
 
-runTop _ (TExp e) env = 
-    case runExp e env of 
+runTop b (TExp e) env = 
+    case runExp b e env of 
       Left err -> putStrLn err >> return env             
       Right (v,t,(w,s),(w',s')) ->
           do putStrLn $ show v ++ " :: " ++ show t
@@ -82,12 +84,12 @@ runTop b (TFile file) env =
 
 
 
-runExp :: Exp -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
-runExp e env@(e0,t0,v0,f0) = 
+runExp :: Bool -> Exp -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
+runExp b e env@(e0,t0,v0,f0) = 
     do sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0        
        svcode <- runCompileExp e v0     
-       (svcodeRes,(w',s')) <- runSvcodeExp svcode f0  
+       (svcodeRes,(w',s')) <- if b then runSvcodeSExp svcode else runSvcodeExp svcode f0  
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes' 
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
@@ -120,8 +122,8 @@ testString str env@(e0,t0,v0,f0) =
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0
-       return svcode
-       --(svcodeRes,(w',s')) <- runSvcodeExp svcode f0
+       ctx <- runSvcodeSExp svcode
+       return ctx
        --svcodeRes' <- dataTransBack sneslTy svcodeRes
        --if compareVal sneslRes svcodeRes'  
        --  then return (sneslRes, sneslTy,(w,s),(w',s')) 
@@ -181,13 +183,13 @@ compareVal _ _ = False
 
 
 -- some examples
-manyTest :: [String] -> Either String String
-manyTest ps = 
-  case mapM runParseExp ps of 
-    Left err -> fail err 
-    Right es -> 
-        do res <- mapM (\e -> runExp e ie0) es
-           return "All correct!"
+--manyTest :: [String] -> Either String String
+--manyTest ps = 
+--  case mapM runParseExp ps of 
+--    Left err -> fail err 
+--    Right es -> 
+--        do res <- mapM (\e -> runExp e ie0) es
+--           return "All correct!"
 
 
 
