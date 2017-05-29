@@ -8,8 +8,10 @@
         - made `WithCtrl` and `SCall` independent SVCODE instructions
         - removed the `FEnv` component from the compiler monad
         - added `SEnv` into the evaluation monad
-    + Streaming SVCODE interpreter start:
-        - added an option for specifying a Streaming compiler when run `Snesl.hs`
+    + SVCODE Streaming interpreter start:
+        - implemented a basic streaming interpreting model
+	    - only support several instrutions at this point (and have bugs in `ToFlag`)
+	    - specifying streaming compiler/interpreter: `runhaskell Snesl.hs -s`
         
      
 + Week 20 (15~21 May)
