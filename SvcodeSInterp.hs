@@ -8,7 +8,7 @@ import SneslCompiler (tree2Sids)
 import DataTrans (i2flags)
 import SneslInterp (flags2len, seglist)
 
-import SvcodeInterp (usum, segSum,streamLen)
+import SvcodeInterp (usum, segSum,streamLen, ppack)
 
 import Control.Monad
 import Data.List (transpose)
@@ -199,6 +199,10 @@ sExpInit (Usum sid) =
     do (cur, eos, (SBVal vs), _) <- lookupSid sid
        return $ (cur, eos, (SBVal $ usum vs), Nil) 
 
+sExpInit (MapOne op s1) = 
+    do (cur1, eos1, v1, _) <- lookupSid s1
+       fop <- lookupOP op opEnv0
+       return (cur1, eos1, fop [v1], Nil)
       
 sExpInit (MapTwo op s1 s2) = 
     do (cur1, eos1, v1, _) <- lookupSid s1
@@ -221,6 +225,21 @@ sExpInit (ReducePlus s1 s2) =
            v =  segSum ls v1
            acc = if last v2 then 0 else last v           
        return (cur2,eos2, SIVal v, if eos2 then Nil else Acc acc)
+
+
+-- same problem as ToFlag
+--sExpInit (B2u s1) = 
+--    do (_, _, (SIVal v1), _) <- lookupSid s1
+
+
+sExpInit (Pack s1 s2) = 
+    do (cur1, eos1, v1, _) <- lookupSid s1
+       (_,_, SBVal v2,_) <- lookupSid s2
+       let v1' = case v1 of               
+                     (SIVal is) -> SIVal $ ppack is v2 
+                     (SBVal bs) -> SBVal $ ppack bs v2
+       return (cur1, eos1, v1', Nil)
+
 
 
 -- set empty streams for the SIds in the STree 
@@ -260,7 +279,12 @@ sExpInterp _ e@(Const _) = sExpInit e
 
 sExpInterp _ e@(Usum _) = sExpInit e 
 
-sExpInterp _ e@(MapTwo _ _ _) = sExpInit e 
+sExpInterp _ e@(MapOne _ _) = sExpInit e 
+
+sExpInterp _ e@(MapTwo _ _ _) = sExpInit e
+
+sExpInterp _ e@(Pack _ _) = sExpInit e  
+
 
 sExpInterp outs (ToFlags ins) = 
     do (_, _, SIVal v, _) <- lookupSid ins

@@ -467,7 +467,6 @@ uSegCount f1 (True:fs2) = True : uSegCount f1 fs2
 
 
 
--- primitive pack
 -- [1,2,3,4,5] [F,T,F,F,T] = [2,5]
 ppack :: [a] -> [Bool] -> [a]
 ppack [] [] = []
