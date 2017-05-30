@@ -8,6 +8,8 @@ import SneslCompiler (tree2Sids)
 import DataTrans (i2flags)
 import SneslInterp (flags2len, seglist)
 
+import SvcodeInterp (usum, segSum)
+
 import Control.Monad
 import Data.List (transpose)
 import Data.Bits ((.&.))
@@ -51,10 +53,10 @@ runSvcodeSExp :: SFun -> Either String (SvVal, (Int,Int))
 runSvcodeSExp (SFun [] st code) = 
     do (bs, ctx) <- rSvcodeS (mapM sInstrInit code) [] 0 
        v <- lookupTreeCtx st ctx
-       if all (\x -> x) bs then return (v,(0,0))  -- ignore cost
+       if all (\x -> x) bs then return (v,(0,0))  -- incorrect cost
        else 
          do (v', _) <- streamSvcodeS (mapM sInstrInterp code) ctx 0 st v
-            return (v',(0,0))
+            return (v',(0,0))  
 
 
 streamSvcodeS :: SvcodeS [Bool] -> Svctx -> SId -> STree -> SvVal 
@@ -63,8 +65,8 @@ streamSvcodeS m ctx ctrl st v =
     do (bs, ctx') <- rSvcodeS m ctx ctrl
        v' <- lookupTreeCtx st ctx' 
        if all (\x -> x) bs 
-       then return (concatSv v v', ctx')
-       else streamSvcodeS m (take (length ctx) ctx') ctrl st (concatSv v v')
+       then return (reduceSv $ concatSv v v', ctx')
+       else streamSvcodeS m ctx' ctrl st (reduceSv $ concatSv v v')
 
 
 
@@ -97,6 +99,11 @@ concatSv (SPVal v1 v2) (SPVal v3 v4) = SPVal (concatSv v1 v3) (concatSv v2 v4)
 concatSv (SSVal v1 b1) (SSVal v2 b2) = SSVal (concatSv v1 v2) (b1++b2)
 
 
+reduceSv :: SvVal -> SvVal
+reduceSv (SIVal is) = SIVal [sum is]
+reduceSv v = v
+
+
 -- look up the stream value according to its SId 
 lookupSid :: SId -> SvcodeS SState 
 lookupSid s = SvcodeS $ \c ctrl -> 
@@ -106,7 +113,7 @@ lookupSid s = SvcodeS $ \c ctrl ->
 
 
 addCtx :: SId -> SState -> SvcodeS ()
-addCtx s v = SvcodeS $ \c _ -> Right ((), c ++ [(s,v)])
+addCtx s v = SvcodeS $ \c _ -> Right ((), [(s,v)]++c)
 
 updateCtx :: SId -> SState -> SvcodeS ()
 updateCtx s state = SvcodeS $ \c _ -> Right ((), [(s,state)]++c) -- not real update
@@ -209,18 +216,19 @@ sExpInit (MapTwo op s1 s2) =
 
 
 sExpInit (SegscanPlus s1 s2) = 
-    do (cur1, eos1, (SIVal v1), _) <- lookupSid s1
+    do (_, _, (SIVal v1), _) <- lookupSid s1
        (cur2, eos2, (SBVal v2), _) <- lookupSid s2 
        let (vs, acc) = sSegExScanPlus 0 v1 v2            
        return (cur2, eos2, SIVal vs, if eos2 then Nil else Acc acc)
 
 
-
---sExpInterp (ReducePlus s1 s2) =
---    do v1'@(SIVal v1) <- lookupSid s1
---       v2'@(SBVal v2) <- lookupSid s2 
---       let ls = flags2len v2          
---       returnInstrC [v1',v2'] $ SIVal $ segSum ls v1 
+sExpInit (ReducePlus s1 s2) =
+    do (_, _, (SIVal v1), _) <- lookupSid s1
+       (cur2, eos2, (SBVal v2), _) <- lookupSid s2 
+       let ls = sFlags2len v2
+           v =  segSum ls v1
+           acc = if last v2 then 0 else last v           
+       return (cur2,eos2, SIVal v, if eos2 then Nil else Acc acc)
 
 
 -- set empty streams for the SIds in the STree 
@@ -278,13 +286,15 @@ sExpInterp outs (SegscanPlus ins1 ins2) =
        return (cur2, eos2, SIVal vs, if eos2 then Nil else Acc acc')
 
 
---sExpInterp (ReducePlus s1 s2) =
---    do v1'@(SIVal v1) <- lookupSid s1
---       v2'@(SBVal v2) <- lookupSid s2 
---       let ls = flags2len v2          
---       returnInstrC [v1',v2'] $ SIVal $ segSum ls v1 
-
-
+sExpInterp outs (ReducePlus ins1 ins2) =
+    do (_, _, _, Acc acc) <- lookupSid outs 
+       (_, _, (SIVal v1), _) <- lookupSid ins1
+       (cur2, eos2, (SBVal v2), _) <- lookupSid ins2
+       let ls = sFlags2len v2
+           v = segSum ls v1 
+           v' = if null v then [acc] else (acc + head v) : tail v  
+           acc' = if last v2 then 0 else last v'           
+       return (cur2,eos2, SIVal v, if eos2 then Nil else Acc acc')
 
 
 -- streaming flags2length
@@ -320,10 +330,3 @@ is2flags is@(i:iss) buf acc =
            in if length bs < buf + acc then b0 ++ (is2flags iss (buf - length b0) 0) 
                else take buf (drop acc bs)
 
-
--- unary sum of the number of Fs 
--- e.g. <F,F,T,F,T> => <F,F,F> representing <*,*,*> 
-usum :: [Bool] -> [Bool]
-usum [] = []
-usum (True:s) = usum s
-usum (False:s) = False : usum s     
