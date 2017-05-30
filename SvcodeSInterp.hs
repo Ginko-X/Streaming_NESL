@@ -8,7 +8,7 @@ import SneslCompiler (tree2Sids)
 import DataTrans (i2flags)
 import SneslInterp (flags2len, seglist)
 
-import SvcodeInterp (usum, segSum)
+import SvcodeInterp (usum, segSum,streamLen)
 
 import Control.Monad
 import Data.List (transpose)
@@ -119,26 +119,6 @@ updateCtx :: SId -> SState -> SvcodeS ()
 updateCtx s state = SvcodeS $ \c _ -> Right ((), [(s,state)]++c) -- not real update
 
 
-streamLenM :: SvVal -> SvcodeS Int 
-streamLenM s  = return $ streamLen s 
-
-streamLen :: SvVal -> Int 
-streamLen (SIVal s) = length s 
-streamLen (SBVal s) = length s 
-streamLen (SPVal s1 s2) = s1l + s2l 
-    where s1l = streamLen s1 
-          s2l = streamLen s2
-streamLen (SSVal s1 s2) = s1l + s2l
-    where s1l = streamLen s1 
-          s2l = length s2
-
--- look up the function definition of the operation
-lookupOP :: OP -> OpEnv -> SvcodeS ([SvVal] -> SvVal)  
-lookupOP key ps = 
-  do case lookup key ps of
-       Just v -> return v 
-       Nothing -> fail $ "SVCODE: can't find " ++ show key
-
 
 getCtrl :: SvcodeS SId 
 getCtrl = SvcodeS $ \ ctx ctrl -> Right (ctrl, ctx)
@@ -153,6 +133,18 @@ getCtx = SvcodeS $ \ ctx _ -> Right (ctx, ctx)
 
 setCtx :: Svctx -> SvcodeS ()
 setCtx c = SvcodeS $ \ _ _ -> Right ((), c)
+
+
+
+streamLenM :: SvVal -> SvcodeS Int 
+streamLenM s  = return $ streamLen s 
+
+lookupOP :: OP -> OpEnv -> SvcodeS ([SvVal] -> SvVal)  
+lookupOP key ps = 
+  do case lookup key ps of
+       Just v -> return v 
+       Nothing -> fail $ "SVCODE: can't find " ++ show key
+
 
 
 ----- Instructions initialization -------
