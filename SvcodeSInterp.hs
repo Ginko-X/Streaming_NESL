@@ -1,4 +1,4 @@
-{- Svcode Interpreter -}
+{- SVCODE Streaming Interpreter -}
 
 module SvcodeSInterp where
 
@@ -20,21 +20,25 @@ data Proc a = Pin (Int,Int) (Maybe AVal -> Proc a)
             | Done a 
 
 
---instance Monad Proc where
---  return a = Done a
---  (Pin i g) >>= f = Pin i (\x -> (f x)) in g 
---  (Pout a p) >>= f = Pout a p >>f
+instance Monad Proc where
+  return a = Done a
 
---instance Functor Proc where
---  fmap f t = t >>= return . f
+  (Pin i g) >>= f = Pin i (\x -> g x >>= f) 
+  (Pout o p) >>= f = Pout o (p >>= f)
+  Done a >>= f = f a 
 
---instance Applicative Proc where
---  pure = return
---  tf <*> ta = tf >>= \f -> fmap f ta
+
+instance Functor Proc where
+  fmap f t = t >>= return . f
+
+instance Applicative Proc where
+  pure = return
+  tf <*> ta = tf >>= \f -> fmap f ta
+
 
 
 mapConst :: AVal -> Proc ()
-mapConst a = 
+mapConst a =       
   let p i = Pin (0,i) (\x -> 
               case x of  
                 Nothing -> Done ()
@@ -73,6 +77,7 @@ segScanPlus =
 
 
 
+-- ??
 evalProc :: Proc () -> [SvVal] -> SvVal
 evalProc (Pin (x,y) p) ss = 
   let p' = p (pread y (ss !! x))
@@ -82,7 +87,7 @@ evalProc (Pout a p) ss =
   let s = evalProc p ss  
   in concatSv (pwrite a) s
 
-evalProc (Done ()) _ = SIVal [] -- !!
+evalProc (Done ()) _ = SIVal [] -- SBVal [] -- ?!!
 
 
 
@@ -108,6 +113,30 @@ concatSv (SIVal a) (SIVal b) = SIVal (a++b)
 concatSv (SBVal a) (SBVal b) = SBVal (a++b)
 concatSv (SPVal v1 v2) (SPVal v3 v4) = SPVal (concatSv v1 v3) (concatSv v2 v4)
 concatSv (SSVal v1 b1) (SSVal v2 b2) = SSVal (concatSv v1 v2) (b1++b2)
+
+
+
+
+----- Streaming Interpreter -----
+{-
+
+type Svctx = [(SId, SvVal)]
+
+newtype SvcodeS a = SvcodeS {rSvcodeS :: Svctx -> SId -> 
+                                           Either String (a, Svctx)}
+
+
+sExpInterp :: SExp -> SvcodeS SvVal
+sExpInterp (MapConst s1 a) = 
+  do v1 <- lookupSid s1
+     return evalProc (mapConst a) [v1]
+
+sExpInterp (ToFlags s1) = 
+  do v1 <- lookupSid s1 
+     return evalProc toFlags [v1]
+
+-}
+
 
 
 

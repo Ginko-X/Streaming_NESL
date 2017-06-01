@@ -1,6 +1,7 @@
 # Working Progress
 + Week 22 (29 May ~ 4 Jun)
-    + reimplement SVCODE streaming interpreter 
+    + reconstruct SVCODE streaming interpreter
+        - a starting point [`SvcodeSInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeSInterp.hs)
     
 + Week 21 (22~28 May)
     + Many small modifications to make the language and code clean and clear, include:
