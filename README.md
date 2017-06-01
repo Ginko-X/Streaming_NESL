@@ -1,4 +1,7 @@
 # Working Progress
++ Week 22 (29 May ~ 4 Jun)
+    + reimplement SVCODE streaming interpreter 
+    
 + Week 21 (22~28 May)
     + Many small modifications to make the language and code clean and clear, include:
         - added if-else-then expressions
