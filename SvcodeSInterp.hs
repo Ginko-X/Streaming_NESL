@@ -72,22 +72,22 @@ segScanPlus =
                         case y of 
                           Nothing -> Done ()
                           Just (BVal False) -> Pout (Just $ IVal $ acc) (p (i+1) (a+acc))
-                          Just (BVal True) -> Pout (Just $ IVal 0) (p (i+1) a)))
+                          Just (BVal True) -> Pout (Just $ IVal 0) (p (i+1) a)))  -- bug
   in (p 0 0)
 
 
 
--- ??
-evalProc :: Proc () -> [SvVal] -> SvVal
-evalProc (Pin (x,y) p) ss = 
+
+evalProc :: Proc () -> [SvVal] -> SvVal -> SvVal
+evalProc (Pin (x,y) p) ss s = 
   let p' = p (pread y (ss !! x))
-   in evalProc p' ss
+   in evalProc p' ss s
 
-evalProc (Pout a p) ss = 
-  let s = evalProc p ss  
-  in concatSv (pwrite a) s
+evalProc (Pout a p) ss s = 
+  let s0 = pwrite a
+  in  evalProc p ss (concatSv s s0)
 
-evalProc (Done ()) _ = SIVal [] -- SBVal [] -- ?!!
+evalProc (Done ()) _ s = s 
 
 
 
