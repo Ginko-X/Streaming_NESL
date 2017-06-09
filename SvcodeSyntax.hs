@@ -53,6 +53,20 @@ opEnv0 = [(Uminus, \[SIVal as] -> SIVal $ map (\x -> -x) as),
           (Leq, \[SIVal as, SIVal bs] -> SBVal $ zipWith (<=) as bs)]
 
 
+
+
+type OpAEnv = [(OP, ([AVal] -> AVal, Type))]
+opAEnv0 = [(Uminus, (\[IVal a] -> IVal (-a), TInt)),
+          (Not, (\[BVal a] -> BVal $ not a, TBool)),
+          (Add, (\[IVal a, IVal b] -> IVal $ a+b, TInt)),
+          (Minus, (\[IVal a, IVal b] -> IVal $ a-b, TInt)) ,
+          (Times, (\[IVal a, IVal b] -> IVal $ a*b, TInt)),
+          (Div, (\[IVal a, IVal b] -> IVal $ a `div` b, TInt)),
+          (Equal, (\[IVal a, IVal b] -> BVal $ a == b, TBool) ),
+          (Leq, (\[IVal a, IVal b] -> BVal $ a <= b, TBool))]
+
+
+
 instance Show SInstr where
   show (SDef sid i) = "S" ++ show sid ++ " := " ++ show i 
   show (WithCtrl sid instrs st) = "WithCtrl S" ++ show sid ++ " :" ++ "\n" 

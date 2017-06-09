@@ -6,7 +6,6 @@ import SvcodeSyntax
 import SneslSyntax
 import SneslTyping
 import DataTrans
-
 import SvcodeSInterp
 
 import System.Environment
@@ -89,7 +88,7 @@ runExp b e env@(e0,t0,v0,f0) =
     do sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0        
        svcode <- runCompileExp e v0     
-       (svcodeRes,(w',s')) <- if b then runSvcodeSExp svcode else runSvcodeExp svcode f0  
+       (svcodeRes,(w',s')) <- if b then runSvcodeSExp svcode else runSvcodeExp svcode f0
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes' 
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
@@ -122,12 +121,11 @@ testString str env@(e0,t0,v0,f0) =
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0
-       ctx <- runSvcodeSExp svcode
-       return ctx
-       --svcodeRes' <- dataTransBack sneslTy svcodeRes
-       --if compareVal sneslRes svcodeRes'  
-       --  then return (sneslRes, sneslTy,(w,s),(w',s')) 
-       --  else fail "SNESL and SVCODE results are different." 
+       ctx <- runSvcodeExp svcode f0
+       svcodeRes' <- dataTransBack sneslTy svcodeRes
+       if compareVal sneslRes svcodeRes'  
+         then return (sneslRes, sneslTy,(w,s),(w',s')) 
+         else fail "SNESL and SVCODE results are different." 
 
 
 

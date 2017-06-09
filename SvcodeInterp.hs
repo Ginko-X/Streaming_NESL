@@ -8,7 +8,8 @@ import SneslCompiler (tree2Sids)
 import DataTrans (i2flags)
 import SneslInterp (flags2len, seglist, wrapWork)
 
-import Control.Monad
+import SvcodeProc
+
 import Data.List (transpose)
 import Data.Bits ((.&.))
 
@@ -155,7 +156,7 @@ makeCtx s1s s2s =　
 
 -- interpreter an SVCODE stream definition
 sInstrInterp :: SInstr -> Svcode ()
-sInstrInterp (SDef sid i) = sExpInterp i >>= addCtx sid 
+sInstrInterp (SDef sid i) = sExpInterpProc i >>= addCtx sid 
 
 sInstrInterp (WithCtrl c defs st) =
   do ctrl@(SBVal bs) <- lookupSid c 
@@ -355,6 +356,65 @@ sExpInterp (Check s1 s2) =
       v2 <- lookupSid s2
       if v1 == v2 then returnInstrC [v1,v2] $ SBVal []
         else fail $ "streams are not identical:" ++ show v1 ++ "," ++ show v2
+
+
+
+
+------ SExp interpreting using Proc --- 
+
+sExpInterpProc :: SExp -> Svcode SvVal
+
+sExpInterpProc Ctrl = 
+  return $ SBVal [False]
+
+sExpInterpProc (Const a) = 
+  do c <- getCtrl
+     sExpInterpProc (MapConst c a)
+
+sExpInterpProc (MapConst sid a) = 
+  do v1 <- lookupSid sid
+     let v0 = case a of 
+                IVal _ -> SIVal []
+                BVal _ -> SBVal []
+     return $ evalProc (mapConst a) [v1] v0 
+
+sExpInterpProc (ToFlags sid) = 
+  do v1 <- lookupSid sid 
+     return $ evalProc toFlags [v1] (SBVal [])
+
+
+sExpInterpProc (Usum sid) = 
+  do v <- lookupSid sid 
+     return $ evalProc usumProc [v] (SBVal [])
+     
+
+sExpInterpProc (MapTwo op s1 s2) = 
+  do v1 <- lookupSid s1
+     v2 <- lookupSid s2 
+     (fop, tp) <- lookupOpA op opAEnv0
+     case tp of 
+       TInt -> return $ evalProc (mapTwo fop) [v1,v2] (SIVal []) 
+       TBool -> return $ evalProc (mapTwo fop) [v1,v2] (SBVal [])
+
+
+
+sExpInterpProc (SegscanPlus s1 s2) = 
+  do v1 <- lookupSid s1
+     v2 <- lookupSid s2 
+     return $ evalProc segScanPlus [v2,v1] (SIVal [])
+
+
+-- lookup the operation definition
+lookupOpA :: OP -> OpAEnv -> Svcode ([AVal] -> AVal, Type) 
+lookupOpA op r = 
+  do case lookup op r of
+       Just v -> return v 
+       Nothing -> fail $ "SVCODE: can't find " ++ show op 
+
+
+--------------------------------------------------
+
+
 
 
 -- segment interleave
