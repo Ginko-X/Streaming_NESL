@@ -388,11 +388,11 @@ empty (SStr t f) =
 
 
 the :: STree -> SneslTrans STree
-the (SStr t f) = -- return t 
-    do s1 <- emit (Const (IVal 1))
-       s2 <- emit (ToFlags s1)
-       s3 <- emit (Check f s2)
-       return t 
+the (SStr t f) = return t 
+    --do s1 <- emit (Const (IVal 1))
+    --   s2 <- emit (ToFlags s1)
+    --   s3 <- emit (Check f s2)
+    --   return t 
 
 
 iotas :: SId -> SneslTrans STree
