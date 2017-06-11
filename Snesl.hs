@@ -121,7 +121,7 @@ testString str env@(e0,t0,v0,f0) =
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0
-       ctx <- runSvcodeExp svcode f0
+       (svcodeRes, (w',s')) <- runSvcodeExp svcode f0
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes'  
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
@@ -181,13 +181,10 @@ compareVal _ _ = False
 
 
 -- some examples
---manyTest :: [String] -> Either String String
---manyTest ps = 
---  case mapM runParseExp ps of 
---    Left err -> fail err 
---    Right es -> 
---        do res <- mapM (\e -> runExp e ie0) es
---           return "All correct!"
+manyTest :: [String] -> Either String String
+manyTest ps = 
+  do mapM_ (\e -> testString e ie0) ps
+     return "All correct!"
 
 
 

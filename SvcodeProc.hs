@@ -1,3 +1,5 @@
+{- SVCODE transducers -}
+
 module SvcodeProc where
 
 import SvcodeSyntax
@@ -43,71 +45,254 @@ rout a = Pout a (Done ())
 mapConst :: AVal -> Proc ()
 mapConst a = p
   where p = rin 0 (\x -> rout a >> p) 
- 
---mapConst a =       
---  let p = Pin 0 (\x -> 
---              case x of  
---                Nothing -> Done ()
---                Just _ -> Pout a p)
---   in p
+
+
+
+toFlags :: Proc ()
+toFlags = p 
+  where p = rin 0 (\(IVal a) -> mapM_ rout [BVal b | b <- i2flags a] >> p)
 
 
 
 usumProc :: Proc ()
 usumProc = p
-  where p = rin 0 p'
-        p' (BVal False) = rout (BVal False) >> p 
-        p' (BVal True) = p 
+  where p = rin 0 (\x -> 
+              case x of 
+                BVal False -> rout (BVal False) >> p 
+                BVal True -> p)
+
 
 
 mapTwo :: ([AVal] -> AVal) -> Proc ()
-mapTwo op = 
-  let p = Pin 0 (\x -> 
-            case x of 
-              Nothing -> Done ()
-              Just a -> Pin 1 (\y ->
-                case y of 
-                  Nothing -> Done ()
-                  Just b -> Pout (op [a,b]) p))
-   in p  
-
---mapOne :: 
+mapTwo op = p 
+  where p = rin 0 (\x -> rin 1 (\y -> rout (op [x,y]) >> p))
 
 
 
+mapOne :: ([AVal] -> AVal) -> Proc ()
+mapOne op = p 
+  where p = rin 0 (\x -> rout (op [x]) >> p)
 
-toFlags :: Proc ()
---toFlags = p 
---  where p = rin 0 p'
---        p' (IVal x) = mapM_ rout [BVal b | b <- i2flags x] >> p
-toFlags = 
-  let p = Pin 0 (\x ->
+
+packProc :: Proc ()
+packProc = p 
+  where p = rin 0 (\x -> 
               case x of 
-                Nothing -> Done ()
-                Just (IVal a) -> mapM_ rout [BVal b | b <- i2flags a] >> p  ) 
-   in p
+                BVal False -> rin 1 (\_ -> p)
+                BVal True -> rin 1 (\y -> rout y >> p))
+
+
+upackProc :: Proc ()
+upackProc = p 
+  where p = rin 0 (\x -> 
+              case x of 
+                BVal False -> uIn 1 >> p
+                BVal True -> uInOut 1 >> rout (BVal True) >> p )
+
+
+uIn :: Int -> Proc ()
+uIn i = rin i (\x -> 
+          case x of 
+            BVal False -> uIn i
+            BVal True -> Done ())
 
 
 
-segScanPlus :: Proc ()
---segScanPlus = p 0 
---  where p acc = rin 0 (p' acc)
---        p' acc (BVal False) = rin 1 (pf acc) 
---        p' _ (BVal True) = p 0 
---        pf acc (IVal a) = rout (IVal acc) >> p (a + acc)
-segScanPlus =
+uInOut :: Int -> Proc ()
+uInOut i = rin i (\x -> 
+             case x of 
+               BVal False -> rout (BVal False) >> (uInOut i)
+               BVal True -> Done ())
+
+
+pdistProc :: Proc ()
+pdistProc = p
+  where p = rin 0 (\x -> rin 1 (\y -> 
+              case y of 
+                BVal False -> rout x >> (uOut 1 x) >> p 
+                BVal True -> p))
+ 
+
+uOut :: Int -> AVal -> Proc ()
+uOut i a = rin i (\x -> 
+             case x of 
+               BVal False -> rout a >> (uOut i a)
+               BVal True -> Done ())
+
+
+
+segDistrProc :: Proc ()
+segDistrProc = p 
+  where p = do vs <- uRecord 0
+               rin 1 (\y -> 
+                 case y of
+                   BVal False -> mapM_ rout vs >> uOuts 1 vs >> p 
+                   BVal True -> p)
+
+
+
+uRecord :: Int -> Proc [AVal]
+uRecord i =
+  let p vs = Pin i (\x -> 
+               case x of 
+                 Nothing -> Done vs 
+                 Just (BVal False) -> p  ((BVal False):vs)  
+                 Just (BVal True) -> Done (reverse (BVal True : vs)))
+  in (p [])
+
+
+
+segFlagDistrProc :: Proc ()
+segFlagDistrProc = p []
+  where p vs = rin 0 (\x -> 
+                 case x of 
+                   BVal False -> do vs' <- uRecord 1; p (vs++vs')
+                   BVal True -> rin 2 (\y -> 
+                     case y of 
+                       BVal False -> mapM_ rout vs >> uOuts 2 vs >> (p [])
+                       BVal True -> p []))
+
+
+
+uOuts :: Int -> [AVal] -> Proc ()
+uOuts i as = rin i (\x -> 
+               case x of 
+                 BVal False -> mapM_ rout as >> (uOuts i as)
+                 BVal True -> Done ())
+
+
+primSegFlagDistrProc :: Proc ()
+primSegFlagDistrProc = p []
+  where p vs = rin 0 (\x -> 
+                 case x of 
+                   BVal False -> rin 1 (\y -> p (vs ++ [y]))
+                   BVal True -> rin 2 (\y -> 
+                     case y of 
+                       BVal False -> mapM_ rout vs >> uOuts 2 vs >> (p [])
+                       BVal True -> p []))
+
+
+
+b2uProc :: Proc ()
+b2uProc = p 
+  where p = rin 0 (\x -> 
+              case x of 
+                BVal True -> rout (BVal False) >> rout (BVal True) >> p 
+                BVal False -> rout (BVal True) >> p )
+
+
+
+segScanPlusProc :: Proc ()
+segScanPlusProc = p 0 
+  where p acc = rin 0 (\x -> 
+              case x of 
+                BVal False -> rin 1 (\(IVal a) -> rout (IVal acc) >> p (a+acc))
+                BVal True -> p 0)
+
+
+
+segReducePlusProc :: Proc ()
+segReducePlusProc = 
   let p acc = Pin 0 (\x -> 
-                  case x of 
-                    Nothing -> Done ()
-                    Just (BVal False) -> 
-                      Pin 1 (\ (Just (IVal a)) -> Pout (IVal acc) (p (a+acc)))                    
-                    Just (BVal True) -> p 0)
+                case x of 
+                  Nothing -> Done ()
+                  Just (BVal False) -> 
+                    Pin 1 (\(Just (IVal a)) -> p (acc + a))
+                  Just (BVal True) -> Pout (IVal acc) (p 0))
   in (p 0)
 
 
+segConcatProc :: Proc ()
+segConcatProc = 
+  let p = Pin 0 (\x -> 
+            case x of 
+              Nothing -> Done ()
+              Just (BVal False) -> (uInOut 1) >> p 
+              Just (BVal True) -> rout (BVal True) >> p)
+  in p  
+                
+
+uSegCountProc :: Proc ()
+uSegCountProc = 
+  let p = Pin 0 (\x -> 
+            case x of 
+              Nothing -> Done ()
+              Just (BVal False) -> Pin 1 (\y -> 
+                case y of 
+                  Just (BVal False) -> p 
+                  Just (BVal True) -> Pout (BVal False) p) 
+              Just (BVal True) -> Pout (BVal True) p )
+  in p 
 
 
--- 
+
+
+segMergeProc :: Proc ()
+segMergeProc = 
+  let p = Pin 0 (\x -> 
+            case x of 
+              Nothing -> Done ()
+              Just (BVal False) -> uInOut 1 >> p
+              Just (BVal True) -> Pout (BVal True) p)
+  in p 
+
+
+interMergeProc :: Int -> Proc ()
+interMergeProc c = 
+  let p = Pin 0 (\x -> 
+            case x of 
+              Nothing -> Done ()
+              Just v -> rout v >> mapM_ uInOut [0..c-1] >> rout (BVal True) >> p)
+  in p  
+
+
+segInterProc :: [(Int,Int)] -> Proc ()
+segInterProc cs = 
+  let (j,i) = head cs 
+      p = Pin i (\x -> 
+            case x of 
+              Nothing -> Done ()
+              Just (BVal False) -> uInOut j >> Pout (BVal True) p 
+              Just (BVal True) -> mapM_ segInterP (tail cs) >> p )
+   in p      
+
+
+segInterP :: (Int, Int) -> Proc ()
+segInterP (j,i) = 
+  let p = Pin i (\x -> 
+            case x of 
+              Nothing -> Done ()
+              Just (BVal False) -> uInOut j >> Pout (BVal True) p 
+              Just (BVal True) -> Done ())
+  in p 
+
+
+priSegInterProc :: [(Int, Int)] -> Proc ()
+priSegInterProc cs = 
+  let (j,i) = head cs 
+      p = Pin i (\x -> 
+            case x of 
+              Nothing -> Done ()
+              Just (BVal False) -> Pin j (\(Just v) -> Pout v p) 
+              Just (BVal True) -> mapM_ priSegInterP (tail cs) >> p )
+      in p 
+
+
+priSegInterP :: (Int, Int) -> Proc ()
+priSegInterP (j,i) = 
+  let p = Pin i (\x -> 
+            case x of 
+              Nothing -> Done () 
+              Just (BVal False) -> Pin j (\(Just v) -> Pout v p) 
+              Just (BVal True) -> Done ())
+  in p   
+
+
+
+
+
+------- 
+
 evalProc :: Proc () -> [SvVal] -> SvVal -> SvVal
 evalProc (Pin i p) ss s = 
   let (a, tailS) = (pread $ ss !! i )
@@ -121,10 +306,9 @@ evalProc (Done ()) _ s = reverseSv s
 
 
 
+
 update :: [SvVal] -> Int -> SvVal -> [SvVal]
 update ss i s = take i ss ++ [s] ++ drop (i+1) ss 
-
-
 
 
 pread :: SvVal -> (Maybe AVal, SvVal)

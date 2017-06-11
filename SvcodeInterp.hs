@@ -154,9 +154,13 @@ makeCtx s1s s2s =　
      return $ zip s2s vs 
  
 
--- interpreter an SVCODE stream definition
+---- interpret a stream definition ---- 
+
 sInstrInterp :: SInstr -> Svcode ()
-sInstrInterp (SDef sid i) = sExpInterpProc i >>= addCtx sid 
+sInstrInterp (SDef sid i) = 
+  --sExpInterp i >>= addCtx sid   -- old API 
+  sExpInterpProc i >>= addCtx sid -- interpreter using Proc 
+  
 
 sInstrInterp (WithCtrl c defs st) =
   do ctrl@(SBVal bs) <- lookupSid c 
@@ -176,7 +180,7 @@ sInstrInterp (SCall fid sids retSids) =
 
 
 
----- Instruction interpretation  ------ 
+------ interpret SExps   --------
 
 sExpInterp :: SExp -> Svcode SvVal
 
@@ -196,12 +200,8 @@ sExpInterp (MapConst sid a) =
 
 sExpInterp (Const a) = 
     do ctrl <- getCtrl
-       v <- lookupSid ctrl
-       l <- streamLenM v 
-       let as = case a of 
-                 IVal i -> SIVal $ replicate l i 
-                 BVal b -> SBVal $ replicate l b
-       returnInstrC [v] as
+       sExpInterp (MapConst ctrl a)
+    
 
 -- toflags: generate flag segments for a stream of integers
 -- e.g. <1,4,0,2> => <F,T,F,F,F,F,T,T,F,F,T>
@@ -360,57 +360,139 @@ sExpInterp (Check s1 s2) =
 
 
 
------- SExp interpreting using Proc --- 
+----------- interpret SExps using Proc ----------------
 
 sExpInterpProc :: SExp -> Svcode SvVal
 
-sExpInterpProc Ctrl = 
-  return $ SBVal [False]
+sExpInterpProc Ctrl = returnInstrC [] (SBVal [False])
+
+sExpInterpProc EmptyCtrl = returnInstrC [] (SBVal [])
 
 sExpInterpProc (Const a) = 
   do c <- getCtrl
      sExpInterpProc (MapConst c a)
 
+
 sExpInterpProc (MapConst sid a) = 
-  do v1 <- lookupSid sid
-     let v0 = case a of 
+  do let v0 = case a of 
                 IVal _ -> SIVal []
                 BVal _ -> SBVal []
-     return $ evalProc (mapConst a) [v1] v0 
-
-sExpInterpProc (ToFlags sid) = 
-  do v1 <- lookupSid sid 
-     return $ evalProc toFlags [v1] (SBVal [])
+     svProc [sid] (mapConst a) v0 
 
 
-sExpInterpProc (Usum sid) = 
-  do v <- lookupSid sid 
-     return $ evalProc usumProc [v] (SBVal [])
-     
+sExpInterpProc (ToFlags sid) = svProc [sid] toFlags (SBVal []) 
+
+sExpInterpProc (Usum sid) = svProc [sid] usumProc  (SBVal [])
+ 
 
 sExpInterpProc (MapTwo op s1 s2) = 
-  do v1 <- lookupSid s1
-     v2 <- lookupSid s2 
-     (fop, tp) <- lookupOpA op opAEnv0
-     case tp of 
-       TInt -> return $ evalProc (mapTwo fop) [v1,v2] (SIVal []) 
-       TBool -> return $ evalProc (mapTwo fop) [v1,v2] (SBVal [])
+  do (fop, tp) <- lookupOpA op opAEnv0
+     let v0 = case tp of 
+                TInt -> SIVal []
+                TBool -> SBVal []
+     svProc [s1,s2] (mapTwo fop) v0
+
+
+sExpInterpProc (MapOne op s1) = 
+  do (fop,tp) <- lookupOpA op opAEnv0
+     let v0 = case tp of 
+                TInt -> SIVal []
+                TBool -> SBVal []
+     svProc [s1] (mapOne fop) v0 
+
+
+sExpInterpProc (Pack s1 s2) = svProc' [s2,s1] packProc 1
+
+
+sExpInterpProc (UPack s1 s2) = svProc [s2,s1] upackProc (SBVal [])
+
+
+sExpInterpProc (Distr s1 s2) = svProc' [s1,s2] pdistProc 0 
+ 
+
+sExpInterpProc (SegDistr s1 s2) = svProc [s1,s2] segDistrProc (SBVal [])
+
+
+sExpInterpProc (SegFlagDistr s1 s2 s3) = 
+  svProc [s2,s1,s3] segFlagDistrProc (SBVal []) 
+ 
+
+sExpInterpProc (PrimSegFlagDistr s1 s2 s3) = 
+  svProc' [s2,s1,s3] primSegFlagDistrProc 1
+
+
+sExpInterpProc (B2u sid) = svProc [sid] b2uProc (SBVal [])
+
+
+sExpInterpProc (SegscanPlus s1 s2) = svProc [s2,s1] segScanPlusProc (SIVal [])
+ 
+
+sExpInterpProc (ReducePlus s1 s2) = svProc [s2,s1] segReducePlusProc (SIVal [])
+  
+
+sExpInterpProc (SegConcat s1 s2) = svProc [s2,s1] segConcatProc (SBVal [])
+ 
+
+sExpInterpProc (USegCount s1 s2) = svProc [s2,s1] uSegCountProc (SBVal [])
+ 
+
+sExpInterpProc (InterMergeS ss) = 
+  svProc ss (interMergeProc $ length ss) (SBVal [])
+
+
+sExpInterpProc (SegInterS ss) = 
+  do vs <- mapM (\(s1,s2) -> 
+                    do v1 <- lookupSid s1
+                       v2 <- lookupSid s2 
+                       return [v1,v2])
+                ss
+     let vss = concat vs
+         cs = [(i*2,i*2+1) | i <- [0..length vss `div` 2 -1]] -- channel numbers
+     returnInstrC vss $ evalProc (segInterProc cs) vss (SBVal [])
+
+
+sExpInterpProc (PriSegInterS ss) = 
+  do vs <- mapM (\(s1,s2) -> 
+                     do v1 <- lookupSid s1
+                        v2 <- lookupSid s2
+                        return [v1,v2]) 
+                ss
+     let vss = concat vs 
+         cs = [(i*2,i*2+1) | i <- [0..length vss `div` 2 -1]]
+         v0 = sv0 (head vss)
+     returnInstrC vss $ evalProc (priSegInterProc cs) vss v0
+
+
+sExpInterpProc (SegMerge s1 s2) = svProc [s2,s1] segMergeProc (SBVal [])
+ 
+
+sExpInterpProc (Check s1 s2) = sExpInterp (Check s1 s2) -- same as sExpInterp
 
 
 
-sExpInterpProc (SegscanPlus s1 s2) = 
-  do v1 <- lookupSid s1
-     v2 <- lookupSid s2 
-     return $ evalProc segScanPlus [v2,v1] (SIVal [])
-
-
--- lookup the operation definition
 lookupOpA :: OP -> OpAEnv -> Svcode ([AVal] -> AVal, Type) 
 lookupOpA op r = 
   do case lookup op r of
        Just v -> return v 
        Nothing -> fail $ "SVCODE: can't find " ++ show op 
 
+
+sv0 :: SvVal -> SvVal
+sv0 v = case v of 
+    SIVal _ -> SIVal []
+    SBVal _ -> SBVal []
+
+
+svProc :: [SId] -> Proc () -> SvVal -> Svcode SvVal 
+svProc sids proc v0 = 
+  do vs <- mapM lookupSid sids      
+     returnInstrC vs $ evalProc proc vs v0
+
+
+svProc' :: [SId] -> Proc () -> Int -> Svcode SvVal 
+svProc' sids proc i = 
+  do vs <- mapM lookupSid sids      
+     returnInstrC vs $ evalProc proc vs $ sv0 $ vs !! i 
 
 --------------------------------------------------
 
@@ -533,7 +615,7 @@ ppack [] [] = []
 ppack (a:as) (False:fs) = ppack as fs
 ppack (a:as) (True:fs) = a: ppack as fs
 
--- pack unary numbers(subsequences of the form <F,F,..T>)
+-- pack unary numbers(i.e., subsequences of the form <F,F,..T>)
 upack :: [Bool] -> [Bool] -> [Bool] 
 upack b1 b2 = concat $ fst $ unzip $ filter (\(s,f) -> f) (zip segs b2) 
     where segs = partFlags b1 
@@ -570,12 +652,13 @@ segDistr f1 f2 = concat $ zipWith segReplicate f1s ls2
    where f1s = partFlags f1 
          ls2 = flags2len f2
 
-
+--【FFT FT】 [FT FT] [FFT FFT] => [FFT FFT FT FT] 
 segFlagDistr :: [Bool] -> [Bool] -> [Bool] -> [Bool]
 segFlagDistr v1 v2 v3  = concat $ zipWith segReplicate segs ls3 
     where segs = flagPartFlags v1 v2 
           ls3 = flags2len v3
-
+          
+-- [1,2,3] [FT FFT T] [FFT FFT FT] => [11 23 23]
 primSegFlagDistr :: [a] -> [Bool] -> [Bool] -> [a]
 primSegFlagDistr v1 v2 v3  = concat $ zipWith segReplicate segs ls3 
     where segs = flagPartPrim v1 v2 
