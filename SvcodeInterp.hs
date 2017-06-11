@@ -157,10 +157,12 @@ makeCtx s1s s2s =　
 ---- interpret a stream definition ---- 
 
 sInstrInterp :: SInstr -> Svcode ()
+
+-- provide two kinds of eager interpreting solutions:
 sInstrInterp (SDef sid i) = 
-  --sExpInterp i >>= addCtx sid   -- old API 
-  sExpInterpProc i >>= addCtx sid -- interpreter using Proc 
-  
+  --sExpInterp i >>= addCtx sid   -- old eager interpreter 
+  sExpInterpProc i >>= addCtx sid -- transducer interpreter using Proc 
+
 
 sInstrInterp (WithCtrl c defs st) =
   do ctrl@(SBVal bs) <- lookupSid c 
