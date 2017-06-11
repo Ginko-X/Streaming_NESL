@@ -1,4 +1,10 @@
 # Working Progress
++ Week 23 (5~11 Jun)
+    + implemented SVCODE eager transducer interpreter
+        + transducer definitions: [`SvcodeProc.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProc.hs)
+	+ eger transducer interpreter: add function `sExpInterpProc :: SExp -> Svcode SvVal` in [`SvcodeInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeInterp.hs)
+	
+
 + Week 22 (29 May ~ 4 Jun)
     + reconstruct SVCODE streaming interpreter
         - a starting point [`SvcodeSInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeSInterp.hs)
