@@ -1,8 +1,10 @@
 # Working Progress
++ Week 24 (12~18 Jun) Break, paper review (_Cheap (But Functional) Threads_)
+
 + Week 23 (5~11 Jun)
     + implemented SVCODE instruction transducers and an eager interpreter using these transducers
         + transducer definitions: [`SvcodeProc.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProc.hs)
-        + eger transducer interpreter: add function `sExpInterpProc :: SExp -> Svcode SvVal` in [`SvcodeInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeInterp.hs)
+        + fully-eager transducer interpreter: add function `sExpInterpProc :: SExp -> Svcode SvVal` in [`SvcodeInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeInterp.hs)
 	
 
 + Week 22 (29 May ~ 4 Jun)

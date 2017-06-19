@@ -130,18 +130,7 @@ segDistrProc = p
                    BVal True -> p)
 
 
-
-uRecord :: Int -> Proc [AVal]
-uRecord i =
-  let p vs = Pin i (\x -> 
-               case x of 
-                 Nothing -> Done vs 
-                 Just (BVal False) -> p  ((BVal False):vs)  
-                 Just (BVal True) -> Done (reverse (BVal True : vs)))
-  in (p [])
-
-
-
+-- ?
 segFlagDistrProc :: Proc ()
 segFlagDistrProc = p []
   where p vs = rin 0 (\x -> 
@@ -153,14 +142,7 @@ segFlagDistrProc = p []
                        BVal True -> p []))
 
 
-
-uOuts :: Int -> [AVal] -> Proc ()
-uOuts i as = rin i (\x -> 
-               case x of 
-                 BVal False -> mapM_ rout as >> (uOuts i as)
-                 BVal True -> Done ())
-
-
+-- ?
 primSegFlagDistrProc :: Proc ()
 primSegFlagDistrProc = p []
   where p vs = rin 0 (\x -> 
@@ -170,6 +152,25 @@ primSegFlagDistrProc = p []
                      case y of 
                        BVal False -> mapM_ rout vs >> uOuts 2 vs >> (p [])
                        BVal True -> p []))
+
+
+
+-- read in and out a unary (without the True flag)
+uRecord :: Int -> Proc [AVal]
+uRecord i =
+  let p vs = Pin i (\x -> 
+               case x of 
+                 Nothing -> Done vs 
+                 Just (BVal False) -> p ((BVal False):vs)  
+                 Just (BVal True) -> Done (reverse (BVal True : vs)))
+  in (p [])
+
+
+uOuts :: Int -> [AVal] -> Proc ()
+uOuts i as = rin i (\x -> 
+               case x of 
+                 BVal False -> mapM_ rout as >> (uOuts i as)
+                 BVal True -> Done ())
 
 
 
