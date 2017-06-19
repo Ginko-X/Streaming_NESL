@@ -1,5 +1,5 @@
 # Working Progress
-+ Week 24 (12~18 Jun) Break, paper review (_Cheap (But Functional) Threads_)
++ Week 24 (12~18 Jun) Break, paper review: _Cheap (But Functional) Threads_
 
 + Week 23 (5~11 Jun)
     + implemented SVCODE instruction transducers and an eager interpreter using these transducers

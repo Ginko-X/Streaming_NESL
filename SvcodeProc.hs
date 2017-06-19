@@ -130,7 +130,7 @@ segDistrProc = p
                    BVal True -> p)
 
 
--- ?
+-- not feasible in a streaming setting?
 segFlagDistrProc :: Proc ()
 segFlagDistrProc = p []
   where p vs = rin 0 (\x -> 
