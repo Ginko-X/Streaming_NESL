@@ -5,11 +5,11 @@ import SneslSyntax
 type SId = Int  -- stream id
 
 data SExp = Ctrl 
-           | EmptyCtrl 
+           | EmptyCtrl   -- only used in WithCtrl
            | ToFlags SId
            | Usum SId
            | Const AVal
-           | MapConst SId AVal
+           | MapConst SId AVal           
            | MapOne OP SId
            | MapTwo OP SId SId
            | SegscanPlus SId SId 
@@ -27,7 +27,7 @@ data SExp = Ctrl
            | InterMergeS [SId]
            | SegInterS [(SId,SId)]
            | PriSegInterS [(SId,SId)] 
-           | Check SId SId           
+           | Check SId SId       
            deriving Show
          
 

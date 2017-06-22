@@ -6,7 +6,8 @@ import SvcodeSyntax
 import SneslSyntax
 import SneslTyping
 import DataTrans
-import SvcodeSInterp
+--import SvcodeSInterp
+import SvcodeProcInterp 
 
 import System.Environment
 import System.Console.Haskeline
@@ -88,7 +89,8 @@ runExp b e env@(e0,t0,v0,f0) =
     do sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0        
        svcode <- runCompileExp e v0     
-       (svcodeRes,(w',s')) <- if b then runSvcodeSExp svcode else runSvcodeExp svcode f0
+       --(svcodeRes,(w',s')) <- if b then runSvcodeSExp svcode else runSvcodeExp svcode f0
+       (svcodeRes,(w',s')) <- runSvcodeExp svcode f0       
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes' 
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
@@ -100,7 +102,8 @@ runDef :: Bool -> Def -> InterEnv -> Either String InterEnv
 runDef b def env@(e0,t0,v0,f0) = 
    do funcTyEnv <- runTypingDefs [def] t0
       sneslEnv <- runSneslInterpDefs [def] e0 
-      (ve,fe) <- (if b then runSCompileDefs else runCompileDefs) [def] (v0,f0) 
+      --(ve,fe) <- (if b then runSCompileDefs else runCompileDefs) [def] (v0,f0) 
+      (ve,fe) <-  runCompileDefs [def] (v0,f0) 
       return (sneslEnv,funcTyEnv,ve,fe)
 
 
@@ -109,7 +112,8 @@ runFile b str env@(e0,t0,v0,f0) =
    do funcs <- runParseDefs str 
       funcTyEnv <- runTypingDefs funcs t0
       sneslEnv <- runSneslInterpDefs funcs e0
-      (ve,fe) <- (if b then runSCompileDefs else runCompileDefs) funcs (v0,f0)
+      --(ve,fe) <- (if b then runSCompileDefs else runCompileDefs) funcs (v0,f0)
+      (ve,fe) <- runCompileDefs funcs (v0,f0)
       return (sneslEnv,funcTyEnv,ve,fe)
 
 
@@ -121,11 +125,12 @@ testString str env@(e0,t0,v0,f0) =
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0
-       (svcodeRes, (w',s')) <- runSvcodeExp svcode f0
-       svcodeRes' <- dataTransBack sneslTy svcodeRes
-       if compareVal sneslRes svcodeRes'  
-         then return (sneslRes, sneslTy,(w,s),(w',s')) 
-         else fail "SNESL and SVCODE results are different." 
+       return svcode
+       --(svcodeRes, (w',s')) <- runSvcodeExp svcode f0
+       --svcodeRes' <- dataTransBack sneslTy svcodeRes
+       --if compareVal sneslRes svcodeRes'  
+       --  then return (sneslRes, sneslTy,(w,s),(w',s')) 
+       --  else fail "SNESL and SVCODE results are different." 
 
 
 

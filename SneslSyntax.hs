@@ -13,7 +13,7 @@ data AVal = IVal Int
 
 data Val = AVal AVal  
          | TVal Val Val 
-         | SVal [Val]   
+         | SVal [Val] 
          | FVal ([Val] -> Snesl Val) 
 
 

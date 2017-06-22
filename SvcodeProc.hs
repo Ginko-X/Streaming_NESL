@@ -290,6 +290,15 @@ priSegInterP (j,i) =
 
 
 
+----
+evalProcA :: Proc () -> [AVal] -> (AVal, Proc ()) 
+evalProcA (Pin c p) as = evalProcA (p (Just $ as !! c)) as 
+ 
+evalProcA (Pout a p) _ = (a, p) 
+
+-- evalProcA (Done ()) as = 
+
+
 
 
 ------- 
@@ -297,7 +306,7 @@ priSegInterP (j,i) =
 evalProc :: Proc () -> [SvVal] -> SvVal -> SvVal
 evalProc (Pin i p) ss s = 
   let (a, tailS) = (pread $ ss !! i )
-      ss' =  update ss i tailS
+      ss' =  updateList ss i tailS
    in evalProc (p a) ss' s
 
 evalProc (Pout a p) ss s = 
@@ -308,8 +317,8 @@ evalProc (Done ()) _ s = reverseSv s
 
 
 
-update :: [SvVal] -> Int -> SvVal -> [SvVal]
-update ss i s = take i ss ++ [s] ++ drop (i+1) ss 
+updateList :: [a] -> Int -> a -> [a]
+updateList ss i s = take i ss ++ [s] ++ drop (i+1) ss 
 
 
 pread :: SvVal -> (Maybe AVal, SvVal)
