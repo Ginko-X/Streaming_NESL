@@ -5,6 +5,7 @@ module SvcodeProc where
 import SvcodeSyntax
 import SneslSyntax
 import DataTrans (i2flags)
+import Data.Bits ((.&.))
 
 
 data Proc a = Pin Int (Maybe AVal -> Proc a)  
@@ -27,6 +28,13 @@ instance Applicative Proc where
   pure = return
   tf <*> ta = tf >>= \f -> fmap f ta
 
+
+instance (Eq a) => Eq (Proc a) where
+  Done a == Done b = a == b
+  Pout a p1 == Pout b p2 = (a == b) .&. (p1 == p2)
+  _ == _ = False
+
+  
 
 
 rin :: Int -> (AVal -> Proc ()) -> Proc ()

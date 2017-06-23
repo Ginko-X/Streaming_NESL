@@ -8,11 +8,219 @@ import SvcodeProc
 
 import Control.Monad
 
-data BufState = Maybe AVal | EmptyBuf | Eos 
+data BufState = Buf AVal | EmptyBuf | Eos 
 type SState = (BufState, [Bool], Proc ())
 type Svctx = [(SId, SState)]
+
 type Dag = [[SId]]
-type CTable = [[SId]] -- channel table
+
+type CTable = [(SId,[SId])] -- channel table
+
+
+newtype SvcodeP a = SvcodeP {rSvcodeP :: Dag -> CTable -> Svctx -> SId -> 
+                                  Either String (a, Svctx)}
+
+instance  Monad SvcodeP where
+    return a = SvcodeP $ \ d ch ctx ctrl -> Right (a,ctx) 
+
+    m >>= f = SvcodeP $ \ d ch ctx ctrl -> 
+        case rSvcodeP m d ch ctx ctrl of 
+            Right (a,ctx') -> 
+                case rSvcodeP (f a) d ch ctx' ctrl of
+                    Right res -> Right res 
+                    Left err' -> Left err'
+            Left err -> Left err 
+
+
+    fail err = SvcodeP $ \ _ _ _ _ -> Left $ "SVCODE runtime error: " ++ err
+
+
+instance Functor SvcodeP where
+  fmap f t = t >>= return . f 
+
+instance Applicative SvcodeP where
+  pure = return
+  tf <*> ta = tf >>= \f -> fmap f ta 
+
+
+
+runSvcodePExp :: SFun -> Either String (SvVal, (Int,Int))
+runSvcodePExp (SFun [] st code) = 
+  do let d = geneDag code 0 
+         ch = geneCTab code 0 
+     (_,ctx) <- rSvcodeP (mapM sInstrInit code) d ch [] 0
+     (as, _) <- rrobin (mapM sInstrInterp code) d ch ctx 0 st [[]] 
+     return (constrSv st as,(0,0))
+
+
+constrSv :: STree -> [[AVal]] -> SvVal
+constrSv = undefined
+
+
+     
+rrobin :: SvcodeP [Bool] -> Dag -> CTable -> Svctx -> SId -> 
+                  STree -> [[AVal]] -> Either String ([[AVal]], Svctx)              
+rrobin m d ch ctx ctrl st as0 = 
+  do (bs, ctx') <- rSvcodeP m d ch ctx ctrl
+     as <- lookupTreeAval st ctx'
+     let as' = zipWith (++) as0 as 
+     if all (\x -> x) bs 
+       then return (as', ctx') 
+       else rrobin m d ch ctx' ctrl st as'
+
+
+
+lookupTreeAval :: STree -> Svctx -> Either String [[AVal]]
+lookupTreeAval (IStr t1) ctx = 
+    case lookup t1 ctx of 
+      Nothing -> Left "SVCODE runtime error: undefined streams." 
+      Just (EmptyBuf, _, _) -> Right [[]]
+      Just (Buf a, _,_) -> Right [[a]]
+
+
+lookupTreeAval (BStr t1) ctx = lookupTreeAval (IStr t1) ctx
+
+lookupTreeAval (PStr t1 t2) ctx = 
+    do v1 <- lookupTreeAval t1 ctx 
+       v2 <- lookupTreeAval t2 ctx 
+       return $ v1++v2 
+
+lookupTreeAval (SStr t1 t2) ctx = lookupTreeAval (PStr t1 (BStr t2)) ctx
+
+
+
+
+addCtx :: SId -> SState -> SvcodeP ()
+addCtx s v = SvcodeP $ \ _ _ c _ -> Right ((), [(s,v)]++c)
+
+updateCtx :: SId -> SState -> SvcodeP ()
+updateCtx s v = SvcodeP $ \_ _ c _ -> Right ((), updateList c s (s,v)) 
+
+
+getClients :: SId -> SvcodeP [SId]
+getClients sid = SvcodeP $ \ d _ c _ -> Right (d !! sid, c)
+
+
+getChannels :: SId -> SvcodeP [SId]
+getChannels sid = SvcodeP $ \ _ ch c _ -> 
+    case lookup sid ch of 
+      Nothing -> Left $ "Undefined SId: " ++ show sid
+      Just v -> Right (v, c)
+ 
+
+getCtrl :: SvcodeP SId 
+getCtrl = SvcodeP $ \ _ _ ctx ctrl -> Right (ctrl, ctx)
+
+localCtrl :: SId -> SvcodeP a -> SvcodeP a 
+localCtrl ctrl m = SvcodeP $ \ d ch ctx _  -> rSvcodeP m d ch ctx ctrl
+
+
+getCtx :: SvcodeP Svctx
+getCtx = SvcodeP $ \ _ _ ctx _ -> Right (ctx, ctx)
+
+
+setCtx :: Svctx -> SvcodeP ()
+setCtx c = SvcodeP $ \ _ _ _ _ -> Right ((), c)
+
+
+lookupSid :: SId -> SvcodeP SState
+lookupSid s = SvcodeP $ \_ _ c ctrl -> 
+    case lookup s c of 
+        Nothing -> Left $ "Undefined SId: " ++ show s  
+        Just st -> Right (st,c)  
+
+
+------ instruction init
+
+sInstrInit :: SInstr -> SvcodeP ()
+sInstrInit (SDef sid i) = sExpInit sid i >>= addCtx sid 
+
+
+---- exp init
+sExpInit :: SId -> SExp -> SvcodeP SState
+sExpInit sid Ctrl = 
+  do cls <- getClients sid 
+     return (EmptyBuf, map (\_ -> False) cls, rout (BVal False)) 
+
+
+sExpInit sid (Const a) = 
+  do cls <- getClients sid 
+     return (EmptyBuf, map (\_ -> False) cls, mapConst a)
+  
+sExpInit s0 (MapConst s1 a) = 
+  do cls <- getClients s0 
+     return (EmptyBuf, map (\_ -> False) cls, mapConst a)
+
+
+
+----- instruction interp
+
+sInstrInterp :: SInstr -> SvcodeP Bool
+sInstrInterp (SDef sid i) = 
+  do (sta, bs, p) <- lookupSid sid 
+     if p == Done ()
+       then return True -- 
+       else 
+         do if all (\b -> b) bs -- all channels have read the buffer
+              then 
+                do ch <- getChannels sid
+                   sta' <- sExpInterp i ch p bs
+                   updateCtx sid sta'
+                   return False
+              else return False
+            
+
+
+sExpInterp :: SExp -> [SId] -> Proc () -> [Bool] -> SvcodeP SState
+sExpInterp Ctrl _ p bs = 
+  let (a,p') = evalProcA p [] 
+  in return (Buf a, bs, p')
+
+
+sExpInterp (Const a) chs p bs = 
+  do as <- readBuf chs 
+     zipWithM updateFlag chs [0] 
+     let (a,p') = evalProcA p as 
+     return (Buf a, bs, p')
+
+
+
+readBuf :: [SId] -> SvcodeP [AVal]
+readBuf = undefined
+
+
+updateFlag :: SId -> Int -> SvcodeP ()
+updateFlag s i = 
+  do (buf, bs, p) <- lookupSid s 
+     let bs' = updateList bs i True 
+     updateCtx s (buf,bs', p) 
+
+
+
+
+-- generate the channel table for an SVCODE program
+geneCTab :: [SInstr] -> SId -> CTable
+geneCTab [] _ = []
+geneCTab ((SDef sid sexp):ss) c = (sid,cl0) : geneCTab ss c
+    where cl0 = getChan sexp c
+
+geneCTab ((WithCtrl newc ss _):ss') c = cl ++ geneCTab ss' c
+    where cl = geneCTab ss newc
+
+
+-- generate the DAG 
+geneDag :: [SInstr] -> SId -> Dag 
+geneDag ss c = let sc = sidCount ss in dagUpdate ss c $ replicate sc []
+
+
+sidCount :: [SInstr] -> Int 
+sidCount [] = 0 
+sidCount ss = 
+  let s = last ss in 
+    case s of 
+      SDef i _ -> i+1 
+      WithCtrl _ ss _ -> sidCount ss 
+
 
 
 getChan :: SExp -> SId -> [SId]
@@ -47,20 +255,6 @@ getChan (SegMerge s1 s2) _ = [s2,s1]
 getChan (Check s1 s2) _ = [s1,s2]  
 
 
--- generate the channel table for an SVCODE program
-geneCTab :: [SInstr] -> SId -> CTable
-geneCTab [] _ = []
-geneCTab ((SDef sid sexp):ss) c = cl0 : geneCTab ss c
-    where cl0 = getChan sexp c
-
-geneCTab ((WithCtrl newc ss _):ss') c = cl ++ geneCTab ss' c
-    where cl = geneCTab ss newc
-
-
-
--- generate the DAG 
-geneDag :: [SInstr] -> SId -> Int -> Dag 
-geneDag ss c sc = dagUpdate ss c $ replicate sc []
 
 
 dagUpdate :: [SInstr] -> SId -> Dag -> Dag 
@@ -115,11 +309,11 @@ addEdges (j:js) i d = addEdges js i d'
 ------ generate a file to visualize the DAG 
 --- use "graph-easy": graph-easy <inputfile> --png 
 geneDagFile ss c sc fname = 
-  do let d = geneDag ss c sc
+  do let d = geneDag ss c
          ps = [0..length d -1]
          lines = zipWith (\x ys -> 
-         	if null ys then drawpoint x 
-            else concat $ map (\y -> drawline x y) ys) ps d
+           if null ys then drawpoint x 
+             else concat $ map (\y -> drawedge x y) ys) ps d
          content = concat lines 
      writeFile fname content 
    
@@ -127,8 +321,8 @@ geneDagFile ss c sc fname =
 drawpoint :: Int -> String
 drawpoint i = "[" ++ show i ++ "]\n"
 
-drawline :: Int -> Int -> String 
-drawline i j = "[" ++ show i ++ "] ---> [" ++ show j ++ "] \n"
+drawedge :: Int -> Int -> String 
+drawedge i j = "[" ++ show i ++ "] ---> [" ++ show j ++ "] \n"
 
 -----------------
 
