@@ -21,6 +21,12 @@ instance Monad Proc where
   Done a >>= f = f a 
 
 
+instance (Show a) => Show (Proc a) where
+  show (Pin i p) = "<Pin " ++ show i ++ " <Proc> >"
+  show (Pout a p) = "<Pout " ++ show a ++ " " ++ show p ++ " > "
+  show (Done a) = "<Done " ++ show a ++ " > "
+
+
 instance Functor Proc where
   fmap f t = t >>= return . f
 
@@ -34,7 +40,7 @@ instance (Eq a) => Eq (Proc a) where
   Pout a p1 == Pout b p2 = (a == b) .&. (p1 == p2)
   _ == _ = False
 
-  
+
 
 
 rin :: Int -> (AVal -> Proc ()) -> Proc ()
@@ -299,12 +305,6 @@ priSegInterP (j,i) =
 
 
 ----
-evalProcA :: Proc () -> [AVal] -> (AVal, Proc ()) 
-evalProcA (Pin c p) as = evalProcA (p (Just $ as !! c)) as 
- 
-evalProcA (Pout a p) _ = (a, p) 
-
--- evalProcA (Done ()) as = 
 
 
 
