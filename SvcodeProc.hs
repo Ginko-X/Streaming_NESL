@@ -304,12 +304,6 @@ priSegInterP (j,i) =
 
 
 
-----
-
-
-
-
-------- 
 
 evalProc :: Proc () -> [SvVal] -> SvVal -> SvVal
 evalProc (Pin i p) ss s = 

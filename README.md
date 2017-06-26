@@ -1,4 +1,8 @@
 # Working Progress
++ Week 25 (19~25 Jun)
+    + implemented SVCODE streaming interpreter using Proc [`SvcodeProcInterp.hs`](
+    +
+    
 + Week 24 (12~18 Jun) Break, paper review: _Cheap (But Functional) Threads_
 
 + Week 23 (5~11 Jun)

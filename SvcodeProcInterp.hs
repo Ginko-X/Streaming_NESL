@@ -9,6 +9,7 @@ import SvcodeProc
 import Control.Monad
 import Control.Monad.Trans (lift)
 
+import Data.Bits ((.&.))
 
 data BufState = Buf AVal | EmptyBuf | Eos deriving (Show, Eq) 
 
@@ -47,13 +48,23 @@ instance Applicative SvcodeP where
 
 
 
-runSvcodePExp :: SFun -> Either String (SvVal, (Int,Int))
+--runSvcodePExp :: SFun -> Either String (SvVal, (Int,Int))
 runSvcodePExp (SFun [] st code) = 
   do let d = geneDag code 0 
          ch = geneCTab code 0 
-     (_,ctx) <- rSvcodeP (mapM sInstrInit code) d ch [] 0
+     (_,ctx) <- rSvcodeP (mapM_ sInstrInit code) d ch [] 0   
      (as, _) <- rrobin (mapM sInstrInterp code) d ch ctx 0 st $ initTreeAval st
      return (fst $ constrSv st as,(0,0))
+
+     
+robin1 :: SvcodeP [Bool] -> Dag -> CTable -> Svctx -> SId -> 
+                  STree -> [[AVal]] -> Either String ([[AVal]], Svctx)              
+robin1 m d ch ctx ctrl st as0 = 
+  do (bs, ctx') <- rSvcodeP m d ch ctx ctrl
+     as <- lookupTreeAval st ctx'
+     let as' = zipWith (++) as0 as 
+     return (as', ctx') 
+
 
      
 rrobin :: SvcodeP [Bool] -> Dag -> CTable -> Svctx -> SId -> 
@@ -234,53 +245,58 @@ sInstrInterp :: SInstr -> SvcodeP Bool
 sInstrInterp (SDef sid i) = 
   do (_, bs, p) <- lookupSid sid 
      if p == Done ()
-       then updateCtx sid (Eos,bs,p) >> return True -- 0
+       then updateCtx sid (Eos,bs,p) >> return True 
        else 
-         do if all (\(_,b) -> b) bs -- all channels have read the buffer
+         do if all (\(_,b) -> b) bs -- all clients have read the buffer
               then 
-                do chs <- getChannels sid
+                do chs <- getChannels sid 
                    staChs <- mapM lookupSid chs 
+
                    let (bufChs, flagChs, pChs) = unzip3 staChs
-                   bufs <- readBuf bufChs
+                   bufs <- readBuf bufChs                 
+                   
+                   (buf,p',readFlags) <- evalProcA p $ zip bufs (repeat False)
+
                    let flagChs' = map (\f -> updateWithKey f sid True) flagChs
                        staChs' = zip3 bufChs flagChs' pChs
                    zipWithM updateCtx chs staChs'
-                   (buf,p') <- evalProcA p bufs 
+
                    let bs' = map (\(cl,_) -> (cl,False)) bs 
                    updateCtx sid (buf, bs', p')
                    return False
+
               else return False
  
 
 sInstrInterp (WithCtrl newc code st) = 
   do (buf,_,_) <- lookupSid newc
-     if buf == Eos 
-       then doneStream st >> return True
-       else 
-         do bs <- localCtrl newc $ mapM sInstrInterp code
-            return $ all (\x -> x) bs
+     bs <- localCtrl newc $ mapM sInstrInterp code
+     return $ all (\x -> x) bs
+     --if buf == Eos --?!
+     --  then doneStream st >> return True
+     --  else 
+     --    do 
 
 
 doneStream :: STree -> SvcodeP ()
-doneStream (IStr s) = addCtx s (Eos, [], Done ()) 
-doneStream (BStr s) = addCtx s (Eos, [], Done ()) 
+doneStream (IStr s) = updateCtx s (Eos, [], Done ()) 
+doneStream (BStr s) = updateCtx s (Eos, [], Done ()) 
 doneStream (PStr st1 st2)  = doneStream st1 >> doneStream st2
 doneStream (SStr st1 st2) = doneStream (PStr st1 (BStr st2))
  
 
-evalProcA :: Proc () -> [[Maybe AVal]] -> SvcodeP (BufState, Proc ())
+evalProcA :: Proc () -> [([Maybe AVal], Bool)] -> SvcodeP (BufState, Proc (), [Bool])
 evalProcA p0@(Pin c p1) as = 
-  if null $ concat as 
-    then return (EmptyBuf,p0)
-    else case (p1 $ head $ as !! c) of 
-           p2@(Pin c' _ ) -> if c == c'
-                               then return (EmptyBuf, p2) 
-                               else evalProcA p2 as
-           otherP -> evalProcA otherP as  
- 
-evalProcA (Pout a p) _ = return (Buf a, p) 
+  if null $ concat $ fst $ unzip as 
+    then return (EmptyBuf,p0, snd $ unzip as)
+    else let (la, b) =  as !! c
+         in if b == True
+              then return (EmptyBuf, p0, snd $ unzip as) 
+              else evalProcA (p1 $ head la) (markRead as la) 
 
-evalProcA (Done ()) as = return (Eos, Done())
+evalProcA (Pout a p) as = return (Buf a, p, snd $ unzip as) 
+
+evalProcA (Done ()) as = return (Eos, Done(), snd $ unzip as)
 
 
 readBuf :: [BufState] -> SvcodeP [[Maybe AVal]]
@@ -293,10 +309,17 @@ readBuf bufs =
                  ) bufs 
 
 
+
+markRead :: (Eq a) => [(a,Bool)] -> a -> [(a,Bool)]
+markRead [] k = []
+markRead ((k1,p1):ps) k = 
+  if (k1 == k) .&. (p1 == False) then (k,True): markRead ps k else (k1,p1): markRead ps k
+
+-- update all the key
 updateWithKey :: (Eq a) => [(a,b)] -> a -> b -> [(a,b)]
 updateWithKey [] k v = []
 updateWithKey (p:ps) k v = 
-  if fst p == k then (k,v):ps else p:updateWithKey ps k v
+  if fst p == k then (k,v): updateWithKey ps k v else p:updateWithKey ps k v
 
 
 -- generate the channel table for an SVCODE program
