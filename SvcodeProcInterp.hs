@@ -56,15 +56,6 @@ runSvcodePExp (SFun [] st code) =
      (as, _) <- rrobin (mapM sInstrInterp code) d ch ctx 0 st $ initTreeAval st
      return (fst $ constrSv st as,(0,0))
 
-     
-robin1 :: SvcodeP [Bool] -> Dag -> CTable -> Svctx -> SId -> 
-                  STree -> [[AVal]] -> Either String ([[AVal]], Svctx)              
-robin1 m d ch ctx ctrl st as0 = 
-  do (bs, ctx') <- rSvcodeP m d ch ctx ctrl
-     as <- lookupTreeAval st ctx'
-     let as' = zipWith (++) as0 as 
-     return (as', ctx') 
-
 
      
 rrobin :: SvcodeP [Bool] -> Dag -> CTable -> Svctx -> SId -> 
