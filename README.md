@@ -1,6 +1,6 @@
 # Working Progress
 + Week 25 (19~25 Jun)
-    + implemented an SVCODE streaming interpreter using Proc, with many bugs unfixed. Code [`SvcodeProcInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProcInterp.hs) and [some discussion](https://github.com/Ginko-X/Streaming_NESL/issues/152).
+    + implemented an SVCODE streaming interpreter using Proc, with many bugs unfixed. Code [`SvcodeProcInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProcInterp.hs) and [some discussion](https://github.com/Ginko-X/Streaming_NESL/issues/15).
     
 + Week 24 (12~18 Jun) Break, paper review: _Cheap (But Functional) Threads_
 
