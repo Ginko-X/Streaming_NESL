@@ -14,6 +14,7 @@ import Data.Bits ((.&.))
 data BufState = Buf AVal | EmptyBuf | Eos deriving (Show, Eq) 
 
 type SState = (BufState, [(SId,Bool)], Proc ())
+
 type Svctx = [(SId, SState)]
 
 type Dag = [[SId]]
@@ -57,6 +58,23 @@ runSvcodePExp (SFun [] st code) =
      return (fst $ constrSv st as,(0,0))
 
 
+  ----return $ robin1 (mapM sInstrInterp code) d ch ctx 0 st $ initTreeAval st
+     --(as,ctx') <- robin1 (mapM sInstrInterp code) d ch ctx 0 st $ initTreeAval st
+     --return $ robin1 (mapM sInstrInterp code) d ch ctx' 0 st as
+
+     --return $ robin1 (mapM sInstrInterp code) d ch ctx'' 0 st as' 
+     ----return (fst $ constrSv st as,(0,0))
+
+     
+--robin1 :: SvcodeP [Bool] -> Dag -> CTable -> Svctx -> SId -> 
+--                  STree -> [[AVal]] -> Either String ([[AVal]], Svctx)              
+--robin1 m d ch ctx ctrl st as0 = 
+--  do (bs, ctx') <- rSvcodeP m d ch ctx ctrl
+--     as <- lookupTreeAval st ctx'
+--     let as' = zipWith (++) as0 as 
+--     return (as', ctx') 
+
+
      
 rrobin :: SvcodeP [Bool] -> Dag -> CTable -> Svctx -> SId -> 
                   STree -> [[AVal]] -> Either String ([[AVal]], Svctx)              
@@ -97,7 +115,7 @@ lookupTreeAval (IStr t1) ctx =
     case lookup t1 ctx of 
       Nothing -> Left "SVCODE runtime error: undefined streams." 
       Just (EmptyBuf, _, _) -> Right [[]]
-      Just (Buf a, _,_) -> Right [[a]]
+      Just (Buf a, bs,_) -> if allFlagT bs then Right [[a]] else Right [[]]
       Just (Eos, _, _) -> Right [[]]
 
 
@@ -230,33 +248,39 @@ lookupOpA op r =
        Nothing -> fail $ "SVCODE: can't find " ++ show op 
 
 
+allFlagT :: [(SId,Bool)] -> Bool 
+allFlagT bs = all (\(_,b) -> b) bs 
+
+setFlagF :: [(SId, Bool)] -> [(SId, Bool)]
+setFlagF bs = map (\(sid, _) -> (sid, False)) bs 
+
+
+
 ----- instruction interp
 
 sInstrInterp :: SInstr -> SvcodeP Bool
 sInstrInterp (SDef sid i) = 
-  do (_, bs, p) <- lookupSid sid 
-     if p == Done ()
-       then updateCtx sid (Eos,bs,p) >> return True 
-       else 
-         do if all (\(_,b) -> b) bs -- all clients have read the buffer
-              then 
+  do (buf, bs, p) <- lookupSid sid 
+     case buf of 
+       Eos -> return True 
+       _ -> case p of
+              Done () -> (if allFlagT bs then updateCtx sid (Eos,setFlagF bs,p) else return ()) >> return True
+              Pout a p' -> (if allFlagT bs then updateCtx sid (Buf a, setFlagF bs, p') else return ()) >> return False
+              Pin i p' ->
                 do chs <- getChannels sid 
-                   staChs <- mapM lookupSid chs 
-
-                   let (bufChs, flagChs, pChs) = unzip3 staChs
-                   bufs <- readBuf bufChs                 
-                   
-                   (buf,p',readFlags) <- evalProcA p $ zip bufs (repeat False)
-
-                   let flagChs' = map (\f -> updateWithKey f sid True) flagChs
-                       staChs' = zip3 bufChs flagChs' pChs
-                   zipWithM updateCtx chs staChs'
-
-                   let bs' = map (\(cl,_) -> (cl,False)) bs 
-                   updateCtx sid (buf, bs', p')
-                   return False
-
-              else return False
+                   (bufCh, flagCh,pCh) <- lookupSid (chs!!i)
+                   case lookup sid flagCh of 
+                     Nothing -> fail $ "undefined client " ++ show sid
+                     Just True -> return False
+                     Just False -> 
+                       do let flagCh' = updateWithKey flagCh sid True
+                          updateCtx (chs!!i) (bufCh, flagCh',pCh)
+                          mbA <- readBuf bufCh
+                          if null mbA then return False
+                          else 
+                            do let p'' = p' $ head mbA
+                               updateCtx sid (buf,bs,p'')
+                               return False
  
 
 sInstrInterp (WithCtrl newc code st) = 
@@ -269,11 +293,11 @@ sInstrInterp (WithCtrl newc code st) =
      --    do 
 
 
-doneStream :: STree -> SvcodeP ()
-doneStream (IStr s) = updateCtx s (Eos, [], Done ()) 
-doneStream (BStr s) = updateCtx s (Eos, [], Done ()) 
-doneStream (PStr st1 st2)  = doneStream st1 >> doneStream st2
-doneStream (SStr st1 st2) = doneStream (PStr st1 (BStr st2))
+--doneStream :: STree -> SvcodeP ()
+--doneStream (IStr s) = updateCtx s (Eos, [], Done ()) 
+--doneStream (BStr s) = updateCtx s (Eos, [], Done ()) 
+--doneStream (PStr st1 st2)  = doneStream st1 >> doneStream st2
+--doneStream (SStr st1 st2) = doneStream (PStr st1 (BStr st2))
  
 
 evalProcA :: Proc () -> [([Maybe AVal], Bool)] -> SvcodeP (BufState, Proc (), [Bool])
@@ -290,15 +314,12 @@ evalProcA (Pout a p) as = return (Buf a, p, snd $ unzip as)
 evalProcA (Done ()) as = return (Eos, Done(), snd $ unzip as)
 
 
-readBuf :: [BufState] -> SvcodeP [[Maybe AVal]]
-readBuf bufs = 
-     return $ map (\buf -> 
-                   case buf of
-                     Eos -> [Nothing] 
-                     Buf a -> [Just a]
-                     EmptyBuf -> []
-                 ) bufs 
-
+readBuf :: BufState -> SvcodeP [Maybe AVal]
+readBuf buf = 
+  case buf of 
+    Buf a -> return [Just a]   
+    Eos -> return [Nothing]
+    EmptyBuf -> return []
 
 
 markRead :: (Eq a) => [(a,Bool)] -> a -> [(a,Bool)]
@@ -422,7 +443,7 @@ addEdges (j:js) i d = addEdges js i d'
 
 ------ generate a file to visualize the DAG 
 --- use "graph-easy": graph-easy <inputfile> --png 
-geneDagFile ss c sc fname = 
+geneDagFile ss c fname = 
   do let d = geneDag ss c
          ps = [0..length d -1]
          lines = zipWith (\x ys -> 

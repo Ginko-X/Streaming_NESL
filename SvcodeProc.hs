@@ -257,7 +257,7 @@ interMergeProc c =
   let p = Pin 0 (\x -> 
             case x of 
               Nothing -> Done ()
-              Just v -> rout v >> mapM_ uInOut [0..c-1] >> rout (BVal True) >> p)
+              Just v -> rout v >> mapM_ uInOut [0 ..c-1] >> rout (BVal True) >> p)
   in p  
 
 
