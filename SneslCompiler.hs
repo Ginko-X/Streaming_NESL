@@ -194,8 +194,9 @@ translate (SeqNil tp) =
 translate e@(Seq es) = 
     do sts <- mapM translate es
        s0 <- emit (Const (IVal 1)) 
-       f0 <- emit (ToFlags s0)
-       mergeSeq [(SStr st f0) | st <- sts]
+       fs <- mapM (\ _ -> emit (ToFlags s0)) sts 
+       mergeSeq $ zipWith (\st f -> SStr st f) sts fs 
+       --mergeSeq [(SStr st f0) | st <- sts]
 
 
 translate (Let pat e1 e2) = 
