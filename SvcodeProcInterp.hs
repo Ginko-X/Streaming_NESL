@@ -5,6 +5,7 @@ module SvcodeProcInterp where
 import SvcodeSyntax
 import SneslSyntax
 import SvcodeProc
+import SneslCompiler (tree2Sids)
 
 import Control.Monad
 import Control.Monad.Trans (lift)
@@ -52,9 +53,11 @@ instance Applicative SvcodeP where
 --runSvcodePExp :: SFun -> Either String (SvVal, (Int,Int))
 runSvcodePExp (SFun [] st code) = 
   do let d = geneDag code 0 
-         ch = geneCTab code 0 
-     (_,ctx) <- rSvcodeP (mapM_ sInstrInit code) d ch [] 0   
-     (as, _) <- rrobin (mapM sInstrInterp code) d ch ctx 0 st $ initTreeAval st
+         ch = geneCTab code 0
+         sinks = filter (\sid -> null $ d!!sid) $ tree2Sids st 
+     (_,ctx) <- rSvcodeP (mapM_ sInstrInit code) d ch [] 0 
+     (_,ctx') <- rSvcodeP (sSinkInit sinks) d ch ctx 0  
+     (as, _) <- rrobin (mapM (sInstrInterp sinks) code) d ch ctx' 0 st $ initTreeAval st
      return (fst $ constrSv st as,(0,0))
 
 
@@ -251,21 +254,39 @@ lookupOpA op r =
 allFlagT :: [(SId,Bool)] -> Bool 
 allFlagT bs = all (\(_,b) -> b) bs 
 
+allFlagF bs = all (\(_,b) -> not b) bs
+
+
 setFlagF :: [(SId, Bool)] -> [(SId, Bool)]
 setFlagF bs = map (\(sid, _) -> (sid, False)) bs 
+
+setFlagT bs = map (\(sid, _) -> (sid, True)) bs 
+
+
+
+sSinkInit :: [SId] -> SvcodeP ()
+sSinkInit sinks = 
+  do stas <- mapM lookupSid sinks
+     zipWithM_ (\sid (buf, _, p)  -> updateCtx sid (buf, [(sid,True)], p)) sinks stas
 
 
 
 ----- instruction interp
 
-sInstrInterp :: SInstr -> SvcodeP Bool
-sInstrInterp (SDef sid i) = 
+sInstrInterp :: [SId] -> SInstr -> SvcodeP Bool
+sInstrInterp sinks (SDef sid i)  = 
   do (buf, bs, p) <- lookupSid sid 
      case buf of 
        Eos -> return True 
        _ -> case p of
               Done () -> (if allFlagT bs then updateCtx sid (Eos,setFlagF bs,p) else return ()) >> return True
-              Pout a p' -> (if allFlagT bs then updateCtx sid (Buf a, setFlagF bs, p') else return ()) >> return False
+              Pout a p' -> do (if allFlagT bs
+                                then updateCtx sid (Buf a, setFlagF bs, p') 
+                                else return ())
+                              (if sid `elem` sinks
+                                then updateCtx sid (Buf a, setFlagT bs, p')
+                                else return ()) 
+                              return False
               Pin i p' ->
                 do chs <- getChannels sid 
                    (bufCh, flagCh,pCh) <- lookupSid (chs!!i)
@@ -279,13 +300,15 @@ sInstrInterp (SDef sid i) =
                           if null mbA then return False
                           else 
                             do let p'' = p' $ head mbA
-                               updateCtx sid (buf,bs,p'')
+                               if sid `elem` sinks 
+                                 then updateCtx sid (buf, setFlagF bs,p'')
+                                 else updateCtx sid (buf,bs,p'')
                                return False
  
 
-sInstrInterp (WithCtrl newc code st) = 
+sInstrInterp sinks (WithCtrl newc code st) = 
   do (buf,_,_) <- lookupSid newc
-     bs <- localCtrl newc $ mapM sInstrInterp code
+     bs <- localCtrl newc $ mapM (sInstrInterp sinks) code 
      return $ all (\x -> x) bs
      --if buf == Eos --?!
      --  then doneStream st >> return True
