@@ -61,9 +61,13 @@ runSvcodePExp (SFun [] st code) =
      --(as, _) <- rrobin (mapM (sInstrInterp sinks) code) d ch ctx' 0 st $ initTreeAval st     
      --return (fst $ constrSv st as,(0,0))
 
-     (as, ctxs) <- roundN 20 (round1 (mapM (sInstrInterp sinks) code) d ch 0 st) [ctx'] $ initTreeAval st
-     let str = map (\(c,i) -> "Round "++ show i ++"\n" ++ showCtx c) $ zip (reverse ctxs) [0..]
+     (as, ctxs) <- roundN 20 (round1 (mapM (sInstrInterp sinks) code) d ch 0 st) [ctx'] $ [initTreeAval st]
+     let str = map (\(a,c,i) -> "Round "++ show i ++"\n" ++ show a ++ "\n" ++ showCtx c ++ "\n") 
+                    $ zip3 (reverse as) (reverse ctxs) [0..]
      return $ concat str
+
+
+---- helper functions for printing out the states of all streams in each round 
 
 
 showCtx :: Svctx -> String
@@ -75,14 +79,14 @@ showCtx ((sid,(buf,bs,p)):ss) =
 
 
 roundN :: Int -> (Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx)) -> 
-            [Svctx] -> [[AVal]] -> Either String ([[AVal]], [Svctx])
+            [Svctx] -> [[[AVal]]] -> Either String ([[[AVal]]], [Svctx])
 roundN 0 f ctxs as = Right (as,ctxs) 
 roundN c f ctxs as = 
   if all (\(_,(_,_,p)) -> p == Done ()) (head ctxs)
     then return (as,ctxs)
     else
-      do (as',ctx') <- f (head ctxs) as
-         roundN (c-1) f (ctx':ctxs) as' 
+      do (as',ctx') <- f (head ctxs) (head as)
+         roundN (c-1) f (ctx':ctxs) (as':as) 
      
 
 round1 :: SvcodeP [Bool] -> Dag -> CTable -> SId -> 
@@ -93,6 +97,7 @@ round1 m d ch ctrl st ctx as0 =
      let as' = zipWith (++) as0 as 
      return (as', ctx') 
 
+-----------------------
 
      
 rrobin :: SvcodeP [Bool] -> Dag -> CTable -> Svctx -> SId -> 
