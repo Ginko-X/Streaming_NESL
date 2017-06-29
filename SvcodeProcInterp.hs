@@ -57,25 +57,41 @@ runSvcodePExp (SFun [] st code) =
          sinks = filter (\sid -> null $ d!!sid) $ tree2Sids st 
      (_,ctx) <- rSvcodeP (mapM_ sInstrInit code) d ch [] 0 
      (_,ctx') <- rSvcodeP (sSinkInit sinks) d ch ctx 0  
-     (as, _) <- rrobin (mapM (sInstrInterp sinks) code) d ch ctx' 0 st $ initTreeAval st
-     return (fst $ constrSv st as,(0,0))
-
-
-  ----return $ robin1 (mapM sInstrInterp code) d ch ctx 0 st $ initTreeAval st
-     --(as,ctx') <- robin1 (mapM sInstrInterp code) d ch ctx 0 st $ initTreeAval st
-     --return $ robin1 (mapM sInstrInterp code) d ch ctx' 0 st as
-
-     --return $ robin1 (mapM sInstrInterp code) d ch ctx'' 0 st as' 
-     ----return (fst $ constrSv st as,(0,0))
-
      
---robin1 :: SvcodeP [Bool] -> Dag -> CTable -> Svctx -> SId -> 
---                  STree -> [[AVal]] -> Either String ([[AVal]], Svctx)              
---robin1 m d ch ctx ctrl st as0 = 
---  do (bs, ctx') <- rSvcodeP m d ch ctx ctrl
---     as <- lookupTreeAval st ctx'
---     let as' = zipWith (++) as0 as 
---     return (as', ctx') 
+     --(as, _) <- rrobin (mapM (sInstrInterp sinks) code) d ch ctx' 0 st $ initTreeAval st     
+     --return (fst $ constrSv st as,(0,0))
+
+     (as, ctxs) <- roundN 20 (round1 (mapM (sInstrInterp sinks) code) d ch 0 st) [ctx'] $ initTreeAval st
+     let str = map (\(c,i) -> "Round "++ show i ++"\n" ++ showCtx c) $ zip (reverse ctxs) [0..]
+     return $ concat str
+
+
+showCtx :: Svctx -> String
+showCtx [] = ""
+showCtx ((sid,(buf,bs,p)):ss) = 
+  "S" ++ show sid ++ " := (" ++ show buf ++ "," ++ show bs ++ "," ++ show p ++ ")\n"
+  ++ showCtx ss 
+
+
+
+roundN :: Int -> (Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx)) -> 
+            [Svctx] -> [[AVal]] -> Either String ([[AVal]], [Svctx])
+roundN 0 f ctxs as = Right (as,ctxs) 
+roundN c f ctxs as = 
+  if all (\(_,(_,_,p)) -> p == Done ()) (head ctxs)
+    then return (as,ctxs)
+    else
+      do (as',ctx') <- f (head ctxs) as
+         roundN (c-1) f (ctx':ctxs) as' 
+     
+
+round1 :: SvcodeP [Bool] -> Dag -> CTable -> SId -> 
+                  STree -> Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx)              
+round1 m d ch ctrl st ctx as0 = 
+  do (bs, ctx') <- rSvcodeP m d ch ctx ctrl
+     as <- lookupTreeAval st ctx'
+     let as' = zipWith (++) as0 as 
+     return (as', ctx') 
 
 
      
@@ -361,7 +377,7 @@ updateWithKey (p:ps) k v =
 geneCTab :: [SInstr] -> SId -> CTable
 geneCTab [] _ = []
 geneCTab ((SDef sid sexp):ss) c = (sid,cl0) : geneCTab ss c
-    where cl0 = getChan sexp c
+    where (cl0, _) = getChanExp sexp c
 
 geneCTab ((WithCtrl newc ss _):ss') c = cl ++ geneCTab ss' c
     where cl = geneCTab ss newc
@@ -389,36 +405,36 @@ sidCount ss =
 
 
 
-getChan :: SExp -> SId -> [SId]
-getChan Ctrl _ = []
-getChan EmptyCtrl _ = []
-getChan (Const _) c = [c]
+getChanExp :: SExp -> SId -> ([SId],String)
+getChanExp Ctrl _ = ([],"Ctrl")
+getChanExp EmptyCtrl _ = ([],"EmptyCtrl")
+getChanExp (Const _) c = ([c],"Const")
 
-getChan (MapConst s1 _) _ = [s1]
-getChan (MapOne _ s1) _ = [s1]
-getChan (MapTwo _ s1 s2) _ = [s1,s2]
+getChanExp (MapConst s1 _) _ = ([s1],"MapConst")
+getChanExp (MapOne _ s1) _ = ([s1],"MapOne")
+getChanExp (MapTwo _ s1 s2) _ = ([s1,s2],"MapTwo")
 
-getChan (InterMergeS ss) _ = ss 
-getChan (SegInterS ss) _ = concat $ map (\(x,y) -> [x,y]) ss 
-getChan (PriSegInterS ss) _ = concat $ map (\(x,y) -> [x,y]) ss 
+getChanExp (InterMergeS ss) _ = (ss,"InterMergeS")
+getChanExp (SegInterS ss) _ = (concat $ map (\(x,y) -> [x,y]) ss , "SegInterS")
+getChanExp (PriSegInterS ss) _ = (concat $ map (\(x,y) -> [x,y]) ss, "PriSegInterS") 
 
-getChan (Distr s1 s2) _ = [s1,s2]
-getChan (SegDistr s1 s2) _ = [s1,s2]
-getChan (SegFlagDistr s1 s2 s3) _ = [s2,s1,s3]
-getChan (PrimSegFlagDistr s1 s2 s3) _ = [s2,s1,s3]
+getChanExp (Distr s1 s2) _ = ([s1,s2], "Distr")
+getChanExp (SegDistr s1 s2) _ = ([s1,s2],"SegDistr")
+getChanExp (SegFlagDistr s1 s2 s3) _ = ([s2,s1,s3],"SegFlagDistr")
+getChanExp (PrimSegFlagDistr s1 s2 s3) _ = ([s2,s1,s3],"PrimSegFlagDistr")
 
-getChan (ToFlags s1) _ = [s1] 
-getChan (Usum s1) _ = [s1]
-getChan (B2u s1) _ = [s1]
+getChanExp (ToFlags s1) _ = ([s1], "ToFlags")
+getChanExp (Usum s1) _ = ([s1],"Usum")
+getChanExp (B2u s1) _ = ([s1],"B2u")
 
-getChan (SegscanPlus s1 s2) _ = [s2,s1]
-getChan (ReducePlus s1 s2) _ = [s2,s1]  
-getChan (Pack s1 s2) _ = [s2,s1]  
-getChan (UPack s1 s2) _ = [s2,s1]  
-getChan (SegConcat s1 s2) _ = [s2,s1]  
-getChan (USegCount s1 s2) _ = [s2,s1]  
-getChan (SegMerge s1 s2) _ = [s2,s1]  
-getChan (Check s1 s2) _ = [s1,s2]  
+getChanExp (SegscanPlus s1 s2) _ = ([s2,s1],"SegscanPlus")
+getChanExp (ReducePlus s1 s2) _ = ([s2,s1],"ReducePlus")
+getChanExp (Pack s1 s2) _ = ([s2,s1],"Pack")
+getChanExp (UPack s1 s2) _ = ([s2,s1],"UPack")
+getChanExp (SegConcat s1 s2) _ = ([s2,s1],"SegConcat")
+getChanExp (USegCount s1 s2) _ = ([s2,s1],"USegCount")
+getChanExp (SegMerge s1 s2) _ = ([s2,s1],"SegMerge")  
+getChanExp (Check s1 s2) _ = ([s1,s2],"Check")
 
 
 
@@ -464,23 +480,41 @@ addEdges (j:js) i d = addEdges js i d'
           e0 = d!!j 
 
 
------- generate a file to visualize the DAG 
+-------- generate a file to visualize the DAG -------------
 --- use "graph-easy": graph-easy <inputfile> --png 
-geneDagFile ss c fname = 
-  do let d = geneDag ss c
-         ps = [0..length d -1]
-         lines = zipWith (\x ys -> 
-           if null ys then drawpoint x 
-             else concat $ map (\y -> drawedge x y) ys) ps d
+geneDagFile code ctrl fname = 
+  do let ch0 = geneCTabExp code ctrl
+         ch1 = addEmptyStreams ch0 0
+         ch2 = map (\(i, str,sids) -> 
+                        ("S"++ show i ++ ": " ++ str, sids)) ch1
+         ch3 = map (\(str, sids) -> (str, map (\i -> fst $ ch2!!i) sids)) ch2
+         lines = map (\(x,ys) -> if null ys then drawnode x else          
+                  concat $ zipWith (\y c -> drawedge y x c) ys [0..]) ch3
          content = concat lines 
      writeFile fname content 
    
 
-drawpoint :: Int -> String
-drawpoint i = "[" ++ show i ++ "]\n"
+drawnode :: String -> String
+drawnode i = "[ " ++  i ++ " ]\n"
 
-drawedge :: Int -> Int -> String 
-drawedge i j = "[" ++ show i ++ "] ---> [" ++ show j ++ "] \n"
+drawedge :: String -> String -> Int -> String 
+drawedge i j c = "[ " ++ i ++ " ] -- " ++ show c ++ " --> [ " ++ j ++ " ]\n"
+
+
+
+geneCTabExp :: [SInstr] -> SId -> [(SId, String,[SId])]
+geneCTabExp [] _ = []
+geneCTabExp ((SDef sid sexp):ss) c = (sid,i,cl0) : geneCTabExp ss c
+    where (cl0, i ) = getChanExp sexp c
+geneCTabExp ((WithCtrl newc ss _):ss') c = cl ++ geneCTabExp ss' c
+    where cl = geneCTabExp ss newc
+
+
+addEmptyStreams :: [(SId, String, [SId])] -> Int -> [(SId, String,[SId])]
+addEmptyStreams [] _ = []
+addEmptyStreams ch@(ch0@(c0,str,sids):ch') i = 
+  if c0 == i then ch0 : addEmptyStreams ch' (i+1)
+    else (i,"(empty stream)",[]) : addEmptyStreams ch (i+1)
 
 -----------------
 
