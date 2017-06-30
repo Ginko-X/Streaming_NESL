@@ -70,15 +70,15 @@ addClient d i c =
 
 
 ------- run the program and print out the Svctx in each round  -------------
-runSvcodePExp' :: SFun -> Either String String
-runSvcodePExp' (SFun [] st code) = 
+runSvcodePExp' :: SFun -> Int -> Either String String
+runSvcodePExp' (SFun [] st code) count = 
   do let (ch,d) = geneCTabDag code 0
          retSids = tree2Sids st
          d' = foldl (\dag sid -> addClient dag sid (-1)) d retSids 
      (_,ctx) <- rSvcodeP (mapM_ sInstrInit code) d' ch [] 0 
      let ctx' = addEptSids ctx 0 (Eos, [], Done ())     
     
-     (as, ctxs) <- roundN 1000 (round1 (mapM (sInstrInterp retSids) code) d' ch 0 st) [ctx] $ [initTreeAval st]
+     (as, ctxs) <- roundN count (round1 (mapM (sInstrInterp retSids) code) d' ch 0 st) [ctx'] $ [initTreeAval st]
      let str = map (\(a,c,i) -> "Round "++ show i ++"\n" ++ show a ++ "\n" ++ showCtx c ++ "\n") 
                     $ zip3 (reverse as) (reverse ctxs) [0..]
      return $ concat str
@@ -469,7 +469,7 @@ geneDagFile (SFun _ ret code) fname =
          retSids = map (\sid -> fst $ ch2!!sid) $ tree2Sids ret 
          retLines = map (\(c,s) -> drawedge s "S-1: Output" c) $ zip [0..] retSids
          content = concat $ lines ++ retLines  
-     writeFile fname content 
+     writeFile fname content
    
 
 drawnode :: String -> String
@@ -483,9 +483,9 @@ addEmptyStreams :: [(SId, String, [SId])] -> Int -> [(SId, String,[SId])]
 addEmptyStreams chs i = 
   let (sids, strs, sidss) = unzip3 chs  
       chs' = addEptSids (zip sids (zip strs sidss)) i ("(empty stream)",[])
-      (_, strSids) = unzip chs'
+      (sids', strSids) = unzip chs'
       (strs', sidss') = unzip strSids
-  in zip3 sids strs' sidss' 
+  in zip3 sids' strs' sidss' 
 
 
 -----------------
