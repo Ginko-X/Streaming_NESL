@@ -257,8 +257,12 @@ interMergeProc c =
   let p = Pin 0 (\x -> 
             case x of 
               Nothing -> Done ()
-              Just v -> rout v >> mapM_ uInOut [0 ..c-1] >> rout (BVal True) >> p)
-  in p  
+              Just (BVal True) -> mapM_ uInOut [1..c-1] >> rout (BVal True) >>p           
+              Just (BVal False) ->  do rout (BVal False) 
+                                       mapM_ uInOut [0..c-1] 
+                                       rout (BVal True) 
+                                       p )
+  in p
 
 
 segInterProc :: [(Int,Int)] -> Proc ()
@@ -318,7 +322,6 @@ evalProc (Done ()) _ s = reverseSv s
 
 
 
-
 updateList :: [a] -> Int -> a -> [a]
 updateList ss i s = take i ss ++ [s] ++ drop (i+1) ss 
 
@@ -339,14 +342,4 @@ pwrite (BVal b) (SBVal bs) = SBVal (b:bs)
 reverseSv :: SvVal -> SvVal 
 reverseSv (SIVal is) = SIVal $ reverse is
 reverseSv (SBVal bs) = SBVal $ reverse bs  
-
-
-
-
-
-
-
-
-
-
 

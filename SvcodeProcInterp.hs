@@ -425,11 +425,11 @@ geneDagFromCTab ctab =
 getChanExp :: SExp -> SId -> ([SId],String)
 getChanExp Ctrl _ = ([],"Ctrl")
 getChanExp EmptyCtrl _ = ([],"EmptyCtrl")
-getChanExp (Const _) c = ([c],"Const")
+getChanExp (Const a) c = ([c],"Const " ++ show a)
 
-getChanExp (MapConst s1 _) _ = ([s1],"MapConst")
-getChanExp (MapOne _ s1) _ = ([s1],"MapOne")
-getChanExp (MapTwo _ s1 s2) _ = ([s1,s2],"MapTwo")
+getChanExp (MapConst s1 a) _ = ([s1],"MapConst " ++ show a)
+getChanExp (MapOne op s1) _ = ([s1],"MapOne " ++ show op)
+getChanExp (MapTwo op s1 s2) _ = ([s1,s2],"MapTwo " ++ show op)
 
 getChanExp (InterMergeS ss) _ = (ss,"InterMergeS")
 getChanExp (SegInterS ss) _ = (concat $ map (\(x,y) -> [x,y]) ss , "SegInterS")
