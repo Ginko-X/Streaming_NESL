@@ -211,7 +211,7 @@ progs = [prog1,prog2,prog3,prog4,prog5,prog6,prog7,prog8,prog9, prog10, prog11]
                           
 
 -- An example program: compute all the primes less than the number 'count'
-prog1 = "let count = 5; " ++
+prog1 = "let count = 10; " ++
         "    rs1 = {{{x+1 | a / (x+1) * (x+1) == a} : x in &a}: a in &count} ;"  ++
          "   rs2 = {reducePlus(concat(z)): z in rs1} "  ++
         "in  concat({{x | x+1 == y}: x in &count, y in rs2})"

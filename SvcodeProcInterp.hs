@@ -222,7 +222,7 @@ sInstrInit :: SInstr -> SvcodeP ()
 sInstrInit (SDef sid e) = 
   do cls <- getClients sid
      p <- sExpProcInit e 
-     addCtx sid (EmptyBuf, map (\cl -> (cl,False)) cls, p)  
+     addCtx sid (EmptyBuf, map (\cl -> (cl,True)) cls, p)  
 
 sInstrInit (WithCtrl _ code _) = mapM_ sInstrInit code
 
