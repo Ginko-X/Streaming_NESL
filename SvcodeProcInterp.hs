@@ -50,10 +50,9 @@ instance Applicative SvcodeP where
 
 
 
---runSvcodePExp :: SFun -> Either String (SvVal, (Int,Int))
+runSvcodePExp :: SFun -> Either String (SvVal, (Int,Int))
 runSvcodePExp (SFun [] st code) = 
-  do let d = geneDag code 0 
-         ch = geneCTab code 0
+  do let (ch,d) = geneCTabDag code 0
          retSids = tree2Sids st
          d' = foldl (\dag sid -> addClient dag sid (-1)) d retSids 
      (_,ctx) <- rSvcodeP (mapM_ sInstrInit code) d' ch [] 0 
@@ -61,12 +60,6 @@ runSvcodePExp (SFun [] st code) =
      
      (as, _) <- rrobin (mapM (sInstrInterp retSids) code) d' ch ctx' 0 st $ initTreeAval st     
      return (fst $ constrSv st as,(0,0))
-
-     --(as, ctxs) <- roundN 20 (round1 (mapM (sInstrInterp retSids) code) d' ch 0 st) [ctx] $ [initTreeAval st]
-     --let str = map (\(a,c,i) -> "Round "++ show i ++"\n" ++ show a ++ "\n" ++ showCtx c ++ "\n") 
-     --               $ zip3 (reverse as) (reverse ctxs) [0..]
-     --return $ concat str
-
 
 
 addClient :: Dag -> SId -> SId -> Dag
@@ -76,7 +69,19 @@ addClient d i c =
   in updateList d i cs 
 
 
------- helper functions for printing out the Svctx in each round  -------------
+------- run the program and print out the Svctx in each round  -------------
+runSvcodePExp' :: SFun -> Either String String
+runSvcodePExp' (SFun [] st code) = 
+  do let (ch,d) = geneCTabDag code 0
+         retSids = tree2Sids st
+         d' = foldl (\dag sid -> addClient dag sid (-1)) d retSids 
+     (_,ctx) <- rSvcodeP (mapM_ sInstrInit code) d' ch [] 0 
+     let ctx' = addEptSids ctx 0 (Eos, [], Done ())     
+    
+     (as, ctxs) <- roundN 1000 (round1 (mapM (sInstrInterp retSids) code) d' ch 0 st) [ctx] $ [initTreeAval st]
+     let str = map (\(a,c,i) -> "Round "++ show i ++"\n" ++ show a ++ "\n" ++ showCtx c ++ "\n") 
+                    $ zip3 (reverse as) (reverse ctxs) [0..]
+     return $ concat str
 
 
 showCtx :: Svctx -> String
@@ -369,17 +374,33 @@ updateWithKey (p:ps) k v =
   if fst p == k then (k,v): ps else p:updateWithKey ps k v
 
 
+addWithKey :: (Eq a) => [(a,[b])] -> a -> b -> [(a,[b])]
+addWithKey [] k v = []
+addWithKey (p0@(k0,v0):ps) k v = 
+  if k0 == k then (k0,v0++[v]): ps else p0:addWithKey ps k v
+
+
+---- generate channel table and DAG
+
+geneCTabDag :: [SInstr] -> SId -> (CTable,Dag)
+geneCTabDag code ctrl = 
+  let ctab = geneCTab code ctrl
+      dag = geneDagFromCTab ctab
+   in (ctab, dag)
+
 
 geneCTab :: [SInstr] -> SId -> CTable
 geneCTab code ctrl = 
-  let ctab = instrGeneCTab code ctrl 
-   in addEptSids ctab 0 []
+  let (sids,_,chs) = unzip3 $ instrGeneCTab code ctrl 
+   in addEptSids (zip sids chs) 0 []
 
 
-instrGeneCTab :: [SInstr] -> SId -> CTable
+
+instrGeneCTab :: [SInstr] -> SId -> [(SId, String,[SId])]
 instrGeneCTab [] _ = []
-instrGeneCTab ((SDef sid sexp):ss) c = (sid,cl0) : instrGeneCTab ss c
-    where (cl0, _) = getChanExp sexp c
+
+instrGeneCTab ((SDef sid sexp):ss) c = (sid,i,cl0) : instrGeneCTab ss c
+    where (cl0, i ) = getChanExp sexp c
 
 instrGeneCTab ((WithCtrl newc ss _):ss') c = cl ++ instrGeneCTab ss' c
     where cl = instrGeneCTab ss newc
@@ -393,26 +414,11 @@ addEptSids ch@(ch0@(c0,sids):ch') i a0 =
     else (i,a0) : addEptSids ch (i+1) a0 
 
 
-
--- generate the DAG 
-geneDag :: [SInstr] -> SId -> Dag 
-geneDag ss c = let sc = sidCount ss in dagUpdate ss c $ replicate sc []
-
-dagUpdate :: [SInstr] -> SId -> Dag -> Dag 
-dagUpdate [] _ d = d 
-dagUpdate (def@(SDef _ _) : ss) c d = dagUpdate ss c $ addDefEdge c d def 
-dagUpdate ((WithCtrl newc ss _): ss') c d = 
-    dagUpdate ss' c $ dagUpdate ss newc d 
-
-
--- get the count of the SIds/streams according to the last SId number
-sidCount :: [SInstr] -> Int 
-sidCount [] = 0 
-sidCount ss = 
-  let s = last ss in  
-    case s of 
-      SDef i _ -> i+1 
-      WithCtrl _ ss' _ -> if null ss' then sidCount (init ss) else sidCount ss'
+geneDagFromCTab :: CTable -> Dag
+geneDagFromCTab ctab = 
+  let d0 = map (\(sid, _) -> (sid,[])) ctab 
+      d = foldl (\d (sid, chs) -> foldl (\d' ch -> addWithKey d' ch sid) d chs) d0 ctab
+  in snd $ unzip d 
 
 
 
@@ -449,59 +455,20 @@ getChanExp (Check s1 s2) _ = ([s1,s2],"Check")
 
 
 
-addDefEdge :: SId -> Dag -> SInstr -> Dag 
-addDefEdge _ d (SDef _ Ctrl) = d 
-addDefEdge _ d (SDef _ EmptyCtrl) = d
-addDefEdge c d (SDef i (Const _)) = addEdges [c] i d
-
-addDefEdge _ d (SDef i (MapConst j _)) = addEdges [j] i d 
-addDefEdge _ d (SDef i (MapOne _ j)) = addEdges [j] i d 
-addDefEdge _ d (SDef i (MapTwo _ j k)) = addEdges [j,k] i d
-
-addDefEdge _ d (SDef i (InterMergeS ss)) = addEdges ss i d 
-addDefEdge _ d (SDef i (SegInterS ss)) = 
-  let sids = concat $ map (\(x,y) -> [x,y]) ss in addEdges sids i d
-addDefEdge _ d (SDef i (PriSegInterS ss)) = 
-  let sids = concat $ map (\(x,y) -> [x,y]) ss in addEdges sids i d
-
-addDefEdge _ d (SDef i (Distr j k)) = addEdges [j,k] i d
-addDefEdge _ d (SDef i (SegDistr j k)) = addEdges [j,k] i d
-addDefEdge _ d (SDef i (SegFlagDistr j k m)) = addEdges [j,k,m] i d
-addDefEdge _ d (SDef i (PrimSegFlagDistr j k m)) = addEdges [j,k,m] i d
-
-addDefEdge _ d (SDef i (ToFlags j)) = addEdges [j] i d
-addDefEdge _ d (SDef i (Usum j)) = addEdges [j] i d
-addDefEdge _ d (SDef i (B2u j)) = addEdges [j] i d
-
-addDefEdge _ d (SDef i (SegscanPlus j k)) = addEdges [j,k] i d
-addDefEdge _ d (SDef i (ReducePlus j k)) = addEdges [j,k] i d
-addDefEdge _ d (SDef i (Pack j k)) = addEdges [j,k] i d
-addDefEdge _ d (SDef i (UPack j k)) = addEdges [j,k] i d
-addDefEdge _ d (SDef i (SegConcat j k)) = addEdges [j,k] i d
-addDefEdge _ d (SDef i (USegCount j k)) = addEdges [j,k] i d
-addDefEdge _ d (SDef i (SegMerge j k)) = addEdges [j,k] i d
-addDefEdge _ d (SDef i (Check j k)) = addEdges [j,k] i d
-
-
--- add edges from js to i 
-addEdges :: [SId] -> SId -> Dag -> Dag 
-addEdges [] _ d = d 
-addEdges (j:js) i d = addEdges js i d'
-    where d' = updateList d j (e0++[i])  
-          e0 = d!!j 
-
-
 -------- generate a file to visualize the DAG -------------
 --- use "graph-easy": graph-easy <inputfile> --png 
-geneDagFile code ctrl fname = 
-  do let ch0 = geneCTabExp code ctrl
+geneDagFile (SFun _ ret code) fname = 
+  do let ch0 = instrGeneCTab code 0
          ch1 = addEmptyStreams ch0 0
          ch2 = map (\(i, str,sids) -> 
                         ("S"++ show i ++ ": " ++ str, sids)) ch1
          ch3 = map (\(str, sids) -> (str, map (\i -> fst $ ch2!!i) sids)) ch2
          lines = map (\(x,ys) -> if null ys then drawnode x else          
-                  concat $ zipWith (\y c -> drawedge y x c) ys [0..]) ch3
-         content = concat lines 
+                  concat $ zipWith (\y c -> drawedge y x c) ys [0..]) ch3         
+
+         retSids = map (\sid -> fst $ ch2!!sid) $ tree2Sids ret 
+         retLines = map (\(c,s) -> drawedge s "S-1: Output" c) $ zip [0..] retSids
+         content = concat $ lines ++ retLines  
      writeFile fname content 
    
 
@@ -510,15 +477,6 @@ drawnode i = "[ " ++  i ++ " ]\n"
 
 drawedge :: String -> String -> Int -> String 
 drawedge i j c = "[ " ++ i ++ " ] -- " ++ show c ++ " --> [ " ++ j ++ " ]\n"
-
-
-
-geneCTabExp :: [SInstr] -> SId -> [(SId, String,[SId])]
-geneCTabExp [] _ = []
-geneCTabExp ((SDef sid sexp):ss) c = (sid,i,cl0) : geneCTabExp ss c
-    where (cl0, i ) = getChanExp sexp c
-geneCTabExp ((WithCtrl newc ss _):ss') c = cl ++ geneCTabExp ss' c
-    where cl = geneCTabExp ss newc
 
 
 addEmptyStreams :: [(SId, String, [SId])] -> Int -> [(SId, String,[SId])]
