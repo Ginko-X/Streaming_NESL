@@ -126,16 +126,28 @@ testString str env@(e0,t0,v0,f0) =
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0
        --return svcode
-       (svcodeRes, (w',s')) <- runSvcodeExp svcode f0
-       --(svcodeRes, (w',s')) <- runSvcodePExp svcode
+       --(svcodeRes, (w',s')) <- runSvcodeExp svcode f0
+       (svcodeRes,(w',s')) <- runSvcodePExp svcode
        svcodeRes' <- dataTransBack sneslTy svcodeRes
-       return svcodeRes
        if compareVal sneslRes svcodeRes'  
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
          else fail $ "SNESL and SVCODE results are different." ++ show sneslRes 
                       ++ " " ++ show svcodeRes'
 
 
+geneExpCode :: String -> [SInstr]
+geneExpCode str = 
+  case runParseExp str of 
+    Right e -> case runCompileExp e compEnv0 of 
+                 Right (SFun _ _ code) -> code 
+                 Left _ -> []
+    Left _ -> []
+
+geneExpSFun :: String -> Either String SFun
+geneExpSFun str = 
+  do e <- runParseExp str 
+     runCompileExp e compEnv0 
+ 
 
 --testExample :: String -> IO()
 --testExample str = 
@@ -188,9 +200,9 @@ compareVal _ _ = False
 
 
 
--- some examples
+-- some examples 
 manyTest :: [String] -> Either String String
-manyTest ps = 
+manyTest ps =
   do mapM_ (\e -> testString e ie0) ps
      return "All correct!"
 
@@ -200,7 +212,7 @@ progs = [prog1,prog2,prog3,prog4,prog5,prog6,prog7,prog8,prog9, prog10, prog11]
                           
 
 -- An example program: compute all the primes less than the number 'count'
-prog1 = "let count = 50; " ++
+prog1 = "let count = 5; " ++
         "    rs1 = {{{x+1 | a / (x+1) * (x+1) == a} : x in &a}: a in &count} ;"  ++
          "   rs2 = {reducePlus(concat(z)): z in rs1} "  ++
         "in  concat({{x | x+1 == y}: x in &count, y in rs2})"
