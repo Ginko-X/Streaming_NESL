@@ -20,7 +20,7 @@ type Svctx = [(SId, SState)]
 
 type Dag = [[SId]]
 
-type CTable = [(SId,[SId])] -- channel table
+type CTable = [(SId,[SId])] 
 
 
 newtype SvcodeP a = SvcodeP {rSvcodeP :: Dag -> CTable -> Svctx -> SId -> 
@@ -54,35 +54,43 @@ instance Applicative SvcodeP where
 runSvcodePExp (SFun [] st code) = 
   do let d = geneDag code 0 
          ch = geneCTab code 0
-         sinks = filter (\sid -> null $ d!!sid) $ tree2Sids st 
-     (_,ctx) <- rSvcodeP (mapM_ sInstrInit code) d ch [] 0 
-     (_,ctx') <- rSvcodeP (sSinkInit sinks) d ch ctx 0  
+         retSids = tree2Sids st
+         d' = foldl (\dag sid -> addClient dag sid (-1)) d retSids 
+     (_,ctx) <- rSvcodeP (mapM_ sInstrInit code) d' ch [] 0 
+     let ctx' = addEptSids ctx 0 (Eos, [], Done ())
      
-     --(as, _) <- rrobin (mapM (sInstrInterp sinks) code) d ch ctx' 0 st $ initTreeAval st     
-     --return (fst $ constrSv st as,(0,0))
+     (as, _) <- rrobin (mapM (sInstrInterp retSids) code) d' ch ctx' 0 st $ initTreeAval st     
+     return (fst $ constrSv st as,(0,0))
 
-     (as, ctxs) <- roundN 20 (round1 (mapM (sInstrInterp sinks) code) d ch 0 st) [ctx'] $ [initTreeAval st]
-     let str = map (\(a,c,i) -> "Round "++ show i ++"\n" ++ show a ++ "\n" ++ showCtx c ++ "\n") 
-                    $ zip3 (reverse as) (reverse ctxs) [0..]
-     return $ concat str
+     --(as, ctxs) <- roundN 20 (round1 (mapM (sInstrInterp retSids) code) d' ch 0 st) [ctx] $ [initTreeAval st]
+     --let str = map (\(a,c,i) -> "Round "++ show i ++"\n" ++ show a ++ "\n" ++ showCtx c ++ "\n") 
+     --               $ zip3 (reverse as) (reverse ctxs) [0..]
+     --return $ concat str
 
 
----- helper functions for printing out the states of all streams in each round 
+
+addClient :: Dag -> SId -> SId -> Dag
+addClient d i c = 
+  let cs0 = d !! i 
+      cs = cs0 ++ [c]
+  in updateList d i cs 
+
+
+------ helper functions for printing out the Svctx in each round  -------------
 
 
 showCtx :: Svctx -> String
 showCtx [] = ""
 showCtx ((sid,(buf,bs,p)):ss) = 
-  "S" ++ show sid ++ " := (" ++ show buf ++ "," ++ show bs ++ "," ++ show p ++ ")\n"
-  ++ showCtx ss 
-
+  "S" ++ show sid ++ " := (" ++ show buf ++ "," ++ show bs ++ "," ++ show p 
+    ++ ")\n" ++ showCtx ss 
 
 
 roundN :: Int -> (Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx)) -> 
             [Svctx] -> [[[AVal]]] -> Either String ([[[AVal]]], [Svctx])
 roundN 0 f ctxs as = Right (as,ctxs) 
 roundN c f ctxs as = 
-  if all (\(_,(_,_,p)) -> p == Done ()) (head ctxs)
+  if all (\(_,(buf,_,p)) -> buf == Eos) (head ctxs)
     then return (as,ctxs)
     else
       do (as',ctx') <- f (head ctxs) (head as)
@@ -93,22 +101,22 @@ round1 :: SvcodeP [Bool] -> Dag -> CTable -> SId ->
                   STree -> Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx)              
 round1 m d ch ctrl st ctx as0 = 
   do (bs, ctx') <- rSvcodeP m d ch ctx ctrl
-     as <- lookupTreeAval st ctx'
+     (as, ctx'') <- lookupTreeAval st ctx'
      let as' = zipWith (++) as0 as 
-     return (as', ctx') 
+     return (as', ctx'') 
 
------------------------
+-----------------------------------
 
      
 rrobin :: SvcodeP [Bool] -> Dag -> CTable -> Svctx -> SId -> 
                   STree -> [[AVal]] -> Either String ([[AVal]], Svctx)              
 rrobin m d ch ctx ctrl st as0 = 
   do (bs, ctx') <- rSvcodeP m d ch ctx ctrl
-     as <- lookupTreeAval st ctx'
+     (as,ctx'') <- lookupTreeAval st ctx'
      let as' = zipWith (++) as0 as 
      if all (\x -> x) bs 
-       then return (as', ctx') 
-       else rrobin m d ch ctx' ctrl st as'
+       then return (as', ctx'') 
+       else rrobin m d ch ctx'' ctrl st as'
 
 
 
@@ -134,21 +142,32 @@ initTreeAval (SStr t1 t2) = initTreeAval t1 ++ initTreeAval (BStr t2)
 
 
 
-lookupTreeAval :: STree -> Svctx -> Either String [[AVal]]
+lookupTreeAval :: STree -> Svctx -> Either String ([[AVal]],Svctx)
 lookupTreeAval (IStr t1) ctx = 
     case lookup t1 ctx of 
       Nothing -> Left "SVCODE runtime error: undefined streams." 
-      Just (EmptyBuf, _, _) -> Right [[]]
-      Just (Buf a, bs,_) -> if allFlagT bs then Right [[a]] else Right [[]]
-      Just (Eos, _, _) -> Right [[]]
 
+      Just (EmptyBuf, bs, p) -> 
+        let bs' = markRead bs (-1) 
+            ctx' = updateWithKey ctx t1 (EmptyBuf, bs', p)
+         in Right ([[]], ctx')
+      
+      Just (Buf a, bs, p) -> 
+        if allFlagT (init bs) .&. (not $ snd $ last bs)
+          then Right ([[a]], updateWithKey ctx t1 (Buf a, setFlagT bs, p))
+          else Right ([[]],ctx)
+
+      Just (Eos, bs, p) -> 
+        let bs' = markRead bs (-1)
+            ctx' = updateWithKey ctx t1 (Eos, bs', p)
+         in Right ([[]], ctx')
 
 lookupTreeAval (BStr t1) ctx = lookupTreeAval (IStr t1) ctx
 
 lookupTreeAval (PStr t1 t2) ctx = 
-    do v1 <- lookupTreeAval t1 ctx 
-       v2 <- lookupTreeAval t2 ctx 
-       return $ v1++v2 
+    do (v1,ctx1) <- lookupTreeAval t1 ctx 
+       (v2,ctx2) <- lookupTreeAval t2 ctx1 
+       return $ (v1++v2, ctx2)
 
 lookupTreeAval (SStr t1 t2) ctx = lookupTreeAval (PStr t1 (BStr t2)) ctx
 
@@ -167,11 +186,8 @@ getClients sid = SvcodeP $ \ d _ c _ -> Right (d !! sid, c)
 
 
 getChannels :: SId -> SvcodeP [SId]
-getChannels sid = SvcodeP $ \ _ ch c _ -> 
-    case lookup sid ch of 
-      Nothing -> Left $ "getChannels: undefined SId " ++ show sid
-      Just v -> Right (v, c)
- 
+getChannels sid = SvcodeP $ \ _ ch c _ -> Right (snd $ ch !! sid, c)
+
 
 getCtrl :: SvcodeP SId 
 getCtrl = SvcodeP $ \ _ _ ctx ctrl -> Right (ctrl, ctx)
@@ -201,7 +217,7 @@ sInstrInit :: SInstr -> SvcodeP ()
 sInstrInit (SDef sid e) = 
   do cls <- getClients sid
      p <- sExpProcInit e 
-     addCtx sid (EmptyBuf, map (\cl -> (cl,True)) cls, p)  
+     addCtx sid (EmptyBuf, map (\cl -> (cl,False)) cls, p)  
 
 sInstrInit (WithCtrl _ code _) = mapM_ sInstrInit code
 
@@ -285,29 +301,20 @@ setFlagT bs = map (\(sid, _) -> (sid, True)) bs
 
 
 
-sSinkInit :: [SId] -> SvcodeP ()
-sSinkInit sinks = 
-  do stas <- mapM lookupSid sinks
-     zipWithM_ (\sid (buf, _, p)  -> updateCtx sid (buf, [(sid,True)], p)) sinks stas
-
-
-
 ----- instruction interp
 
 sInstrInterp :: [SId] -> SInstr -> SvcodeP Bool
-sInstrInterp sinks (SDef sid i)  = 
+sInstrInterp rets (SDef sid i) = 
   do (buf, bs, p) <- lookupSid sid 
      case buf of 
        Eos -> return True 
        _ -> case p of
-              Done () -> (if allFlagT bs then updateCtx sid (Eos,setFlagF bs,p) else return ()) >> return True
-              Pout a p' -> do (if allFlagT bs
-                                then updateCtx sid (Buf a, setFlagF bs, p') 
-                                else return ())
-                              (if sid `elem` sinks
-                                then updateCtx sid (Buf a, setFlagT bs, p')
-                                else return ()) 
-                              return False
+              Done () -> (if allFlagT bs 
+                            then updateCtx sid (Eos, setFlagF bs,p)                                
+                            else return ()) >> return True
+              Pout a p' -> (if allFlagT bs 
+                              then updateCtx sid (Buf a, setFlagF bs, p')
+                              else return ())  >> return False                              
               Pin i p' ->
                 do chs <- getChannels sid 
                    (bufCh, flagCh,pCh) <- lookupSid (chs!!i)
@@ -315,21 +322,19 @@ sInstrInterp sinks (SDef sid i)  =
                      Nothing -> fail $ "undefined client " ++ show sid
                      Just True -> return False
                      Just False -> 
-                       do let flagCh' = updateWithKey flagCh sid True
+                       do let flagCh' = markRead flagCh sid
                           updateCtx (chs!!i) (bufCh, flagCh',pCh)
                           mbA <- readBuf bufCh
-                          if null mbA then return False
-                          else 
-                            do let p'' = p' $ head mbA
-                               if sid `elem` sinks 
-                                 then updateCtx sid (buf, setFlagF bs,p'')
-                                 else updateCtx sid (buf,bs,p'')
-                               return False
+                          (if null mbA 
+                             then return () 
+                             else updateCtx sid (buf,bs,p' (head mbA)))
+                          return False
+               
  
 
-sInstrInterp sinks (WithCtrl newc code st) = 
+sInstrInterp rets (WithCtrl newc code st) = 
   do (buf,_,_) <- lookupSid newc
-     bs <- localCtrl newc $ mapM (sInstrInterp sinks) code 
+     bs <- localCtrl newc $ mapM (sInstrInterp rets) code 
      return $ all (\x -> x) bs
      --if buf == Eos --?!
      --  then doneStream st >> return True
@@ -344,20 +349,6 @@ sInstrInterp sinks (WithCtrl newc code st) =
 --doneStream (SStr st1 st2) = doneStream (PStr st1 (BStr st2))
  
 
-evalProcA :: Proc () -> [([Maybe AVal], Bool)] -> SvcodeP (BufState, Proc (), [Bool])
-evalProcA p0@(Pin c p1) as = 
-  if null $ concat $ fst $ unzip as 
-    then return (EmptyBuf,p0, snd $ unzip as)
-    else let (la, b) =  as !! c
-         in if b == True
-              then return (EmptyBuf, p0, snd $ unzip as) 
-              else evalProcA (p1 $ head la) (markRead as la) 
-
-evalProcA (Pout a p) as = return (Buf a, p, snd $ unzip as) 
-
-evalProcA (Done ()) as = return (Eos, Done(), snd $ unzip as)
-
-
 readBuf :: BufState -> SvcodeP [Maybe AVal]
 readBuf buf = 
   case buf of 
@@ -366,26 +357,41 @@ readBuf buf =
     EmptyBuf -> return []
 
 
-markRead :: (Eq a) => [(a,Bool)] -> a -> [(a,Bool)]
-markRead [] k = []
-markRead ((k1,p1):ps) k = 
-  if (k1 == k) .&. (p1 == False) then (k,True): markRead ps k else (k1,p1): markRead ps k
 
--- update all the key
+markRead :: [(SId,Bool)] -> SId -> [(SId,Bool)]
+markRead fs sid = updateWithKey fs sid True
+
+
+-- update the first pair with this key `k` 
 updateWithKey :: (Eq a) => [(a,b)] -> a -> b -> [(a,b)]
 updateWithKey [] k v = []
 updateWithKey (p:ps) k v = 
-  if fst p == k then (k,v): updateWithKey ps k v else p:updateWithKey ps k v
+  if fst p == k then (k,v): ps else p:updateWithKey ps k v
 
 
--- generate the channel table for an SVCODE program
+
 geneCTab :: [SInstr] -> SId -> CTable
-geneCTab [] _ = []
-geneCTab ((SDef sid sexp):ss) c = (sid,cl0) : geneCTab ss c
+geneCTab code ctrl = 
+  let ctab = instrGeneCTab code ctrl 
+   in addEptSids ctab 0 []
+
+
+instrGeneCTab :: [SInstr] -> SId -> CTable
+instrGeneCTab [] _ = []
+instrGeneCTab ((SDef sid sexp):ss) c = (sid,cl0) : instrGeneCTab ss c
     where (cl0, _) = getChanExp sexp c
 
-geneCTab ((WithCtrl newc ss _):ss') c = cl ++ geneCTab ss' c
-    where cl = geneCTab ss newc
+instrGeneCTab ((WithCtrl newc ss _):ss') c = cl ++ instrGeneCTab ss' c
+    where cl = instrGeneCTab ss newc
+
+
+
+addEptSids :: [(SId, a)] -> Int -> a -> [(SId,a)]
+addEptSids [] _ _ = []
+addEptSids ch@(ch0@(c0,sids):ch') i a0 = 
+  if c0 == i then ch0 : addEptSids ch' (i+1) a0
+    else (i,a0) : addEptSids ch (i+1) a0 
+
 
 
 -- generate the DAG 
@@ -516,10 +522,13 @@ geneCTabExp ((WithCtrl newc ss _):ss') c = cl ++ geneCTabExp ss' c
 
 
 addEmptyStreams :: [(SId, String, [SId])] -> Int -> [(SId, String,[SId])]
-addEmptyStreams [] _ = []
-addEmptyStreams ch@(ch0@(c0,str,sids):ch') i = 
-  if c0 == i then ch0 : addEmptyStreams ch' (i+1)
-    else (i,"(empty stream)",[]) : addEmptyStreams ch (i+1)
+addEmptyStreams chs i = 
+  let (sids, strs, sidss) = unzip3 chs  
+      chs' = addEptSids (zip sids (zip strs sidss)) i ("(empty stream)",[])
+      (_, strSids) = unzip chs'
+      (strs', sidss') = unzip strSids
+  in zip3 sids strs' sidss' 
+
 
 -----------------
 
