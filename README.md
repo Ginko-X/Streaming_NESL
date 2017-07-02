@@ -3,7 +3,7 @@
     + A working streaming interpreter [`SvcodeProcInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProcInterp.hs) is done.
         + cost unfixed
         + does not support user-defined functions (and recursion)
-	+ can have deadlock
+        + can have deadlock
 	
     
 + Week 25 (19~25 Jun)
