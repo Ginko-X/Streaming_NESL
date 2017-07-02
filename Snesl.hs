@@ -89,8 +89,7 @@ runExp b e env@(e0,t0,v0,f0) =
     do sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0        
        svcode <- runCompileExp e v0     
-       --(svcodeRes,(w',s')) <- if b then runSvcodeSExp svcode else runSvcodeExp svcode f0
-       (svcodeRes,(w',s')) <- runSvcodeExp svcode f0       
+       (svcodeRes,(w',s')) <- if b then runSvcodePExp svcode else runSvcodeExp svcode f0
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes' 
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
@@ -147,18 +146,6 @@ geneExpSFun str =
   do e <- runParseExp str 
      runCompileExp e compEnv0 
  
-
---testExample :: String -> IO()
---testExample str = 
---    case testString str ie0 of 
---        Left err' -> putStrLn err' 
---        Right (v,tp,(w,s),(w',s')) ->
---               do putStrLn $ show v ++ " :: " ++ show tp 
---                  putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
---                                ++ show s ++ "]"
---                  putStrLn $ "SVCODE [work: " ++ show w' ++ ", step: " 
---                                ++ show s' ++ "]"
-  
 
 
 {-
