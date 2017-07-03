@@ -126,14 +126,13 @@ testString str env@(e0,t0,v0,f0) =
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0
        ----(svcodeRes, (w',s')) <- runSvcodeExp svcode f0  -- eager interp
-       --(svcodeRes, (w',s')) <- runSvcodePExp svcode  -- streaming interp
-       
-       runSvcodePExp' svcode 20 -- streaming interp
-       --svcodeRes' <- dataTransBack sneslTy svcodeRes
-       --if compareVal sneslRes svcodeRes'  
-       --  then return (sneslRes, sneslTy,(w,s),(w',s')) 
-       --  else fail $ "SNESL and SVCODE results are different." ++ show sneslRes 
-       --               ++ " " ++ show svcodeRes'
+       (svcodeRes, (w',s')) <- runSvcodePExp svcode  -- streaming interp       
+       --runSvcodePExp' svcode 10 -- output the context in each round of streaming interp
+       svcodeRes' <- dataTransBack sneslTy svcodeRes
+       if compareVal sneslRes svcodeRes'  
+         then return (sneslRes, sneslTy,(w,s),(w',s')) 
+         else fail $ "SNESL and SVCODE results are different." ++ show sneslRes 
+                      ++ " " ++ show svcodeRes'
 
 
 geneExpCode :: String -> [SInstr]

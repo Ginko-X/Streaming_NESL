@@ -58,7 +58,7 @@ runSvcodePExp (SFun [] st code) =
      (_,ctx) <- rSvcodeP (mapM_ sInstrInit code) d' ch [] 0 
      let ctx' = addEptSids ctx 0 (Eos, [], Done ())
      
-     (as, _) <- rrobin (mapM (sInstrInterp retSids) code) d' ch ctx' 0 st $ initTreeAval st     
+     (as, _) <- rrobin (mapM sInstrInterp code) d' ch ctx' 0 st $ initTreeAval st     
      return (fst $ constrSv st as,(0,0))
 
 
@@ -71,15 +71,14 @@ addClient d i c =
 
 
 ------- run the program and print out the Svctx in each round  -------------
-runSvcodePExp' :: SFun -> Int -> Either String String
+--runSvcodePExp' :: SFun -> Int -> Either String String
 runSvcodePExp' (SFun [] st code) count = 
   do let (ch,d) = geneCTabDag code 0
          retSids = tree2Sids st
          d' = foldl (\dag sid -> addClient dag sid (-1)) d retSids 
      (_,ctx) <- rSvcodeP (mapM_ sInstrInit code) d' ch [] 0 
      let ctx' = addEptSids ctx 0 (Eos, [], Done ())     
-    
-     (as, ctxs) <- roundN count (round1 (mapM (sInstrInterp retSids) code) d' ch 0 st) [ctx'] $ [initTreeAval st]
+     (as, ctxs) <- roundN count (round1 (mapM sInstrInterp code) d' ch 0 st) [ctx'] $ [initTreeAval st]
      let str = map (\(a,c,i) -> "Round "++ show i ++"\n" ++ show a ++ "\n" ++ showCtx c ++ "\n") 
                     $ zip3 (reverse as) (reverse ctxs) [0..]
      return $ concat str
@@ -184,7 +183,7 @@ addCtx :: SId -> SState -> SvcodeP ()
 addCtx s v = SvcodeP $ \ _ _ c _ -> Right ((), c++[(s,v)])
 
 updateCtx :: SId -> SState -> SvcodeP ()
-updateCtx s v = SvcodeP $ \_ _ c _ -> Right ((), updateList c s (s,v)) 
+updateCtx s v = SvcodeP $ \_ _ c _ -> Right ((), updateWithKey c s v) 
 
 
 getClients :: SId -> SvcodeP [SId]
@@ -225,7 +224,10 @@ sInstrInit (SDef sid e) =
      p <- sExpProcInit e 
      addCtx sid (EmptyBuf, map (\cl -> (cl,True)) cls, p)  
 
-sInstrInit (WithCtrl _ code _) = mapM_ sInstrInit code
+sInstrInit (WithCtrl ctrl code _) = 
+  do (buf, bs, p) <- lookupSid ctrl
+     updateCtx ctrl (buf,(-2,True):bs,p)   -- withctrl flag -2
+     mapM_ sInstrInit code
 
 
 ---- exp init
@@ -309,8 +311,8 @@ setFlagT bs = map (\(sid, _) -> (sid, True)) bs
 
 ----- instruction interp
 
-sInstrInterp :: [SId] -> SInstr -> SvcodeP Bool
-sInstrInterp rets (SDef sid i) = 
+sInstrInterp :: SInstr -> SvcodeP Bool
+sInstrInterp (SDef sid i) = 
   do (buf, bs, p) <- lookupSid sid 
      case buf of 
        Eos -> return True 
@@ -337,22 +339,34 @@ sInstrInterp rets (SDef sid i) =
                           return False
                
  
+sInstrInterp (WithCtrl ctrl code st) = 
+  do (buf,clFlags,p) <- lookupSid ctrl
+     case lookup (-2) clFlags of
+       Just True -> return False 
+       Nothing -> 
+          do bs <- localCtrl ctrl $ mapM sInstrInterp code 
+             return $ all (\x -> x) bs
+       Just False -> 
+         case buf of 
+           Eos -> 
+             do doneStream st
+                updateCtx ctrl (buf, delWithKey clFlags (-2), p) 
+                return True
+           Buf _ -> 
+             do updateCtx ctrl (buf, delWithKey clFlags (-2), p) 
+                bs <- localCtrl ctrl $ mapM sInstrInterp code 
+                return $ all (\x -> x) bs
+           EmptyBuf ->
+             do updateCtx ctrl (buf, updateWithKey clFlags (-2) True, p)
+                bs <- localCtrl ctrl $ mapM sInstrInterp code 
+                return $ all (\x -> x) bs
 
-sInstrInterp rets (WithCtrl newc code st) = 
-  do (buf,_,_) <- lookupSid newc
-     bs <- localCtrl newc $ mapM (sInstrInterp rets) code 
-     return $ all (\x -> x) bs
-     --if buf == Eos --?!
-     --  then doneStream st >> return True
-     --  else 
-     --    do 
 
-
---doneStream :: STree -> SvcodeP ()
---doneStream (IStr s) = updateCtx s (Eos, [], Done ()) 
---doneStream (BStr s) = updateCtx s (Eos, [], Done ()) 
---doneStream (PStr st1 st2)  = doneStream st1 >> doneStream st2
---doneStream (SStr st1 st2) = doneStream (PStr st1 (BStr st2))
+doneStream :: STree -> SvcodeP ()
+doneStream (IStr s) = updateCtx s (Eos, [], Done ()) 
+doneStream (BStr s) = updateCtx s (Eos, [], Done ()) 
+doneStream (PStr st1 st2)  = doneStream st1 >> doneStream st2
+doneStream (SStr st1 st2) = doneStream (PStr st1 (BStr st2))
  
 
 readBuf :: BufState -> SvcodeP [Maybe AVal]
@@ -370,15 +384,27 @@ markRead fs sid = updateWithKey fs sid True
 
 -- update the first pair with this key `k` 
 updateWithKey :: (Eq a) => [(a,b)] -> a -> b -> [(a,b)]
-updateWithKey [] k v = []
+updateWithKey [] _ _ = []
 updateWithKey (p:ps) k v = 
   if fst p == k then (k,v): ps else p:updateWithKey ps k v
 
 
 addWithKey :: (Eq a) => [(a,[b])] -> a -> b -> [(a,[b])]
-addWithKey [] k v = []
+addWithKey [] _ _ = []
 addWithKey (p0@(k0,v0):ps) k v = 
   if k0 == k then (k0,v0++[v]): ps else p0:addWithKey ps k v
+
+
+delWithKey :: (Eq a) => [(a,b)] -> a -> [(a,b)]
+delWithKey [] _ = []
+delWithKey (p0@(k0,v0):ps) k = 
+  if k0 == k then ps else p0:delWithKey ps k
+
+
+checkWithKey :: (Eq a) => (Eq b) => [(a,b)] -> a -> b -> Bool
+checkWithKey [] _ _ = False
+checkWithKey (p0@(k0,v0):ps) k v = 
+  if (k0 == k) .&. (v == v0) then True else checkWithKey ps k v 
 
 
 ---- generate channel table and DAG
@@ -410,9 +436,10 @@ instrGeneCTab ((WithCtrl newc ss _):ss') c = cl ++ instrGeneCTab ss' c
 
 addEptSids :: [(SId, a)] -> Int -> a -> [(SId,a)]
 addEptSids [] _ _ = []
-addEptSids ch@(ch0@(c0,sids):ch') i a0 = 
-  if c0 == i then ch0 : addEptSids ch' (i+1) a0
-    else (i,a0) : addEptSids ch (i+1) a0 
+addEptSids ch@(ch0@(c0,sids):ch') i a0 
+  | c0 == i = ch0 : addEptSids ch' (i+1) a0
+  | c0 > i = (i,a0) : addEptSids ch (i+1) a0 
+   -- | c0 < i   -- must be an error case
 
 
 geneDagFromCTab :: CTable -> Dag
