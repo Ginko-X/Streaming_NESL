@@ -54,7 +54,7 @@ runSvcodePExp :: SFun -> Either String (SvVal, (Int,Int))
 runSvcodePExp (SFun [] st code) = 
   do let (ch,d) = geneCTabDag code 0
          retSids = tree2Sids st
-         d' = foldl (\dag sid -> addClient dag sid (-1)) d retSids 
+         d' = foldl (\dag sid -> addClient dag sid (-1)) d retSids  -- output flag (client number: -1)
      (_,ctx) <- rSvcodeP (mapM_ sInstrInit code) d' ch [] 0 
      let ctx' = addEptSids ctx 0 (Eos, [], Done ())
      
@@ -158,7 +158,7 @@ lookupTreeAval (IStr t1) ctx =
          in Right ([[]], ctx')
       
       Just (Buf a, bs, p) -> 
-        if allFlagT (init bs) .&. (not $ snd $ last bs)
+        if allFlagT (init bs) .&. (not $ snd $ last bs)  
           then Right ([[a]], updateWithKey ctx t1 (Buf a, setFlagT bs, p))
           else Right ([[]],ctx)
 
@@ -226,7 +226,7 @@ sInstrInit (SDef sid e) =
 
 sInstrInit (WithCtrl ctrl code _) = 
   do (buf, bs, p) <- lookupSid ctrl
-     updateCtx ctrl (buf,(-2,True):bs,p)   -- withctrl flag -2
+     updateCtx ctrl (buf,(-2,True):bs,p)   -- withctrl flag (client number: -2)
      mapM_ sInstrInit code
 
 
@@ -338,7 +338,10 @@ sInstrInterp (SDef sid i) =
                              else updateCtx sid (buf,bs,p' (head mbA)))
                           return False
                
- 
+
+-- check the first output of the stream `ctrl`,
+-- if it's some AVal, then execute `code`
+-- if it's Eos, then skip `code` and set the sids of `st` empty
 sInstrInterp (WithCtrl ctrl code st) = 
   do (buf,clFlags,p) <- lookupSid ctrl
      case lookup (-2) clFlags of
