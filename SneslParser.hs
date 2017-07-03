@@ -32,6 +32,7 @@ data Top = TExp Exp
          | TDef Def 
          | TExit 
          | TFile String
+         | TDag Exp String
 
 
 parseTop :: Parser Top
@@ -47,6 +48,11 @@ parseTop =  do d <- parseDef
             do (try (symbol ":load ") <|> try (symbol ":l "))
                file <- many1 anyChar
                return $ TFile file
+            <|>
+            do try (symbol ":d")
+               e <- parseExp
+               fname <- many1 anyChar
+               return $ TDag e fname
 
                                             
 

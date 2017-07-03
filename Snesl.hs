@@ -18,8 +18,9 @@ import Data.Foldable (foldlM)
    <expression>   Evaluate an expression (also include type-check, compiling
                     to SVCODE, and comparison of SNESL and SVCODE results)
    <function>     Syntax: function f(x1:type1,...,xn:typen):type = expression
-   :l <file>   Load functions from a file
-   :q          
+   :l <file>      Load functions from a file
+   :d <exp> <fname>  Generate the DAG file that can be used in graph-easy
+   :q             To exit
 -}
 
 
@@ -83,6 +84,12 @@ runTop b (TFile file) env =
            Left err -> putStrLn err >> return env
 
 
+runTop _ (TDag e fname) env@(e0,t0,v0,f0) = 
+    case runCompileExp e v0 of
+      Right svcode -> geneDagFile svcode fname >> return env 
+      Left err -> putStrLn err >> return env 
+
+
 
 runExp :: Bool -> Exp -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
 runExp b e env@(e0,t0,v0,f0) = 
@@ -111,8 +118,6 @@ runFile b str env@(e0,t0,v0,f0) =
       foldlM (\e def -> runDef b def e) env funcs  
 
 
-
-
 -- old API, for interpreting an independent expression
 --testString :: String -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
 testString str env@(e0,t0,v0,f0) = 
@@ -120,9 +125,10 @@ testString str env@(e0,t0,v0,f0) =
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0
-       return svcode
-       --(svcodeRes, (w',s')) <- runSvcodeExp svcode f0  -- eager interp
-       --(svcodeRes,(w',s')) <- runSvcodePExp svcode  -- streaming interp
+       ----(svcodeRes, (w',s')) <- runSvcodeExp svcode f0  -- eager interp
+       --(svcodeRes, (w',s')) <- runSvcodePExp svcode  -- streaming interp
+       
+       runSvcodePExp' svcode 20 -- streaming interp
        --svcodeRes' <- dataTransBack sneslTy svcodeRes
        --if compareVal sneslRes svcodeRes'  
        --  then return (sneslRes, sneslTy,(w,s),(w',s')) 
