@@ -1,9 +1,9 @@
 # Working Progress
 + Week 26 (26 Jun ~ 2 Jul)
     + A basic working streaming interpreter [`SvcodeProcInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProcInterp.hs) is done.
-        + interactive mode: `runhaskell Snesl -s`, also added a new command `:d <exp> <filename>` to generate the DAG file for visualization with `graph-easy`
+        + interactive mode: `runhaskell Snesl.hs -s`, also added a new command `:d <exp> <filename>` to generate the DAG file for visualization with `graph-easy`
         + cost not added, but has completed WithCtrl that may work
-        + supports user-defined functions, but still buggy
+        + supports user-defined (non-recursive) functions, but still buggy
         + can be deadlocked even in a simple case, such as `let x = 3 in x + x`
 	
     
