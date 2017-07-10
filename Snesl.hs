@@ -6,7 +6,7 @@ import SvcodeSyntax
 import SneslSyntax
 import SneslTyping
 import DataTrans
---import SvcodeSInterp
+import SvcodePreInterp
 import SvcodeProcInterp 
 
 import System.Environment
@@ -17,10 +17,18 @@ import Data.Foldable (foldlM)
 {- Usage: 
    <expression>   Evaluate an expression (also include type-check, compiling
                     to SVCODE, and comparison of SNESL and SVCODE results)
+
    <function>     Syntax: function f(x1:type1,...,xn:typen):type = expression
+
    :l <file>      Load functions from a file
-   :d <exp> <fname>  Generate the DAG file that can be used in graph-easy
-   :q             To exit
+
+   :d <exp> <file> Generate the DAG file that can be used in graph-easy
+
+   :r <exp> <int> Interpret the `exp` streamingly in a round robin fashion 
+                  and print out the first `int` rounds of Svctx (unless all
+                  the Procs already shutdown before that round)
+
+   :q             Exit
 -}
 
 
@@ -85,9 +93,15 @@ runTop b (TFile file) env =
 
 
 runTop _ (TDag e fname) env@(e0,t0,v0,f0) = 
-    case runCompileExp e v0 of
-      Right svcode -> geneDagFile svcode fname >> return env 
-      Left err -> putStrLn err >> return env 
+    case runCompileExp e v0  of
+         Right svcode -> geneDagFile svcode fname >> return env 
+         Left err -> putStrLn err >> return env 
+
+
+runTop _ (TRr e count) env@(e0,t0,v0,f0) = 
+    case (do code <- runCompileExp e v0; runSvcodePExp' code count) of
+         Right ctx -> putStr ctx >> return env 
+         Left err -> putStrLn err >> return env 
 
 
 
@@ -95,8 +109,10 @@ runExp :: Bool -> Exp -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)
 runExp b e env@(e0,t0,v0,f0) = 
     do sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0        
-       svcode <- runCompileExp e v0     
+       svcode <- runCompileExp e v0  
+       --runSvcodePreInterp svcode
        (svcodeRes,(w',s')) <- if b then runSvcodePExp svcode else runSvcodeExp svcode f0
+       --(svcodeRes,(w',s')) <- runSvcodeExp svcode f0
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes' 
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
@@ -125,9 +141,10 @@ testString str env@(e0,t0,v0,f0) =
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0
+       --runSvcodePreInterp svcode
        --(svcodeRes, (w',s')) <- runSvcodeExp svcode f0  -- eager interp
        (svcodeRes, (w',s')) <- runSvcodePExp svcode  -- streaming interp       
-       --runSvcodePExp' svcode 10 -- output the context in each round of streaming interp
+       --runSvcodePExp' svcode 20 -- output the context in each round of streaming interp
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes'  
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
@@ -139,7 +156,7 @@ geneExpCode :: String -> [SInstr]
 geneExpCode str = 
   case runParseExp str of 
     Right e -> case runCompileExp e compEnv0 of 
-                 Right (SFun _ _ code) -> code 
+                 Right (SFun _ _ code _) -> code 
                  Left _ -> []
     Left _ -> []
 

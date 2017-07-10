@@ -33,6 +33,7 @@ data Top = TExp Exp
          | TExit 
          | TFile String
          | TDag Exp String
+         | TRr Exp Int 
 
 
 parseTop :: Parser Top
@@ -53,6 +54,11 @@ parseTop =  do d <- parseDef
                e <- parseExp
                fname <- many1 anyChar
                return $ TDag e fname
+            <|>
+            do try (symbol ":r")
+               e <- parseExp
+               c <- many1 digit 
+               return $ TRr e (read c) 
 
                                             
 
