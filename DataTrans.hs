@@ -76,7 +76,7 @@ dataTransBack (TTup t1 t2) (SPVal v1 v2) =
        v2' <- dataTransBack t2 v2 
        return $ TVal v1' v2'
 
-dataTransBack t v = Left $ "dataTransBack: type and value does not mismatch:" 
+dataTransBack t v = Left $ "dataTransBack: type and value does not match:" 
                            ++ show t ++ "," ++ show v 
 
 

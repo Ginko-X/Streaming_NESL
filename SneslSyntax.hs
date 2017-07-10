@@ -42,7 +42,7 @@ data Def = FDef FId [(Id,Type)] Type Exp  -- function definition
 data Pat = PVar Id
          | PWild 
          | PTup Pat Pat
-  --deriving Show
+  deriving Show
 
 
 instance Show AVal where
@@ -56,10 +56,10 @@ instance Show Val where
   show (SVal vs) = "{" ++ showelts vs "," ++ "}"
   show (FVal _) = "<function>"
 
-instance  Show Pat where
-  show (PVar i)  = i
-  show PWild = "_"
-  show (PTup p1 p2) = "(" ++ show p1 ++ "," ++ show p2 ++ ")"
+--instance  Show Pat where
+--  show (PVar i)  = i
+--  show PWild = "_"
+--  show (PTup p1 p2) = "(" ++ show p1 ++ "," ++ show p2 ++ ")"
 
 instance Show Def where
   show (FDef fname _ _ _) = "function: " ++ fname

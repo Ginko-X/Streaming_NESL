@@ -25,7 +25,7 @@ runCompileDef (FDef fname args rtp e) (ve,fe) =
         newVe = (fname, FDStr sts st):ve
         sids = concat $ map tree2Sids sts  
     in  case rSneslTrans (translate e) s1 (argSts++newVe) of 
-            Right (st',svs,_) -> Right $ (newVe,(fname,SFun sids st' svs):fe)
+            Right (st',svs,count) -> Right $ (newVe,(fname,SFun sids st' svs count):fe) 
             Left err -> Left $ "Compiling error: " ++ fname ++ ":" ++ err
 
 
@@ -34,7 +34,7 @@ runCompileDef (FDef fname args rtp e) (ve,fe) =
 runCompileExp :: Exp -> VEnv -> Either String SFun 
 runCompileExp e ve = 
     case rSneslTrans (translate e) 1 ve of 
-        Right (st, sv, _) -> Right $ SFun [] st (SDef 0 Ctrl : sv)
+        Right (st, sv, count) -> Right $ SFun [] st (SDef 0 Ctrl : sv) count 
         Left err -> Left err 
 
 
@@ -196,7 +196,6 @@ translate e@(Seq es) =
        s0 <- emit (Const (IVal 1)) 
        fs <- mapM (\ _ -> emit (ToFlags s0)) sts 
        mergeSeq $ zipWith (\st f -> SStr st f) sts fs 
-       --mergeSeq [(SStr st f0) | st <- sts]
 
 
 translate (Let pat e1 e2) = 

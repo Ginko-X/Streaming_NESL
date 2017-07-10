@@ -38,7 +38,7 @@ instance Applicative Proc where
 instance (Eq a) => Eq (Proc a) where
   Done a == Done b = a == b
   Pout a p1 == Pout b p2 = (a == b) .&. (p1 == p2)
-  _ == _ = False
+  _ == _ = False  -- ??
 
 
 
@@ -280,7 +280,7 @@ segMergeProc =
               BVal True -> rout (BVal True) >> p)
   in p 
 
-
+--1
 interMergeProc :: Int -> Proc ()
 interMergeProc c = 
   let p = rin 0 (\x -> 
@@ -292,7 +292,7 @@ interMergeProc c =
                                 p )
   in p
 
-
+--2
 segInterProc :: [(Int,Int)] -> Proc ()
 segInterProc cs = 
   let (j,i) = head cs 
@@ -311,7 +311,7 @@ segInterP (j,i) =
               BVal True -> Done ())
   in p 
 
-
+--3
 priSegInterProc :: [(Int, Int)] -> Proc ()
 priSegInterProc cs = 
   let (j,i) = head cs 
