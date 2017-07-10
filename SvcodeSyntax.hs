@@ -5,13 +5,13 @@ import SneslSyntax
 type SId = Int  -- stream id
 
 data SExp = Ctrl 
-           | EmptyCtrl   -- only used in WithCtrl
+           | EmptyCtrl  
            | ToFlags SId
            | Usum SId
            | Const AVal
            | MapConst SId AVal           
            | MapOne OP SId
-           | MapTwo OP SId SId
+           | MapTwo OP SId SId --
            | SegscanPlus SId SId 
            | ReducePlus SId SId
            | Pack SId SId
@@ -24,9 +24,9 @@ data SExp = Ctrl
            | SegConcat SId SId
            | USegCount SId SId
            | SegMerge SId SId 
-           | InterMergeS [SId]
-           | SegInterS [(SId,SId)]
-           | PriSegInterS [(SId,SId)] 
+           | InterMergeS [SId]  --
+           | SegInterS [(SId,SId)] --
+           | PriSegInterS [(SId,SId)] -- 
            | Check SId SId       
            deriving Show
          
@@ -35,7 +35,7 @@ data SInstr = SDef SId SExp  -- deriving Show
             | WithCtrl SId [SInstr] STree
             | SCall FId [SId] [SId]
 
-data SFun = SFun [SId] STree [SInstr] -- deriving Show 
+data SFun = SFun [SId] STree [SInstr] SId -- deriving Show 
 
 
 data OP = Uminus | Not  -- unary 
@@ -76,8 +76,9 @@ instance Show SInstr where
          
 
 instance Show SFun where
-  show (SFun args ret code) = "\nParameters: " 
-      ++ show args ++ "\n" ++ showseq "; \n" code ++ "\nReturn: " ++ show ret
+  show (SFun args ret code count) = "\nParameters: " ++ show args ++ "\n" 
+    ++ showseq "; \n" code ++ "\nReturn: " ++ show ret 
+    ++ "\nSid count: " ++ show count  
                              
 
 -- svcode values
@@ -86,6 +87,15 @@ data SvVal = SIVal [Int]
            | SSVal SvVal [Bool]  -- Sequence
            | SPVal SvVal SvVal -- Pair
            deriving Eq
+
+--data SAVal = SIVal [Int] 
+--           | SBVal [Bool]
+--           | SEmp 
+
+--data SvVal = SAVal SAVal
+--            | SSVal SvVal SAVal
+--            | SPVal SvVal SvVal
+
 
 instance Show SvVal where
     show (SIVal is) = "Ints <" ++ showseq "," is ++ ">"
