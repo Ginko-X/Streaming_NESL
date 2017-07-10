@@ -93,7 +93,7 @@ runSvcodePExp' (SFun [] st code _) count =
 
      (as, ctxs) <- roundN count (round1 (mapM sInstrInterp code) 0 retSids) [ctx]
                      $ [map (\_ -> []) retSids]
-     let str = map (\(a,c,i) -> "Round "++ show i ++"\n" ++ show a ++ "\n" 
+     let str = map (\(a,c,i) -> "Round "++ show i ++"\nOutput:" ++ show a ++ "\n" 
                       ++ showCtx c ++ "\n") 
                $ zip3 (reverse as) (reverse ctxs) [0..]
      return $ concat str
@@ -148,17 +148,23 @@ rrobin m ctx ctrl retSids as0 =
             else rrobin m ctx'' ctrl retSids as'
 
 
+-- not 100% correct because Procs are not comparable
 compCtx :: Svctx -> Svctx -> Bool
 compCtx [] [] = True
-compCtx ((s1, (buf1,c1,bs1, Pin i1 _)):ctx1) 
-        ((s2, (buf2,c2,bs2, Pin i2 _)):ctx2) = 
+compCtx ((s1,(buf1,c1,bs1,Pin i1 _)):ctx1) ((s2,(buf2,c2,bs2,Pin i2 _)):ctx2) =         
   if (s1 == s2) .&. (buf1 == buf2) .&. (c1 == c2) .&. (bs1 == bs2) .&. (i1==i2)
     then compCtx ctx1 ctx2 
     else False 
-compCtx (c1 :ctx1) (c2 :ctx2) = 
-  if c1 == c2
+
+compCtx ((s1,(buf1,c1,bs1,Pout a _)):ctx1) ((s2,(buf2,c2,bs2,Pout b _)):ctx2) = 
+  if (s1 == s2) .&. (buf1 == buf2) .&. (c1 == c2) .&. (bs1 == bs2) .&. (a==b)
     then compCtx ctx1 ctx2 
     else False 
+
+compCtx ((s1,(buf1,c1,bs1,Done a)):ctx1) ((s2,(buf2,c2,bs2,Done b)):ctx2) = 
+  if (s1 == s2) .&. (buf1 == buf2) .&. (c1 == c2) .&. (bs1 == bs2) .&. (a==b)
+    then compCtx ctx1 ctx2 
+    else False     
 
 compCtx _ _ = False
 
