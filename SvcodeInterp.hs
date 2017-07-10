@@ -42,7 +42,7 @@ instance Applicative Svcode where
 
 -- run the svcode translated from an SNESL expression
 runSvcodeExp :: SFun -> FEnv -> Either String (SvVal, (Int,Int))
-runSvcodeExp (SFun [] st code) fe = 
+runSvcodeExp (SFun [] st code _) fe = 
   case rSvcode (mapM_ sInstrInterp code) [] 0 (0,0) fe of 
     Right (_, (w,s), ctx) -> 
         case lookupTreeCtx st ctx of                      
@@ -171,7 +171,7 @@ sInstrInterp (WithCtrl c defs st) =
        else localCtrl c $ mapM_ sInstrInterp defs
 
 sInstrInterp (SCall fid sids retSids) = 
-  do (SFun sids' st code) <- lookupFId fid 
+  do (SFun sids' st code _) <- lookupFId fid 
      gloCtrl <- getCtrl
      oldCtx <- getCtx
      c <- makeCtx (gloCtrl:sids) (0:sids')
