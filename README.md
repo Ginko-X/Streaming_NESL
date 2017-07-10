@@ -1,4 +1,8 @@
 # Working Progress
++ Week 27 (3 Jul ~ 9 Jul)
+    + Streaming interpreter `SvcodeProcInterp` bug fixes, optimisation and cleanup, mainly related to Issue [#16](https://github.com/Ginko-X/Streaming_NESL/issues/16) and [#17](https://github.com/Ginko-X/Streaming_NESL/issues/17)
+	+ documentation see [#21](https://github.com/Ginko-X/Streaming_NESL/issues/21)
+
 + Week 26 (26 Jun ~ 2 Jul)
     + A basic working streaming interpreter [`SvcodeProcInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProcInterp.hs):
         + interactive mode: `runhaskell Snesl.hs -s`, also added a new command `:d <exp> <filename>` to generate the DAG file for visualization with `graph-easy`
