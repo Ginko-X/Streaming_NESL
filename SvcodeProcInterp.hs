@@ -12,14 +12,14 @@ import Control.Monad
 
 type Svctx = [(SId, SState)]
 
-type SState = (BufState, Consumers, Clients, Proc ())
+type SState = (BufState, Suppliers, Clients, Proc ())
 
 data BufState = Buf AVal | EmptyBuf | Eos deriving (Show, Eq) 
-type Consumers = [SId]  -- incoming edges
+type Suppliers = [SId]  -- incoming edges
 type Clients  = [((SId,Int), Bool)] --outgoing edges
 
 
-type CTable = [[SId]]  -- consumer table
+type Sup = [[SId]]  -- supplier list
 type Dag = [[(SId,Int)]] -- client list
 
 
@@ -52,10 +52,10 @@ instance Applicative SvcodeP where
 
 runSvcodePExp :: SFun -> Either String (SvVal, (Int,Int))
 runSvcodePExp (SFun [] st code _) = 
-  do let (ch,d) = geneCTabDag code 0
+  do let (sup,d) = geneSupDag code 0
          retSids = zip (tree2Sids st) [0..]
-         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids  -- output flag (client number: -1)
-     (_,ctx) <- rSvcodeP (sInit code d' ch) [] 0 
+         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids 
+     (_,ctx) <- rSvcodeP (sInit code d' sup) [] 0 
      (as, _) <- rrobin (mapM sInstrInterp code) ctx 0 retSids 
                     $ map (\_ -> []) retSids
      return (fst $ constrSv st as,(0,0))
@@ -82,13 +82,13 @@ constrSv (SStr t1 t2) as =
    in (SSVal v1 v2, as'') 
 
 
-------- run the program and print out the Svctx in each round  -------------
+------- run the program and print out the Svctx of each round  -------------
 runSvcodePExp' :: SFun -> Int -> Either String String
 runSvcodePExp' (SFun [] st code _) count = 
-  do let (ch,d) = geneCTabDag code 0
+  do let (sup,d) = geneSupDag code 0
          retSids = zip (tree2Sids st) [0..]
-         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids  -- output flag (client number: -1)
-     (_,ctx) <- rSvcodeP (sInit code d' ch) [] 0 
+         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids  
+     (_,ctx) <- rSvcodeP (sInit code d' sup) [] 0 
 
      (as, ctxs) <- roundN count (round1 (mapM sInstrInterp code) 0 retSids) [ctx]
                      $ [map (\_ -> []) retSids]
@@ -215,29 +215,29 @@ lookupSid s = SvcodeP $ \c ctrl ->
 
 ------ instruction init
 
-sInit :: [SInstr] -> Dag -> CTable -> SvcodeP ()
-sInit code d ch = 
-  do mapM_ (\i -> sInstrInit i d ch) code
+sInit :: [SInstr] -> Dag -> Sup -> SvcodeP ()
+sInit code d sup = 
+  do mapM_ (\i -> sInstrInit i d sup) code
      mapM_ (\sid -> do ctx <- getCtx               
                        case lookup sid ctx of  
                          Nothing -> 
                            let cls =  map (\ cl -> (cl,True)) (d !! sid)
-                            in addCtx sid (Eos, ch !! sid, cls, Done ())
+                            in addCtx sid (Eos, sup !! sid, cls, Done ())
                          Just _ -> return ())
            [0..length d-1]
    
 
-sInstrInit :: SInstr -> Dag -> CTable -> SvcodeP ()
-sInstrInit (SDef sid e) d ch = 
+sInstrInit :: SInstr -> Dag -> Sup -> SvcodeP ()
+sInstrInit (SDef sid e) d sup = 
   do let cls = d !! sid 
-         consumers = ch !! sid 
+         suppliers = sup !! sid 
      p <- sExpProcInit e 
-     addCtx sid (EmptyBuf, consumers, map (\ cl -> (cl,True)) cls, p)  
+     addCtx sid (EmptyBuf, suppliers, map (\ cl -> (cl,True)) cls, p)  
 
-sInstrInit (WithCtrl ctrl code _) d ch = 
+sInstrInit (WithCtrl ctrl code _) d sup = 
   do (buf, consu, bs, p) <- lookupSid ctrl
-     updateCtx ctrl (buf,consu,((-2,0),True):bs,p) -- withctrl flag (client number: -2)
-     mapM_ (\i -> sInstrInit i d ch) code 
+     updateCtx ctrl (buf,consu,((-2,0),True):bs,p) 
+     mapM_ (\i -> sInstrInit i d sup) code 
 
 
 ---- SExpression init
@@ -318,28 +318,28 @@ setFlagF bs = map (\(sid, _) -> (sid, False)) bs
 
 sInstrInterp :: SInstr -> SvcodeP Bool
 sInstrInterp (SDef sid i) = 
-  do (buf, consu, bs, p) <- lookupSid sid 
+  do (buf, sups, bs, p) <- lookupSid sid 
      case buf of 
        Eos -> return True 
        _ -> case p of
               Done () -> (if allFlagT bs 
-                            then updateCtx sid (Eos,consu,setFlagF bs,p)                                
+                            then updateCtx sid (Eos,sups,setFlagF bs,p)                                
                             else return ()) >> return True
               Pout a p' -> (if allFlagT bs 
-                              then updateCtx sid (Buf a,consu,setFlagF bs, p')
+                              then updateCtx sid (Buf a,sups,setFlagF bs, p')
                               else return ())  >> return False                              
               Pin i p' ->
-                do (bufCh, consuCh, flagCh,pCh) <- lookupSid (consu!!i)
-                   case lookup (sid,i) flagCh of 
+                do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
+                   case lookup (sid,i) flagSup of 
                      Nothing -> fail $ "undefined client " ++ show sid
                      Just True -> return False
                      Just False -> 
-                       do let flagCh' = markRead flagCh (sid,i)
-                          updateCtx (consu!!i) (bufCh, consuCh, flagCh',pCh)
-                          mbA <- readBuf bufCh
+                       do let flagSup' = markRead flagSup (sid,i)
+                          updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)
+                          mbA <- readBuf bufSup
                           (if null mbA 
                              then return () 
-                             else updateCtx sid (buf,consu,bs,p' (head mbA)))
+                             else updateCtx sid (buf,sups,bs,p' (head mbA)))
                           return False
                
 
@@ -371,8 +371,8 @@ sInstrInterp (WithCtrl ctrl code st) =
 
 doneStream :: STree -> SvcodeP ()
 doneStream (IStr s) = 
-  do (_,c, flags,_) <- lookupSid s 
-     updateCtx s (Eos,c, setFlagF flags, Done ()) 
+  do (_,sup, flags,_) <- lookupSid s 
+     updateCtx s (Eos,sup, setFlagF flags, Done ()) 
 
 doneStream (BStr s) = doneStream (IStr s)
 doneStream (PStr st1 st2)  = doneStream st1 >> doneStream st2
@@ -418,28 +418,28 @@ checkWithKey (p0@(k0,v0):ps) k v =
   if (k0 == k) && (v == v0) then True else checkWithKey ps k v 
 
 
------- helper functions for generating the consumer table and DAG  ------
+------ helper functions for generating the supplier table and DAG  ------
 
-geneCTabDag :: [SInstr] -> SId -> (CTable,Dag)
-geneCTabDag code ctrl = 
-  let ctab = geneCTab code ctrl
-      dag = geneDagFromCTab ctab
-   in (ctab, dag)
+geneSupDag :: [SInstr] -> SId -> (Sup,Dag)
+geneSupDag code ctrl = 
+  let sup = geneSup code ctrl
+      dag = geneDagFromSup sup
+   in (sup, dag)
 
 
-geneCTab :: [SInstr] -> SId -> CTable
-geneCTab code ctrl = 
-  let (sids,_,chs) = unzip3 $ instrGeneCTab code ctrl 
+geneSup :: [SInstr] -> SId -> Sup
+geneSup code ctrl = 
+  let (sids,_,chs) = unzip3 $ instrGeneSup code ctrl 
       c = addEptSids (zip sids chs) 0 []
    in snd $ unzip c 
 
 
-instrGeneCTab :: [SInstr] -> SId -> [(SId, String,[SId])]
-instrGeneCTab [] _ = []
-instrGeneCTab ((SDef sid sexp):ss) c = (sid,i,cl0) : instrGeneCTab ss c
+instrGeneSup :: [SInstr] -> SId -> [(SId, String,[SId])]
+instrGeneSup [] _ = []
+instrGeneSup ((SDef sid sexp):ss) c = (sid,i,cl0) : instrGeneSup ss c
     where (cl0, i ) = getChanExp sexp c
-instrGeneCTab ((WithCtrl newc ss _):ss') c = cl ++ instrGeneCTab ss' c
-    where cl = instrGeneCTab ss newc
+instrGeneSup ((WithCtrl newc ss _):ss') c = cl ++ instrGeneSup ss' c
+    where cl = instrGeneSup ss newc
 
 
 
@@ -451,13 +451,13 @@ addEptSids ch@(ch0@(c0,sids):ch') i a0
    -- | c0 < i   -- must be an error case
 
 
-geneDagFromCTab :: CTable -> Dag
-geneDagFromCTab ctab = 
-  let ctab' = zip [0..] ctab
-      d0 = map (\(sid, _) -> (sid,[])) ctab'
+geneDagFromSup :: Sup -> Dag
+geneDagFromSup sup = 
+  let sup' = zip [0..] sup
+      d0 = map (\(sid, _) -> (sid,[])) sup'
       d = foldl (\d (sid, chs) -> 
               foldl (\d' (ch,i) -> addWithKey d' ch (sid,i)) d $ zip chs [0..]
-            ) d0 ctab'
+            ) d0 sup'
   in snd $ unzip d 
 
 
@@ -498,7 +498,7 @@ getChanExp (Check s1 s2) _ = ([s1,s2],"Check")
 -------- generate a file to visualize the DAG -------------
 --- use "graph-easy": graph-easy <inputfile> --png 
 geneDagFile (SFun _ ret code _) fname = 
-  do let ch0 = instrGeneCTab code 0
+  do let ch0 = instrGeneSup code 0
          ch1 = addEmptyStreams ch0 0
          ch2 = map (\(i, str,sids) -> 
                         ("S"++ show i ++ ": " ++ str, sids)) ch1
