@@ -1,10 +1,6 @@
-{- Streaming NESL Syntax
--}
+{- Streaming NESL Syntax -}
 
 module SneslSyntax where
-
-import Data.Bits ((.&.))
-
 
 data AVal = IVal Int 
           | BVal Bool 
@@ -96,9 +92,9 @@ instance Show Type where
 instance Eq Type where
   TInt == TInt = True
   TBool == TBool = True
-  (TTup t1 t2) == (TTup t3 t4) = (t1 == t3) .&. (t2 == t4)
+  (TTup t1 t2) == (TTup t3 t4) = (t1 == t3) && (t2 == t4)
   (TSeq t1) == (TSeq t2) = t1 == t2
-  (TFun tps1 t1) == (TFun tps2 t2) = (tps1 == tps2) .&. (t1 == t2)
+  (TFun tps1 t1) == (TFun tps2 t2) = (tps1 == tps2) && (t1 == t2)
   _ == _ = False 
 
 

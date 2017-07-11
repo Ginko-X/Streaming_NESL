@@ -8,7 +8,6 @@ import SvcodeProc
 import SneslCompiler (tree2Sids)
 
 import Control.Monad
-import Data.Bits ((.&.))
 
 
 type Svctx = [(SId, SState)]
@@ -152,17 +151,17 @@ rrobin m ctx ctrl retSids as0 =
 compCtx :: Svctx -> Svctx -> Bool
 compCtx [] [] = True
 compCtx ((s1,(buf1,c1,bs1,Pin i1 _)):ctx1) ((s2,(buf2,c2,bs2,Pin i2 _)):ctx2) =         
-  if (s1 == s2) .&. (buf1 == buf2) .&. (c1 == c2) .&. (bs1 == bs2) .&. (i1==i2)
+  if (s1 == s2) && (buf1 == buf2) && (c1 == c2) && (bs1 == bs2) && (i1==i2)
     then compCtx ctx1 ctx2 
     else False 
 
 compCtx ((s1,(buf1,c1,bs1,Pout a _)):ctx1) ((s2,(buf2,c2,bs2,Pout b _)):ctx2) = 
-  if (s1 == s2) .&. (buf1 == buf2) .&. (c1 == c2) .&. (bs1 == bs2) .&. (a==b)
+  if (s1 == s2) && (buf1 == buf2) && (c1 == c2) && (bs1 == bs2) && (a==b)
     then compCtx ctx1 ctx2 
     else False 
 
 compCtx ((s1,(buf1,c1,bs1,Done a)):ctx1) ((s2,(buf2,c2,bs2,Done b)):ctx2) = 
-  if (s1 == s2) .&. (buf1 == buf2) .&. (c1 == c2) .&. (bs1 == bs2) .&. (a==b)
+  if (s1 == s2) && (buf1 == buf2) && (c1 == c2) && (bs1 == bs2) && (a==b)
     then compCtx ctx1 ctx2 
     else False     
 
@@ -416,7 +415,7 @@ delWithKey (p0@(k0,v0):ps) k =
 checkWithKey :: (Eq a) => (Eq b) => [(a,b)] -> a -> b -> Bool
 checkWithKey [] _ _ = False
 checkWithKey (p0@(k0,v0):ps) k v = 
-  if (k0 == k) .&. (v == v0) then True else checkWithKey ps k v 
+  if (k0 == k) && (v == v0) then True else checkWithKey ps k v 
 
 
 ------ helper functions for generating the consumer table and DAG  ------

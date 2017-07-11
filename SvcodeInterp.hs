@@ -7,11 +7,9 @@ import SneslSyntax
 import SneslCompiler (tree2Sids)
 import DataTrans (i2flags)
 import SneslInterp (flags2len, seglist, wrapWork)
-
 import SvcodeProc
 
 import Data.List (transpose)
-import Data.Bits ((.&.))
 
 
 type Svctx = [(SId, SvVal)]
@@ -739,7 +737,7 @@ segDescpChk b1 b2 instrName =
 elemDescpChk :: Show a => [a] -> [Bool] -> String -> Svcode ()
 elemDescpChk as bs instrName = 
     do let fs = [b | b <- bs , not b]
-       if (length as == length fs) .&. (last bs) 
+       if (length as == length fs) && (last bs) 
         then return ()
         else fail $ instrName ++ ": segment descriptor mismatch "
                      ++ show as  ++ ", " ++ show bs 
