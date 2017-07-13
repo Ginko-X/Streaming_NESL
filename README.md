@@ -1,4 +1,8 @@
 # Working Progress
++ Week 28 (10 Jul ~ 16 Jul)
+    + Generalized streaming interpreter to support arbitrary buffer sizes [`SvcodeProcInterpLong.hs`]((https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProcInterpLong.hs)
+        + already incorporated into the interactive interpreter `runhaskell Snesl.hs -s` (default buffer size: 10) 
+    
 + Week 27 (3 Jul ~ 9 Jul)
     + Streaming interpreter `SvcodeProcInterp` bug fixes, optimisation and cleanup, mainly related to Issue [#16](https://github.com/Ginko-X/Streaming_NESL/issues/16) and [#17](https://github.com/Ginko-X/Streaming_NESL/issues/17)
         + documentation see [#21](https://github.com/Ginko-X/Streaming_NESL/issues/21)
