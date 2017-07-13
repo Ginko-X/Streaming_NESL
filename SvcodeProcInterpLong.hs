@@ -1,4 +1,4 @@
-{- SVCODE Streaming Interpreter  -}
+{- SVCODE Streaming Interpreter with arbitrary buffer size -}
 
 module SvcodeProcInterpLong where
 
@@ -23,13 +23,14 @@ type Sup = [[SId]]  -- supplier list
 type Dag = [[(SId,Int)]] -- client list
 
 
+-- specify buffer size
 bufSize :: Int
 bufSize = 10
+
 
 newtype SvcodeP a = SvcodeP {rSvcodeP :: Svctx -> SId -> 
                                 Either String (a, Svctx)}
                                   
-
 instance  Monad SvcodeP where
     return a = SvcodeP $ \ctx ctrl -> Right (a,ctx) 
 
@@ -171,24 +172,14 @@ lookupAval :: Svctx -> (SId, Int) -> Either String ([AVal],Svctx)
 lookupAval ctx (s,i) = 
   case lookup s ctx of 
       Nothing -> Left  $ "SVCODE runtime error: undefined streams " ++ show s  
-      --Just (EmptyBuf, c, bs, p) -> 
-      --  let bs' = markRead bs (-1,i)  
-      --      ctx' = updateWithKey ctx s (EmptyBuf, c, bs', p)
-      --   in Right ([], ctx')
-      
       Just (Buf a, c, bs, p) -> 
         if checkWithKey bs (-1,i) 0
-        then let bs' = updateWithKey bs (-1,i) bufSize 
+        then let bs' = updateWithKey bs (-1,i) (length a)  
                  ctx' = updateWithKey ctx s (Buf a, c, bs', p)
              in Right (a, ctx')
         else Right ([],ctx)
 
-      Just (Eos, c, bs, p) -> 
-        let bs' = updateWithKey bs (-1,i) bufSize 
-            ctx' = updateWithKey ctx s (Eos,c, bs', p)
-         in Right ([], ctx')
-
-
+      Just (Eos, c, bs, p) -> Right ([], ctx)
 
 
 addCtx :: SId -> SState -> SvcodeP ()
@@ -304,14 +295,14 @@ lookupOpA op r =
        Nothing -> fail $ "SVCODE: can't find " ++ show op 
 
 
+allEnd :: [((SId,Int),Int)] -> Int -> Bool 
+allEnd bs len = all (\(_,c) -> c >= len) bs 
 
---allFlagT :: [((SId,Int),Bool)] -> Bool 
-allFlagT bs = all (\(_,b) -> b == bufSize) bs 
+allStart :: [((SId,Int),Int)] -> Bool 
+allStart bs = all (\(_,b) -> b == 0) bs 
 
-allFlagF bs = all (\(_,b) -> b == 0) bs 
-
---setFlagF :: [((SId,Int),Bool)] -> [((SId,Int), Bool)]
-setFlagF bs = map (\(sid, _) -> (sid, 0)) bs 
+resetCur :: [((SId,Int),Int)] -> [((SId,Int), Int)]
+resetCur bs = map (\(sid, _) -> (sid, 0)) bs 
 
 
 ----- instruction interp
@@ -323,54 +314,51 @@ sInstrInterp def@(SDef sid i) =
        Eos -> return True 
        Buf a0 -> 
             case p of
-              Done () -> (if allFlagT bs 
-                            then updateCtx sid (Eos,sups,setFlagF bs,p)                                
+              Done () -> (if allEnd bs (length a0) 
+                            then updateCtx sid (Eos,sups,resetCur bs,p)                                
                             else return ()) >> return True
-              Pout a p' -> (if allFlagT bs -- start filling
+              Pout a p' -> (if allEnd bs (length a0)  -- start filling
                               then 
-                                do updateCtx sid (Buf [a],sups,setFlagF bs, p')
+                                do updateCtx sid (Buf [a],sups,resetCur bs, p')
                                    sInstrInterp def
-                              else if allFlagF bs && length a0 < bufSize -- keep filling
+                              else if (allStart bs) && (length a0 < bufSize) -- keep filling
                                     then updateCtx sid (Buf (a0 ++[a]),sups,bs,p') >> sInstrInterp def 
-                                    else return False)  -- write blocking
+                                    else return False)  -- blocking
               Pin i p' ->
                 do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
                    case lookup (sid,i) flagSup of 
                      Nothing -> fail $ "undefined client " ++ show sid
                      Just cursor -> 
-                       if cursor == bufSize 
-                       then return False -- read blocking 
-                       else 
-                         do let flagSup' = markRead flagSup (sid,i) cursor
-                            updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)
-                            mbA <- readBuf bufSup cursor                         
-                            updateCtx sid (buf,sups,bs,p' mbA)
-                            sInstrInterp def 
-
+                       case bufSup of 
+                         Eos -> updateCtx sid (buf,sups,bs,p' Nothing) >> sInstrInterp def 
+                         Buf as -> 
+                           if cursor >= length as 
+                           then return False   -- blocking
+                           else 
+                             do let flagSup' = markRead flagSup (sid,i) cursor
+                                updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
+                                updateCtx sid (buf,sups,bs,p' (Just $ as !! cursor)) 
+                                sInstrInterp def 
                
 
--- check the first output of the stream `ctrl`,
--- if it's some AVal, then execute `code`
--- if it's Eos, then skip `code` and set the sids of `st` empty
+---- !! May have a bug here for cost model: `code` is not skipped when `ctrl` is empty
 sInstrInterp (WithCtrl ctrl code st) = 
-  do (buf,c, clFlags,p) <- lookupSid ctrl
-     case lookup (-2,0) clFlags of
-       --Just 0 -> return False  -- the 1st value has yet to be read
-       Nothing -> -- the 1st value has already been read and `ctrl` is not empty
+  do (buf,c, curs,p) <- lookupSid ctrl
+     case lookup (-2,0) curs of
+       Nothing -> -- the 1st value has already been read, and `ctrl` is nonempty -- ??!
           do bs <- localCtrl ctrl $ mapM sInstrInterp code 
              return $ all (\x -> x) bs
-       Just 0 ->  -- gonna read the 1st value 
+       Just 0 ->  
          case buf of 
-           Eos ->     -- `ctrl` is empty
+           Eos ->  -- `ctrl` is empty
              do doneStream st
-                updateCtx ctrl (buf, c, delWithKey clFlags (-2,0), p) 
+                updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
                 return True
-           Buf [] ->  -- can't decide `ctrl` is empty or not, keep waiting
-             do updateCtx ctrl (buf, c, updateWithKey clFlags (-2,0) 0, p)
-                bs <- localCtrl ctrl $ mapM sInstrInterp code 
+           Buf [] ->  -- can't decide whether `ctrl` is empty or not, keep waiting
+             do bs <- localCtrl ctrl $ mapM sInstrInterp code 
                 return $ all (\x -> x) bs
-           Buf _ ->   
-             do updateCtx ctrl (buf, c, delWithKey clFlags (-2,0), p) 
+           Buf _ ->  -- `ctrl` is nonempty
+             do updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
                 bs <- localCtrl ctrl $ mapM sInstrInterp code 
                 return $ all (\x -> x) bs
 
@@ -378,20 +366,12 @@ sInstrInterp (WithCtrl ctrl code st) =
 doneStream :: STree -> SvcodeP ()
 doneStream (IStr s) = 
   do (_,sup, flags,_) <- lookupSid s 
-     updateCtx s (Eos,sup, setFlagF flags, Done ()) 
+     updateCtx s (Eos,sup, resetCur flags, Done ()) 
 
 doneStream (BStr s) = doneStream (IStr s)
 doneStream (PStr st1 st2)  = doneStream st1 >> doneStream st2
 doneStream (SStr st1 st2) = doneStream (PStr st1 (BStr st2))
  
------}
-
-
-readBuf :: BufState -> Int -> SvcodeP (Maybe AVal)
-readBuf buf cursor = 
-  case buf of 
-    Buf a -> if cursor < length a then return $ Just $ a!!cursor else return Nothing
-    Eos -> return Nothing
 
 
 markRead :: Clients -> (SId,Int) -> Int -> Clients
