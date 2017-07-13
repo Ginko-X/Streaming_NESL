@@ -1,4 +1,4 @@
-{- SVCODE Streaming Interpreter using Proc -}
+{- SVCODE Streaming Interpreter (buffer size 1) -}
 
 module SvcodeProcInterp where
 
@@ -150,23 +150,16 @@ rrobin m ctx ctrl retSids as0 =
 -- not 100% correct because Procs are not comparable
 compCtx :: Svctx -> Svctx -> Bool
 compCtx [] [] = True
-compCtx ((s1,(buf1,c1,bs1,Pin i1 _)):ctx1) ((s2,(buf2,c2,bs2,Pin i2 _)):ctx2) =         
-  if (s1 == s2) && (buf1 == buf2) && (c1 == c2) && (bs1 == bs2) && (i1==i2)
+compCtx ((s1,(buf1,c1,bs1,p1)):ctx1) ((s2,(buf2,c2,bs2,p2)):ctx2) =         
+  if (s1 == s2) && (buf1 == buf2) && (c1 == c2) && (bs1 == bs2) && (compProc p1 p2)
     then compCtx ctx1 ctx2 
     else False 
 
-compCtx ((s1,(buf1,c1,bs1,Pout a _)):ctx1) ((s2,(buf2,c2,bs2,Pout b _)):ctx2) = 
-  if (s1 == s2) && (buf1 == buf2) && (c1 == c2) && (bs1 == bs2) && (a==b)
-    then compCtx ctx1 ctx2 
-    else False 
-
-compCtx ((s1,(buf1,c1,bs1,Done a)):ctx1) ((s2,(buf2,c2,bs2,Done b)):ctx2) = 
-  if (s1 == s2) && (buf1 == buf2) && (c1 == c2) && (bs1 == bs2) && (a==b)
-    then compCtx ctx1 ctx2 
-    else False     
-
-compCtx _ _ = False
-
+compProc :: Proc () -> Proc () -> Bool
+compProc (Pin i1 _) (Pin i2 _) = i1 == i2 
+compProc (Pout a p1) (Pout b p2) = (a == b) && (compProc p1 p2)
+compProc (Done a) (Done b) = a == b 
+compProc _ _ = False
 
 
 lookupAval :: Svctx -> (SId, Int) -> Either String ([AVal],Svctx)

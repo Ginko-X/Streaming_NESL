@@ -7,7 +7,7 @@ import SneslSyntax
 import SneslTyping
 import DataTrans
 import SvcodePreInterp
-import SvcodeProcInterp 
+import SvcodeProcInterp
 
 import System.Environment
 import System.Console.Haskeline
