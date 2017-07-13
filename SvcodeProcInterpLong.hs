@@ -339,15 +339,19 @@ sInstrInterp def@(SDef sid i) =
                                 updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
                                 updateCtx sid (buf,sups,bs,p' (Just $ as !! cursor)) 
                                 sInstrInterp def 
-               
 
----- !! May have a bug here for cost model: `code` is not skipped when `ctrl` is empty
+-- check the first output of the stream `ctrl`,
+-- if it's some AVal, then execute `code`
+-- if it's Eos, then skip `code` and set the sids of `st` empty               
 sInstrInterp (WithCtrl ctrl code st) = 
   do (buf,c, curs,p) <- lookupSid ctrl
      case lookup (-2,0) curs of
-       Nothing -> -- the 1st value has already been read, and `ctrl` is nonempty -- ??!
-          do bs <- localCtrl ctrl $ mapM sInstrInterp code 
-             return $ all (\x -> x) bs
+       Nothing -> -- the 1st value has already been read
+          do bs <- mapM isEos (tree2Sids st)
+             if foldl (&&) True bs  
+             then return True
+             else do bs <- localCtrl ctrl $ mapM sInstrInterp code 
+                     return $ all (\x -> x) bs              
        Just 0 ->  
          case buf of 
            Eos ->  -- `ctrl` is empty
@@ -373,6 +377,14 @@ doneStream (PStr st1 st2)  = doneStream st1 >> doneStream st2
 doneStream (SStr st1 st2) = doneStream (PStr st1 (BStr st2))
  
 
+isEos :: SId -> SvcodeP Bool
+isEos sid = 
+  do (buf, _, _,_) <- lookupSid sid
+     case buf of 
+       Eos -> return True
+       Buf _ -> return False
+
+    
 
 markRead :: Clients -> (SId,Int) -> Int -> Clients
 markRead cs sid oldCursor = updateWithKey cs sid (oldCursor+1)
