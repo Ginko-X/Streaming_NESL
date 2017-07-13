@@ -7,7 +7,8 @@ import SneslSyntax
 import SneslTyping
 import DataTrans
 import SvcodePreInterp
-import SvcodeProcInterp
+import SvcodeProcInterpLong
+--import SvcodeProcInterp
 
 import System.Environment
 import System.Console.Haskeline
@@ -101,6 +102,12 @@ runTop _ (TDag e fname) env@(e0,t0,v0,f0) =
 runTop _ (TRr e count) env@(e0,t0,v0,f0) = 
     case (do code <- runCompileExp e v0; runSvcodePExp' code count) of
          Right ctx -> putStr ctx >> return env 
+         Left err -> putStrLn err >> return env 
+
+
+runTop _ (TCode e) env@(e0,t0,v0,f0) = 
+    case runCompileExp e v0 of
+         Right code -> putStr (show code) >> return env 
          Left err -> putStrLn err >> return env 
 
 

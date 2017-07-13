@@ -33,7 +33,8 @@ data Top = TExp Exp
          | TExit 
          | TFile String
          | TDag Exp String
-         | TRr Exp Int 
+         | TRr Exp Int
+         | TCode Exp  
 
 
 parseTop :: Parser Top
@@ -59,6 +60,10 @@ parseTop =  do d <- parseDef
                e <- parseExp
                c <- many1 digit 
                return $ TRr e (read c) 
+            <|>
+            do (try (symbol ":code ") <|> try (symbol ":c "))
+               e <- parseExp
+               return $ TCode e 
 
                                             
 
