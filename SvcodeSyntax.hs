@@ -39,7 +39,7 @@ data SFun = SFun [SId] STree [SInstr] SId -- deriving Show
 
 
 data OP = Uminus | Not  -- unary 
-        | Add | Minus | Times | Div | Equal | Leq   -- binary
+        | Add | Minus | Times | Div | Equal | Leq | Mod   -- binary
         deriving (Eq,Show)
 
 type OpEnv = [(OP, [SvVal] -> SvVal)]
@@ -49,6 +49,7 @@ opEnv0 = [(Uminus, \[SIVal as] -> SIVal $ map (\x -> -x) as),
           (Minus, \[SIVal as, SIVal bs] -> SIVal $ zipWith (-) as bs),
           (Times, \[SIVal as, SIVal bs] -> SIVal $ zipWith (*) as bs),
           (Div, \[SIVal as, SIVal bs] -> SIVal $ zipWith div as bs),
+          (Mod, \[SIVal as, SIVal bs] -> SIVal $ zipWith mod as bs),
           (Equal, \[SIVal as, SIVal bs] -> SBVal $ zipWith (==) as bs),
           (Leq, \[SIVal as, SIVal bs] -> SBVal $ zipWith (<=) as bs)]
 
@@ -62,6 +63,7 @@ opAEnv0 = [(Uminus, (\[IVal a] -> IVal (-a), TInt)),
           (Minus, (\[IVal a, IVal b] -> IVal $ a-b, TInt)) ,
           (Times, (\[IVal a, IVal b] -> IVal $ a*b, TInt)),
           (Div, (\[IVal a, IVal b] -> IVal $ a `div` b, TInt)),
+          (Mod, (\[IVal a, IVal b] -> IVal $ a `mod` b, TInt)),
           (Equal, (\[IVal a, IVal b] -> BVal $ a == b, TBool) ),
           (Leq, (\[IVal a, IVal b] -> BVal $ a <= b, TBool))]
 

@@ -29,6 +29,8 @@ import Data.Foldable (foldlM)
                   and print out the first `int` rounds of Svctx (unless all
                   the Procs already shutdown before that round)
 
+   :c <exp>       Display the translated SVCODE program
+
    :q             Exit
 -}
 

@@ -356,6 +356,8 @@ compEnv0 = [
              ("_minus", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Minus s1 s2))),
              ("_times", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Times s1 s2))),
              ("_div", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Div s1 s2))),
+             ("_mod", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Mod s1 s2))),
+
              ("_eq",FStr (\[IStr s1, IStr s2] -> emitBs (MapTwo Equal s1 s2))),
              ("_leq",FStr (\[IStr s1, IStr s2] -> emitBs (MapTwo Leq s1 s2))),
               

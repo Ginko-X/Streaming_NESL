@@ -156,6 +156,8 @@ ctimes [IVal n1, IVal n2] = IVal (n1 * n2)
 
 cdiv [IVal n1, IVal n2] = IVal (n1 `div` n2)
 
+cmod [IVal n1, IVal n2] = IVal (n1 `mod` n2)
+
 cleq [IVal n1, IVal n2] = BVal (n1 <= n2)
 
 
@@ -166,6 +168,7 @@ se0 = [("_plus", primop cplus),
       ("_uminus", primop cuminus),
       ("_times", primop ctimes),
       ("_div", primop cdiv),
+      ("_mod", primop cmod),
       ("_eq", primop (\ [v1, v2] -> BVal (v1 == v2))),
       ("_leq", primop cleq),
       ("not", primop (\ [BVal b] -> BVal (not b))),

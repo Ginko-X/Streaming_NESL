@@ -122,6 +122,7 @@ tyEnv0 = [("not", TFun [TBool] TBool ),
           ("_minus",TFun [TInt,TInt] TInt ),          
           ("_times",TFun [TInt,TInt] TInt ),
           ("_div",TFun [TInt,TInt] TInt ),
+          ("_mod",TFun [TInt,TInt] TInt ),
           ("_eq", TFun [TInt,TInt] TBool ),
           ("_leq", TFun [TInt,TInt] TBool ),
 

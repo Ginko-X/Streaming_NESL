@@ -202,7 +202,8 @@ parseTerm :: Parser Exp
 parseTerm = parsePrefix `chainl1` (do o <- mulop
                                       return $ \e1 e2 -> o e1 e2)
               where mulop = do {symbol "*"; return $ binop "_times"} <|>
-                            do {symbol "/"; return $ binop "_div"}
+                            do {symbol "/"; return $ binop "_div"} <|>
+                            do {symbol "%"; return $ binop "_mod"}
 
 parseSum :: Parser Exp
 parseSum = parseTerm `chainl1` (do o <- addop
@@ -210,6 +211,7 @@ parseSum = parseTerm `chainl1` (do o <- addop
               where addop = do {try (symbol "++"); return $ binop "_append"} <|>
                             do {symbol "+"; return $ binop "_plus"} <|>
                             do {symbol "-"; return $ binop "_minus"}
+
 
 parsePrefix :: Parser Exp
 parsePrefix =
