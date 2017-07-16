@@ -104,10 +104,10 @@ runTop _ (TDag e fname) env@(_,_,v0,_,_) =
          Left err -> putStrLn err >> return env 
 
 
-runTop _ (TRr e count) env@(_,_,v0,_,bs) = 
-    case (do code <- runCompileExp e v0; runSvcodePExp' code count bs) of
-         Right ctx -> putStr ctx >> return env 
-         Left err -> putStrLn err >> return env 
+--runTop _ (TRr e count) env@(_,_,v0,_,bs) = 
+--    case (do code <- runCompileExp e v0; runSvcodePExp' code count bs) of
+--         Right ctx -> putStr ctx >> return env 
+--         Left err -> putStrLn err >> return env 
 
 
 runTop _ (TCode e) env@(_,_,v0,_,_) = 

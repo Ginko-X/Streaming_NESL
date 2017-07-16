@@ -23,22 +23,17 @@ type Sup = [[SId]]  -- supplier list
 type Dag = [[(SId,Int)]] -- client list
 
 
----- specify buffer size
---bufSize :: Int
---bufSize = 2
-
-
 newtype SvcodeP a = SvcodeP {rSvcodeP :: Svctx -> SId -> 
-                                Either String (a,Svctx)}
+                                Either String (a,(Int,Int),Svctx)}
                                   
 instance  Monad SvcodeP where
-    return a = SvcodeP $ \ctx ctrl -> Right (a,ctx) 
+    return a = SvcodeP $ \ctx ctrl -> Right (a,(0,0),ctx) 
 
     m >>= f = SvcodeP $ \ctx ctrl -> 
         case rSvcodeP m ctx ctrl of 
-            Right (a,ctx') -> 
+            Right (a,(w,s),ctx') -> 
                 case rSvcodeP (f a) ctx' ctrl of
-                    Right res -> Right res 
+                    Right (b,(w',s'),ctx'') -> Right (b,(w+w',s+s'),ctx'')
                     Left err' -> Left err'
             Left err -> Left err 
 
@@ -59,10 +54,10 @@ runSvcodePExp (SFun [] st code _) bs =
   do let (sup,d) = geneSupDag code 0
          retSids = zip (tree2Sids st) [0..]
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids 
-     (_,ctx) <- rSvcodeP (sInit code d' sup) [] 0 
-     (as, _) <- rrobin (mapM (sInstrInterp bs) code) ctx 0 retSids 
-                    $ map (\_ -> []) retSids
-     return (fst $ constrSv st as,(0,0))
+     (_,(w0,s0), ctx) <- rSvcodeP (sInit code d' sup) [] 0 
+     (as,(w1,s1), _) <- rrobin (mapM (sInstrInterp bs) code) ctx 0 retSids 
+                    (map (\_ -> []) retSids) (w0,s0)
+     return (fst $ constrSv st as,(w0+w1,s0+s1))
 
 
 addClient :: Dag -> SId -> (SId,Int) -> Dag
@@ -86,7 +81,7 @@ constrSv (SStr t1 t2) as =
    in (SSVal v1 v2, as'') 
 
 
-------- run the program and print out the Svctx of each round  -------------
+{------- run the program and print out the Svctx of each round  -------------
 runSvcodePExp' :: SFun -> Int -> Int -> Either String String
 runSvcodePExp' (SFun [] st code _) count bs = 
   do let (sup,d) = geneSupDag code 0
@@ -135,20 +130,20 @@ round1 m ctrl st ctx as0 =
 -----------------------------------}
 
      
-rrobin :: SvcodeP [Bool] -> Svctx -> SId -> [(SId,Int)] -> [[AVal]] 
-            -> Either String ([[AVal]], Svctx)           
-rrobin m ctx ctrl retSids as0 = 
-  do (bs, ctx') <- rSvcodeP m ctx ctrl
+rrobin :: SvcodeP [Bool] -> Svctx -> SId -> [(SId,Int)] -> [[AVal]] -> (Int,Int)
+            -> Either String ([[AVal]],(Int,Int),Svctx)           
+rrobin m ctx ctrl retSids as0 (w0,s0)= 
+  do (bs,(w1,s1), ctx') <- rSvcodeP m ctx ctrl
      (as,ctx'') <- foldM (\(a0,c0) s -> 
                              do (a,c) <- lookupAval c0 s
                                 return (a:a0,c)) 
                          ([],ctx') retSids 
      let as' = zipWith (++) as0 (reverse as) 
      if all (\x -> x) bs 
-       then return (as', ctx'') 
+       then return (as', (w0+w1,s0+s1), ctx'') 
        else if compCtx ctx ctx'' 
             then Left "Deadlock!"
-            else rrobin m ctx'' ctrl retSids as'
+            else rrobin m ctx'' ctrl retSids as' (w0+w1,s0+s1)
 
 
 -- not 100% correct because Procs are not comparable
@@ -183,13 +178,13 @@ lookupAval ctx (s,i) =
 
 
 addCtx :: SId -> SState -> SvcodeP ()
-addCtx s v = SvcodeP $ \ c _ -> Right ((), c++[(s,v)])
+addCtx s v = SvcodeP $ \ c _ -> Right ((), (0,0),c++[(s,v)])
 
 updateCtx :: SId -> SState -> SvcodeP ()
-updateCtx s v = SvcodeP $ \ c _ -> Right ((), updateWithKey c s v) 
+updateCtx s v = SvcodeP $ \ c _ -> Right ((),(0,0),updateWithKey c s v) 
 
 getCtx :: SvcodeP Svctx
-getCtx = SvcodeP $ \ c _ -> Right (c, c)
+getCtx = SvcodeP $ \ c _ -> Right (c,(0,0),c)
 
 localCtrl :: SId -> SvcodeP a -> SvcodeP a 
 localCtrl ctrl m = SvcodeP $ \ ctx _  -> rSvcodeP m ctx ctrl
@@ -199,7 +194,11 @@ lookupSid :: SId -> SvcodeP SState
 lookupSid s = SvcodeP $ \c ctrl -> 
     case lookup s c of 
         Nothing -> Left $ "lookupSid: undefined SId " ++ show s  
-        Just st -> Right (st,c)  
+        Just st -> Right (st,(0,0),c)  
+
+
+costInc :: (Int, Int) -> SvcodeP ()
+costInc (w,s) = SvcodeP $ \ c _ -> Right ((), (w,s), c)
 
 
 ------ instruction init
@@ -304,7 +303,6 @@ allStart bs = all (\(_,b) -> b == 0) bs
 resetCur :: [((SId,Int),Int)] -> [((SId,Int), Int)]
 resetCur bs = map (\(sid, _) -> (sid, 0)) bs 
 
-
 ----- instruction interp
 
 sInstrInterp :: Int -> SInstr -> SvcodeP Bool
@@ -315,15 +313,17 @@ sInstrInterp bufSize def@(SDef sid i) =
        Buf a0 -> 
             case p of
               Done () -> (if allEnd bs (length a0) 
-                            then updateCtx sid (Eos,sups,resetCur bs,p)                                
+                            then updateCtx sid (Eos,sups,resetCur bs,p) >> costInc (0,1)
                             else return ()) >> return True
               Pout a p' -> (if allEnd bs (length a0)  -- start filling
-                              then 
-                                do updateCtx sid (Buf [a],sups,resetCur bs, p')
-                                   sInstrInterp bufSize def
+                              then do updateCtx sid (Buf [a],sups,resetCur bs, p')
+                                      costInc (1,0)
+                                      sInstrInterp bufSize def 
                               else if (allStart bs) && (length a0 < bufSize) -- keep filling
-                                    then updateCtx sid (Buf (a0 ++[a]),sups,bs,p') >> sInstrInterp bufSize def 
-                                    else return False)  -- blocking
+                                    then do updateCtx sid (Buf (a0 ++[a]),sups,bs,p')
+                                            costInc (1,0)
+                                            sInstrInterp bufSize def 
+                                    else costInc (0,1) >> return False)  -- write blocking
               Pin i p' ->
                 do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
                    case lookup (sid,i) flagSup of 
@@ -333,11 +333,12 @@ sInstrInterp bufSize def@(SDef sid i) =
                          Eos -> updateCtx sid (buf,sups,bs,p' Nothing) >> sInstrInterp bufSize def 
                          Buf as -> 
                            if cursor >= length as 
-                           then return False   -- blocking
+                           then costInc (0,1) >> return False   -- read blocking
                            else 
                              do let flagSup' = markRead flagSup (sid,i) cursor
                                 updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
                                 updateCtx sid (buf,sups,bs,p' (Just $ as !! cursor)) 
+                                costInc (1,0)
                                 sInstrInterp bufSize def 
 
 -- check the first output of the stream `ctrl`,
