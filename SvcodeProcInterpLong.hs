@@ -23,13 +23,13 @@ type Sup = [[SId]]  -- supplier list
 type Dag = [[(SId,Int)]] -- client list
 
 
--- specify buffer size
-bufSize :: Int
-bufSize = 10
+---- specify buffer size
+--bufSize :: Int
+--bufSize = 2
 
 
 newtype SvcodeP a = SvcodeP {rSvcodeP :: Svctx -> SId -> 
-                                Either String (a, Svctx)}
+                                Either String (a,Svctx)}
                                   
 instance  Monad SvcodeP where
     return a = SvcodeP $ \ctx ctrl -> Right (a,ctx) 
@@ -54,13 +54,13 @@ instance Applicative SvcodeP where
 
 
 
-runSvcodePExp :: SFun -> Either String (SvVal, (Int,Int))
-runSvcodePExp (SFun [] st code _) = 
+runSvcodePExp :: SFun -> Int -> Either String (SvVal, (Int,Int))
+runSvcodePExp (SFun [] st code _) bs = 
   do let (sup,d) = geneSupDag code 0
          retSids = zip (tree2Sids st) [0..]
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids 
      (_,ctx) <- rSvcodeP (sInit code d' sup) [] 0 
-     (as, _) <- rrobin (mapM sInstrInterp code) ctx 0 retSids 
+     (as, _) <- rrobin (mapM (sInstrInterp bs) code) ctx 0 retSids 
                     $ map (\_ -> []) retSids
      return (fst $ constrSv st as,(0,0))
 
@@ -87,14 +87,14 @@ constrSv (SStr t1 t2) as =
 
 
 ------- run the program and print out the Svctx of each round  -------------
-runSvcodePExp' :: SFun -> Int -> Either String String
-runSvcodePExp' (SFun [] st code _) count = 
+runSvcodePExp' :: SFun -> Int -> Int -> Either String String
+runSvcodePExp' (SFun [] st code _) count bs = 
   do let (sup,d) = geneSupDag code 0
          retSids = zip (tree2Sids st) [0..]
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids  
      (_,ctx) <- rSvcodeP (sInit code d' sup) [] 0 
 
-     (as, ctxs) <- roundN count (round1 (mapM sInstrInterp code) 0 retSids) [ctx]
+     (as, ctxs) <- roundN count (round1 (mapM (sInstrInterp bs) code) 0 retSids) [ctx]
                      $ [map (\_ -> []) retSids]
      let str = map (\(a,c,i) -> "Round "++ show i ++"\nOutput:" ++ show a ++ "\n" 
                       ++ showCtx c ++ "\n") 
@@ -307,8 +307,8 @@ resetCur bs = map (\(sid, _) -> (sid, 0)) bs
 
 ----- instruction interp
 
-sInstrInterp :: SInstr -> SvcodeP Bool
-sInstrInterp def@(SDef sid i) = 
+sInstrInterp :: Int -> SInstr -> SvcodeP Bool
+sInstrInterp bufSize def@(SDef sid i) = 
   do (buf, sups, bs, p) <- lookupSid sid 
      case buf of 
        Eos -> return True 
@@ -320,9 +320,9 @@ sInstrInterp def@(SDef sid i) =
               Pout a p' -> (if allEnd bs (length a0)  -- start filling
                               then 
                                 do updateCtx sid (Buf [a],sups,resetCur bs, p')
-                                   sInstrInterp def
+                                   sInstrInterp bufSize def
                               else if (allStart bs) && (length a0 < bufSize) -- keep filling
-                                    then updateCtx sid (Buf (a0 ++[a]),sups,bs,p') >> sInstrInterp def 
+                                    then updateCtx sid (Buf (a0 ++[a]),sups,bs,p') >> sInstrInterp bufSize def 
                                     else return False)  -- blocking
               Pin i p' ->
                 do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
@@ -330,7 +330,7 @@ sInstrInterp def@(SDef sid i) =
                      Nothing -> fail $ "undefined client " ++ show sid
                      Just cursor -> 
                        case bufSup of 
-                         Eos -> updateCtx sid (buf,sups,bs,p' Nothing) >> sInstrInterp def 
+                         Eos -> updateCtx sid (buf,sups,bs,p' Nothing) >> sInstrInterp bufSize def 
                          Buf as -> 
                            if cursor >= length as 
                            then return False   -- blocking
@@ -338,19 +338,19 @@ sInstrInterp def@(SDef sid i) =
                              do let flagSup' = markRead flagSup (sid,i) cursor
                                 updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
                                 updateCtx sid (buf,sups,bs,p' (Just $ as !! cursor)) 
-                                sInstrInterp def 
+                                sInstrInterp bufSize def 
 
 -- check the first output of the stream `ctrl`,
 -- if it's some AVal, then execute `code`
 -- if it's Eos, then skip `code` and set the sids of `st` empty               
-sInstrInterp (WithCtrl ctrl code st) = 
+sInstrInterp bufSize (WithCtrl ctrl code st) = 
   do (buf,c, curs,p) <- lookupSid ctrl
      case lookup (-2,0) curs of
        Nothing -> -- the 1st value has already been read
           do bs <- mapM isEos (tree2Sids st)
              if foldl (&&) True bs  
              then return True
-             else do bs <- localCtrl ctrl $ mapM sInstrInterp code 
+             else do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
                      return $ all (\x -> x) bs              
        Just 0 ->  
          case buf of 
@@ -358,12 +358,12 @@ sInstrInterp (WithCtrl ctrl code st) =
              do doneStream st
                 updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
                 return True
-           Buf [] ->  -- can't decide whether `ctrl` is empty or not, keep waiting
-             do bs <- localCtrl ctrl $ mapM sInstrInterp code 
+           Buf [] ->  -- can't decide whether `ctrl` is emptbs y or not, keep waiting
+             do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
                 return $ all (\x -> x) bs
            Buf _ ->  -- `ctrl` is nonempty
              do updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
-                bs <- localCtrl ctrl $ mapM sInstrInterp code 
+                bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
                 return $ all (\x -> x) bs
 
 

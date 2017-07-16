@@ -25,20 +25,23 @@ import Data.Foldable (foldlM)
 
    :d <exp> <file> Generate the DAG file that can be used in graph-easy
 
-   :r <exp> <int> Interpret the `exp` streamingly in a round robin fashion 
+   :r <exp> <Int> Interpret the `exp` streamingly in a round robin fashion 
                   and print out the first `int` rounds of Svctx (unless all
                   the Procs already shutdown before that round)
 
    :c <exp>       Display the translated SVCODE program
 
+   :bs <Int>      Set buffer size, i.e., the maximum number of elements 
+                  a buffer can hold
+
    :q             Exit
 -}
 
 
-type InterEnv = (SEnv, TyEnv, VEnv, FEnv)
+type InterEnv = (SEnv, TyEnv, VEnv, FEnv, Int)
 
 ie0 :: InterEnv
-ie0 = (se0,tyEnv0, compEnv0,[])
+ie0 = (se0,tyEnv0, compEnv0,[], 10)
 
 
 main :: IO ()
@@ -95,32 +98,34 @@ runTop b (TFile file) env =
            Left err -> putStrLn err >> return env
 
 
-runTop _ (TDag e fname) env@(e0,t0,v0,f0) = 
+runTop _ (TDag e fname) env@(_,_,v0,_,_) = 
     case runCompileExp e v0  of
          Right svcode -> geneDagFile svcode fname >> return env 
          Left err -> putStrLn err >> return env 
 
 
-runTop _ (TRr e count) env@(e0,t0,v0,f0) = 
-    case (do code <- runCompileExp e v0; runSvcodePExp' code count) of
+runTop _ (TRr e count) env@(_,_,v0,_,bs) = 
+    case (do code <- runCompileExp e v0; runSvcodePExp' code count bs) of
          Right ctx -> putStr ctx >> return env 
          Left err -> putStrLn err >> return env 
 
 
-runTop _ (TCode e) env@(e0,t0,v0,f0) = 
+runTop _ (TCode e) env@(_,_,v0,_,_) = 
     case runCompileExp e v0 of
          Right code -> putStr (show code) >> return env 
          Left err -> putStrLn err >> return env 
 
+runTop _ (TBs bs) env@(e0,t0,v0,f0, _) = 
+    do putStr $ "Buffer size: " ++ show bs ++ "\n"
+       return (e0,t0,v0,f0,bs)
 
 
 runExp :: Bool -> Exp -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
-runExp b e env@(e0,t0,v0,f0) = 
+runExp b e env@(e0,t0,v0,f0,bs) = 
     do sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0        
        svcode <- runCompileExp e v0  
-       --runSvcodePreInterp svcode
-       (svcodeRes,(w',s')) <- if b then runSvcodePExp svcode else runSvcodeExp svcode f0
+       (svcodeRes,(w',s')) <- if b then runSvcodePExp svcode bs else runSvcodeExp svcode f0
        --(svcodeRes,(w',s')) <- runSvcodeExp svcode f0
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes' 
@@ -130,29 +135,29 @@ runExp b e env@(e0,t0,v0,f0) =
 
   
 runDef :: Bool -> Def -> InterEnv -> Either String InterEnv
-runDef b def env@(e0,t0,v0,f0) = 
+runDef b def env@(e0,t0,v0,f0,bs) = 
    do funcTyEnv <- runTypingDefs [def] t0
       sneslEnv <- runSneslInterpDefs [def] e0 
       (ve,fe) <- (if b then runSCompileDefs else runCompileDefs) [def] (v0,f0) 
-      return (sneslEnv,funcTyEnv,ve,fe)
+      return (sneslEnv,funcTyEnv,ve,fe,bs)
 
 
 runFile :: Bool -> String -> InterEnv -> Either String InterEnv
-runFile b str env@(e0,t0,v0,f0) = 
+runFile b str env = 
    do funcs <- runParseDefs str 
       foldlM (\e def -> runDef b def e) env funcs  
 
 
 -- old API, for interpreting an independent expression
 --testString :: String -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
-testString str env@(e0,t0,v0,f0) = 
+testString str env@(e0,t0,v0,f0,bs) = 
     do e <- runParseExp str
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0
        --runSvcodePreInterp svcode
        --(svcodeRes, (w',s')) <- runSvcodeExp svcode f0  -- eager interp
-       (svcodeRes, (w',s')) <- runSvcodePExp svcode  -- streaming interp       
+       (svcodeRes, (w',s')) <- runSvcodePExp svcode bs  -- streaming interp       
        --runSvcodePExp' svcode 20 -- output the context in each round of streaming interp
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes'  
@@ -263,3 +268,8 @@ prog11 = "let bs = {{T,T},{F,T,F,F,T,T}} in {part(a,b): a in {{}int, {4,5,6}}, b
 
 -- bads example; should throw an Excpetion
 prog12 = "let x = 5; (y,z) = x in 5"  
+
+prog13 = "let s = {1,3,5,2,4,6}; " ++  -- #18 deadlock
+            " t = concat({{x| x%2==0 }: x in s}); " ++ 
+            " u = concat({{x| x%2 > 0 }: x in s}) " ++ 
+            " in {a + b : a in t, b in u}"

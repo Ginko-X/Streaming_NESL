@@ -35,6 +35,7 @@ data Top = TExp Exp
          | TDag Exp String
          | TRr Exp Int
          | TCode Exp  
+         | TBs Int  
 
 
 parseTop :: Parser Top
@@ -64,8 +65,11 @@ parseTop =  do d <- parseDef
             do (try (symbol ":code ") <|> try (symbol ":c "))
                e <- parseExp
                return $ TCode e 
+            <|>
+            do try (symbol ":bs ") 
+               bs <- many1 digit
+               return $ TBs $ read bs                    
 
-                                            
 
 -- zero or more spaces
 whitespace :: Parser ()
