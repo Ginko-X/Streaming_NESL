@@ -6,6 +6,7 @@ import SvcodeSyntax
 import SneslSyntax
 import SvcodeProc
 import SneslCompiler (tree2Sids)
+import SneslInterp (wrapWork)
 
 import Control.Monad
 
@@ -313,7 +314,7 @@ sInstrInterp bufSize def@(SDef sid i) =
        Buf a0 -> 
             case p of
               Done () -> (if allEnd bs (length a0) 
-                            then updateCtx sid (Eos,sups,resetCur bs,p) >> costInc (0,1)
+                            then updateCtx sid (Eos,sups,resetCur bs,p)
                             else return ()) >> return True
               Pout a p' -> (if allEnd bs (length a0)  -- start filling
                               then do updateCtx sid (Buf [a],sups,resetCur bs, p')
@@ -370,7 +371,8 @@ sInstrInterp bufSize (WithCtrl ctrl code st) =
 
 doneStream :: STree -> SvcodeP ()
 doneStream (IStr s) = 
-  do (_,sup, flags,_) <- lookupSid s 
+  do (_,sup, flags,_) <- lookupSid s
+     costInc (1,0) 
      updateCtx s (Eos,sup, resetCur flags, Done ()) 
 
 doneStream (BStr s) = doneStream (IStr s)
