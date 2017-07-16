@@ -314,7 +314,7 @@ sInstrInterp bufSize def@(SDef sid i) =
        Buf a0 -> 
             case p of
               Done () -> (if allEnd bs (length a0) 
-                            then updateCtx sid (Eos,sups,resetCur bs,p)
+                            then updateCtx sid (Eos,sups,resetCur bs,p) >> costInc (1,1)
                             else return ()) >> return True
               Pout a p' -> (if allEnd bs (length a0)  -- start filling
                               then do updateCtx sid (Buf [a],sups,resetCur bs, p')
@@ -359,6 +359,7 @@ sInstrInterp bufSize (WithCtrl ctrl code st) =
            Eos ->  -- `ctrl` is empty
              do doneStream st
                 updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
+                costInc (1,1) 
                 return True
            Buf [] ->  -- can't decide whether `ctrl` is emptbs y or not, keep waiting
              do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
@@ -372,7 +373,6 @@ sInstrInterp bufSize (WithCtrl ctrl code st) =
 doneStream :: STree -> SvcodeP ()
 doneStream (IStr s) = 
   do (_,sup, flags,_) <- lookupSid s
-     costInc (1,0) 
      updateCtx s (Eos,sup, resetCur flags, Done ()) 
 
 doneStream (BStr s) = doneStream (IStr s)
