@@ -15,7 +15,10 @@ type Svctx = [(SId, SState)]
 
 type SState = (BufState, Suppliers, Clients, Proc ())
 
-data BufState = Buf [AVal] | Eos deriving (Show, Eq) 
+data BufState = Filling [AVal] 
+              | Draining [AVal]
+              | Eos deriving (Show, Eq) 
+
 type Suppliers = [SId]  -- incoming edges
 type Clients  = [((SId,Int), Int)] --outgoing edges
 
@@ -82,13 +85,13 @@ constrSv (SStr t1 t2) as =
    in (SSVal v1 v2, as'') 
 
 
-{------- run the program and print out the Svctx of each round  -------------
+------- run the program and print out the Svctx of each round  -------------
 runSvcodePExp' :: SFun -> Int -> Int -> Either String String
 runSvcodePExp' (SFun [] st code _) count bs = 
   do let (sup,d) = geneSupDag code 0
          retSids = zip (tree2Sids st) [0..]
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids  
-     (_,ctx) <- rSvcodeP (sInit code d' sup) [] 0 
+     (_,_,ctx) <- rSvcodeP (sInit code d' sup) [] 0 
 
      (as, ctxs) <- roundN count (round1 (mapM (sInstrInterp bs) code) 0 retSids) [ctx]
                      $ [map (\_ -> []) retSids]
@@ -114,13 +117,16 @@ roundN c f ctxs as =
     then return (as,ctxs)
     else
       do (as',ctx') <- f (head ctxs) (head as)
-         roundN (c-1) f (ctx':ctxs) (as':as) 
+         if (length ctxs > 0) && (equalCtx ctx' $ ctxs!!0)
+         then do unlockCtx <- fill2Drain ctx'
+                 roundN (c-1) f (unlockCtx:ctxs) (as':as) 
+         else roundN (c-1) f (ctx':ctxs) (as':as) 
      
 
 round1 :: SvcodeP [Bool] -> SId -> [(SId,Int)] -> Svctx -> [[AVal]] 
               -> Either String ([[AVal]], Svctx) 
 round1 m ctrl st ctx as0 = 
-  do (bs, ctx') <- rSvcodeP m ctx ctrl
+  do (_,_, ctx') <- rSvcodeP m ctx ctrl
      (as,ctx'') <- foldM (\(a0,c0) s -> 
                             do (a,c) <- lookupAval c0 s
                                return (a:a0,c))
@@ -142,17 +148,24 @@ rrobin m ctx ctrl retSids as0 (w0,s0)=
      let as' = zipWith (++) as0 (reverse as) 
      if all (\x -> x) bs 
        then return (as', (w0+w1,s0+s1), ctx'') 
-       else if compCtx ctx ctx'' 
-            then Left "Deadlock!"
+       else if equalCtx ctx ctx'' 
+            then do unlockCtx <- fill2Drain ctx''
+                    rrobin m unlockCtx ctrl retSids as' (w0+w1,s0+s1)
             else rrobin m ctx'' ctrl retSids as' (w0+w1,s0+s1)
 
 
+fill2Drain :: Svctx -> Either String Svctx
+fill2Drain [] = Left "Deadlock!"
+fill2Drain ((sid, (Filling as, sup, bs, p)):ss) = Right $ (sid, (Draining as, sup,bs,p)) : ss 
+fill2Drain (s:ss) = fill2Drain ss >>= (\ss' -> return (s:ss'))
+
+
 -- not 100% correct because Procs are not comparable
-compCtx :: Svctx -> Svctx -> Bool
-compCtx [] [] = True
-compCtx ((s1,(buf1,c1,bs1,p1)):ctx1) ((s2,(buf2,c2,bs2,p2)):ctx2) =         
+equalCtx :: Svctx -> Svctx -> Bool
+equalCtx [] [] = True
+equalCtx ((s1,(buf1,c1,bs1,p1)):ctx1) ((s2,(buf2,c2,bs2,p2)):ctx2) =         
   if (s1 == s2) && (buf1 == buf2) && (c1 == c2) && (bs1 == bs2) && (compProc p1 p2)
-    then compCtx ctx1 ctx2 
+    then equalCtx ctx1 ctx2 
     else False 
 
 compProc :: Proc () -> Proc () -> Bool
@@ -168,14 +181,16 @@ lookupAval :: Svctx -> (SId, Int) -> Either String ([AVal],Svctx)
 lookupAval ctx (s,i) = 
   case lookup s ctx of 
       Nothing -> Left  $ "SVCODE runtime error: undefined streams " ++ show s  
-      Just (Buf a, c, bs, p) -> 
+      Just (Draining a, c, bs, p) -> 
         if checkWithKey bs (-1,i) 0
         then let bs' = updateWithKey bs (-1,i) (length a)  
-                 ctx' = updateWithKey ctx s (Buf a, c, bs', p)
+                 ctx' = updateWithKey ctx s (Draining a, c, bs', p)
              in Right (a, ctx')
         else Right ([],ctx)
+      
+      Just (Filling _, _,_, _) -> Right ([], ctx)
 
-      Just (Eos, c, bs, p) -> Right ([], ctx)
+      Just (Eos, _, _, _) -> Right ([], ctx)
 
 
 addCtx :: SId -> SState -> SvcodeP ()
@@ -221,7 +236,7 @@ sInstrInit (SDef sid e) d sup =
   do let cls = d !! sid 
          suppliers = sup !! sid 
      p <- sExpProcInit e 
-     addCtx sid (Buf [], suppliers, map (\ cl -> (cl,0)) cls, p)  
+     addCtx sid (Filling [], suppliers, map (\ cl -> (cl,0)) cls, p)  
 
 sInstrInit (WithCtrl ctrl code _) d sup = 
   do (buf, consu, bs, p) <- lookupSid ctrl
@@ -311,36 +326,74 @@ sInstrInterp bufSize def@(SDef sid i) =
   do (buf, sups, bs, p) <- lookupSid sid 
      case buf of 
        Eos -> return True 
-       Buf a0 -> 
-            case p of
-              Done () -> (if allEnd bs (length a0) 
-                            then updateCtx sid (Eos,sups,resetCur bs,p) >> costInc (1,1)
-                            else return ()) >> return True
-              Pout a p' -> (if allEnd bs (length a0)  -- start filling
-                              then do updateCtx sid (Buf [a],sups,resetCur bs, p')
-                                      costInc (1,0)
-                                      sInstrInterp bufSize def 
-                              else if (allStart bs) && (length a0 < bufSize) -- keep filling
-                                    then do updateCtx sid (Buf (a0 ++[a]),sups,bs,p')
-                                            costInc (1,0)
-                                            sInstrInterp bufSize def 
-                                    else costInc (0,1) >> return False)  -- write blocking
-              Pin i p' ->
-                do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
-                   case lookup (sid,i) flagSup of 
-                     Nothing -> fail $ "undefined client " ++ show sid
-                     Just cursor -> 
-                       case bufSup of 
-                         Eos -> updateCtx sid (buf,sups,bs,p' Nothing) >> sInstrInterp bufSize def 
-                         Buf as -> 
-                           if cursor >= length as 
-                           then costInc (0,1) >> return False   -- read blocking
-                           else 
-                             do let flagSup' = markRead flagSup (sid,i) cursor
-                                updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
-                                updateCtx sid (buf,sups,bs,p' (Just $ as !! cursor)) 
-                                costInc (1,0)
-                                sInstrInterp bufSize def 
+       Filling as -> 
+         case p of 
+           Done () -> do if null as 
+                           then updateCtx sid (Eos, sups, bs, p) 
+                           else updateCtx sid (Draining as, sups, bs, p) 
+                         return True
+           Pout a p' -> let buf' = if length as +1 >= bufSize
+                                   then Draining $ as ++ [a]
+                                   else Filling $ as ++ [a]
+                          in do updateCtx sid (buf', sups, bs, p')
+                                sInstrInterp bufSize def                            
+           Pin i p' -> 
+              do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
+                 case lookup (sid,i) flagSup of 
+                   Nothing -> fail $ "undefined client " ++ show sid
+                   Just cursor -> 
+                     case bufSup of 
+                       Eos -> updateCtx sid (buf,sups,bs,p' Nothing) >> sInstrInterp bufSize def 
+                       Filling _ -> return False
+                       Draining asSup -> 
+                         if cursor >= length asSup 
+                         then costInc (0,1) >> return False   -- read blocking
+                         else 
+                           do let flagSup' = markRead flagSup (sid,i) cursor
+                              updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
+                              updateCtx sid (buf,sups,bs,p' (Just $ asSup !! cursor)) 
+                              costInc (1,0)
+                              sInstrInterp bufSize def 
+
+
+       Draining as -> 
+          case p of
+            Done () -> (if allEnd bs (length as) 
+                          then updateCtx sid (Eos,sups,resetCur bs,p) >> costInc (1,1)
+                          else return ()) >> return True
+            _ -> (if allEnd bs bufSize 
+                    then updateCtx sid (Filling [], sups, resetCur bs, p) 
+                    else 
+                      if allEnd bs (length as) -- the last chunk
+                        then updateCtx sid (Eos, sups, resetCur bs, p) 
+                        else return ()) >> return False
+
+            --Pout a p' -> (if allEnd bs (length a0)  -- start filling
+            --                then do updateCtx sid (Buf [a],sups,resetCur bs, p')
+            --                        costInc (1,0)
+            --                        sInstrInterp bufSize def 
+            --                else if (allStart bs) && (length a0 < bufSize) -- keep filling
+            --                      then do updateCtx sid (Buf (a0 ++[a]),sups,bs,p')
+            --                              costInc (1,0)
+            --                              sInstrInterp bufSize def 
+            --                      else costInc (0,1) >> return False)  -- write blocking
+            --Pin i p' ->
+            --  do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
+            --     case lookup (sid,i) flagSup of 
+            --       Nothing -> fail $ "undefined client " ++ show sid
+            --       Just cursor -> 
+            --         case bufSup of 
+            --           Eos -> updateCtx sid (buf,sups,bs,p' Nothing) >> sInstrInterp bufSize def 
+            --           Buf as -> 
+            --             if cursor >= length as 
+            --             then costInc (0,1) >> return False   -- read blocking
+            --             else 
+            --               do let flagSup' = markRead flagSup (sid,i) cursor
+            --                  updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
+            --                  updateCtx sid (buf,sups,bs,p' (Just $ as !! cursor)) 
+            --                  costInc (1,0)
+            --                  sInstrInterp bufSize def 
+
 
 -- check the first output of the stream `ctrl`,
 -- if it's some AVal, then execute `code`
@@ -361,13 +414,14 @@ sInstrInterp bufSize (WithCtrl ctrl code st) =
                 updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
                 costInc (1,1) 
                 return True
-           Buf [] ->  -- can't decide whether `ctrl` is emptbs y or not, keep waiting
+           Filling [] ->  -- can't decide whether `ctrl` is emptbs y or not, keep waiting
              do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
                 return $ all (\x -> x) bs
-           Buf _ ->  -- `ctrl` is nonempty
+           _ ->  -- `ctrl` is nonempty
              do updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
                 bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
                 return $ all (\x -> x) bs
+
 
 
 doneStream :: STree -> SvcodeP ()
@@ -385,7 +439,7 @@ isEos sid =
   do (buf, _, _,_) <- lookupSid sid
      case buf of 
        Eos -> return True
-       Buf _ -> return False
+       _ -> return False
 
     
 
