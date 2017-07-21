@@ -4,8 +4,9 @@
         + a buffer is not allowed to be read by its clients before it is full, unless it is the last chunk of the stream
         + when deadlock happens, stealing will be taken firstly to try to break it
         + will be modified further to the two-phase scheduling discussed in [#19](https://github.com/Ginko-X/Streaming_NESL/issues/19)
-	+ [some notes at the 8th comment of #18](https://github.com/Ginko-X/Streaming_NESL/issues/18) 
-
+        + [some notes at the 8th comment of #18](https://github.com/Ginko-X/Streaming_NESL/issues/18) 
+    + Bugfix of the cost model
+        + in process, unstable
     
 + Week 28 (10 Jul ~ 16 Jul)
     + Generalized streaming interpreter to support arbitrary buffer sizes [`SvcodeProcInterpLong.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProcInterpLong.hs)
