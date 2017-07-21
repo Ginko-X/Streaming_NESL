@@ -98,19 +98,19 @@ rrobin m ctx ctrl retSids as0 (w0,s0)=
      if all (\x -> x) bs 
        then return (as', (w0+w1,s0+s1), ctx'') 
        else if equalCtx ctx ctx'' 
-            then do unlockCtx <- fill2Drain ctx''
+            then do unlockCtx <- stealing ctx''  -- try stealing
                     rrobin m unlockCtx ctrl retSids as' (w0+w1,s0+s1)
             else rrobin m ctx'' ctrl retSids as' (w0+w1,s0+s1)
 
 
--- pick the first stream in (non-empty) Filling mode to drain
-fill2Drain :: Svctx -> Either String Svctx
-fill2Drain [] = Left "Deadlock!"
+-- pick the first non-empty stream in Filling mode to drain
+stealing :: Svctx -> Either String Svctx
+stealing [] = Left "Deadlock!"
 
-fill2Drain ((sid, (Filling as@(a0:_), sup, bs, p)):ss) = 
+stealing ((sid, (Filling as@(a0:_), sup, bs, p)):ss) = 
   Right $ (sid, (Draining as, sup,bs,p)) : ss 
 
-fill2Drain (s:ss) = fill2Drain ss >>= (\ss' -> return (s:ss'))
+stealing (s:ss) = stealing ss >>= (\ss' -> return (s:ss'))
 
 
 -- not 100% correct because Procs are not comparable
@@ -284,57 +284,75 @@ sInstrInterp :: Int -> SInstr -> SvcodeP Bool
 sInstrInterp bufSize def@(SDef sid i) = 
   do (buf, sups, bs, p) <- lookupSid sid 
      case p of 
+       -- 1. Done 
        Done () -> 
          case buf of 
+           -- 1.1 the last chunk, so must use stealing 
            Filling as -> let buf' = if null as then Eos else Draining as 
                          in do updateCtx sid (buf', sups, bs, Done()) 
                                return True
            
+           -- 1.2 just wait all clients finish reading its buffer
            Draining as -> if allEnd bs (length as)
                           then do updateCtx sid (Eos, sups, resetCur bs, Done ()) 
                                   returnC (length as,1) True  -- add cost 
                           else return True
+
+           -- 1.3 do nothing
            Eos -> return True
 
-       Pout a p' -> 
+       -- 2. Pout
+       Pout a p' ->  
          case buf of 
-           Filling as -> if length as +1 >= bufSize  
-                           then do let buf' = Draining $ as ++ [a] 
-                                   updateCtx sid (buf', sups, bs,p') 
-                                   return False  -- start draining
-                           else do let buf' = Filling $ as ++ [a]
-                                   updateCtx sid (buf', sups, bs, p')
-                                   sInstrInterp bufSize def  -- filling model loop
-          
-           Draining as -> if allEnd bs (length as)
-                            then do updateCtx sid (Filling [], sups, resetCur bs, Pout a p')
-                                    costInc (bufSize, 1)  -- add cost
-                                    sInstrInterp bufSize def -- start filling
+           -- 2.1 fill the buffer until full 
+           -- and then switch to draining 
+           Filling as -> do let buf' = if length as +1 >= bufSize  
+                                         then Draining $ as ++ [a] 
+                                         else Filling $ as ++ [a]
+                            updateCtx sid (buf', sups, bs, p') 
+                            sInstrInterp bufSize def  
 
-                            else return False -- write blocking
+           -- 2.2 only check if all clients have finished reading the buffer
+           -- if so, switch to filling
+           Draining as -> 
+             if allEnd bs (length as)
+               then do updateCtx sid (Filling [], sups, resetCur bs, Pout a p')
+                       costInc (bufSize, 1)  -- cost work `bufSize`, step 1
+                       sInstrInterp bufSize def -- start filling
+               else return False -- blocking 
 
+           -- 2.3 can not happen
            Eos -> fail $ "Premature EOS "
-
+       
+-- 3. Pin i p'
+-- for simplicity, only try to read from the supplier and modify the cursor if
+-- read successfully (so not necessary to distinguish between 3.2 & 3.3)
        Pin i p' -> 
          case buf of 
-           Eos -> fail $ "Premature EOS"
-           _ -> 
+           Eos -> fail $ "Premature EOS"  -- 3.1
+
+           _ ->   -- 3.2 & 3.3
              do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
-                case lookup (sid,i) flagSup of 
+                case lookup (sid,i) flagSup of -- find own cursor from supplier's clients
                   Nothing -> fail $ "undefined client " ++ show sid
                   Just cursor -> 
-                    case bufSup of 
-                      Eos -> do updateCtx sid (buf,sups,bs, p' Nothing)
+                    case bufSup of -- check the bufState of the supplier
+                      -- read a `Nothing`
+                      Eos -> do updateCtx sid (buf,sups,bs, p' Nothing) 
                                 sInstrInterp bufSize def  -- loop 
-                      Filling _ -> return False  -- read unavailable
+
+                      -- read unavailable, blocking
+                      Filling _ -> return False  
+                      
                       Draining asSup -> 
                         if cursor >= length asSup
                           then return False -- read blocking 
-                          else do let flagSup' = markRead flagSup (sid,i) cursor
-                                  updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
-                                  updateCtx sid (buf,sups,bs,p' (Just $ asSup !! cursor))                               
-                                  costInc (1,0)
-                                  sInstrInterp bufSize def -- loop
+                          else -- read successfully
+                            do let flagSup' = markRead flagSup (sid,i) cursor
+                               updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
+                               updateCtx sid (buf,sups,bs,p' (Just $ asSup !! cursor))
+                               costInc (1,0)  -- cost work 1, step 0
+                               sInstrInterp bufSize def -- loop
 
 
 -- check the first output of the stream `ctrl`,
@@ -450,7 +468,7 @@ roundN c f ctxs as =
     else
       do (as',ctx') <- f (head ctxs) (head as)
          if (length ctxs > 0) && (equalCtx ctx' $ ctxs!!0)
-         then do unlockCtx <- fill2Drain ctx'
+         then do unlockCtx <- stealing ctx'
                  roundN (c-1) f (unlockCtx:ctxs) (as':as) 
          else roundN (c-1) f (ctx':ctxs) (as':as) 
      
