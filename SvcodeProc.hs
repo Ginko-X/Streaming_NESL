@@ -82,7 +82,7 @@ usumProc = p
                 BVal True -> p)
 
 
-
+-- the 2nd supplier stream can not be shorter (but can be longer ??!) than 1st
 mapTwo :: ([AVal] -> AVal) -> Proc ()
 mapTwo op = p 
   where p = rin 0 (\x -> 
@@ -95,6 +95,17 @@ mapTwo op = p
 mapOne :: ([AVal] -> AVal) -> Proc ()
 mapOne op = p 
   where p = rin 0 (\x -> rout (op [x]) >> p)
+
+
+
+checkProc :: Proc ()
+checkProc = p 
+  where p = rin 0 (\x -> 
+              do y <- rinx 1 
+                 if x == y 
+                   then p 
+                   else error "checkProc: runtime error")
+
 
 
 packProc :: Proc ()
@@ -331,6 +342,7 @@ priSegInterP (j,i) =
 
 
 
+-------------
 
 evalProc :: Proc () -> [SvVal] -> SvVal -> SvVal
 evalProc (Pin i p) ss s = 

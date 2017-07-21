@@ -257,7 +257,8 @@ sExpProcInit (PriSegInterS ss) =
 
 sExpProcInit (SegMerge _ _) = return segMergeProc 
 
---sExpProcInit (Check )
+sExpProcInit (Check _ _) = return checkProc
+
 
 
 lookupOpA :: OP -> OpAEnv -> SvcodeP ([AVal] -> AVal)

@@ -466,8 +466,7 @@ sExpInterpProc (PriSegInterS ss) =
 sExpInterpProc (SegMerge s1 s2) = svProc [s2,s1] segMergeProc (SBVal [])
  
 
-sExpInterpProc (Check s1 s2) = sExpInterp (Check s1 s2) -- same as sExpInterp
-
+sExpInterpProc (Check s1 s2) = svProc [s1,s2] checkProc (SBVal []) 
 
 
 lookupOpA :: OP -> OpAEnv -> Svcode ([AVal] -> AVal, Type) 
