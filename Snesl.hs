@@ -83,9 +83,11 @@ runTop b (TExp e) env@(_,_,_,_,bufSize) =
           do putStrLn $ show v ++ " :: " ++ show t
              putStrLn $ "[W_H: " ++ show w ++ ", S_H: " ++ show s ++ "]" 
                ++ ", " ++ "[W_L: " ++ show w' ++ ", S_L: "++ show s' ++ "]" 
-             let d = map fromIntegral [w,s,s',bufSize] 
-             putStrLn $ "S_L/(W_H/bufSize + S_H): " 
-                 ++ showGFloat (Just 1) (d!!2/( d!!0 / d!!3 + d!!1)) ""            
+             let d = map fromIntegral [w,s,w',s',bufSize] 
+             if b then putStrLn $ "S_L/(W_H/bufSize + S_H): " 
+                         ++ showGFloat (Just 1) (d!!3/( d!!0 / d!!4 + d!!1)) ""
+             else putStrLn $ "W_L/W_H: " ++ showGFloat (Just 1) (d!!2/ d!!0) ""                 
+                    ++ ", S_L/S_H: " ++ showGFloat (Just 1) (d!!3/ d!!1) ""
              return env 
 
 
