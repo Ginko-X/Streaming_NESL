@@ -319,80 +319,67 @@ allStart bs = all (\(_,b) -> b == 0) bs
 resetCur :: [((SId,Int),Int)] -> [((SId,Int), Int)]
 resetCur bs = map (\(sid, _) -> (sid, 0)) bs 
 
+
+returnC :: (Int, Int) -> a -> SvcodeP a 
+returnC (w,s) a = SvcodeP $ \ ctx _ -> Right (a,(w,s),ctx)
+
+
 ----- instruction interp
 
 sInstrInterp :: Int -> SInstr -> SvcodeP Bool
 sInstrInterp bufSize def@(SDef sid i) = 
   do (buf, sups, bs, p) <- lookupSid sid 
-     case buf of 
-       Eos -> return True 
-       Filling as -> 
-         case p of 
-           Done () -> do if null as 
-                           then updateCtx sid (Eos, sups, bs, p) 
-                           else updateCtx sid (Draining as, sups, bs, p) 
-                         return True
-           Pout a p' -> let buf' = if length as +1 >= bufSize
-                                   then Draining $ as ++ [a]
-                                   else Filling $ as ++ [a]
-                          in do updateCtx sid (buf', sups, bs, p')
-                                sInstrInterp bufSize def                            
-           Pin i p' -> 
-              do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
-                 case lookup (sid,i) flagSup of 
-                   Nothing -> fail $ "undefined client " ++ show sid
-                   Just cursor -> 
-                     case bufSup of 
-                       Eos -> updateCtx sid (buf,sups,bs,p' Nothing) >> sInstrInterp bufSize def 
-                       Filling _ -> return False
-                       Draining asSup -> 
-                         if cursor >= length asSup 
-                         then costInc (0,1) >> return False   -- read blocking
-                         else 
-                           do let flagSup' = markRead flagSup (sid,i) cursor
-                              updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
-                              updateCtx sid (buf,sups,bs,p' (Just $ asSup !! cursor)) 
-                              costInc (1,0)
-                              sInstrInterp bufSize def 
+     case p of 
+       Done () -> 
+         case buf of 
+           Filling as -> let buf' = if null as then Eos else Draining as 
+                         in do updateCtx sid (buf', sups, bs, Done()) 
+                               returnC (length as, 0) True
 
+           Draining as -> if allEnd bs (length as)
+                          then do updateCtx sid (Eos, sups, resetCur bs, Done ()) 
+                                  returnC (length as,1) True
+                          else return True
+           Eos -> return True
 
-       Draining as -> 
-          case p of
-            Done () -> (if allEnd bs (length as) 
-                          then updateCtx sid (Eos,sups,resetCur bs,p) >> costInc (1,1)
-                          else return ()) >> return True
-            _ -> (if allEnd bs bufSize 
-                    then updateCtx sid (Filling [], sups, resetCur bs, p) 
-                    else 
-                      if allEnd bs (length as) -- the last chunk
-                        then updateCtx sid (Eos, sups, resetCur bs, p) 
-                        else return ()) >> return False
+       Pout a p' -> 
+         case buf of 
+           Filling as -> if length as +1 >= bufSize  
+                           then do let buf' = Draining $ as ++ [a] 
+                                   updateCtx sid (buf', sups, bs,p') 
+                                   returnC (bufSize,0) False  -- start draining
+                           else do let buf' = Filling $ as ++ [a]
+                                   updateCtx sid (buf', sups, bs, p')
+                                   sInstrInterp bufSize def  -- filling model loop
+          
+           Draining as -> if allEnd bs (length as)
+                            then do updateCtx sid (Filling [], sups, resetCur bs, Pout a p')
+                                    costInc (length as, 1)
+                                    sInstrInterp bufSize def -- start filling
 
-            --Pout a p' -> (if allEnd bs (length a0)  -- start filling
-            --                then do updateCtx sid (Buf [a],sups,resetCur bs, p')
-            --                        costInc (1,0)
-            --                        sInstrInterp bufSize def 
-            --                else if (allStart bs) && (length a0 < bufSize) -- keep filling
-            --                      then do updateCtx sid (Buf (a0 ++[a]),sups,bs,p')
-            --                              costInc (1,0)
-            --                              sInstrInterp bufSize def 
-            --                      else costInc (0,1) >> return False)  -- write blocking
-            --Pin i p' ->
-            --  do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
-            --     case lookup (sid,i) flagSup of 
-            --       Nothing -> fail $ "undefined client " ++ show sid
-            --       Just cursor -> 
-            --         case bufSup of 
-            --           Eos -> updateCtx sid (buf,sups,bs,p' Nothing) >> sInstrInterp bufSize def 
-            --           Buf as -> 
-            --             if cursor >= length as 
-            --             then costInc (0,1) >> return False   -- read blocking
-            --             else 
-            --               do let flagSup' = markRead flagSup (sid,i) cursor
-            --                  updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
-            --                  updateCtx sid (buf,sups,bs,p' (Just $ as !! cursor)) 
-            --                  costInc (1,0)
-            --                  sInstrInterp bufSize def 
+                            else return False -- write blocking
+
+           Eos -> fail $ "Premature EOS "
+
+       Pin i p' -> 
+         case buf of 
+           Eos -> fail $ "Premature EOS"
+           _ -> 
+             do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
+                case lookup (sid,i) flagSup of 
+                  Nothing -> fail $ "undefined client " ++ show sid
+                  Just cursor -> 
+                    case bufSup of 
+                      Eos -> do updateCtx sid (buf,sups,bs, p' Nothing)
+                                sInstrInterp bufSize def  -- loop 
+                      Filling _ -> return False  -- read unavailable
+                      Draining asSup -> 
+                        if cursor >= length asSup
+                          then return False -- read blocking 
+                          else do let flagSup' = markRead flagSup (sid,i) cursor
+                                  updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
+                                  updateCtx sid (buf,sups,bs,p' (Just $ asSup !! cursor))                               
+                                  sInstrInterp bufSize def -- loop
 
 
 -- check the first output of the stream `ctrl`,
@@ -441,7 +428,7 @@ isEos sid =
        Eos -> return True
        _ -> return False
 
-    
+
 
 markRead :: Clients -> (SId,Int) -> Int -> Clients
 markRead cs sid oldCursor = updateWithKey cs sid (oldCursor+1)
