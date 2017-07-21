@@ -50,8 +50,8 @@ instance Applicative SvcodeP where
 
 
 
-runSvcodePExp :: SFun -> Either String (SvVal, (Int,Int))
-runSvcodePExp (SFun [] st code _) = 
+runSvcodePExp :: SFun -> Int -> Either String (SvVal, (Int,Int))
+runSvcodePExp (SFun [] st code _) _ = 
   do let (sup,d) = geneSupDag code 0
          retSids = zip (tree2Sids st) [0..]
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids 
@@ -83,8 +83,8 @@ constrSv (SStr t1 t2) as =
 
 
 ------- run the program and print out the Svctx of each round  -------------
-runSvcodePExp' :: SFun -> Int -> Either String String
-runSvcodePExp' (SFun [] st code _) count = 
+runSvcodePExp' :: SFun -> Int -> Int -> Either String String
+runSvcodePExp' (SFun [] st code _) count _= 
   do let (sup,d) = geneSupDag code 0
          retSids = zip (tree2Sids st) [0..]
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids  

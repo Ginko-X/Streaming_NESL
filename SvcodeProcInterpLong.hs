@@ -85,57 +85,6 @@ constrSv (SStr t1 t2) as =
    in (SSVal v1 v2, as'') 
 
 
-------- run the program and print out the Svctx of each round  -------------
-runSvcodePExp' :: SFun -> Int -> Int -> Either String String
-runSvcodePExp' (SFun [] st code _) count bs = 
-  do let (sup,d) = geneSupDag code 0
-         retSids = zip (tree2Sids st) [0..]
-         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids  
-     (_,_,ctx) <- rSvcodeP (sInit code d' sup) [] 0 
-
-     (as, ctxs) <- roundN count (round1 (mapM (sInstrInterp bs) code) 0 retSids) [ctx]
-                     $ [map (\_ -> []) retSids]
-     let str = map (\(a,c,i) -> "Round "++ show i ++"\nOutput:" ++ show a ++ "\n" 
-                      ++ showCtx c ++ "\n") 
-               $ zip3 (reverse as) (reverse ctxs) [0..]
-     return $ concat str
-
-
-showCtx :: Svctx -> String
-showCtx [] = ""
-showCtx ((sid,(buf,c,bs,p)):ss) = 
-  "S" ++ show sid ++ " := (" ++ show buf ++ "," ++ show c ++ "," ++ show bs 
-    ++ "," ++ show p ++ ")\n" ++ showCtx ss 
-    
-
-
-roundN :: Int -> (Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx) ) -> 
-            [Svctx] -> [[[AVal]]] -> Either String ([[[AVal]]], [Svctx])
-roundN 0 f ctxs as = Right (as,ctxs) 
-roundN c f ctxs as = 
-  if all (\(_,(buf,_, _,p)) -> buf == Eos) (head ctxs)
-    then return (as,ctxs)
-    else
-      do (as',ctx') <- f (head ctxs) (head as)
-         if (length ctxs > 0) && (equalCtx ctx' $ ctxs!!0)
-         then do unlockCtx <- fill2Drain ctx'
-                 roundN (c-1) f (unlockCtx:ctxs) (as':as) 
-         else roundN (c-1) f (ctx':ctxs) (as':as) 
-     
-
-round1 :: SvcodeP [Bool] -> SId -> [(SId,Int)] -> Svctx -> [[AVal]] 
-              -> Either String ([[AVal]], Svctx) 
-round1 m ctrl st ctx as0 = 
-  do (_,_, ctx') <- rSvcodeP m ctx ctrl
-     (as,ctx'') <- foldM (\(a0,c0) s -> 
-                            do (a,c) <- lookupAval c0 s
-                               return (a:a0,c))
-                        ([],ctx') st 
-     let as' = zipWith (++) as0 (reverse as) 
-     return (as', ctx'') 
-
------------------------------------}
-
      
 rrobin :: SvcodeP [Bool] -> Svctx -> SId -> [(SId,Int)] -> [[AVal]] -> (Int,Int)
             -> Either String ([[AVal]],(Int,Int),Svctx)           
@@ -154,9 +103,13 @@ rrobin m ctx ctrl retSids as0 (w0,s0)=
             else rrobin m ctx'' ctrl retSids as' (w0+w1,s0+s1)
 
 
+-- pick the first stream in (non-empty) Filling mode to drain
 fill2Drain :: Svctx -> Either String Svctx
 fill2Drain [] = Left "Deadlock!"
-fill2Drain ((sid, (Filling as, sup, bs, p)):ss) = Right $ (sid, (Draining as, sup,bs,p)) : ss 
+
+fill2Drain ((sid, (Filling as@(a0:_), sup, bs, p)):ss) = 
+  Right $ (sid, (Draining as, sup,bs,p)) : ss 
+
 fill2Drain (s:ss) = fill2Drain ss >>= (\ss' -> return (s:ss'))
 
 
@@ -176,7 +129,6 @@ compProc _ _ = False
 
 
 
-
 lookupAval :: Svctx -> (SId, Int) -> Either String ([AVal],Svctx)
 lookupAval ctx (s,i) = 
   case lookup s ctx of 
@@ -191,6 +143,7 @@ lookupAval ctx (s,i) =
       Just (Filling _, _,_, _) -> Right ([], ctx)
 
       Just (Eos, _, _, _) -> Right ([], ctx)
+
 
 
 addCtx :: SId -> SState -> SvcodeP ()
@@ -215,6 +168,10 @@ lookupSid s = SvcodeP $ \c ctrl ->
 
 costInc :: (Int, Int) -> SvcodeP ()
 costInc (w,s) = SvcodeP $ \ c _ -> Right ((), (w,s), c)
+
+
+returnC :: (Int, Int) -> a -> SvcodeP a 
+returnC (w,s) a = SvcodeP $ \ ctx _ -> Right (a,(w,s),ctx)
 
 
 ------ instruction init
@@ -320,10 +277,6 @@ resetCur :: [((SId,Int),Int)] -> [((SId,Int), Int)]
 resetCur bs = map (\(sid, _) -> (sid, 0)) bs 
 
 
-returnC :: (Int, Int) -> a -> SvcodeP a 
-returnC (w,s) a = SvcodeP $ \ ctx _ -> Right (a,(w,s),ctx)
-
-
 ----- instruction interp
 
 sInstrInterp :: Int -> SInstr -> SvcodeP Bool
@@ -334,11 +287,11 @@ sInstrInterp bufSize def@(SDef sid i) =
          case buf of 
            Filling as -> let buf' = if null as then Eos else Draining as 
                          in do updateCtx sid (buf', sups, bs, Done()) 
-                               returnC (length as, 0) True
-
+                               return True
+           
            Draining as -> if allEnd bs (length as)
                           then do updateCtx sid (Eos, sups, resetCur bs, Done ()) 
-                                  returnC (length as,1) True
+                                  returnC (length as,1) True  -- add cost 
                           else return True
            Eos -> return True
 
@@ -347,14 +300,14 @@ sInstrInterp bufSize def@(SDef sid i) =
            Filling as -> if length as +1 >= bufSize  
                            then do let buf' = Draining $ as ++ [a] 
                                    updateCtx sid (buf', sups, bs,p') 
-                                   returnC (bufSize,0) False  -- start draining
+                                   return False  -- start draining
                            else do let buf' = Filling $ as ++ [a]
                                    updateCtx sid (buf', sups, bs, p')
                                    sInstrInterp bufSize def  -- filling model loop
           
            Draining as -> if allEnd bs (length as)
                             then do updateCtx sid (Filling [], sups, resetCur bs, Pout a p')
-                                    costInc (length as, 1)
+                                    costInc (bufSize, 1)  -- add cost
                                     sInstrInterp bufSize def -- start filling
 
                             else return False -- write blocking
@@ -379,6 +332,7 @@ sInstrInterp bufSize def@(SDef sid i) =
                           else do let flagSup' = markRead flagSup (sid,i) cursor
                                   updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
                                   updateCtx sid (buf,sups,bs,p' (Just $ asSup !! cursor))                               
+                                  costInc (1,0)
                                   sInstrInterp bufSize def -- loop
 
 
@@ -399,7 +353,7 @@ sInstrInterp bufSize (WithCtrl ctrl code st) =
            Eos ->  -- `ctrl` is empty
              do doneStream st
                 updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
-                costInc (1,1) 
+                costInc (1,1)  -- or (1,0) ?
                 return True
            Filling [] ->  -- can't decide whether `ctrl` is emptbs y or not, keep waiting
              do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
@@ -457,6 +411,61 @@ checkWithKey :: (Eq a) => (Eq b) => [(a,b)] -> a -> b -> Bool
 checkWithKey [] _ _ = False
 checkWithKey (p0@(k0,v0):ps) k v = 
   if (k0 == k) && (v == v0) then True else checkWithKey ps k v 
+
+
+
+
+------- run the program and print out the Svctx of each round  -------------
+-- 
+runSvcodePExp' :: SFun -> Int -> Int -> Either String String
+runSvcodePExp' (SFun [] st code _) count bs = 
+  do let (sup,d) = geneSupDag code 0
+         retSids = zip (tree2Sids st) [0..]
+         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids  
+     (_,_,ctx) <- rSvcodeP (sInit code d' sup) [] 0 
+
+     (as, ctxs) <- roundN count (round1 (mapM (sInstrInterp bs) code) 0 retSids) [ctx]
+                     $ [map (\_ -> []) retSids]
+     let str = map (\(a,c,i) -> "Round "++ show i ++"\nOutput:" ++ show a ++ "\n" 
+                      ++ showCtx c ++ "\n") 
+               $ zip3 (reverse as) (reverse ctxs) [0..]
+     return $ concat str
+
+
+showCtx :: Svctx -> String
+showCtx [] = ""
+showCtx ((sid,(buf,c,bs,p)):ss) = 
+  "S" ++ show sid ++ " := (" ++ show buf ++ "," ++ show c ++ "," ++ show bs 
+    ++ "," ++ show p ++ ")\n" ++ showCtx ss 
+    
+
+
+roundN :: Int -> (Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx) ) -> 
+            [Svctx] -> [[[AVal]]] -> Either String ([[[AVal]]], [Svctx])
+roundN 0 f ctxs as = Right (as,ctxs) 
+roundN c f ctxs as = 
+  if all (\(_,(buf,_, _,p)) -> buf == Eos) (head ctxs)
+    then return (as,ctxs)
+    else
+      do (as',ctx') <- f (head ctxs) (head as)
+         if (length ctxs > 0) && (equalCtx ctx' $ ctxs!!0)
+         then do unlockCtx <- fill2Drain ctx'
+                 roundN (c-1) f (unlockCtx:ctxs) (as':as) 
+         else roundN (c-1) f (ctx':ctxs) (as':as) 
+     
+
+round1 :: SvcodeP [Bool] -> SId -> [(SId,Int)] -> Svctx -> [[AVal]] 
+              -> Either String ([[AVal]], Svctx) 
+round1 m ctrl st ctx as0 = 
+  do (_,_, ctx') <- rSvcodeP m ctx ctrl
+     (as,ctx'') <- foldM (\(a0,c0) s -> 
+                            do (a,c) <- lookupAval c0 s
+                               return (a:a0,c))
+                        ([],ctx') st 
+     let as' = zipWith (++) as0 (reverse as) 
+     return (as', ctx'') 
+
+-----------------------------------}
 
 
 ------ helper functions for generating the supplier table and DAG  ------

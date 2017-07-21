@@ -14,6 +14,7 @@ import System.Environment
 import System.Console.Haskeline
 import Control.Monad.Trans (lift)
 import Data.Foldable (foldlM)
+import Numeric (showGFloat)
 
 {- Usage: 
    <expression>   Evaluate an expression (also include type-check, compiling
@@ -75,19 +76,16 @@ runTop b (TDef def@(FDef fname _ _ _)) env =
       Right env' -> (putStrLn $ "Defined function: " ++ fname) >> return env'
       Left err -> putStrLn err >> return env
 
-runTop b (TExp e) env = 
+runTop b (TExp e) env@(_,_,_,_,bufSize) = 
     case runExp b e env of 
       Left err -> putStrLn err >> return env             
       Right (v,t,(w,s),(w',s')) ->
           do putStrLn $ show v ++ " :: " ++ show t
-             putStrLn $ "SNESL [work: " ++ show w ++ ", step: "
-                          ++ show s ++ "]" ++ ", " ++ 
-                        "SVCODE [work: " ++ show w' ++ ", step: " 
-                          ++ show s' ++ "]"
-             putStrLn $ "SVCODE/SNESL ratio [work: " 
-                ++ show (ceiling $ (fromIntegral w')/ (fromIntegral w)) 
-                ++ ", step: " ++
-                 show ((ceiling $ (fromIntegral s')/ (fromIntegral s))) ++ "]" 
+             putStrLn $ "[W_H: " ++ show w ++ ", S_H: " ++ show s ++ "]" 
+               ++ ", " ++ "[W_L: " ++ show w' ++ ", S_L: "++ show s' ++ "]" 
+             let d = map fromIntegral [w,s,s',bufSize] 
+             putStrLn $ "S_L/(W_H/bufSize + S_H): " 
+                 ++ showGFloat (Just 1) (d!!2/( d!!0 / d!!3 + d!!1)) ""            
              return env 
 
 
@@ -155,10 +153,8 @@ testString str env@(e0,t0,v0,f0,bs) =
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0
-       --runSvcodePreInterp svcode
        --(svcodeRes, (w',s')) <- runSvcodeExp svcode f0  -- eager interp
        (svcodeRes, (w',s')) <- runSvcodePExp svcode bs  -- streaming interp       
-       --runSvcodePExp' svcode 20 -- output the context in each round of streaming interp
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes'  
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
@@ -269,7 +265,7 @@ prog11 = "let bs = {{T,T},{F,T,F,F,T,T}} in {part(a,b): a in {{}int, {4,5,6}}, b
 -- bads example; should throw an Excpetion
 prog12 = "let x = 5; (y,z) = x in 5"  
 
-prog13 = "let s = {1,3,5,2,4,6}; " ++  -- #18 deadlock
+prog13 = "let s = {1,3,5,2,4,6}; " ++  -- #18 real deadlock when bs < 3
             " t = concat({{x| x%2==0 }: x in s}); " ++ 
             " u = concat({{x| x%2 > 0 }: x in s}) " ++ 
             " in {a + b : a in t, b in u}"
