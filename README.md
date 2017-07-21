@@ -1,4 +1,10 @@
 # Working Progress
++ Week 29 (17 Jul ~ 23 Jul)
+    + Modified the scheduling strategy from _looping scheduling_ (mentioned in #19) to some "fully-filled" looping scheduling, to maintain the correctness of cost model
+        + a buffer is not allowed to be read by its clients before it is full, unless it is the last chunk of the stream
+	+ when deadlock happens, stealing will be applied firstly to try to unlock it
+	+ will be modified further to the two-phase scheduling discussed in #19
+    
 + Week 28 (10 Jul ~ 16 Jul)
     + Generalized streaming interpreter to support arbitrary buffer sizes [`SvcodeProcInterpLong.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProcInterpLong.hs)
         + already incorporated into the interactive interpreter `runhaskell Snesl.hs -s`; default buffersize (i.e., the maximum number of `AVal` a buffer can hold): 10; set buffersize: `:bs <Int>` 
