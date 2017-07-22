@@ -1,14 +1,22 @@
 import SneslInterp
 import SneslParser
-import SvcodeInterp
 import SneslCompiler
-import SvcodeSyntax
 import SneslSyntax
+import SvcodeSyntax
 import SneslTyping
 import DataTrans
-import SvcodePreInterp
-import SvcodeProcInterpLong
---import SvcodeProcInterp
+
+-- provide two kinds of SVCODE eager interperter inside
+import SvcodeInterp
+
+-- provide three streaming SVCODE interpreters:
+-- 1. bufferSize 1, simple loop-scheduler
+-- 2. arbitrary buffer size, full-filled loop-scheduling with stealing
+-- 3. arbitrary buffer size, two-phase scheduler
+--import SvcodeProcInterp 
+--import SvcodeProcInterpLong 
+import SvcodeSInterp  
+
 
 import System.Environment
 import System.Console.Haskeline
@@ -178,10 +186,10 @@ geneExpSFun str =
      runCompileExp e compEnv0 
  
 
-testGeneLev prog = 
-  let code = geneExpCode prog -- "{x+y : x in &2, y in {10,20}}" 
-      (sup,dag) = geneSupDag code 0 
-  in geneLevels dag sup   
+--testGeneLev prog = 
+--  let code = geneExpCode prog -- "{x+y : x in &2, y in {10,20}}" 
+--      (sup,dag) = geneSupDag code 0 
+--  in geneLevels dag sup   
 
 
 {-

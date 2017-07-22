@@ -29,12 +29,6 @@ type Sup = [[SId]]  -- supplier list
 type Dag = [[(SId,Int)]] -- client list
 
 
--- classify the SIds into levels by breadth-first traversal of the Dag
--- used in the 1st phase of two-phase scheduling
-type Levels = [[SId]] 
-
-
-
 newtype SvcodeP a = SvcodeP {rSvcodeP :: Svctx -> SId -> 
                                 Either String (a,(Int,Int),Svctx)}
                                   
@@ -514,7 +508,7 @@ geneSup code ctrl =
 instrGeneSup :: [SInstr] -> SId -> [(SId, String,[SId])]
 instrGeneSup [] _ = []
 instrGeneSup ((SDef sid sexp):ss) c = (sid,i,cl0) : instrGeneSup ss c
-    where (cl0, i ) = getChanExp sexp c
+    where (cl0, i) = getChanExp sexp c
 instrGeneSup ((WithCtrl newc ss _):ss') c = cl ++ instrGeneSup ss' c
     where cl = instrGeneSup ss newc
 
@@ -603,39 +597,6 @@ addEmptyStreams chs i =
       (sids', strSids) = unzip chs'
       (strs', sidss') = unzip strSids
   in zip3 sids' strs' sidss' 
-
-
-
-------- generate the Levels  -----------
-
-geneLevels :: Dag -> Sup -> Levels
-geneLevels dag sup = 
-  let maxLev = length dag + 1 
-      levelInit = 0: (map (\_ -> maxLev) $ tail dag)
-      dag' = map (\clients -> fst $ unzip clients) dag 
-    in genelevRecur dag' sup levelInit maxLev [[0]] [0]
-
-
-genelevRecur :: [[SId]] -> Sup -> [Int] -> Int -> Levels ->[SId] -> Levels
-genelevRecur dag sup levelTab m levels roots = 
-  let nodes = toList $ fromList $ 
-                concat $ map (\r -> geneLev dag sup levelTab m r) roots
-  in if null nodes 
-      then levels 
-      else let newLT = foldl (\l n -> updateList l n (length levels)) 
-                          levelTab nodes
-               newLevels = levels ++ [nodes]
-           in genelevRecur dag sup newLT m newLevels nodes
-
-
-geneLev :: [[SId]] -> Sup -> [Int] -> Int -> SId -> [SId]
-geneLev dag sup levelTable m root =
-  let clients = dag !! root  
-      clSup = map (\cl -> sup !! cl) clients
-      clLev = map (\sups -> maximum $ map (\sup -> levelTable !! sup) sups) 
-                clSup
-   in fst $ unzip $ filter (\(_,l) -> not (l == m)) $ zip clients clLev 
-
 
 -----------------
 
