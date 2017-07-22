@@ -186,10 +186,10 @@ geneExpSFun str =
      runCompileExp e compEnv0 
  
 
---testGeneLev prog = 
---  let code = geneExpCode prog -- "{x+y : x in &2, y in {10,20}}" 
---      (sup,dag) = geneSupDag code 0 
---  in geneLevels dag sup   
+testGeneLev prog = 
+  let code = geneExpCode prog -- "{x+y : x in &2, y in {10,20}}" 
+      (sup,dag) = geneSupDag code 0 
+  in geneLevels dag sup   
 
 
 {-

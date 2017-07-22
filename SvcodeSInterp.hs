@@ -68,21 +68,52 @@ runSvcodePExp (SFun [] st code _) bufSize =
          retSids = zip (tree2Sids st) [0..]
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids 
      (_,(w0,s0), ctx) <- rSvcodeP (sInit code d' sup) [] 0 
-     (as,(w1,s1), _) <- rrobin (twoPhase code bufSize lv []) ctx 0 retSids 
+     (as,(w1,s1), _) <- rrobin (twoPhaSche code bufSize lv) ctx 0 retSids 
                     (map (\_ -> []) retSids) (w0,s0)
      return (fst $ constrSv st as,(w0+w1,s0+s1))
 
 
--- return True: runnable
--- False: no stream is runnable
-twoPhase :: [SInstr] -> Int -> Levels -> [Bool] -> SvcodeP Bool
-twoPhase ss bufSize [] bs =
-  if all (\x -> x) bs  then return True else return False 
+    
+rrobin :: SvcodeP () -> Svctx -> SId -> [(SId,Int)] -> [[AVal]] -> (Int,Int)
+            -> Either String ([[AVal]],(Int,Int),Svctx)           
+rrobin m ctx ctrl retSids as0 (w0,s0)= 
+  do (_,(w1,s1), ctx') <- rSvcodeP m ctx ctrl
+     (as,ctx'') <- foldM (\(a0,c0) s -> 
+                             do (a,c) <- lookupAval c0 s
+                                return (a:a0,c)) 
+                         ([],ctx') retSids 
+     let as' = zipWith (++) as0 (reverse as) 
+     (bs,_,_) <- rSvcodeP (mapM isEos $ fst $ unzip retSids) ctx'' ctrl
+     if all (\x -> x) bs 
+       then return (as', (w0+w1,s0+s1), ctx'') 
+       else if equalCtx ctx ctx'' 
+            then do unlockCtx <- stealing ctx''  -- try stealing
+                    rrobin m unlockCtx ctrl retSids as' (w0+w1,s0+s1)
+            else rrobin m ctx'' ctrl retSids as' (w0+w1,s0+s1)
 
-twoPhase ss bufSize (l:ls) bs = 
-  do defs <- mapM (getInstr ss) l 
-     bs0 <- mapM (sInstrInterp bufSize) defs 
-     twoPhase ss bufSize ls (bs++bs0)
+
+-- pick the first non-empty stream in Filling mode to drain
+stealing :: Svctx -> Either String Svctx
+stealing [] = Left "Deadlock!"
+
+stealing ((sid, (Filling as@(a0:_), sup, bs, p)):ss) = 
+  Right $ (sid, (Draining as, sup,bs,p)) : ss 
+
+stealing (s:ss) = stealing ss >>= (\ss' -> return (s:ss'))
+
+
+-- 
+twoPhaSche :: [SInstr] -> Int -> Levels -> SvcodeP ()
+twoPhaSche ss bufSize [] = return ()
+twoPhaSche ss bufSize (l:ls) = 
+  do defs <- mapM (getInstr ss) l  -- pick out all the runnable instrs
+     bs0 <- mapM (sInstrInterp bufSize) defs  -- run them
+     -- check if it's necessary to run the rest levels
+     if all (\b -> not b) bs0  
+       then return ()    
+       else twoPhaSche ss bufSize ls
+
+
 
 
 addClient :: Dag -> SId -> (SId,Int) -> Dag
@@ -121,34 +152,6 @@ lookupSInstr (WithCtrl _ code _ :ss) sid2 =
   case lookupSInstr code sid2 of 
     Nothing -> lookupSInstr ss sid2
     v -> v 
-
-
-     
-rrobin :: SvcodeP Bool -> Svctx -> SId -> [(SId,Int)] -> [[AVal]] -> (Int,Int)
-            -> Either String ([[AVal]],(Int,Int),Svctx)           
-rrobin m ctx ctrl retSids as0 (w0,s0)= 
-  do (b,(w1,s1), ctx') <- rSvcodeP m ctx ctrl
-     (as,ctx'') <- foldM (\(a0,c0) s -> 
-                             do (a,c) <- lookupAval c0 s
-                                return (a:a0,c)) 
-                         ([],ctx') retSids 
-     let as' = zipWith (++) as0 (reverse as) 
-     if b
-       then return (as', (w0+w1,s0+s1), ctx'') 
-       else if equalCtx ctx ctx'' 
-            then do unlockCtx <- stealing ctx''  -- try stealing
-                    rrobin m unlockCtx ctrl retSids as' (w0+w1,s0+s1)
-            else rrobin m ctx'' ctrl retSids as' (w0+w1,s0+s1)
-
-
--- pick the first non-empty stream in Filling mode to drain
-stealing :: Svctx -> Either String Svctx
-stealing [] = Left "Deadlock!"
-
-stealing ((sid, (Filling as@(a0:_), sup, bs, p)):ss) = 
-  Right $ (sid, (Draining as, sup,bs,p)) : ss 
-
-stealing (s:ss) = stealing ss >>= (\ss' -> return (s:ss'))
 
 
 -- not 100% correct because Procs are not comparable
@@ -233,9 +236,10 @@ sInstrInit (SDef sid e) d sup =
      p <- sExpProcInit e 
      addCtx sid (Filling [], suppliers, map (\ cl -> (cl,0)) cls, p)  
 
+-- !! need fix
 sInstrInit (WithCtrl ctrl code _) d sup = 
-  do (buf, consu, bs, p) <- lookupSid ctrl
-     updateCtx ctrl (buf,consu,((-2,0),0):bs,p) 
+  --do (buf, consu, bs, p) <- lookupSid ctrl
+  --   updateCtx ctrl (buf,consu,((-2,0),0):bs,p) 
      mapM_ (\i -> sInstrInit i d sup) code 
 
 
@@ -318,6 +322,8 @@ resetCur bs = map (\(sid, _) -> (sid, 0)) bs
 
 ----- instruction interp
 
+-- return True: runnable
+-- return False: not runnable due to read blocking 
 sInstrInterp :: Int -> SInstr -> SvcodeP Bool
 sInstrInterp bufSize def@(SDef sid i) = 
   do (buf, sups, bs, p) <- lookupSid sid 
@@ -357,7 +363,7 @@ sInstrInterp bufSize def@(SDef sid i) =
                then do updateCtx sid (Filling [], sups, resetCur bs, Pout a p')
                        costInc (bufSize, 1)  -- cost work `bufSize`, step 1
                        sInstrInterp bufSize def -- start filling
-               else return False -- blocking 
+               else return True -- blocking 
 
            -- 2.3 can not happen
            Eos -> fail $ "Premature EOS "
@@ -369,7 +375,7 @@ sInstrInterp bufSize def@(SDef sid i) =
          case buf of 
            Eos -> fail $ "Premature EOS"  -- 3.1
 
-           _ ->   -- 3.2 & 3.3
+           other ->   -- 3.2 & 3.3
              do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
                 case lookup (sid,i) flagSup of -- find own cursor from supplier's clients
                   Nothing -> fail $ "undefined client " ++ show sid
@@ -380,11 +386,14 @@ sInstrInterp bufSize def@(SDef sid i) =
                                 sInstrInterp bufSize def  -- loop 
 
                       -- read unavailable, blocking
-                      Filling _ -> return False  
-                      
+                      Filling _ -> case other of 
+                                     Filling _ -> return False
+                                     Draining _ -> return True                      
                       Draining asSup -> 
                         if cursor >= length asSup
-                          then return False -- read blocking 
+                          then case other of 
+                                 Filling _ -> return False
+                                 Draining _ -> return True 
                           else -- read successfully
                             do let flagSup' = markRead flagSup (sid,i) cursor
                                updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
@@ -393,6 +402,7 @@ sInstrInterp bufSize def@(SDef sid i) =
                                sInstrInterp bufSize def -- loop
 
 
+-- !! need fix
 -- check the first output of the stream `ctrl`,
 -- if it's some AVal, then execute `code`
 -- if it's Eos, then skip `code` and set the sids of `st` empty               
@@ -477,11 +487,12 @@ checkWithKey (p0@(k0,v0):ps) k v =
 runSvcodePExp' :: SFun -> Int -> Int -> Either String String
 runSvcodePExp' (SFun [] st code _) count bs = 
   do let (sup,d) = geneSupDag code 0
+         lv = geneLevels d sup 
          retSids = zip (tree2Sids st) [0..]
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids  
      (_,_,ctx) <- rSvcodeP (sInit code d' sup) [] 0 
 
-     (as, ctxs) <- roundN count (round1 (mapM (sInstrInterp bs) code) 0 retSids) [ctx]
+     (as, ctxs) <- roundN count (round1 (twoPhaSche code bs lv) 0 retSids) [ctx]
                      $ [map (\_ -> []) retSids]
      let str = map (\(a,c,i) -> "Round "++ show i ++"\nOutput:" ++ show a ++ "\n" 
                       ++ showCtx c ++ "\n") 
@@ -501,7 +512,7 @@ roundN :: Int -> (Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx) ) ->
             [Svctx] -> [[[AVal]]] -> Either String ([[[AVal]]], [Svctx])
 roundN 0 f ctxs as = Right (as,ctxs) 
 roundN c f ctxs as = 
-  if all (\(_,(buf,_, _,p)) -> buf == Eos) (head ctxs)
+  if all (\(_,(buf,_, _,p)) -> buf == Eos) (head ctxs) -- only need to check retSids
     then return (as,ctxs)
     else
       do (as',ctx') <- f (head ctxs) (head as)
@@ -511,7 +522,7 @@ roundN c f ctxs as =
          else roundN (c-1) f (ctx':ctxs) (as':as) 
      
 
-round1 :: SvcodeP [Bool] -> SId -> [(SId,Int)] -> Svctx -> [[AVal]] 
+round1 :: SvcodeP () -> SId -> [(SId,Int)] -> Svctx -> [[AVal]] 
               -> Either String ([[AVal]], Svctx) 
 round1 m ctrl st ctx as0 = 
   do (_,_, ctx') <- rSvcodeP m ctx ctrl
@@ -636,7 +647,7 @@ addEmptyStreams chs i =
 
 
 
-------- generate the Levels  -----------
+------- functions for generating Levels  -----------
 
 geneLevels :: Dag -> Sup -> Levels
 geneLevels dag sup = 
