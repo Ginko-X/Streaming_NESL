@@ -3,12 +3,13 @@
     + Modified the scheduling strategy from _looping scheduling_ (mentioned in [#19](https://github.com/Ginko-X/Streaming_NESL/issues/19)) to some "fully-filled" looping scheduling, to maintain the correctness of cost model        
         + a buffer is not allowed to be read by its clients before it is full, unless it is the last chunk of the stream
         + when deadlock happens, stealing will be taken firstly to try to break it
-        + will be modified further to the two-phase scheduling discussed in [#19](https://github.com/Ginko-X/Streaming_NESL/issues/19)
+        + will be modified further to the two-phase scheduling discussed in the 2nd comment of [#19](https://github.com/Ginko-X/Streaming_NESL/issues/19)
         + [some notes at the 8th comment of #18](https://github.com/Ginko-X/Streaming_NESL/issues/18)
     + implemented the two-phase scheduling mentioned in the 3rd small bullet above, [`SvcodeSInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeSInterp.hs)
-        + not work for `WithCtrl`, in process
+        + done, but slightly different from the disscusion in 2nd comment of #19 (will have some notes to explain this)
+        + added command `:m <T/F>` to specify MIMD/SIMD(default) model in interactive interpreter
     + Bugfix of the cost model
-        + in process, unstable
+        + done but slightly different from #19 (will add some notes to explain this)
 
     
 + Week 28 (10 Jul ~ 16 Jul)
