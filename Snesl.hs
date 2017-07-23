@@ -43,14 +43,16 @@ import Numeric (showGFloat)
    :bs <Int>      Set buffer size, i.e., the maximum number of elements 
                   a buffer can hold
 
+   :m <T/F>       F:SIMD(default),T:MIMD, only works for streaming interpreter
+
    :q             Exit
 -}
 
 
-type InterEnv = (SEnv, TyEnv, VEnv, FEnv, Int)
+type InterEnv = (SEnv, TyEnv, VEnv, FEnv, Int,Bool)
 
 ie0 :: InterEnv
-ie0 = (se0,tyEnv0, compEnv0,[], 10)
+ie0 = (se0,tyEnv0, compEnv0,[], 10, False)
 
 
 main :: IO ()
@@ -84,7 +86,7 @@ runTop b (TDef def@(FDef fname _ _ _)) env =
       Right env' -> (putStrLn $ "Defined function: " ++ fname) >> return env'
       Left err -> putStrLn err >> return env
 
-runTop b (TExp e) env@(_,_,_,_,bufSize) = 
+runTop b (TExp e) env@(_,_,_,_,bufSize,_) = 
     case runExp b e env of 
       Left err -> putStrLn err >> return env             
       Right (v,t,(w,s),(w',s')) ->
@@ -106,34 +108,39 @@ runTop b (TFile file) env =
            Left err -> putStrLn err >> return env
 
 
-runTop _ (TDag e fname) env@(_,_,v0,_,_) = 
+runTop _ (TDag e fname) env@(_,_,v0,_,_,_) = 
     case runCompileExp e v0  of
          Right svcode -> geneDagFile svcode fname >> return env 
          Left err -> putStrLn err >> return env 
 
 
-runTop _ (TRr e count) env@(_,_,v0,_,bs) = 
+runTop _ (TRr e count) env@(_,_,v0,_,bs,_) = 
     case (do code <- runCompileExp e v0; runSvcodePExp' code count bs) of
          Right ctx -> putStr ctx >> return env 
          Left err -> putStrLn err >> return env 
 
 
-runTop _ (TCode e) env@(_,_,v0,_,_) = 
+runTop _ (TCode e) env@(_,_,v0,_,_,_) = 
     case runCompileExp e v0 of
          Right code -> putStr (show code) >> return env 
          Left err -> putStrLn err >> return env 
 
-runTop _ (TBs bs) env@(e0,t0,v0,f0, _) = 
+runTop _ (TBs bs) env@(e0,t0,v0,f0,_,mflag) = 
     do putStr $ "Buffer size: " ++ show bs ++ "\n"
-       return (e0,t0,v0,f0,bs)
+       return (e0,t0,v0,f0,bs,mflag)
+
+runTop _ (TMflag f) env@(e0,t0,v0,f0,bs,_) = 
+    do if f then putStr $ "set MIMD model" ++ "\n"
+         else putStr $ "set SIMD model" ++ "\n"
+       return (e0,t0,v0,f0,bs,f)
 
 
 runExp :: Bool -> Exp -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
-runExp b e env@(e0,t0,v0,f0,bs) = 
+runExp b e env@(e0,t0,v0,f0,bs,mflag) = 
     do sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0        
        svcode <- runCompileExp e v0  
-       (svcodeRes,(w',s')) <- if b then runSvcodePExp svcode bs else runSvcodeExp svcode f0
+       (svcodeRes,(w',s')) <- if b then runSvcodePExp svcode bs mflag else runSvcodeExp svcode f0
        --(svcodeRes,(w',s')) <- runSvcodeExp svcode f0
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes' 
@@ -143,11 +150,11 @@ runExp b e env@(e0,t0,v0,f0,bs) =
 
   
 runDef :: Bool -> Def -> InterEnv -> Either String InterEnv
-runDef b def env@(e0,t0,v0,f0,bs) = 
+runDef b def env@(e0,t0,v0,f0,bs,mflag) = 
    do funcTyEnv <- runTypingDefs [def] t0
       sneslEnv <- runSneslInterpDefs [def] e0 
       (ve,fe) <- (if b then runSCompileDefs else runCompileDefs) [def] (v0,f0) 
-      return (sneslEnv,funcTyEnv,ve,fe,bs)
+      return (sneslEnv,funcTyEnv,ve,fe,bs,mflag)
 
 
 runFile :: Bool -> String -> InterEnv -> Either String InterEnv
@@ -158,13 +165,13 @@ runFile b str env =
 
 -- old API, for interpreting an independent expression
 --testString :: String -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)) 
-testString str env@(e0,t0,v0,f0,bs) = 
+testString str env@(e0,t0,v0,f0,bs,mflag) = 
     do e <- runParseExp str
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0
        --(svcodeRes, (w',s')) <- runSvcodeExp svcode f0  -- eager interp
-       (svcodeRes, (w',s')) <- runSvcodePExp svcode bs  -- streaming interp       
+       (svcodeRes, (w',s')) <- runSvcodePExp svcode bs mflag -- streaming interp       
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes'  
          then return (sneslRes, sneslTy,(w,s),(w',s')) 

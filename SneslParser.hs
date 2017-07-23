@@ -36,6 +36,7 @@ data Top = TExp Exp
          | TRr Exp Int
          | TCode Exp  
          | TBs Int  
+         | TMflag Bool 
 
 
 parseTop :: Parser Top
@@ -69,7 +70,13 @@ parseTop =  do d <- parseDef
             do try (symbol ":bs ") 
                bs <- many1 digit
                return $ TBs $ read bs                    
-
+            <|>
+            do try (symbol ":m ") 
+               f <- many1 anyChar
+               case f of 
+                 "T" -> return $ TMflag True
+                 "F" -> return $ TMflag False
+                 _ -> fail "please choose T/F " 
 
 -- zero or more spaces
 whitespace :: Parser ()
