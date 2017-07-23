@@ -106,8 +106,11 @@ stealing (s:ss) = stealing ss >>= (\ss' -> return (s:ss'))
 twoPhaSche :: [SInstr] -> Int -> Levels -> SvcodeP ()
 twoPhaSche ss bufSize [] = return ()
 twoPhaSche ss bufSize (l:ls) = 
-  do defs <- mapM (getInstr ss) l  -- pick out all the runnable instrs
+  do -- (_,s0) <- getCost
+     defs <- mapM (getInstr ss) l  -- pick out all the runnable instrs
      bs0 <- mapM (sInstrInterp bufSize) defs  -- run them
+     -- (w1,_) <- getCost
+     -- setCost (w1,s0+1)
      -- check if it's necessary to run the rest levels
      if all (\b -> not b) bs0  
        then return ()    
@@ -140,7 +143,7 @@ constrSv (SStr t1 t2) as =
 getInstr :: [SInstr] -> SId -> SvcodeP SInstr
 getInstr ss sid = 
   case lookupSInstr ss sid of 
-    Nothing -> fail "undefined sid"
+    Nothing -> fail "getInstr: undefined sid"
     Just def -> return def  
 
 
@@ -199,6 +202,12 @@ getCtx = SvcodeP $ \ c _ -> Right (c,(0,0),c)
 localCtrl :: SId -> SvcodeP a -> SvcodeP a 
 localCtrl ctrl m = SvcodeP $ \ ctx _  -> rSvcodeP m ctx ctrl
 
+--getCost :: SvcodeP (Int,Int)
+--getCost = SvcodeP $ \ c cost -> Right (cost, (0,0), c)
+
+--setCost :: (Int,Int) -> SvcodeP ()
+--setCost cost = SvcodeP $ \ c _ -> Right ((), cost, c)
+
 
 lookupSid :: SId -> SvcodeP SState
 lookupSid s = SvcodeP $ \c ctrl -> 
@@ -233,10 +242,12 @@ sInstrInit :: SInstr -> Dag -> Sup -> SvcodeP ()
 sInstrInit (SDef sid e) d sup = 
   do let cls = d !! sid 
          suppliers = sup !! sid 
-     p <- sExpProcInit e 
-     addCtx sid (Filling [], suppliers, map (\ cl -> (cl,0)) cls, p)  
+     p <- sExpProcInit e
+     case e of 
+       EmptyCtrl -> addCtx sid (Eos, suppliers, map (\ cl -> (cl,0)) cls, p)
+       _ -> addCtx sid (Filling [], suppliers, map (\ cl -> (cl,0)) cls, p) 
 
--- !! need fix
+
 sInstrInit (WithCtrl ctrl code _) d sup = 
   --do (buf, consu, bs, p) <- lookupSid ctrl
   --   updateCtx ctrl (buf,consu,((-2,0),0):bs,p) 
@@ -402,7 +413,7 @@ sInstrInterp bufSize def@(SDef sid i) =
                                sInstrInterp bufSize def -- loop
 
 
--- !! need fix
+{-- 
 -- check the first output of the stream `ctrl`,
 -- if it's some AVal, then execute `code`
 -- if it's Eos, then skip `code` and set the sids of `st` empty               
@@ -431,6 +442,7 @@ sInstrInterp bufSize (WithCtrl ctrl code st) =
                 return $ all (\x -> x) bs
 
 
+-}
 
 doneStream :: STree -> SvcodeP ()
 doneStream (IStr s) = 
@@ -652,9 +664,13 @@ addEmptyStreams chs i =
 geneLevels :: Dag -> Sup -> Levels
 geneLevels dag sup = 
   let maxLev = length dag + 1 
-      levelInit = 0: (map (\_ -> maxLev) $ tail dag)
-      dag' = map (\clients -> fst $ unzip clients) dag 
-    in genelevRecur dag' sup levelInit maxLev [[0]] [0]
+      -- find the roots, not just Ctrl, but also empty streams
+      node0 = fst $ unzip $ filter (\(n,s) -> null s) $ zip [0..] sup 
+      
+      levelInit = map (\_ -> maxLev) dag
+      levelInit0 = foldl (\l n -> updateList l n 0) levelInit node0  
+      dag' = map (\clients -> fst $ unzip clients) dag -- remove the labels of client
+    in genelevRecur dag' sup levelInit0 maxLev [[0]] [0]
 
 
 genelevRecur :: [[SId]] -> Sup -> [Int] -> Int -> Levels ->[SId] -> Levels
