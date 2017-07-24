@@ -36,7 +36,7 @@ type Levels = [[SId]]
 
  -- blocking list
  -- (s1, Just s2): s1 is blocking at reading from s2
- -- (s1, Nothing): si is runnable
+ -- (s1, Nothing): s1 is runnable
 type BList = [(SId, Maybe SId)] 
 
 

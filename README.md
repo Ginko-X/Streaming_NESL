@@ -5,11 +5,11 @@
         + when deadlock happens, stealing will be taken firstly to try to break it
         + will be modified further to the two-phase scheduling discussed in the 2nd comment of [#19](https://github.com/Ginko-X/Streaming_NESL/issues/19)
         + [some notes at the 8th comment of #18](https://github.com/Ginko-X/Streaming_NESL/issues/18)
-    + implemented the two-phase scheduling mentioned in the 3rd small bullet above, [`SvcodeSInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeSInterp.hs)
-        + done, but slightly different from the disscusion in 2nd comment of #19 (will have some notes to explain this)
+    + implemented the two-phase scheduling mentioned in the 3rd small bullet above, a new module [`SvcodeSInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeSInterp.hs)
+        + done, [some notes at the 5th comment of #19](https://github.com/Ginko-X/Streaming_NESL/issues/19)
         + added command `:m <T/F>` to specify MIMD/SIMD(default) model in interactive interpreter
     + Bugfix of the cost model
-        + done but slightly different from #19 (will add some notes to explain this)
+        + done, but slightly different from the requirements of #19, [explanation at 5th comment of #19](https://github.com/Ginko-X/Streaming_NESL/issues/19)
 
     
 + Week 28 (10 Jul ~ 16 Jul)
