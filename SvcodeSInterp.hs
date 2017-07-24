@@ -34,22 +34,28 @@ type Dag = [[(SId,Int)]] -- client list
 type Levels = [[SId]] 
 
 
+ -- blocking list
+ -- (s1, Just s2): s1 is blocking at reading from s2
+ -- (s1, Nothing): si is runnable
+type BList = [(SId, Maybe SId)] 
 
-newtype SvcodeP a = SvcodeP {rSvcodeP :: Svctx -> SId -> (Int,Int) ->
-                                Either String (a,(Int,Int),Svctx)}
+
+
+newtype SvcodeP a = SvcodeP {rSvcodeP :: Svctx -> SId -> (Int,Int) -> BList ->
+                                Either String (a,(Int,Int),Svctx, BList)}
                                   
 instance  Monad SvcodeP where
-    return a = SvcodeP $ \ctx _ cost -> Right (a,cost,ctx) 
+    return a = SvcodeP $ \ctx _ cost bl -> Right (a,cost,ctx,bl) 
 
-    m >>= f = SvcodeP $ \ctx ctrl cost -> 
-        case rSvcodeP m ctx ctrl cost of 
-            Right (a,cost',ctx') -> 
-                case rSvcodeP (f a) ctx' ctrl cost' of
-                    Right (b,cost'',ctx'') -> Right (b,cost'',ctx'')
+    m >>= f = SvcodeP $ \ctx ctrl cost bl -> 
+        case rSvcodeP m ctx ctrl cost bl of 
+            Right (a,cost',ctx',bl') -> 
+                case rSvcodeP (f a) ctx' ctrl cost' bl' of
+                    Right (b,cost'',ctx'',bl'') -> Right (b,cost'',ctx'',bl'')
                     Left err' -> Left err'
             Left err -> Left err 
 
-    fail err = SvcodeP $ \ _ _ _ -> Left $ "SVCODE runtime error: " ++ err
+    fail err = SvcodeP $ \ _ _ _ _ -> Left $ "SVCODE runtime error: " ++ err
 
 
 instance Functor SvcodeP where
@@ -66,30 +72,35 @@ runSvcodePExp (SFun [] st code _) bufSize mflag =
   do let (sup,d) = geneSupDag code 0
          lv = geneLevels d sup 
          retSids = zip (tree2Sids st) [0..]
+         bl0 = blInit sup 
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids 
-     (_,_, ctx) <- rSvcodeP (sInit code d' sup) [] 0 (0,0)
-     (as,(w,s), _) <- rrobin (twoPhaSche code bufSize lv mflag) ctx 0 retSids 
-                         (map (\_ -> []) retSids) (0,0)
+     (_,_, ctx, _) <- rSvcodeP (sInit code d' sup) [] 0 (0,0) bl0
+     (as,(w,s), _,_) <- rrobin (twoPhaSche code bufSize lv mflag) ctx 0 retSids 
+                         (map (\_ -> []) retSids) (0,0) bl0
      return (fst $ constrSv st as,(w,s))
 
 
     
 rrobin :: SvcodeP () -> Svctx -> SId -> [(SId,Int)] -> [[AVal]] -> (Int,Int)
-            -> Either String ([[AVal]],(Int,Int),Svctx)           
-rrobin m ctx ctrl retSids as0 cost = 
-  do (_,cost', ctx') <- rSvcodeP m ctx ctrl cost
+       -> BList -> Either String ([[AVal]],(Int,Int),Svctx, BList)           
+rrobin m ctx ctrl retSids as0 cost bl = 
+  do (_,cost', ctx', bl') <- rSvcodeP m ctx ctrl cost bl
      (as,ctx'') <- foldM (\(a0,c0) s ->    -- collect the result
                              do (a,c) <- lookupAval c0 s
                                 return (a:a0,c)) 
                          ([],ctx') retSids 
      let as' = zipWith (++) as0 (reverse as) 
-     (bs,_,_) <- rSvcodeP (mapM isEos $ fst $ unzip retSids) ctx'' ctrl (0,0)
-     if all (\x -> x) bs 
-       then return (as', cost', ctx'') 
+     (res,_,_,_) <- rSvcodeP (mapM (\(s,_) -> isEos s) retSids) ctx'' ctrl (0,0) bl' 
+     if all (\x -> x) res 
+       then return (as', cost', ctx'',bl') 
        else if equalCtx ctx ctx'' 
             then do unlockCtx <- stealing ctx''  -- try stealing
-                    rrobin m unlockCtx ctrl retSids as' cost'
-            else rrobin m ctx'' ctrl retSids as' cost'
+                    rrobin m unlockCtx ctrl retSids as' cost' bl'
+            else rrobin m ctx'' ctrl retSids as' cost' bl'
+
+blInit :: Sup -> BList
+blInit sups = map (\(s,sup) -> if null sup then (s,Nothing) else (s, Just $ head sup)) 
+              $ zip [0..] sups 
 
 
 -- pick the first non-empty stream in Filling mode to drain
@@ -105,16 +116,25 @@ stealing (s:ss) = stealing ss >>= (\ss' -> return (s:ss'))
 -- two-phase scheduling
 twoPhaSche :: [SInstr] -> Int -> Levels -> Bool -> SvcodeP ()
 twoPhaSche ss _ [] _ = return ()
-twoPhaSche ss bufSize (l:ls) mflag = 
-  do (_,s0) <- getCost
-     defs <- mapM (getInstr ss) l  -- pick out all the runnable instrs
-     bs0 <- mapM (sInstrInterp bufSize) defs  -- run them
+twoPhaSche ss bufSize (level:ls) mflag = 
+  do runnable <- filterM (\n -> isRunnable n) level    
+     defs <- mapM (getInstr ss) runnable  -- pick out all the runnable instrs
+     
+     (_,s0) <- getCost
+     bls <- mapM (sInstrInterp bufSize) defs  -- and run them     
      (w1,s1) <- getCost
-     if mflag -- MIMD: fix the step cost
+
+     mapM_ setBlock $ zip runnable bls 
+
+     if mflag -- MIMD flag: fix the step cost
       then (if s1 > s0 then setCost (w1,s0+1) else setCost (w1,s1)) 
       else return ()
+
      -- check if it's necessary to run the rest levels
-     if all (\b -> not b) bs0  
+     if all (\b -> case b of  
+                     Just _ -> True
+                     _ -> False) 
+             bls  
        then return ()    
        else twoPhaSche ss bufSize ls mflag 
 
@@ -192,37 +212,62 @@ lookupAval ctx (s,i) =
 
 
 addCtx :: SId -> SState -> SvcodeP ()
-addCtx s v = SvcodeP $ \ c _ cost -> Right ((), cost ,c++[(s,v)])
+addCtx s v = SvcodeP $ \ c _ cost bl -> Right ((), cost ,c++[(s,v)],bl)
 
 updateCtx :: SId -> SState -> SvcodeP ()
-updateCtx s v = SvcodeP $ \ c _ cost -> Right ((),cost,updateWithKey c s v) 
+updateCtx s v = SvcodeP $ \ c _ cost bl -> Right ((),cost,updateWithKey c s v,bl) 
 
 getCtx :: SvcodeP Svctx
-getCtx = SvcodeP $ \ c _ cost -> Right (c,cost,c)
+getCtx = SvcodeP $ \ c _ cost bl -> Right (c,cost,c,bl)
 
 localCtrl :: SId -> SvcodeP a -> SvcodeP a 
-localCtrl ctrl m = SvcodeP $ \ ctx _  cost -> rSvcodeP m ctx ctrl cost
+localCtrl ctrl m = SvcodeP $ \ ctx _  cost bl -> rSvcodeP m ctx ctrl cost bl 
 
 getCost :: SvcodeP (Int,Int)
-getCost = SvcodeP $ \ c _ cost -> Right (cost, cost, c)
+getCost = SvcodeP $ \ c _ cost bl -> Right (cost, cost, c,bl)
 
 setCost :: (Int,Int) -> SvcodeP ()
-setCost cost = SvcodeP $ \ c _ _ -> Right ((), cost, c)
+setCost cost = SvcodeP $ \ c _ _ bl -> Right ((), cost, c,bl)
+
+
+isRunnable :: SId -> SvcodeP Bool
+isRunnable s = 
+  do b <- getBlock s
+     case b of 
+       Nothing -> return True
+       Just s' -> 
+         do b' <- getBlock s' 
+            case b' of 
+              Nothing -> return True
+              _ -> return False
+
+
+getBlock :: SId -> SvcodeP (Maybe SId)
+getBlock sid = SvcodeP $ \ c _ cost bl -> 
+    case lookup sid bl of 
+      Nothing -> Left $ "getBlock: undefined SId " ++ show sid
+      Just v -> Right (v, cost,c, bl)
+
+
+setBlock :: (SId, Maybe SId) -> SvcodeP ()
+setBlock (s,b) = SvcodeP $ \ c _ cost bl ->
+   Right ((), cost, c, updateWithKey bl s b)
+
 
 
 lookupSid :: SId -> SvcodeP SState
-lookupSid s = SvcodeP $ \c ctrl cost -> 
+lookupSid s = SvcodeP $ \c ctrl cost bl -> 
     case lookup s c of 
         Nothing -> Left $ "lookupSid: undefined SId " ++ show s  
-        Just st -> Right (st,cost,c)  
+        Just st -> Right (st,cost,c,bl)  
 
 
 costInc :: (Int, Int) -> SvcodeP ()
-costInc (w,s) = SvcodeP $ \ c _ (w0,s0) -> Right ((), (w0+w,s0+s), c)
+costInc (w,s) = SvcodeP $ \ c _ (w0,s0) bl -> Right ((), (w0+w,s0+s), c,bl)
 
 
 returnC :: (Int, Int) -> a -> SvcodeP a 
-returnC (w,s) a = SvcodeP $ \ ctx _ (w0,s0) -> Right (a,(w0+w,s0+s),ctx)
+returnC (w,s) a = SvcodeP $ \ ctx _ (w0,s0) bl -> Right (a,(w0+w,s0+s),ctx,bl)
 
 
 ------ instruction init
@@ -230,7 +275,7 @@ returnC (w,s) a = SvcodeP $ \ ctx _ (w0,s0) -> Right (a,(w0+w,s0+s),ctx)
 sInit :: [SInstr] -> Dag -> Sup -> SvcodeP ()
 sInit code d sup = 
   do mapM_ (\i -> sInstrInit i d sup) code
-     mapM_ (\sid -> do ctx <- getCtx   -- add SState for empty streams/SIds        
+     mapM_ (\sid -> do ctx <- getCtx   -- add SState for empty streams/SIds
                        case lookup sid ctx of  
                          Nothing -> 
                            let cls =  map (\ cl -> (cl,0)) (d !! sid)
@@ -334,9 +379,9 @@ resetCur bs = map (\(sid, _) -> (sid, 0)) bs
 
 -- return True: runnable
 -- return False: not runnable due to read blocking 
-sInstrInterp :: Int -> SInstr -> SvcodeP Bool
-sInstrInterp bufSize def@(SDef sid i) = 
-  do (buf, sups, bs, p) <- lookupSid sid 
+sInstrInterp :: Int -> SInstr -> SvcodeP (Maybe SId)
+sInstrInterp bufSize def@(SDef sid _) =
+  do (buf, sups, bs, p) <- lookupSid sid
      case p of 
        -- 1. Done 
        Done () -> 
@@ -344,16 +389,16 @@ sInstrInterp bufSize def@(SDef sid i) =
            -- 1.1 the last chunk, so must use stealing 
            Filling as -> let buf' = if null as then Eos else Draining as 
                          in do updateCtx sid (buf', sups, bs, Done()) 
-                               return True
+                               return Nothing
            
            -- 1.2 just wait all clients finish reading its buffer
            Draining as -> if allEnd bs (length as)
                           then do updateCtx sid (Eos, sups, resetCur bs, Done ()) 
-                                  returnC (length as,1) True  -- add cost 
-                          else return True
+                                  returnC (length as,1) Nothing -- add cost 
+                          else return Nothing
 
            -- 1.3 do nothing
-           Eos -> return True
+           Eos -> return Nothing
 
        -- 2. Pout
        Pout a p' ->  
@@ -373,7 +418,7 @@ sInstrInterp bufSize def@(SDef sid i) =
                then do updateCtx sid (Filling [], sups, resetCur bs, Pout a p')
                        costInc (bufSize, 1)  -- cost work `bufSize`, step 1
                        sInstrInterp bufSize def -- start filling
-               else return True -- blocking 
+               else return Nothing -- write blocking
 
            -- 2.3 can not happen
            Eos -> fail $ "Premature EOS "
@@ -397,20 +442,19 @@ sInstrInterp bufSize def@(SDef sid i) =
 
                       -- read unavailable, blocking
                       Filling _ -> case other of 
-                                     Filling _ -> return False
-                                     Draining _ -> return True                      
+                                     Filling _ -> return $ Just (sups!!i)
+                                     Draining _ -> return Nothing  
                       Draining asSup -> 
                         if cursor >= length asSup
                           then case other of 
-                                 Filling _ -> return False
-                                 Draining _ -> return True 
+                                 Filling _ -> return $ Just (sups!!i)
+                                 Draining _ -> return Nothing 
                           else -- read successfully
                             do let flagSup' = markRead flagSup (sid,i) cursor
                                updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
                                updateCtx sid (buf,sups,bs,p' (Just $ asSup !! cursor))
                                costInc (1,0)  -- cost work 1, step 0
                                sInstrInterp bufSize def -- loop
-
 
 
 isEos :: SId -> SvcodeP Bool
@@ -447,15 +491,16 @@ checkWithKey (p0@(k0,v0):ps) k v =
 
 
 
-------- run the program and print out the Svctx of each round  -------------
+{------- run the program and print out the Svctx of each round  -------------
 -- 
 runSvcodePExp' :: SFun -> Int -> Int -> Either String String
 runSvcodePExp' (SFun [] st code _) count bs = 
   do let (sup,d) = geneSupDag code 0
          lv = geneLevels d sup 
+         bl0 = blInit sup 
          retSids = zip (tree2Sids st) [0..]
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids  
-     (_,_,ctx) <- rSvcodeP (sInit code d' sup) [] 0 (0,0)
+     (_,_,ctx,_) <- rSvcodeP (sInit code d' sup) [] 0 (0,0) bl0
 
      (as, ctxs) <- roundN count (round1 (twoPhaSche code bs lv False) 0 retSids) [ctx]
                      $ [map (\_ -> []) retSids]
