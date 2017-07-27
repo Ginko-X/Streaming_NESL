@@ -1,10 +1,11 @@
 
--- unite-and-conquer scan
+-- unite-and-conquer (exclusive) scan
 -- only for a sequence with length of power of 2
-function uc_scan2(v:{int}) : {int} =
-   let l = length(v);
-       evens = concat({{x | odd(i)} : i in &l, x in v} );
-       odds = concat({{x | not(odd(i))} : i in &l, x in v});
-       s = {x+y : x in odds, y in evens}
-    in concat({{s,s+x} : s in uc_scan(ps), x in odds})
+function uc_scan2(v:{int}) : {int} =  
+   let is = scanExPlus({1 : x in v})
+    in if reducePlus(is) == 0 then {0} else 
+         let odds = concat({{x|i%2==0} :  i in is, x in v});
+             evens = concat({{x|not(i%2 == 0)} : i in is, x in v});
+             ps = {x+y : x in odds, y in evens}
+          in concat({{s,s+x} : s in uc_scan2(ps), x in odds})
 	   

@@ -35,6 +35,7 @@ data Top = TExp Exp
          | TDag Exp String
          | TRr Exp Int
          | TCode Exp  
+         | TFCode Def
          | TBs Int  
          | TMflag Bool 
 
@@ -66,6 +67,10 @@ parseTop =  do d <- parseDef
             do (try (symbol ":code ") <|> try (symbol ":c "))
                e <- parseExp
                return $ TCode e 
+            <|>
+            do (try (symbol ":fcode ") <|> try (symbol ":fc "))
+               def <- parseDef
+               return $ TFCode def 
             <|>
             do try (symbol ":bs ") 
                bs <- many1 digit

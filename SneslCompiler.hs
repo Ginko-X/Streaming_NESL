@@ -22,7 +22,7 @@ runCompileDef (FDef fname args rtp e) (ve,fe) =
     let (argSts, s0) = args2tree args 1 
         (st, s1) = type2tree rtp s0 
         sts = snd $ unzip argSts
-        newVe = (fname, FDStr sts st):ve
+        newVe = (fname, FDStr sts st):ve  
         sids = concat $ map tree2Sids sts  
     in  case rSneslTrans (translate e) s1 (argSts++newVe) of 
             Right (st',svs,count) -> Right $ (newVe,(fname,SFun sids st' svs count):fe) 
@@ -40,24 +40,24 @@ runCompileExp e ve =
 
 --- Streaming Compiler APIs -----
 
-runSCompileDefs :: [Def] -> (VEnv,FEnv) -> Either String (VEnv,FEnv)
-runSCompileDefs [] e = return e 
-runSCompileDefs (d:ds) (ve,fe) = 
-    case rSneslTrans (runSCompileDef d) 1 ve of 
-        Right (ve', _, _) -> 
-            case runSCompileDefs ds ((ve'++ve),fe) of 
-              Right e -> Right e 
-              Left err -> Left $ "SCompiling error: " ++ err
-        Left err' -> Left $ "Compiling error: " ++ err'
+--runSCompileDefs :: [Def] -> (VEnv,FEnv) -> Either String (VEnv,FEnv)
+--runSCompileDefs [] e = return e 
+--runSCompileDefs (d:ds) (ve,fe) = 
+--    case rSneslTrans (runSCompileDef d) 1 ve of 
+--        Right (ve', _, _) -> 
+--            case runSCompileDefs ds ((ve'++ve),fe) of 
+--              Right e -> Right e 
+--              Left err -> Left $ "SCompiling error: " ++ err
+--        Left err' -> Left $ "Compiling error: " ++ err'
 
 
-runSCompileDef :: Def -> SneslTrans VEnv
-runSCompileDef (FDef fname args _ e) = 
-    do let (argSts, _) = args2tree args 1
-           (ids, _) = unzip argSts 
-           f ids = localVEnv argSts $ translate e 
-           r1 = [(fname, FStr f)]
-       return r1 
+--runSCompileDef :: Def -> SneslTrans VEnv
+--runSCompileDef (FDef fname args _ e) = 
+--    do let (argSts, _) = args2tree args 1
+--           (ids, _) = unzip argSts 
+--           f ids = localVEnv argSts $ translate e 
+--           r1 = [(fname, FStr f)]  -- FStr 
+--       return r1 
 
 
 

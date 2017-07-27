@@ -55,8 +55,8 @@ instance Applicative SvcodeP where
 
 
 
-runSvcodePExp :: SFun -> Int -> Either String (SvVal, (Int,Int))
-runSvcodePExp (SFun [] st code _) bs = 
+runSvcodePExp :: SFun -> Int -> Bool -> Either String (SvVal, (Int,Int))
+runSvcodePExp (SFun [] st code _) bs _ = 
   do let (sup,d) = geneSupDag code 0
          retSids = zip (tree2Sids st) [0..]
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids 
@@ -198,8 +198,8 @@ sInstrInit (SDef sid e) d sup =
      addCtx sid (Filling [], suppliers, map (\ cl -> (cl,0)) cls, p)  
 
 sInstrInit (WithCtrl ctrl code _) d sup = 
-  do (buf, consu, bs, p) <- lookupSid ctrl
-     updateCtx ctrl (buf,consu,((-2,0),0):bs,p) 
+  do -- (buf, consu, bs, p) <- lookupSid ctrl
+     -- updateCtx ctrl (buf,consu,((-2,0),0):bs,p) 
      mapM_ (\i -> sInstrInit i d sup) code 
 
 
@@ -361,28 +361,30 @@ sInstrInterp bufSize def@(SDef sid i) =
 -- if it's some AVal, then execute `code`
 -- if it's Eos, then skip `code` and set the sids of `st` empty               
 sInstrInterp bufSize (WithCtrl ctrl code st) = 
-  do (buf,c, curs,p) <- lookupSid ctrl
-     case lookup (-2,0) curs of
-       Nothing -> -- the 1st value has already been read
-          do bs <- mapM isEos (tree2Sids st)
-             if foldl (&&) True bs  
-             then return True
-             else do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
-                     return $ all (\x -> x) bs              
-       Just 0 ->  
-         case buf of 
-           Eos ->  -- `ctrl` is empty
-             do doneStream st
-                updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
-                costInc (1,1)  -- or (1,0) ?
-                return True
-           Filling [] ->  -- can't decide whether `ctrl` is emptbs y or not, keep waiting
-             do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
-                return $ all (\x -> x) bs
-           _ ->  -- `ctrl` is nonempty
-             do updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
-                bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
-                return $ all (\x -> x) bs
+  do  bs <- mapM (sInstrInterp bufSize) code 
+      return $ all (\x -> x) bs
+  --do (buf,c, curs,p) <- lookupSid ctrl
+  --   case lookup (-2,0) curs of
+  --     Nothing -> -- the 1st value has already been read
+  --        do bs <- mapM isEos (tree2Sids st)
+  --           if foldl (&&) True bs  
+  --           then return True
+  --           else do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
+  --                   return $ all (\x -> x) bs              
+  --     Just 0 ->  
+  --       case buf of 
+  --         Eos ->  -- `ctrl` is empty
+  --           do doneStream st
+  --              updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
+  --              costInc (1,1)  -- or (1,0) ?
+  --              return True
+  --         Filling [] ->  -- can't decide whether `ctrl` is emptbs y or not, keep waiting
+  --           do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
+  --              return $ all (\x -> x) bs
+  --         _ ->  -- `ctrl` is nonempty
+  --           do updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
+  --              bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
+  --              return $ all (\x -> x) bs
 
 
 

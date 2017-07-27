@@ -14,8 +14,8 @@ import SvcodeInterp
 -- 2. arbitrary buffer size, full-filled loop-scheduling with stealing
 -- 3. arbitrary buffer size, two-phase scheduler
 --import SvcodeProcInterp 
---import SvcodeProcInterpLong 
-import SvcodeSInterp  
+import SvcodeProcInterpLong 
+--import SvcodeSInterp  
 
 
 import System.Environment
@@ -25,10 +25,10 @@ import Data.Foldable (foldlM)
 import Numeric (showGFloat)
 
 {- Usage: 
-   <expression>   Evaluate an expression (also include type-check, compiling
+   <exp>          Evaluate an expression (also include type-check, compiling
                     to SVCODE, and comparison of SNESL and SVCODE results)
 
-   <function>     Syntax: function f(x1:type1,...,xn:typen):type = expression
+   <func>         Syntax: function f(x1:type1,...,xn:typen):type = expression
 
    :l <file>      Load functions from a file
 
@@ -38,7 +38,9 @@ import Numeric (showGFloat)
                   and print out the first `int` rounds of Svctx (unless all
                   the Procs already shutdown before that round)
 
-   :c <exp>       Display the translated SVCODE program
+   :c <exp>       Display translated SVCODE program for the expression
+
+   :fc <func>     Display translated SVCODE program for the function
 
    :bs <Int>      Set buffer size, i.e., the maximum number of elements 
                   a buffer can hold
@@ -114,16 +116,26 @@ runTop _ (TDag e fname) env@(_,_,v0,_,_,_) =
          Left err -> putStrLn err >> return env 
 
 
---runTop _ (TRr e count) env@(_,_,v0,_,bs,_) = 
---    case (do code <- runCompileExp e v0; runSvcodePExp' code count bs) of
---         Right ctx -> putStr ctx >> return env 
---         Left err -> putStrLn err >> return env 
+runTop _ (TRr e count) env@(_,_,v0,_,bs,_) = 
+    case (do code <- runCompileExp e v0; runSvcodePExp' code count bs) of
+         Right ctx -> putStr ctx >> return env 
+         Left err -> putStrLn err >> return env 
 
 
 runTop _ (TCode e) env@(_,_,v0,_,_,_) = 
     case runCompileExp e v0 of
          Right code -> putStr (show code) >> return env 
          Left err -> putStrLn err >> return env 
+
+-- only show generated code, do not change env
+runTop _ (TFCode def) env@(_,_,v0,f0,_,_) = 
+    case runCompileDef def (v0,f0) of
+         Right (v1,f1) -> do 
+           do putStrLn $ show $ head v1
+              putStrLn $ show $ head f1 
+              return env 
+         Left err -> putStrLn err >> return env                   
+
 
 runTop _ (TBs bs) env@(e0,t0,v0,f0,_,mflag) = 
     do putStr $ "Buffer size: " ++ show bs ++ "\n"
@@ -153,7 +165,8 @@ runDef :: Bool -> Def -> InterEnv -> Either String InterEnv
 runDef b def env@(e0,t0,v0,f0,bs,mflag) = 
    do funcTyEnv <- runTypingDefs [def] t0
       sneslEnv <- runSneslInterpDefs [def] e0 
-      (ve,fe) <- (if b then runSCompileDefs else runCompileDefs) [def] (v0,f0) 
+      --(ve,fe) <- (if b then runSCompileDefs else runCompileDefs) [def] (v0,f0)       
+      (ve,fe) <- runCompileDefs [def] (v0,f0) 
       return (sneslEnv,funcTyEnv,ve,fe,bs,mflag)
 
 
@@ -193,10 +206,10 @@ geneExpSFun str =
      runCompileExp e compEnv0 
  
 
-testGeneLev prog = 
-  let code = geneExpCode prog -- "{x+y : x in &2, y in {10,20}}" 
-      (sup,dag) = geneSupDag code 0 
-  in geneLevels dag sup   
+--testGeneLev prog = 
+--  let code = geneExpCode prog -- "{x+y : x in &2, y in {10,20}}" 
+--      (sup,dag) = geneSupDag code 0 
+--  in geneLevels dag sup   
 
 
 {-
