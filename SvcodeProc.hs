@@ -60,7 +60,10 @@ rout :: AVal -> Proc ()
 rout a = Pout a (Done ())
 
 
-
+rinOut :: Proc ()
+rinOut = p
+  where p = rin 0 (\x -> rout x >> p)
+ 
 
 mapConst :: AVal -> Proc ()
 mapConst a = p
