@@ -80,7 +80,7 @@ instance Show SInstr where
 instance Show SFun where
   show (SFun args ret code count) = "\nParameters: " ++ show args ++ "\n" 
     ++ showseq "; \n" code ++ "\nReturn: " ++ show ret 
-    ++ "\nSid count: " ++ show count  
+    ++ "\nSid count: " ++ show count  ++ "\n"
                              
 
 -- svcode values
