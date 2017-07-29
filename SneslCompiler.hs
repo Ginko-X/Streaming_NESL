@@ -157,8 +157,8 @@ treeGene :: STree -> SneslTrans STree
 treeGene (IStr _) = do s <- emitEmpty; return (IStr s)
 treeGene (BStr _) = do s <- emitEmpty; return (BStr s)
 treeGene (SStr s _) = 
-    do f <- emitEmpty
-       s0 <- treeGene s       
+    do s0 <- treeGene s       
+       f <- emitEmpty
        return (SStr s0 f)
 treeGene (PStr t1 t2) = 
     do s1 <- treeGene t1
