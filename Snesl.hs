@@ -116,10 +116,10 @@ runTop _ (TDag e fname) env@(_,_,v0,_,_,_) =
          Left err -> putStrLn err >> return env 
 
 
-runTop _ (TRr e count) env@(_,_,v0,_,bs,_) = 
-    case (do code <- runCompileExp e v0; runSvcodePExp' code count bs) of
-         Right ctx -> putStr ctx >> return env 
-         Left err -> putStrLn err >> return env 
+--runTop _ (TRr e count) env@(_,_,v0,f0,bs,_) = 
+--    case (do code <- runCompileExp e v0; runSvcodePExp' code count bs f0) of
+--         Right ctx -> putStr ctx >> return env 
+--         Left err -> putStrLn err >> return env 
 
 
 runTop _ (TCode e) env@(_,_,v0,_,_,_) = 
@@ -152,7 +152,7 @@ runExp b e env@(e0,t0,v0,f0,bs,mflag) =
     do sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0        
        svcode <- runCompileExp e v0  
-       (svcodeRes,(w',s')) <- if b then runSvcodePExp svcode bs mflag else runSvcodeExp svcode f0
+       (svcodeRes,(w',s')) <- if b then runSvcodePExp svcode bs mflag f0 else runSvcodeExp svcode f0
        --(svcodeRes,(w',s')) <- runSvcodeExp svcode f0
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes' 
@@ -184,12 +184,13 @@ testString str env@(e0,t0,v0,f0,bs,mflag) =
        (sneslRes,w,s) <- runSneslExp e e0 
        svcode <- runCompileExp e v0
        --(svcodeRes, (w',s')) <- runSvcodeExp svcode f0  -- eager interp
-       (svcodeRes, (w',s')) <- runSvcodePExp svcode bs mflag -- streaming interp       
+       (svcodeRes, (w',s')) <- runSvcodePExp svcode bs mflag f0 -- streaming interp       
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes'  
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
          else fail $ "SNESL and SVCODE results are different." ++ show sneslRes 
                       ++ " " ++ show svcodeRes'
+
 
 
 geneExpCode :: String -> [SInstr]
@@ -200,11 +201,18 @@ geneExpCode str =
                  Left _ -> []
     Left _ -> []
 
-geneExpSFun :: String -> Either String SFun
-geneExpSFun str = 
+
+geneExpSFun :: String -> VEnv -> Either String SFun
+geneExpSFun str ve = 
   do e <- runParseExp str 
-     runCompileExp e compEnv0 
+     runCompileExp e ve 
  
+
+geneDefSFun :: String -> Either String (VEnv,FEnv)
+geneDefSFun str = 
+  do func <- runParseDefs str 
+     runCompileDefs func (compEnv0,[])
+     
 
 --testGeneLev prog = 
 --  let code = geneExpCode prog -- "{x+y : x in &2, y in {10,20}}" 
