@@ -11,7 +11,7 @@ data SExp = Ctrl
            | Const AVal
            | MapConst SId AVal           
            | MapOne OP SId
-           | MapTwo OP SId SId --
+           | MapTwo OP SId SId
            | SegscanPlus SId SId 
            | ReducePlus SId SId
            | Pack SId SId
@@ -24,15 +24,15 @@ data SExp = Ctrl
            | SegConcat SId SId
            | USegCount SId SId
            | SegMerge SId SId 
-           | InterMergeS [SId]  --
-           | SegInterS [(SId,SId)] --
-           | PriSegInterS [(SId,SId)] -- 
+           | InterMergeS [SId]  
+           | SegInterS [(SId,SId)] 
+           | PriSegInterS [(SId,SId)] 
            | Check SId SId       
            deriving Show
          
 
 data SInstr = SDef SId SExp  -- deriving Show 
-            | WithCtrl SId [SInstr] STree
+            | WithCtrl SId [SId] [SInstr] STree
             | SCall FId [SId] [SId]
 
 data SFun = SFun [SId] STree [SInstr] SId -- deriving Show 
@@ -71,8 +71,9 @@ opAEnv0 = [(Uminus, (\[IVal a] -> IVal (-a), TInt)),
 
 instance Show SInstr where
   show (SDef sid i) = "S" ++ show sid ++ " := " ++ show i 
-  show (WithCtrl sid instrs st) = "WithCtrl S" ++ show sid ++ " :"  
-         ++ concat (map (("\n\t"++).show) instrs) ++ "\n\tReturn: " ++ show st 
+  show (WithCtrl sid ss instrs st) = "WithCtrl S" ++ show sid ++ " (import " 
+        ++ show ss ++ "):"   ++ concat (map (("\n\t"++).show) instrs) 
+        ++ "\n\tReturn: " ++ show st 
   show (SCall f s1 s2) = "SCall " ++ f ++  "\n\tParameters: " 
          ++ show s1 ++ "\n\tReturn: " ++ show s2
          
@@ -89,14 +90,6 @@ data SvVal = SIVal [Int]
            | SSVal SvVal [Bool]  -- Sequence
            | SPVal SvVal SvVal -- Pair
            deriving Eq
-
---data SAVal = SIVal [Int] 
---           | SBVal [Bool]
---           | SEmp 
-
---data SvVal = SAVal SAVal
---            | SSVal SvVal SAVal
---            | SPVal SvVal SvVal
 
 
 instance Show SvVal where
@@ -157,4 +150,36 @@ instance Functor SneslTrans where
 instance Applicative SneslTrans where
   pure = return
   tf <*> ta = tf >>= \f -> fmap f ta
+
+
+getSupExp :: SExp -> SId -> ([SId],String)
+getSupExp Ctrl _ = ([],"Ctrl")
+getSupExp EmptyCtrl _ = ([],"EmptyCtrl")
+getSupExp (Const a) c = ([c],"Const " ++ show a)
+
+getSupExp (MapConst s1 a) _ = ([s1],"MapConst " ++ show a)
+getSupExp (MapOne op s1) _ = ([s1],"MapOne " ++ show op)
+getSupExp (MapTwo op s1 s2) _ = ([s1,s2],"MapTwo " ++ show op)
+
+getSupExp (InterMergeS ss) _ = (ss,"InterMergeS")
+getSupExp (SegInterS ss) _ = (concat $ map (\(x,y) -> [x,y]) ss , "SegInterS")
+getSupExp (PriSegInterS ss) _ = (concat $ map (\(x,y) -> [x,y]) ss, "PriSegInterS") 
+
+getSupExp (Distr s1 s2) _ = ([s1,s2], "Distr")
+getSupExp (SegDistr s1 s2) _ = ([s1,s2],"SegDistr")
+getSupExp (SegFlagDistr s1 s2 s3) _ = ([s2,s1,s3],"SegFlagDistr")
+getSupExp (PrimSegFlagDistr s1 s2 s3) _ = ([s2,s1,s3],"PrimSegFlagDistr")
+
+getSupExp (ToFlags s1) _ = ([s1], "ToFlags")
+getSupExp (Usum s1) _ = ([s1],"Usum")
+getSupExp (B2u s1) _ = ([s1],"B2u")
+
+getSupExp (SegscanPlus s1 s2) _ = ([s2,s1],"SegscanPlus")
+getSupExp (ReducePlus s1 s2) _ = ([s2,s1],"ReducePlus")
+getSupExp (Pack s1 s2) _ = ([s2,s1],"Pack")
+getSupExp (UPack s1 s2) _ = ([s2,s1],"UPack")
+getSupExp (SegConcat s1 s2) _ = ([s2,s1],"SegConcat")
+getSupExp (USegCount s1 s2) _ = ([s2,s1],"USegCount")
+getSupExp (SegMerge s1 s2) _ = ([s2,s1],"SegMerge")  
+getSupExp (Check s1 s2) _ = ([s1,s2],"Check")
 

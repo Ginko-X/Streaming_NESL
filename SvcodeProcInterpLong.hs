@@ -9,8 +9,7 @@ import SneslCompiler (tree2Sids)
 import SneslInterp (wrapWork)
 
 import Control.Monad
-import Data.Set (fromList, toList)
-import Data.List (sort)
+
 
 type RSId = (Int,SId,SId)
 
@@ -250,21 +249,18 @@ sInstrInit (SDef sid e) r d sup =
      addCtx (sf,r,sid) (Filling [], suppliers, map (\ cl -> (cl,0)) cls, p)  
 
 
-sInstrInit (WithCtrl ctrl code st) r d sup =  
+sInstrInit (WithCtrl ctrl ss code st) r d sup =
+  --do sf <- getSF
+  --   localCtrl (sf,r,ctrl) $ mapM_ (\i -> sInstrInit i r d sup) code 
+ 
   do sf <- getSF
-     localCtrl (sf,r,ctrl) $ mapM_ (\i -> sInstrInit i r d sup) code 
-  --do let retSids = tree2Sids st
-  --       cls = map (\s -> d !! s ) retSids
-  --   zipWithM_ (\s cl -> addCtx s (Filling [], [ctrl], map (\c -> (c,0)) cl), Done ())
-  --     retSids cls 
-  --   return ()
-  --do -- (buf, consu, bs, p) <- lookupSid ctrl
-  --   -- updateCtx ctrl (buf,consu,((-2,0),0):bs,p) 
-  --   mapM_ (\i -> sInstrInit i d sup) code 
+     let ctrlR = (sf,r,ctrl)
+     (buf, consu, bs, p) <- lookupRSid ctrlR
+     updateCtx ctrlR (buf,consu,(((sf,r,-2),0),0):bs,p) 
+     --mapM_ (\i -> sInstrInit i d sup) code 
 
 
 
--- only init retSids, no unfoldind
 sInstrInit (SCall fid argSid retSids) r d _ = 
   do sf <- getSF
      let retCls = map (\s -> if length d > s then d !! s else []) retSids 
@@ -471,32 +467,34 @@ sInstrInterp bufSize r def@(SDef sid _) =
 -- check the first output of the stream `ctrl`,
 -- if it's some AVal, then execute `code`
 -- if it's Eos, then skip `code` and set the sids of `st` empty               
-sInstrInterp bufSize r (WithCtrl ctrl code st) = 
-  do sf <- getSF 
-     bs <- localCtrl (sf,r, ctrl) $ mapM (sInstrInterp bufSize r) code 
-     return $ all (\x -> x) bs
-  --do (buf,c, curs,p) <- lookupSid ctrl
-  --   case lookup (-2,0) curs of
-  --     Nothing -> -- the 1st value has already been read
-  --        do bs <- mapM isEos (tree2Sids st)
-  --           if foldl (&&) True bs  
-  --           then return True
-  --           else do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
-  --                   return $ all (\x -> x) bs              
-  --     Just 0 ->  
-  --       case buf of 
-  --         Eos ->  -- `ctrl` is empty
-  --           do doneStream st
-  --              updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
-  --              --costInc (1,1)  -- or (1,0) ?
-  --              return True
-  --         Filling [] ->  return False -- can't decide whether `ctrl` is emptbs y or not, keep waiting
-  --           --do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
-  --           --   return $ all (\x -> x) bs
-  --         _ ->  -- `ctrl` is nonempty
-  --           do updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
-  --              bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
-  --              return $ all (\x -> x) bs
+sInstrInterp bufSize r (WithCtrl ctrl ss code st) = 
+  do sf <- getSF
+     let ctrlR = (sf,r,ctrl)
+         retSids = tree2Sids st 
+     (buf,c,curs,p) <- lookupRSid ctrlR
+     
+     --bs <- localCtrl (sf,r, ctrl) $ mapM (sInstrInterp bufSize r) code 
+     --return $ all (\x -> x) bs
+
+     case lookup ((sf,r,-2),0) curs of
+       Nothing -> -- the 1st value has already been read
+         do bs <- localCtrl ctrlR $ mapM (sInstrInterp bufSize r) code 
+            return $ all (\x -> x) bs              
+       Just 0 ->  
+         case buf of 
+           Eos ->  -- `ctrl` is empty
+             do let retRSids = s2Rs retSids sf r 
+                doneStream retRSids
+                updateCtx ctrlR (buf, c, delWithKey curs ((sf,r,-2),0), p) 
+                --costInc (1,1)  -- or (1,0) ?
+                return True
+           Filling [] ->  return False -- can't decide whether `ctrl` is emptbs y or not, keep waiting
+           _ ->  -- `ctrl` is nonempty
+             do let (sup,d) = geneSupDag code ctrl (maximum retSids)
+                localCtrl ctrlR $ mapM_ (\i -> sInstrInit i r d sup) code 
+                updateCtx ctrlR (buf, c, delWithKey curs ((sf,r,-2),0), p) 
+                bs <- localCtrl ctrlR $ mapM (sInstrInterp bufSize r) code 
+                return $ all (\x -> x) bs
 
 
 sInstrInterp bufSize r (SCall fid _ retSids) =
@@ -515,15 +513,12 @@ sInstrInterp bufSize r (SCall fid _ retSids) =
      
 
 
---doneStream :: STree -> SvcodeP ()
---doneStream (IStr s) = 
---  do (_,sup, flags,_) <- lookupSid s
---     updateCtx s (Eos,sup, resetCur flags, Done ()) 
+doneStream :: [RSId] -> SvcodeP ()
+doneStream ss = 
+  mapM_ (\s -> do (_,sup, flags,_) <- lookupRSid s
+                  updateCtx s (Eos,sup, resetCur flags, Done ()))
+        ss  
 
---doneStream (BStr s) = doneStream (IStr s)
---doneStream (PStr st1 st2)  = doneStream st1 >> doneStream st2
---doneStream (SStr st1 st2) = doneStream (PStr st1 (BStr st2))
- 
 
 isEos :: RSId -> SvcodeP Bool
 isEos sid = 
@@ -638,17 +633,16 @@ geneSup code ctrl count =
    in snd $ unzip c 
 
 
+
 instrGeneSup :: [SInstr] -> SId -> [(SId, String,[SId])]
 instrGeneSup [] _ = []
 instrGeneSup ((SDef sid sexp):ss') c = (sid,i,cl0) : instrGeneSup ss' c
-    where (cl0, i) = getChanExp sexp c
-instrGeneSup ((WithCtrl newc ss _):ss') c = cl ++ instrGeneSup ss' c
+    where (cl0, i) = getSupExp sexp c
+instrGeneSup ((WithCtrl newc _ ss _):ss') c = cl ++ instrGeneSup ss' c
     where cl = instrGeneSup ss newc
 
 instrGeneSup ((SCall f args rets):ss') c = instrGeneSup ss' c 
-    --where cl = map (\r -> (r,"SCall", args)) rets'
-          --rets' = sort rets  
-
+ 
 
 addEptSids :: [(SId, a)] -> Int -> a -> Int -> [(SId,a)]
 addEptSids [] i a count = zip [i..count-1] (repeat a)
@@ -667,38 +661,6 @@ geneDagFromSup sup =
             ) d0 sup'
   in snd $ unzip d 
 
-
-
-getChanExp :: SExp -> SId -> ([SId],String)
-getChanExp Ctrl _ = ([],"Ctrl")
-getChanExp EmptyCtrl _ = ([],"EmptyCtrl")
-getChanExp (Const a) c = ([c],"Const " ++ show a)
-
-getChanExp (MapConst s1 a) _ = ([s1],"MapConst " ++ show a)
-getChanExp (MapOne op s1) _ = ([s1],"MapOne " ++ show op)
-getChanExp (MapTwo op s1 s2) _ = ([s1,s2],"MapTwo " ++ show op)
-
-getChanExp (InterMergeS ss) _ = (ss,"InterMergeS")
-getChanExp (SegInterS ss) _ = (concat $ map (\(x,y) -> [x,y]) ss , "SegInterS")
-getChanExp (PriSegInterS ss) _ = (concat $ map (\(x,y) -> [x,y]) ss, "PriSegInterS") 
-
-getChanExp (Distr s1 s2) _ = ([s1,s2], "Distr")
-getChanExp (SegDistr s1 s2) _ = ([s1,s2],"SegDistr")
-getChanExp (SegFlagDistr s1 s2 s3) _ = ([s2,s1,s3],"SegFlagDistr")
-getChanExp (PrimSegFlagDistr s1 s2 s3) _ = ([s2,s1,s3],"PrimSegFlagDistr")
-
-getChanExp (ToFlags s1) _ = ([s1], "ToFlags")
-getChanExp (Usum s1) _ = ([s1],"Usum")
-getChanExp (B2u s1) _ = ([s1],"B2u")
-
-getChanExp (SegscanPlus s1 s2) _ = ([s2,s1],"SegscanPlus")
-getChanExp (ReducePlus s1 s2) _ = ([s2,s1],"ReducePlus")
-getChanExp (Pack s1 s2) _ = ([s2,s1],"Pack")
-getChanExp (UPack s1 s2) _ = ([s2,s1],"UPack")
-getChanExp (SegConcat s1 s2) _ = ([s2,s1],"SegConcat")
-getChanExp (USegCount s1 s2) _ = ([s2,s1],"USegCount")
-getChanExp (SegMerge s1 s2) _ = ([s2,s1],"SegMerge")  
-getChanExp (Check s1 s2) _ = ([s1,s2],"Check")
 
 
 

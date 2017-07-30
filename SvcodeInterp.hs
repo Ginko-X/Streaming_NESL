@@ -162,7 +162,7 @@ sInstrInterp (SDef sid i) =
   sExpInterpProc i >>= addCtx sid -- transducer interpreter using Proc 
 
 
-sInstrInterp (WithCtrl c defs st) =
+sInstrInterp (WithCtrl c _ defs st) =
   do ctrl@(SBVal bs) <- lookupSid c 
      if null bs  
        then emptyStream st    

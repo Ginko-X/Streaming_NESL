@@ -7,7 +7,10 @@ import SvcodeSyntax
 import DataTrans
 import SneslParser
 import SneslTyping
+
 import Data.List (union)
+import Data.Set (fromList, toList)
+
 
 
 
@@ -184,9 +187,9 @@ translate (Tup e1 e2) =
        return (PStr t1 t2)
 
 translate (SeqNil tp) = 
-    do (st,defs) <- ctrlTrans $ emptySeq tp
-       emptyCtrl <- emit EmptyCtrl
-       emitInstr (WithCtrl emptyCtrl defs st)
+    do emptyCtrl <- emit EmptyCtrl
+       (st,defs) <- ctrlTrans $ emptySeq tp       
+       emitInstr (WithCtrl emptyCtrl [] defs st)
        f <- emit (Const (BVal True))
        return (SStr st f)
 
@@ -220,7 +223,6 @@ translate (GComp e0 ps) =
 
         -- new ctrl
         let (SStr _  s0) = head trs 
-        newCtrl <- emit (Usum s0) 
 
         -- free variables distribution
         let bindvs = concat $ map (\(p,_) -> getPatVars p) ps  
@@ -230,26 +232,40 @@ translate (GComp e0 ps) =
         usingVarbinds <- mapM (\(v,tr) -> bindM (PVar v) tr) 
                               (zip usingVars newVarTrs)
 
+        newCtrl <- emit (Usum s0) 
         -- translate the body
         (st,defs) <- ctrlTrans $ localVEnv (concat $ newEnvs ++ usingVarbinds) 
                                   $ translate e0 
-        emitInstr (WithCtrl newCtrl defs st)
+        let imps = getImportSids newCtrl defs 
+        emitInstr (WithCtrl newCtrl imps defs st)
         return (SStr st s0)
         
 
 translate (RComp e0 e1) = 
     do (BStr s1) <- translate e1       
        s2 <- emit (B2u s1)  
-       newCtrl <- emit (Usum s2)
        let usingVars = getVars e0 
        usingVarsTrs <- mapM (\x -> translate (Var x)) usingVars 
        newVarTrs <- mapM (\x -> pack x s1) usingVarsTrs
        binds <- mapM (\(v,tr) -> bindM (PVar v) tr) (zip usingVars newVarTrs)
+
+       newCtrl <- emit (Usum s2)
        (s3,defs) <- ctrlTrans $ localVEnv (concat binds) $ translate e0 
-       emitInstr (WithCtrl newCtrl defs s3)
+       let imps = getImportSids newCtrl defs 
+       emitInstr (WithCtrl newCtrl imps defs s3)
        return (SStr s3 s2) 
 
 
+getImportSids :: SId -> [SInstr] -> [SId]
+getImportSids ctrl ins = 
+  toList $ fromList $ concat $ map (getImportSid ctrl) ins
+
+getImportSid :: SId -> SInstr -> [SId]
+getImportSid ctrl (SDef sid e) =
+  let (sups,_) = getSupExp e ctrl
+  in filter (\sup -> sup < ctrl) sups 
+getImportSid ctrl (WithCtrl _ imps _ _) = filter (\i -> i < ctrl) imps  
+getImportSid ctrl (SCall _ args _) =  filter (\i -> i < ctrl) args
 
 
 -- get the free varibales in the expression
