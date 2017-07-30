@@ -12,9 +12,9 @@ import Control.Monad
 import Data.Set (fromList, toList)
 import Data.List (sort)
 
+type RSId = (Int,SId,SId)
 
-
-type Svctx = [(SId, SState)]
+type Svctx = [(RSId, SState)]
 
 type SState = (BufState, Suppliers, Clients, Proc ())
 
@@ -22,25 +22,26 @@ data BufState = Filling [AVal]
               | Draining [AVal]
               | Eos deriving (Show, Eq) 
 
-type Suppliers = [SId]  -- incoming edges
-type Clients  = [((SId,Int), Int)] --outgoing edges
+type Suppliers = [RSId]  -- incoming edges
+type Clients  = [((RSId,Int), Int)] --outgoing edges
 
 
 type Sup = [[SId]]  -- supplier list
 type Dag = [[(SId,Int)]] -- client list
 
 
-newtype SvcodeP a = SvcodeP {rSvcodeP :: Svctx -> SId -> FEnv -> SId -> 
-                                Either String (a,(Int,Int),Svctx,SId)}
+
+newtype SvcodeP a = SvcodeP {rSvcodeP :: Svctx -> RSId -> FEnv -> Int-> 
+                                Either String (a,(Int,Int),Svctx)}
                                   
 instance  Monad SvcodeP where
-    return a = SvcodeP $ \ctx ctrl fe fr -> Right (a,(0,0),ctx,fr) 
+    return a = SvcodeP $ \ctx ctrl fe sf -> Right (a,(0,0),ctx) 
 
-    m >>= f = SvcodeP $ \ctx ctrl fe fr -> 
-        case rSvcodeP m ctx ctrl fe fr of 
-            Right (a,(w,s),ctx',fr') -> 
-                case rSvcodeP (f a) ctx' ctrl fe fr' of
-                    Right (b,(w',s'),ctx'',fr'') -> Right (b,(w+w',s+s'),ctx'',fr'')
+    m >>= f = SvcodeP $ \ctx ctrl fe sf -> 
+        case rSvcodeP m ctx ctrl fe sf of 
+            Right (a,(w,s),ctx') -> 
+                case rSvcodeP (f a) ctx' ctrl fe sf of
+                    Right (b,(w',s'),ctx'') -> Right (b,(w+w',s+s'),ctx'')
                     Left err' -> Left err'
             Left err -> Left err 
 
@@ -59,11 +60,14 @@ instance Applicative SvcodeP where
 runSvcodePExp :: SFun -> Int -> Bool -> FEnv -> Either String (SvVal, (Int,Int))
 runSvcodePExp (SFun [] st code fresh) bs _ fe = 
   do let (sup,d) = geneSupDag code 0 fresh
-         retSids = zip (tree2Sids st) [0..]
-         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids 
-     (_,(w0,s0), ctx,_) <- rSvcodeP (sInit code d' sup) [] 0 fe fresh
-     (as,(w1,s1), _) <- rrobin (mapM (sInstrInterp bs) code) ctx 0 retSids 
-                    (map (\_ -> []) retSids) (w0,s0) fe fresh
+         retSids = tree2Sids st 
+         retRSids = zip (zip3 (repeat 0) (repeat $ head retSids) retSids) [0..]
+         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d $ zip retSids [0..]
+         ctrl = (0,head retSids,0) 
+
+     (_,(w0,s0), ctx) <- rSvcodeP (sInit code (head retSids) d' sup) [] ctrl fe 0
+     (as,(w1,s1), _) <- rrobin (mapM (sInstrInterp bs (head retSids)) code) ctx retRSids 
+                    (map (\_ -> []) retSids) (w0,s0) fe
      return (fst $ constrSv st as,(w0+w1,s0+s1))
 
 
@@ -90,51 +94,26 @@ constrSv (SStr t1 t2) as =
 
 
      
-rrobin :: SvcodeP [Bool] -> Svctx -> SId -> [(SId,Int)] -> [[AVal]] -> (Int,Int)
-           -> FEnv -> SId -> Either String ([[AVal]],(Int,Int),Svctx)           
-rrobin m ctx ctrl retSids as0 (w0,s0) fe fr = 
-  do (bs,(w1,s1), ctx',fr') <- rSvcodeP m ctx ctrl fe fr
+rrobin :: SvcodeP [Bool] -> Svctx -> [(RSId,Int)] -> [[AVal]] -> (Int,Int)
+           -> FEnv -> Either String ([[AVal]],(Int,Int),Svctx)           
+rrobin m ctx retRSids as0 (w0,s0) fe = 
+  do let ctrl = replaceSid (fst $ head retRSids) 0
+     (bs,(w1,s1), ctx') <- rSvcodeP m ctx ctrl fe 0
      (as,ctx'') <- foldM (\(a0,c0) s -> 
                              do (a,c) <- lookupAval c0 s
                                 return (a:a0,c)) 
-                         ([],ctx') retSids 
+                         ([],ctx') retRSids 
      let as' = zipWith (++) as0 (reverse as) 
      if all (\x -> x) bs 
        then return (as', (w0+w1,s0+s1), ctx'') 
        else if equalCtx ctx ctx'' 
             then do unlockCtx <- stealing ctx''  -- try stealing
-                    rrobin m unlockCtx ctrl retSids as' (w0+w1,s0+s1) fe fr'
-            else rrobin m ctx'' ctrl retSids as' (w0+w1,s0+s1) fe fr'
+                    rrobin m unlockCtx retRSids as' (w0+w1,s0+s1) fe
+            else rrobin m ctx'' retRSids as' (w0+w1,s0+s1) fe
 
 
----- 
---rewriteSId :: SFun -> SId -> SFun
---rewriteSId (SFun argSid st code fresh) sid0 = 
---  let argSid' = map (+sid0) argSid
---      st' = rewriteSTree st sid0
---      code' = rewriteCode sid0 
---      fresh' = sid0 + fresh
---  in SFun argSid' st' code' fresh'
-
---rewriteSTree :: STree -> SId -> STree
---rewriteSTree (IStr s) s0 = IStr (s + s0)
---rewriteSTree (BStr s) s0 = BStr (s + s0)
---rewriteSTree (PStr s1 s2) s0 = PStr (rewriteSTree s1 s0) (rewriteSTree s2 s0)
---rewriteSTree (SStr s1 s2) s0 = SStr (rewriteSTree s1 s0) (s2 + s0)
-
-
---rewriteCode :: [SInstr] -> SId -> [SInstr]
---rewriteCode is s0 = map (rewriteSInstr s0) is 
-
---rewriteSInstr :: SId -> SInstr -> SInstr
---rewriteSInstr s0 (SDef sid e) = SDef (sid + s0) e 
---rewriteSInstr s0 (WithCtrl ctrl code st) = WithCtrl (ctrl + s0) code' st'
---  where code' = rewriteCode code s0 
---        st' = rewriteSTree st s0
-
---rewriteSInstr s0 (SCall fid argSid retSids) = 
---  SCall fid (map (+s0) argSid) (map (+s0) retSids)
-
+replaceSid :: RSId -> SId -> RSId
+replaceSid (sf,r,_) sid = (sf,r,sid)
 
 -- pick the first non-empty stream in Filling mode to drain
 stealing :: Svctx -> Either String Svctx
@@ -162,13 +141,13 @@ compProc _ _ = False
 
 
 
-lookupAval :: Svctx -> (SId, Int) -> Either String ([AVal],Svctx)
-lookupAval ctx (s,i) = 
+lookupAval :: Svctx -> (RSId, Int) -> Either String ([AVal],Svctx)
+lookupAval ctx (s@(sf,r,sid),i) = 
   case lookup s ctx of 
       Nothing -> Left  $ "lookupAval: undefined stream " ++ show s  
       Just (Draining a, c, bs, p) -> 
-        if checkWithKey bs (-1,i) 0
-        then let bs' = updateWithKey bs (-1,i) (length a)  
+        if checkWithKey bs ((sf,r,-1),i) 0
+        then let bs' = updateWithKey bs ((sf,r,-1),i) (length a)  
                  ctx' = updateWithKey ctx s (Draining a, c, bs', p)
              in Right (a, ctx')
         else Right ([],ctx)
@@ -179,92 +158,155 @@ lookupAval ctx (s,i) =
 
 
 
-addCtx :: SId -> SState -> SvcodeP ()
-addCtx s v = SvcodeP $ \ c _ _ fr -> Right ((), (0,0),c++[(s,v)],fr)
+addCtx :: RSId -> SState -> SvcodeP ()
+addCtx s v = SvcodeP $ \ c _ _ _ -> Right ((), (0,0),c++[(s,v)])
 
-updateCtx :: SId -> SState -> SvcodeP ()
-updateCtx s v = SvcodeP $ \ c _ _ fr -> Right ((),(0,0),updateWithKey c s v,fr) 
+updateCtx :: RSId -> SState -> SvcodeP ()
+updateCtx s v = SvcodeP $ \ c _ _ _ -> Right ((),(0,0),updateWithKey c s v) 
 
 getCtx :: SvcodeP Svctx
-getCtx = SvcodeP $ \ c _ _ fr -> Right (c,(0,0),c,fr)
+getCtx = SvcodeP $ \ c _ _ _ -> Right (c,(0,0),c)
 
 setCtx :: Svctx -> SvcodeP () 
-setCtx c = SvcodeP $ \ _ _ _ fr -> Right ((),(0,0),c,fr)
+setCtx c = SvcodeP $ \ _ _ _ _ -> Right ((),(0,0),c)
 
 
-getFresh = SvcodeP $ \ c _ _ fr -> Right (fr, (0,0),c,fr)
+getSF = SvcodeP $ \ c _ _ sf -> Right (sf, (0,0),c)
 
-setFresh fr = SvcodeP $ \ c _ _ _ -> Right ((),(0,0),c,fr)
+localSF :: Int -> SvcodeP a -> SvcodeP a 
+localSF sf m = SvcodeP $ \ ctx ctrl fe _ -> rSvcodeP m ctx ctrl fe sf 
 
 
-getCtrl :: SvcodeP SId
-getCtrl = SvcodeP $ \ ctx ctrl _ fr -> Right (ctrl,(0,0),ctx, fr)
+getCtrl :: SvcodeP RSId
+getCtrl = SvcodeP $ \ ctx ctrl _ _ -> Right (ctrl,(0,0),ctx)
 
 
 getSuppiler sid = 
-  do (_,sup,_,_) <- lookupSid sid 
+  do (_,sup,_,_) <- lookupRSid sid 
      return sup 
 
 
-localCtrl :: SId -> SvcodeP a -> SvcodeP a 
-localCtrl ctrl m = SvcodeP $ \ ctx _  -> rSvcodeP m ctx ctrl
+localCtrl :: RSId -> SvcodeP a -> SvcodeP a 
+localCtrl ctrl m = SvcodeP $ \ ctx _ fe sf -> rSvcodeP m ctx ctrl fe sf 
 
 
-lookupSid :: SId -> SvcodeP SState
-lookupSid s = SvcodeP $ \c ctrl _ fr -> 
-    case lookup s c of 
-        Nothing -> Left $ "lookupSid: undefined SId " ++ show s  
-        Just st -> Right (st,(0,0),c,fr)  
+lookupRSid :: RSId -> SvcodeP SState
+lookupRSid r = SvcodeP $ \c _ _ _ -> 
+    case lookup r c of 
+        Nothing -> Left $ "lookupRSid: undefined SId " ++ show r
+        Just st -> Right (st,(0,0),c)  
 
 
 lookupFId :: FId -> SvcodeP SFun
-lookupFId fid = SvcodeP $ \c _ fe fr -> 
+lookupFId fid = SvcodeP $ \c _ fe _ -> 
     case lookup fid fe of 
         Nothing -> Left $ "lookupFId: undefined FId " ++ show fid
-        Just sf -> Right (sf,(0,0),c,fr)  
+        Just sf -> Right (sf,(0,0),c)  
 
 
 costInc :: (Int, Int) -> SvcodeP ()
-costInc (w,s) = SvcodeP $ \ c _ _ fr -> Right ((), (w,s), c, fr)
+costInc (w,s) = SvcodeP $ \ c _ _ sf -> Right ((), (w,s), c)
 
 
 returnC :: (Int, Int) -> a -> SvcodeP a 
-returnC (w,s) a = SvcodeP $ \ ctx _ _ fr -> Right (a,(w,s),ctx,fr)
+returnC (w,s) a = SvcodeP $ \ ctx _ _ sf -> Right (a,(w,s),ctx)
+
+
+
+clRSid :: [(SId,Int)] -> Int -> SId -> [(RSId,Int)]
+clRSid cls sf sid = 
+  let (sids,labels) = unzip cls 
+      cls' = zip3 (repeat sf) (repeat sid) sids
+  in zip cls' labels
+
+
+s2Rs :: [SId] -> Int -> SId -> [RSId]
+s2Rs sids sf sid = zip3 (repeat sf) (repeat sid) sids
 
 
 ------ instruction init
 
-sInit :: [SInstr] -> Dag -> Sup -> SvcodeP ()
-sInit code d sup = 
-  do mapM_ (\i -> sInstrInit i d sup) code
+sInit :: [SInstr] -> SId -> Dag -> Sup -> SvcodeP ()
+sInit code r d sup = 
+  do mapM_ (\i -> sInstrInit i r d sup) code
+     sf <- getSF
      mapM_ (\sid -> do ctx <- getCtx   -- add SState for empty streams/SIds        
-                       case lookup sid ctx of  
+                       let rsid = (sf,r,sid)
+                       case lookup rsid ctx of  
                          Nothing -> 
-                           let cls =  map (\ cl -> (cl,0)) (d !! sid)
-                            in addCtx sid (Eos, sup !! sid, cls, Done ())
+                           let cls = clRSid (d !! sid) sf r  
+                               cls' = map (\ cl -> (cl,0)) cls
+                            in addCtx rsid (Eos, s2Rs (sup !! sid) sf r, cls', Done ())
                          Just _ -> return ())
            [0..length d-1] -- !!
    
 
-sInstrInit :: SInstr -> Dag -> Sup -> SvcodeP ()
-sInstrInit (SDef sid e) d sup = 
-  do let cls = d !! sid 
-         suppliers = sup !! sid 
-     p <- sExpProcInit e 
-     addCtx sid (Filling [], suppliers, map (\ cl -> (cl,0)) cls, p)  
-
-sInstrInit (WithCtrl ctrl code _) d sup = 
-  do -- (buf, consu, bs, p) <- lookupSid ctrl
-     -- updateCtx ctrl (buf,consu,((-2,0),0):bs,p) 
-     mapM_ (\i -> sInstrInit i d sup) code 
+sInstrInit :: SInstr -> SId -> Dag -> Sup -> SvcodeP ()
+sInstrInit (SDef sid e) r d sup = 
+  do sf <- getSF
+     let cls = clRSid (d !! sid) sf r 
+         suppliers = s2Rs (sup !! sid) sf r  
+     p <- sExpProcInit e     
+     addCtx (sf,r,sid) (Filling [], suppliers, map (\ cl -> (cl,0)) cls, p)  
 
 
-sInstrInit (SCall fid argSid retSids) d _ = 
-  do let cls = map (\s -> if length d > s then d !! s else []) retSids  --- zz
-     zipWithM_ (\s cl -> addCtx s (Filling [], argSid, map (\c -> (c,0)) cl, Done ()))
-       retSids cls 
-     return ()
+sInstrInit (WithCtrl ctrl code st) r d sup =  
+  do sf <- getSF
+     localCtrl (sf,r,ctrl) $ mapM_ (\i -> sInstrInit i r d sup) code 
+  --do let retSids = tree2Sids st
+  --       cls = map (\s -> d !! s ) retSids
+  --   zipWithM_ (\s cl -> addCtx s (Filling [], [ctrl], map (\c -> (c,0)) cl), Done ())
+  --     retSids cls 
+  --   return ()
+  --do -- (buf, consu, bs, p) <- lookupSid ctrl
+  --   -- updateCtx ctrl (buf,consu,((-2,0),0):bs,p) 
+  --   mapM_ (\i -> sInstrInit i d sup) code 
+
+
+
+-- only init retSids, no unfoldind
+sInstrInit (SCall fid argSid retSids) r d _ = 
+  do sf <- getSF
+     let retCls = map (\s -> if length d > s then d !! s else []) retSids 
+         retCls' = map (\s -> clRSid s sf r) retCls      
+         retRSids = s2Rs retSids sf r
+     zipWithM_ (\s cl -> addCtx s (Filling [], [], map (\c -> (c,0)) cl, rinOut))
+       retRSids retCls'
+     
+     (SFun argSid' st code fresh') <- lookupFId fid
+     
+     let (sup,d) = geneSupDag code 0 fresh'
+         
+     oldCtx <- getCtx   
+     ctrl <- getCtrl     
+     setCtx []
+     
+     let newCtrl = (sf+1,head retSids,0)
+     localCtrl newCtrl $ localSF (sf+1) $ sInit code (head retSids) d sup 
+
+     newCtx <- getCtx
+     setCtx $ oldCtx ++ newCtx
+     
+     let argRSid = s2Rs argSid sf r 
+         argRSid' = s2Rs argSid' (sf+1) (head retSids)
+         retRSids' = s2Rs (tree2Sids st) (sf+1) (head retSids)
+     connectRSIds (ctrl:argRSid) (newCtrl:argRSid')
+     connectRSIds retRSids' retRSids
+     
  
+
+-- [ s1 ] --- 0 --> [ s2 ]
+-- s1 is s2's supplier
+connectRSIds :: [RSId] -> [RSId] -> SvcodeP ()
+connectRSIds [] [] = return ()
+connectRSIds (s1:s1s) (s2:s2s) = 
+  do (buf1,sup1,cl1,p1) <- lookupRSid s1
+     (buf2,sup2,cl2,p2) <- lookupRSid s2  
+     updateCtx s1 (buf1,sup1,cl1 ++ [((s2,0),0)],p1)
+     updateCtx s2 (Filling [],[s1],cl2,rinOut) 
+     connectRSIds s1s s2s 
+connectRSIds _ _ = fail $ "connectRSIds: RSId lengths mismatch."
+
 
 
 ---- SExpression init
@@ -275,7 +317,7 @@ sExpProcInit EmptyCtrl = return $ Done ()
 
 sExpProcInit (Const a) = return (mapConst a)
   
-sExpProcInit (MapConst s1 a) = return (mapConst a)
+sExpProcInit (MapConst _ a) = return (mapConst a)
 
 sExpProcInit (Usum _) = return usumProc
 
@@ -334,20 +376,18 @@ lookupOpA op r =
        Nothing -> fail $ "lookupOpA: undefined operation " ++ show op 
 
 
-allEnd :: [((SId,Int),Int)] -> Int -> Bool 
+allEnd :: [((RSId,Int),Int)] -> Int -> Bool 
 allEnd bs len = all (\(_,c) -> c >= len) bs 
 
-allStart :: [((SId,Int),Int)] -> Bool 
-allStart bs = all (\(_,b) -> b == 0) bs 
 
-resetCur :: [((SId,Int),Int)] -> [((SId,Int), Int)]
-resetCur bs = map (\(sid, _) -> (sid, 0)) bs 
+resetCur :: [((RSId,Int),Int)] -> [((RSId,Int), Int)]
+resetCur bs = map (\(rsid, _) -> (rsid, 0)) bs 
 
 
 ----- run a process
-sSIdInterp :: Int -> SId -> SvcodeP Bool
+sSIdInterp :: Int -> RSId -> SvcodeP Bool
 sSIdInterp bufSize sid = 
-  do (buf, sups, bs, p) <- lookupSid sid 
+  do (buf, sups, bs, p) <- lookupRSid sid 
      case p of 
        -- 1. Done 
        Done () -> 
@@ -397,7 +437,7 @@ sSIdInterp bufSize sid =
            Eos -> fail $ "Premature EOS"  -- 3.1
 
            _ ->   -- 3.2 & 3.3
-             do (bufSup, supSup, flagSup,pSup) <- lookupSid (sups!!i)
+             do (bufSup, supSup, flagSup,pSup) <- lookupRSid (sups!!i)
                 case lookup (sid,i) flagSup of -- find own cursor from supplier's clients
                   Nothing -> fail $ "undefined client " ++ show sid
                   Just cursor -> 
@@ -422,16 +462,19 @@ sSIdInterp bufSize sid =
 
 -- interpret an instruction
 
-sInstrInterp :: Int -> SInstr -> SvcodeP Bool
-sInstrInterp bufSize def@(SDef sid _) = sSIdInterp bufSize sid 
+sInstrInterp :: Int -> SId -> SInstr -> SvcodeP Bool
+sInstrInterp bufSize r def@(SDef sid _) = 
+  do sf <- getSF
+     sSIdInterp bufSize (sf,r,sid) 
 
 
 -- check the first output of the stream `ctrl`,
 -- if it's some AVal, then execute `code`
 -- if it's Eos, then skip `code` and set the sids of `st` empty               
-sInstrInterp bufSize (WithCtrl ctrl code st) = 
-  do  bs <- mapM (sInstrInterp bufSize) code 
-      return $ all (\x -> x) bs
+sInstrInterp bufSize r (WithCtrl ctrl code st) = 
+  do sf <- getSF 
+     bs <- localCtrl (sf,r, ctrl) $ mapM (sInstrInterp bufSize r) code 
+     return $ all (\x -> x) bs
   --do (buf,c, curs,p) <- lookupSid ctrl
   --   case lookup (-2,0) curs of
   --     Nothing -> -- the 1st value has already been read
@@ -445,87 +488,53 @@ sInstrInterp bufSize (WithCtrl ctrl code st) =
   --         Eos ->  -- `ctrl` is empty
   --           do doneStream st
   --              updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
-  --              costInc (1,1)  -- or (1,0) ?
+  --              --costInc (1,1)  -- or (1,0) ?
   --              return True
-  --         Filling [] ->  -- can't decide whether `ctrl` is emptbs y or not, keep waiting
-  --           do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
-  --              return $ all (\x -> x) bs
+  --         Filling [] ->  return False -- can't decide whether `ctrl` is emptbs y or not, keep waiting
+  --           --do bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
+  --           --   return $ all (\x -> x) bs
   --         _ ->  -- `ctrl` is nonempty
   --           do updateCtx ctrl (buf, c, delWithKey curs (-2,0), p) 
   --              bs <- localCtrl ctrl $ mapM (sInstrInterp bufSize) code 
   --              return $ all (\x -> x) bs
 
 
-sInstrInterp bs (SCall fid argSid retSids) =
-  do (SFun argSid' st code fresh') <- lookupFId fid
-     (_,sups,_,_ ) <- lookupSid $ head retSids
-     fresh <- getFresh
-     if sups == argSid -- first time of unfolding
-     then do let (sup,d) = geneSupDag code 0 fresh'
-             oldCtx <- getCtx             
-             ctrl <- getCtrl     
-             setCtx []
-             
-             sInit code d sup -- dynamic 
-             
-             newCtx <- getCtx
-             newCtx' <- rewriteCtx newCtx fresh
-             setCtx $ oldCtx ++ newCtx'
-             
-             setFresh (fresh+fresh')
-             connectSIds (ctrl:argSid) $ map (+fresh) (0:argSid')
-             connectSIds (map (+fresh) (tree2Sids st)) retSids
- 
-             bs <- mapM (sInstrInterp bs) code 
-             return $ all (\x -> x) bs
-     else do 
-             sups <- mapM getSuppiler retSids
-             let lastSid = maximum $ concat $ sups 
-                 sids = [lastSid-fresh'+1..lastSid] ++ retSids 
-             bs <- mapM (sInstrInterp bs) $ map (\s -> SDef s EmptyCtrl) sids
-             return $ all (\x -> x) bs
+sInstrInterp bufSize r (SCall fid _ retSids) =
+  do (SFun argSids st code _) <- lookupFId fid
+     sf <- getSF
+     let r' = head retSids
+         argRSids = s2Rs (0:argSids) (sf+1) r' 
+    
+     localCtrl (sf,r',0) $ localSF (sf+1) $ mapM (sSIdInterp bufSize) argRSids
+     localCtrl (sf,r',0) $ localSF (sf+1) $ mapM (sInstrInterp bufSize r') code
+    
+     let retRSids = s2Rs retSids sf r 
+     bs <- mapM (sSIdInterp bufSize) retRSids
+
+     return $ all (\x -> x) bs
      
 
 
-rewriteCtx :: Svctx -> SId -> SvcodeP Svctx
-rewriteCtx [] s0 = return []
-rewriteCtx ((sid, (b1,s1,c1,p1)):ss) s0 = 
-  do ss' <- rewriteCtx ss s0
-     let c1' = map (\((s,l),i) -> ((s+s0,l),i) ) c1 
-     return $ (sid+s0, (b1, map (+s0) s1, c1',p1)) : ss'
+--doneStream :: STree -> SvcodeP ()
+--doneStream (IStr s) = 
+--  do (_,sup, flags,_) <- lookupSid s
+--     updateCtx s (Eos,sup, resetCur flags, Done ()) 
 
-
-connectSIds :: [SId] -> [SId] -> SvcodeP ()
-connectSIds [] [] = return ()
-connectSIds (s1:s1s) (s2:s2s) = 
-  do (buf1,sup1,cl1,p1) <- lookupSid s1
-     (buf2,sup2,cl2,p2) <- lookupSid s2  
-     updateCtx s1 (buf1,sup1,cl1 ++ [((s2,0),0)],p1)
-     updateCtx s2 (Filling [],[s1],cl2,rinOut) 
-     connectSIds s1s s2s 
-connectSIds _ _ = fail $ "connectSIds: SIds do not match."
-
-
-doneStream :: STree -> SvcodeP ()
-doneStream (IStr s) = 
-  do (_,sup, flags,_) <- lookupSid s
-     updateCtx s (Eos,sup, resetCur flags, Done ()) 
-
-doneStream (BStr s) = doneStream (IStr s)
-doneStream (PStr st1 st2)  = doneStream st1 >> doneStream st2
-doneStream (SStr st1 st2) = doneStream (PStr st1 (BStr st2))
+--doneStream (BStr s) = doneStream (IStr s)
+--doneStream (PStr st1 st2)  = doneStream st1 >> doneStream st2
+--doneStream (SStr st1 st2) = doneStream (PStr st1 (BStr st2))
  
 
-isEos :: SId -> SvcodeP Bool
+isEos :: RSId -> SvcodeP Bool
 isEos sid = 
-  do (buf, _, _,_) <- lookupSid sid
+  do (buf, _, _,_) <- lookupRSid sid
      case buf of 
        Eos -> return True
        _ -> return False
 
 
 
-markRead :: Clients -> (SId,Int) -> Int -> Clients
+markRead :: Clients -> (RSId,Int) -> Int -> Clients
 markRead cs sid oldCursor = updateWithKey cs sid (oldCursor+1)
 
 
@@ -556,17 +565,20 @@ checkWithKey (p0@(k0,v0):ps) k v =
 
 
 
-{------- run the program and print out the Svctx of each round  -------------
+------- run the program and print out the Svctx of each round  -------------
 -- 
 runSvcodePExp' :: SFun -> Int -> Int -> FEnv -> Either String String
 runSvcodePExp' (SFun [] st code fresh) count bs fe = 
   do let (sup,d) = geneSupDag code 0 fresh
-         retSids = zip (tree2Sids st) [0..]
-         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d retSids  
-     (_,_,ctx) <- rSvcodeP (sInit code d' sup) [] 0 fe 
+         retSids = tree2Sids st
+         retRSids = zip (s2Rs retSids 0 (head retSids)) [0..] 
+         --retSids = zip (tree2Sids st) [0..]
+         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d $ zip retSids [0..]
+         ctrl = (0,head retSids,0)
+     (_,_,ctx) <- rSvcodeP (sInit code (head retSids) d' sup) [] ctrl fe 0
 
-     (as, ctxs) <- roundN count (round1 (mapM (sInstrInterp bs fresh) code) 0 retSids fe) [ctx]
-                     $ [map (\_ -> []) retSids]
+     (as, ctxs) <- roundN count (round1 (mapM (sInstrInterp bs (head retSids)) code) ctrl retRSids fe) [ctx]
+                     ([map (\_ -> []) retSids]) 
      let str = map (\(a,c,i) -> "Round "++ show i ++"\nOutput:" ++ show a ++ "\n" 
                       ++ showCtx c ++ "\n") 
                $ zip3 (reverse as) (reverse ctxs) [0..]
@@ -575,14 +587,15 @@ runSvcodePExp' (SFun [] st code fresh) count bs fe =
 
 showCtx :: Svctx -> String
 showCtx [] = ""
-showCtx ((sid,(buf,c,bs,p)):ss) = 
-  "S" ++ show sid ++ " := (" ++ show buf ++ "," ++ show c ++ "," ++ show bs 
+showCtx (((sf,r,sid),(buf,c,bs,p)):ss) = 
+  "(" ++ show sf ++ "," ++ show r ++ ", S" ++ show sid  ++ "), (" 
+    ++ show buf ++ "," ++ show c ++ "," ++ show bs 
     ++ "," ++ show p ++ ")\n" ++ showCtx ss 
     
 
 
-roundN :: Int -> (Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx) ) -> 
-            [Svctx] -> [[[AVal]]] -> Either String ([[[AVal]]], [Svctx])
+roundN :: Int -> (Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx)) -> 
+            [Svctx] -> [[[AVal]]]  -> Either String ([[[AVal]]], [Svctx])
 roundN 0 f ctxs as = Right (as,ctxs) 
 roundN c f ctxs as = 
   if all (\(_,(buf,_, _,p)) -> buf == Eos) (head ctxs)
@@ -591,14 +604,14 @@ roundN c f ctxs as =
       do (as',ctx') <- f (head ctxs) (head as)
          if (length ctxs > 0) && (equalCtx ctx' $ ctxs!!0)
          then do unlockCtx <- stealing ctx'
-                 roundN (c-1) f (unlockCtx:ctxs) (as':as) 
+                 roundN (c-1) f (unlockCtx:ctxs) (as':as)
          else roundN (c-1) f (ctx':ctxs) (as':as)
      
 
-round1 :: SvcodeP [Bool] -> SId -> [(SId,Int)] -> FEnv -> Svctx -> [[AVal]] 
-              -> Either String ([[AVal]], Svctx) 
+round1 :: SvcodeP [Bool] -> RSId -> [(RSId,Int)] -> FEnv -> Svctx -> [[AVal]] 
+           -> Either String ([[AVal]], Svctx) 
 round1 m ctrl st fe ctx as0 = 
-  do (_,_, ctx') <- rSvcodeP m ctx ctrl fe 
+  do (_,_, ctx') <- rSvcodeP m ctx ctrl fe 0
      (as,ctx'') <- foldM (\(a0,c0) s -> 
                             do (a,c) <- lookupAval c0 s
                                return (a:a0,c))
