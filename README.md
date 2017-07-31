@@ -1,4 +1,9 @@
 # Working Progress
++ Week 39 (24 Jul ~ 30 Jul)
+    + Add recursions to the streaming interpreter [`SvcodeProcInterpLong.hs`]((https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProcInterpLong.hs)
+        + modified to unfold functions during runtime
+	+ fixes of `WithCtrl` interpretation to support recursions, still buggy
+	
 + Week 29 (17 Jul ~ 23 Jul)
     + Modified the scheduling strategy from _looping scheduling_ (mentioned in [#19](https://github.com/Ginko-X/Streaming_NESL/issues/19)) to some "fully-filled" looping scheduling, to maintain the correctness of cost model        
         + a buffer is not allowed to be read by its clients before it is full, unless it is the last chunk of the stream
