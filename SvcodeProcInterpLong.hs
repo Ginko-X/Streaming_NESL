@@ -9,6 +9,7 @@ import SneslCompiler (tree2Sids)
 import SneslInterp (wrapWork)
 
 import Control.Monad
+import Data.Set (fromList, toList)
 
 
 type RSId = (Int,SId,SId)
@@ -25,8 +26,8 @@ type Suppliers = [RSId]  -- incoming edges
 type Clients  = [((RSId,Int), Int)] --outgoing edges
 
 
-type Sup = [[SId]]  -- supplier list
-type Dag = [[(SId,Int)]] -- client list
+type Sup = [(SId,[SId])]  -- supplier list
+type Dag = [(SId,[(SId,Int)])] -- client list
 
 
 
@@ -58,24 +59,22 @@ instance Applicative SvcodeP where
 
 runSvcodePExp :: SFun -> Int -> Bool -> FEnv -> Either String (SvVal, (Int,Int))
 runSvcodePExp (SFun [] st code fresh) bs _ fe = 
-  do let (sup,d) = geneSupDag code 0 fresh
+  do let (sup,d) = geneSupDag code 0
          retSids = tree2Sids st 
-         retRSids = zip (zip3 (repeat 0) (repeat $ head retSids) retSids) [0..]
-         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d $ zip retSids [0..]
+         retRSids = zip (zip3 (repeat 0) (repeat $ head retSids) retSids) [0..]          
          ctrl = (0,head retSids,0) 
-
-     (_,(w0,s0), ctx) <- rSvcodeP (sInit code (head retSids) d' sup) [] ctrl fe 0
+         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d $ zip retSids [0..]
+     (_,(w0,s0), ctx) <- rSvcodeP (sInit code fresh (head retSids) d' sup) [] ctrl fe 0
      (as,(w1,s1), _) <- rrobin (mapM (sInstrInterp bs (head retSids)) code) ctx retRSids 
                     (map (\_ -> []) retSids) (w0,s0) fe
      return (fst $ constrSv st as,(w0+w1,s0+s1))
 
 
-
 addClient :: Dag -> SId -> (SId,Int) -> Dag
 addClient d i c = 
-  let cs0 = d !! i 
-      cs = cs0 ++ [c]
-  in updateList d i cs 
+  case lookup i d of 
+    Nothing -> addWithKey d i c
+    Just cl -> updateWithKey d i $ cl ++ [c] 
 
 
 constrSv :: STree -> [[AVal]] -> (SvVal, [[AVal]])
@@ -225,60 +224,74 @@ s2Rs sids sf sid = zip3 (repeat sf) (repeat sid) sids
 
 ------ instruction init
 
-sInit :: [SInstr] -> SId -> Dag -> Sup -> SvcodeP ()
-sInit code r d sup = 
+sInit :: [SInstr] -> Int -> SId -> Dag -> Sup -> SvcodeP ()
+sInit code count r d sup = 
   do mapM_ (\i -> sInstrInit i r d sup) code
      sf <- getSF
-     mapM_ (\sid -> do ctx <- getCtx   -- add SState for empty streams/SIds        
-                       let rsid = (sf,r,sid)
+     -- add SState for empty streams/SIds
+     ctx <- getCtx 
+     mapM_ (\sid -> do let rsid = (sf,r,sid)
                        case lookup rsid ctx of  
                          Nothing -> 
-                           let cls = clRSid (d !! sid) sf r  
-                               cls' = map (\ cl -> (cl,0)) cls
-                            in addCtx rsid (Eos, s2Rs (sup !! sid) sf r, cls', Done ())
+                           let cls = case lookup sid d of
+                                       Nothing -> []
+                                       Just v -> v 
+                               sups = case lookup sid sup of 
+                                        Nothing -> []
+                                        Just v -> v
+                               cls' = map (\ cl -> (cl,0)) $ clRSid cls sf r
+                            in addCtx rsid (Eos, s2Rs sups sf r, cls', Done ())
                          Just _ -> return ())
-           [0..length d-1] -- !!
+           [0..count-1]
    
 
 sInstrInit :: SInstr -> SId -> Dag -> Sup -> SvcodeP ()
 sInstrInit (SDef sid e) r d sup = 
   do sf <- getSF
-     let cls = clRSid (d !! sid) sf r 
-         suppliers = s2Rs (sup !! sid) sf r  
+     let cls = case lookup sid d of 
+                 Nothing -> []  -- should be an error
+                 Just v -> v 
+         cls' = clRSid cls sf r
+         sups = case lookup sid sup of 
+                  Nothing -> []
+                  Just v -> v 
+         sups' = s2Rs sups sf r  
      p <- sExpProcInit e     
-     addCtx (sf,r,sid) (Filling [], suppliers, map (\ cl -> (cl,0)) cls, p)  
+     addCtx (sf,r,sid) (Filling [], sups', map (\ cl -> (cl,0)) cls', p)  
 
 
 sInstrInit (WithCtrl ctrl ss code st) r d sup =
-  --do sf <- getSF
-  --   localCtrl (sf,r,ctrl) $ mapM_ (\i -> sInstrInit i r d sup) code 
- 
   do sf <- getSF
-     let ctrlR = (sf,r,ctrl)
-     (buf, consu, bs, p) <- lookupRSid ctrlR
-     updateCtx ctrlR (buf,consu,(((sf,r,-2),0),0):bs,p) 
-     --mapM_ (\i -> sInstrInit i d sup) code 
+     localCtrl (sf,r,ctrl) $ mapM_ (\i -> sInstrInit i r d sup) code 
+ 
+  --do sf <- getSF
+  --   let ctrlR = (sf,r,ctrl)
+  --   (buf, consu, bs, p) <- lookupRSid ctrlR
+  --   updateCtx ctrlR (buf,consu,(((sf,r,-2),0),0):bs,p) 
+  --   --mapM_ (\i -> sInstrInit i d sup) code 
 
 
 
 sInstrInit (SCall fid argSid retSids) r d _ = 
   do sf <- getSF
-     let retCls = map (\s -> if length d > s then d !! s else []) retSids 
+     let retCls = map (\s -> case lookup s d of 
+                               Nothing -> []
+                               Just v -> v) 
+                      retSids 
          retCls' = map (\s -> clRSid s sf r) retCls      
          retRSids = s2Rs retSids sf r
      zipWithM_ (\s cl -> addCtx s (Filling [], [], map (\c -> (c,0)) cl, rinOut))
        retRSids retCls'
-     
      (SFun argSid' st code fresh') <- lookupFId fid
      
-     let (sup,d) = geneSupDag code 0 fresh'
+     let (sup,d) = geneSupDag code 0
          
      oldCtx <- getCtx   
      ctrl <- getCtrl     
      setCtx []
      
      let newCtrl = (sf+1,head retSids,0)
-     localCtrl newCtrl $ localSF (sf+1) $ sInit code (head retSids) d sup 
+     localCtrl newCtrl $ localSF (sf+1) $ sInit code fresh' (head retSids) d sup 
 
      newCtx <- getCtx
      setCtx $ oldCtx ++ newCtx
@@ -473,28 +486,28 @@ sInstrInterp bufSize r (WithCtrl ctrl ss code st) =
          retSids = tree2Sids st 
      (buf,c,curs,p) <- lookupRSid ctrlR
      
-     --bs <- localCtrl (sf,r, ctrl) $ mapM (sInstrInterp bufSize r) code 
-     --return $ all (\x -> x) bs
+     bs <- localCtrl (sf,r, ctrl) $ mapM (sInstrInterp bufSize r) code 
+     return $ all (\x -> x) bs
 
-     case lookup ((sf,r,-2),0) curs of
-       Nothing -> -- the 1st value has already been read
-         do bs <- localCtrl ctrlR $ mapM (sInstrInterp bufSize r) code 
-            return $ all (\x -> x) bs              
-       Just 0 ->  
-         case buf of 
-           Eos ->  -- `ctrl` is empty
-             do let retRSids = s2Rs retSids sf r 
-                doneStream retRSids
-                updateCtx ctrlR (buf, c, delWithKey curs ((sf,r,-2),0), p) 
-                --costInc (1,1)  -- or (1,0) ?
-                return True
-           Filling [] ->  return False -- can't decide whether `ctrl` is emptbs y or not, keep waiting
-           _ ->  -- `ctrl` is nonempty
-             do let (sup,d) = geneSupDag code ctrl (maximum retSids)
-                localCtrl ctrlR $ mapM_ (\i -> sInstrInit i r d sup) code 
-                updateCtx ctrlR (buf, c, delWithKey curs ((sf,r,-2),0), p) 
-                bs <- localCtrl ctrlR $ mapM (sInstrInterp bufSize r) code 
-                return $ all (\x -> x) bs
+     --case lookup ((sf,r,-2),0) curs of
+     --  Nothing -> -- the 1st value has already been read
+     --    do bs <- localCtrl ctrlR $ mapM (sInstrInterp bufSize r) code 
+     --       return $ all (\x -> x) bs              
+     --  Just 0 ->  
+     --    case buf of 
+     --      Eos ->  -- `ctrl` is empty
+     --        do let retRSids = s2Rs retSids sf r 
+     --           doneStream retRSids
+     --           updateCtx ctrlR (buf, c, delWithKey curs ((sf,r,-2),0), p) 
+     --           --costInc (1,1)  -- or (1,0) ?
+     --           return True
+     --      Filling [] ->  return False -- can't decide whether `ctrl` is emptbs y or not, keep waiting
+     --      _ ->  -- `ctrl` is nonempty
+     --        do let (sup,d) = geneSupDag code ctrl
+     --           localCtrl ctrlR $ mapM_ (\i -> sInstrInit i r d sup) code 
+     --           updateCtx ctrlR (buf, c, delWithKey curs ((sf,r,-2),0), p) 
+     --           bs <- localCtrl ctrlR $ mapM (sInstrInterp bufSize r) code 
+     --           return $ all (\x -> x) bs
 
 
 sInstrInterp bufSize r (SCall fid _ retSids) =
@@ -540,10 +553,12 @@ updateWithKey (p:ps) k v =
   if fst p == k then (k,v): ps else p:updateWithKey ps k v
 
 
+-- if key `a` doesnt exist, then and such a key and value `b`
 addWithKey :: (Eq a) => [(a,[b])] -> a -> b -> [(a,[b])]
-addWithKey [] _ _ = []
+addWithKey [] a b = [(a,[b])]  
 addWithKey (p0@(k0,v0):ps) k v = 
-  if k0 == k then (k0,v0++[v]): ps else p0:addWithKey ps k v
+  if k0 == k then ((k0,v0++[v]): ps) else p0:addWithKey ps k v
+
 
 
 delWithKey :: (Eq a) => [(a,b)] -> a -> [(a,b)]
@@ -564,13 +579,13 @@ checkWithKey (p0@(k0,v0):ps) k v =
 -- 
 runSvcodePExp' :: SFun -> Int -> Int -> FEnv -> Either String String
 runSvcodePExp' (SFun [] st code fresh) count bs fe = 
-  do let (sup,d) = geneSupDag code 0 fresh
+  do let (sup,d) = geneSupDag code 0
          retSids = tree2Sids st
          retRSids = zip (s2Rs retSids 0 (head retSids)) [0..] 
          --retSids = zip (tree2Sids st) [0..]
-         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d $ zip retSids [0..]
          ctrl = (0,head retSids,0)
-     (_,_,ctx) <- rSvcodeP (sInit code (head retSids) d' sup) [] ctrl fe 0
+         d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d $ zip retSids [0..]
+     (_,_,ctx) <- rSvcodeP (sInit code fresh (head retSids) d' sup) [] ctrl fe 0
 
      (as, ctxs) <- roundN count (round1 (mapM (sInstrInterp bs (head retSids)) code) ctrl retRSids fe) [ctx]
                      ([map (\_ -> []) retSids]) 
@@ -619,18 +634,19 @@ round1 m ctrl st fe ctx as0 =
 
 ------ helper functions for generating the supplier table and DAG  ------
 
-geneSupDag :: [SInstr] -> SId -> Int -> (Sup,Dag)
-geneSupDag code ctrl count = 
-  let sup = geneSup code ctrl count
+geneSupDag :: [SInstr] -> SId -> (Sup,Dag)
+geneSupDag code c = 
+  let sup = geneSup code c
       dag = geneDagFromSup sup
    in (sup, dag)
 
 
-geneSup :: [SInstr] -> SId -> Int -> Sup
-geneSup code ctrl count = 
-  let (sids,_,chs) = unzip3 $ instrGeneSup code ctrl  
-      c = addEptSids (zip sids chs) 0 [] count
-   in snd $ unzip c 
+geneSup :: [SInstr] -> SId -> Sup
+geneSup code ctrl = 
+  let (sids,_,chs) = unzip3 $ instrGeneSup code ctrl
+   in zip sids chs   
+   --   c = addEptSids (zip sids chs) 0 [] count
+   --in snd $ unzip c 
 
 
 
@@ -638,28 +654,30 @@ instrGeneSup :: [SInstr] -> SId -> [(SId, String,[SId])]
 instrGeneSup [] _ = []
 instrGeneSup ((SDef sid sexp):ss') c = (sid,i,cl0) : instrGeneSup ss' c
     where (cl0, i) = getSupExp sexp c
+
 instrGeneSup ((WithCtrl newc _ ss _):ss') c = cl ++ instrGeneSup ss' c
     where cl = instrGeneSup ss newc
 
 instrGeneSup ((SCall f args rets):ss') c = instrGeneSup ss' c 
  
 
-addEptSids :: [(SId, a)] -> Int -> a -> Int -> [(SId,a)]
-addEptSids [] i a count = zip [i..count-1] (repeat a)
-addEptSids ch@(ch0@(c0,sids):ch') i a0 count  
-  | c0 == i = ch0 : addEptSids ch' (i+1) a0 count 
-  | c0 > i = (i,a0) : addEptSids ch (i+1) a0 count
-   -- | c0 < i   -- must be an error case
+--addEptSids :: [(SId, a)] -> Int -> a -> Int -> [(SId,a)]
+--addEptSids [] i a count = zip [i..count-1] (repeat a)
+--addEptSids ch@(ch0@(c0,sids):ch') i a0 count  
+--  | c0 == i = ch0 : addEptSids ch' (i+1) a0 count 
+--  | c0 > i = (i,a0) : addEptSids ch (i+1) a0 count
+--   -- | c0 < i   -- must be an error case
 
 
 geneDagFromSup :: Sup -> Dag
 geneDagFromSup sup = 
-  let sup' = zip [0..] sup
-      d0 = map (\(sid, _) -> (sid,[])) sup'
-      d = foldl (\d (sid, chs) -> 
-              foldl (\d' (ch,i) -> addWithKey d' ch (sid,i)) d $ zip chs [0..]
-            ) d0 sup'
-  in snd $ unzip d 
+  let (ss1,ss2) = unzip sup 
+      allSids = toList $ fromList $ ss1 ++ (concat ss2) 
+      d0 = map (\sid -> (sid,[])) allSids
+   in foldl (\d (sid, sups) -> 
+              foldl (\d' (s,i) -> addWithKey d' s (sid,i) ) d $ zip sups [0..]
+            ) d0 sup
+  
 
 
 
@@ -667,8 +685,8 @@ geneDagFromSup sup =
 -------- generate a file to visualize the DAG -------------
 --- use "graph-easy": graph-easy <inputfile> --png 
 geneDagFile (SFun _ ret code fresh) fname = 
-  do let ch0 = instrGeneSup code 0
-         ch1 = addEmptyStreams ch0 0 fresh
+  do let ch1 = instrGeneSup code 0
+         --ch1 = addEmptyStreams ch0 0 fresh
          ch2 = map (\(i, str,sids) -> 
                         ("S"++ show i ++ ": " ++ str, sids)) ch1
          ch3 = map (\(str, sids) -> (str, map (\i -> fst $ ch2!!i) sids)) ch2
@@ -688,13 +706,13 @@ drawedge :: String -> String -> Int -> String
 drawedge i j c = "[ " ++ i ++ " ] -- " ++ show c ++ " --> [ " ++ j ++ " ]\n"
 
 
-addEmptyStreams :: [(SId, String, [SId])] -> Int -> Int -> [(SId, String,[SId])]
-addEmptyStreams chs i count = 
-  let (sids, strs, sidss) = unzip3 chs  
-      chs' = addEptSids (zip sids (zip strs sidss)) i ("(empty stream)",[]) count 
-      (sids', strSids) = unzip chs'
-      (strs', sidss') = unzip strSids
-  in zip3 sids' strs' sidss' 
+--addEmptyStreams :: [(SId, String, [SId])] -> Int -> Int -> [(SId, String,[SId])]
+--addEmptyStreams chs i count = 
+--  let (sids, strs, sidss) = unzip3 chs  
+--      chs' = addEptSids (zip sids (zip strs sidss)) i ("(empty stream)",[]) count 
+--      (sids', strSids) = unzip chs'
+--      (strs', sidss') = unzip strSids
+--  in zip3 sids' strs' sidss' 
 
 -----------------
 

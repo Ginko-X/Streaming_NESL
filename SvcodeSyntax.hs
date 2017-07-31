@@ -35,7 +35,7 @@ data SInstr = SDef SId SExp  -- deriving Show
             | WithCtrl SId [SId] [SInstr] STree
             | SCall FId [SId] [SId]
 
-data SFun = SFun [SId] STree [SInstr] SId -- deriving Show 
+data SFun = SFun [SId] STree [SInstr] Int -- deriving Show 
 
 
 data OP = Uminus | Not  -- unary 
