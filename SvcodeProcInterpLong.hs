@@ -103,7 +103,8 @@ rrobin m ctx retRSids as0 (w0,s0) fe =
                                 return (a:a0,c)) 
                          ([],ctx') retRSids 
      let as' = zipWith (++) as0 (reverse as) 
-     if all (\x -> x) bs 
+     (res,_,_) <- rSvcodeP (mapM (\(s,_) -> isEos s) retRSids) ctx'' ctrl fe 0
+     if all (\x -> x) res 
        then return (as', (w0+w1,s0+s1), ctx'') 
        else if equalCtx ctx ctx'' 
             then do unlockCtx <- stealing ctx''  -- try stealing
@@ -332,7 +333,7 @@ sInstrInit (SCall fid argSid retSids) r d _ =
      connectRSIds (ctrl:argSidR) (fmCtrlR:fmArgsR)
      connectRSIds fmRetsR retRSids
      
--- pipeline [ s1 ] --- 0 --> [ s2 ]
+-- pipe [ s1 ] --- 0 --> [ s2 ]
 -- s1 is s2's only supplier
 connectRSIds :: [RSId] -> [RSId] -> SvcodeP ()
 connectRSIds [] [] = return ()
