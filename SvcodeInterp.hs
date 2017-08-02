@@ -159,7 +159,7 @@ sInstrInterp :: SInstr -> Svcode ()
 -- provide two kinds of eager interpreting solutions:
 sInstrInterp (SDef sid i) = 
   --sExpInterp i >>= addCtx sid   -- old eager interpreter 
-  sExpInterpProc i >>= addCtx sid -- transducer interpreter using Proc 
+  sExpInterpProc i >>= addCtx sid -- transducer interpreter
 
 
 sInstrInterp (WithCtrl c _ defs st) =
@@ -357,6 +357,9 @@ sExpInterp (Check s1 s2) =
       if v1 == v2 then returnInstrC [v1,v2] $ SBVal []
         else fail $ "streams are not identical:" ++ show v1 ++ "," ++ show v2
 
+sExpInterp (IsEmpty s1) = 
+   do v1'@(SBVal v1) <- lookupSid s1
+      returnInstrC [v1'] $ SBVal $ isEmpty True v1 
 
 
 
@@ -465,8 +468,9 @@ sExpInterpProc (PriSegInterS ss) =
 
 sExpInterpProc (SegMerge s1 s2) = svProc [s2,s1] segMergeProc (SBVal [])
  
-
 sExpInterpProc (Check s1 s2) = svProc [s1,s2] checkProc (SBVal []) 
+
+sExpInterpProc (IsEmpty s1) = svProc [s1] isEmptyProc (SBVal [])
 
 
 lookupOpA :: OP -> OpAEnv -> Svcode ([AVal] -> AVal, Type) 
@@ -495,6 +499,12 @@ svProc' sids proc i =
 
 --------------------------------------------------
 
+isEmpty :: Bool -> [Bool] -> [Bool]
+isEmpty _ [] = []
+isEmpty True (True:bs) = True : isEmpty True bs
+isEmpty True (False:bs) = False : isEmpty False bs 
+isEmpty False (True:bs) = isEmpty True bs 
+isEmpty False (False:bs) = isEmpty False bs 
 
 
 

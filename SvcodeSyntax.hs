@@ -27,7 +27,8 @@ data SExp = Ctrl
            | InterMergeS [SId]  
            | SegInterS [(SId,SId)] 
            | PriSegInterS [(SId,SId)] 
-           | Check SId SId       
+           | Check SId SId
+           | IsEmpty SId        
            deriving Show
          
 
@@ -173,6 +174,7 @@ getSupExp (PrimSegFlagDistr s1 s2 s3) _ = ([s2,s1,s3],"PrimSegFlagDistr")
 getSupExp (ToFlags s1) _ = ([s1], "ToFlags")
 getSupExp (Usum s1) _ = ([s1],"Usum")
 getSupExp (B2u s1) _ = ([s1],"B2u")
+getSupExp (IsEmpty s1) _ = ([s1],"IsEmpty")
 
 getSupExp (SegscanPlus s1 s2) _ = ([s2,s1],"SegscanPlus")
 getSupExp (ReducePlus s1 s2) _ = ([s2,s1],"ReducePlus")

@@ -127,7 +127,9 @@ bindM p@(PTup _ _) t = fail $ "Bad bindings: " ++ show p
 emit :: SExp -> SneslTrans SId
 emit i = SneslTrans $ \ sid _ -> Right (sid, [SDef sid i] ,sid+1)
 
+emitIs :: SExp -> SneslTrans STree
 emitIs i = do s <- emit i; return (IStr s)
+
 emitBs i = do s <- emit i; return (BStr s)
 
 
@@ -396,13 +398,7 @@ part (SStr t1 _) (SStr (BStr t2) f2) =
 
 
 empty :: STree -> SneslTrans STree
-empty (SStr t f) = 
-    do s1 <- emit (Usum f)
-       s2 <- emit (MapConst s1 (IVal 1))
-       s3 <- emit (ReducePlus s2 f)
-       s4 <- emit (Const (IVal 0))
-       s5 <- emitBs (MapTwo Equal s3 s4)
-       return s5
+empty (SStr _ f) = emitBs (IsEmpty f)
 
 
 the :: STree -> SneslTrans STree
@@ -450,6 +446,7 @@ mergeRecur trs@((SStr (IStr t) s):_) =
     emitIs (PriSegInterS $ map (\(SStr (IStr t) s) -> (t,s)) trs)
 
 mergeRecur trs@((SStr (BStr t) s):_) = 
+
     emitBs (PriSegInterS $ map (\(SStr (BStr t) s) -> (t,s)) trs)   
 
 mergeRecur trs@((SStr (PStr t1 t2) s):_) = 

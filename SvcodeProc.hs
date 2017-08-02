@@ -127,17 +127,26 @@ upackProc = p
                 BVal True -> uInOutx 1 >> rout (BVal True) >> p )
 
 
+-- read an unary and throw it away (can be Eos)
+uIn :: Int -> Proc ()
+uIn i = rin i (\x ->  
+          case x of 
+            BVal False -> uIn i
+            BVal True -> Done ())
+
+
+-- must read an unary and throw it away (no Eos)
 uInx :: Int -> Proc ()
 uInx i = do x <- rinx i 
             case x of 
               BVal False -> uInx i
               BVal True -> Done ()
 
-
+-- must read and output an unary (no Eos)
 uInOutx :: Int -> Proc ()
 uInOutx i = do x <- rinx i
                case x of 
-                 BVal False -> rout (BVal False) >> (uInOutx i)
+                 BVal False -> rout x >> (uInOutx i)
                  BVal True -> Done ()
 
 
@@ -342,6 +351,14 @@ priSegInterP (j,i) =
               BVal False -> rinx j >>= rout >> p
               BVal True -> Done ())
   in p   
+
+
+isEmptyProc :: Proc ()
+isEmptyProc = 
+  rin 0 (\x -> 
+    case x of 
+      BVal False -> uInx 0 >> rout x >> isEmptyProc 
+      BVal True -> rout x >> isEmptyProc)
 
 
 

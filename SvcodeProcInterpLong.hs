@@ -417,6 +417,7 @@ sExpProcInit (SegMerge _ _) = return segMergeProc
 
 sExpProcInit (Check _ _) = return checkProc
 
+sExpProcInit (IsEmpty _) = return isEmptyProc
 
 
 lookupOpA :: OP -> OpAEnv -> SvcodeP ([AVal] -> AVal)
