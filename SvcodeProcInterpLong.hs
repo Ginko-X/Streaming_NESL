@@ -542,7 +542,7 @@ sInstrInterp bufSize r (WithCtrl ctrl ins code st) =
          case buf of 
            Eos ->  -- `ctrl` is empty
              do let retRSids = s2Rs retSids sf r 
-                doneStream retRSids
+                doneStreams retRSids
                 updateCtx ctrlR (buf, c, delWithKey curs ((sf,r,-2),0), p) 
                 mapM_ (delRSClient ((sf,r,-3),0)) [(sf,r,i) | i <- ins]  -- delete pseudoclient
                 return True
@@ -567,7 +567,6 @@ sInstrInterp bufSize r (WithCtrl ctrl ins code st) =
                 mapM_ (delRSClient ((sf,r,-3),0)) [(sf,r,i) | i <- ins]  
                 zipWithM_ (\cl i -> addRSClient cl i) insClR [(sf,r,s) | s <- ins] 
                 
-                let retRSids = s2Rs retSids sf r 
                 bs <- localCtrl ctrlR $ mapM (sInstrInterp bufSize r) code 
                 return $ all (\x -> x) bs
 
@@ -587,11 +586,21 @@ sInstrInterp bufSize r (SCall fid _ retSids) =
      return $ all (\x -> x) bs
      
 
-doneStream :: [RSId] -> SvcodeP ()
-doneStream ss = 
-  mapM_ (\s -> do (_,sup, flags,_) <- lookupRSid s
-                  updateCtx s (Eos,sup, resetCur flags, Done ()))
-        ss  
+doneStreams :: [RSId] -> SvcodeP ()
+doneStreams rets = mapM_ doneStream rets
+
+doneStream :: RSId -> SvcodeP ()
+doneStream ret = 
+  do (_,sups, cs,_) <- lookupRSid ret
+     -- delete itself from its suppliers' client list
+     zipWithM_ (\s i -> delRSClient (ret,i) s) sups [0..] 
+     updateCtx ret (Eos, sups, resetCur cs, Done ())
+
+--doneStream :: [RSId] -> SvcodeP ()
+--doneStream rets = 
+--  mapM_ (\s -> do (_,sup, flags,_) <- lookupRSid s
+--                  updateCtx s (Eos,sup, resetCur flags, Done ()))
+--        rets  
 
 
 isEos :: RSId -> SvcodeP Bool

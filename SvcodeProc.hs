@@ -357,7 +357,7 @@ isEmptyProc :: Proc ()
 isEmptyProc = 
   rin 0 (\x -> 
     case x of 
-      BVal False -> uInx 0 >> rout x >> isEmptyProc 
+      BVal False -> rout x >> uInx 0 >> isEmptyProc 
       BVal True -> rout x >> isEmptyProc)
 
 

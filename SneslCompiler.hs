@@ -253,7 +253,7 @@ translate (RComp e0 e1) =
 
        newCtrl <- emit (Usum s2)
        (s3,defs) <- ctrlTrans $ localVEnv (concat binds) $ translate e0 
-       let imps = getImportSids newCtrl defs 
+       let imps = getImportSids newCtrl defs
        emitInstr (WithCtrl newCtrl imps defs s3)
        return (SStr s3 s2) 
 
