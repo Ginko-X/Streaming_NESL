@@ -473,7 +473,7 @@ sSIdInterp bufSize sid =
            Draining as -> 
              if allEnd bs (length as)
                then do updateCtx sid (Filling [], sups, resetCur bs, Pout a p')
-                       costInc (bufSize, 1)  -- cost work `bufSize`, step 1
+                       costInc (length as, 1)  -- cost work `bufSize`, step 1
                        sSIdInterp bufSize sid -- start filling
                else return False -- blocking 
 
