@@ -75,8 +75,7 @@ instance Show SInstr where
   show (WithCtrl sid ss instrs st) = "WithCtrl S" ++ show sid ++ " (import " 
         ++ show ss ++ "):"   ++ concat (map (("\n\t"++).show) instrs) 
         ++ "\n\tReturn: " ++ show st 
-  show (SCall f s1 s2) = "SCall " ++ f ++  "\n\tParameters: " 
-         ++ show s1 ++ "\n\tReturn: " ++ show s2
+  show (SCall f s1 s2) = "SCall " ++ f ++ " " ++ show s1 ++ " " ++ show s2
          
 
 instance Show SFun where
