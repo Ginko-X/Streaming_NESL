@@ -304,13 +304,13 @@ sInstrInit (WithCtrl ctrl ins code st) r d sup =
 
 
 sInstrInit (SCall fid argSid retSids) r d _ = 
-  do (SFun fmArgs st code fresh) <- lookupFId fid
+  do (SFun fmArgs st code count) <- lookupFId fid
      let fmRets = tree2Sids st      
          (fmSup,fmDag) = geneSupDag code 0 
 
      sf <- getSF
      let fmSf = sf +1 
-         fmR = head retSids
+         fmR = (r*count) + (head retSids)
          fmCtrlR = (fmSf,fmR,0) 
 
      
@@ -572,10 +572,10 @@ sInstrInterp bufSize r (WithCtrl ctrl ins code st) =
 
 
 sInstrInterp bufSize r (SCall fid _ retSids) =
-  do (SFun fmArgs st code _) <- lookupFId fid
+  do (SFun fmArgs st code count) <- lookupFId fid
      sf <- getSF
      let fmSF = sf+1 
-         fmR = head retSids
+         fmR = (r*count) + head retSids
          fmArgsR = s2Rs (0:fmArgs) fmSF fmR 
          fmCtrl = (fmSF,fmR,0)
      localCtrl fmCtrl $ localSF fmSF $ mapM (sSIdInterp bufSize) fmArgsR
