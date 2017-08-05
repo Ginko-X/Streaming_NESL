@@ -74,7 +74,7 @@ parseTop =  do d <- parseDef
             <|>
             do try (symbol ":bs ") 
                bs <- many1 digit
-               return $ TBs $ read bs                    
+               return $ TBs $ read bs
             <|>
             do try (symbol ":m ") 
                f <- many1 anyChar
@@ -128,7 +128,7 @@ parseAtom =  do s <- many1 digit
                 return $ Lit $ BVal True
              <|> 
              do symbol "F"
-                return $ Lit $ BVal False           
+                return $ Lit $ BVal False 
              <|> 
              do symbol "if"
                 e0 <- parseExp
@@ -162,15 +162,20 @@ parseAtom =  do s <- many1 digit
                      ((do symbol ","
                           es <- parseExp `sepBy1` (symbol ",")
                           symbol "}"  
-                          return $ Seq (e:es))                     
+                          return $ Seq (e:es))
                        <|>
                       (do symbol "}" 
                           return $ Seq [e])
                        <|>
                       (do symbol ":"  -- general ones
-                          qs <- parseQual `sepBy1` (symbol ";" <|> symbol ",")                        
-                          symbol "}"
-                          return $ GComp e qs)                        
+                          qs <- parseQual `sepBy1` (symbol ";" <|> symbol ",")
+                          (do symbol "}"
+                              return $ GComp e qs)
+                           <|>
+                           (do symbol "|"
+                               e2 <- parseExp
+                               symbol "}"
+                               return $ Call "concat" [GComp (RComp e e2) qs])) 
                        <|> 
                       (do symbol "|" -- restricted ones
                           e2 <- parseExp
@@ -275,6 +280,7 @@ parseComp = do e <- parseSum
                             e' <- parseSum
                             return $ (o e e'))
              where compop = do {symbol "=="; return $ binop "_eq"} <|>
+                            do {symbol "!="; return $ \x y -> Call "not" [Call "_eq" [x,y]]} <|>
                             do {symbol "<="; return $ binop "_leq"} <|>
                             do {symbol ">="; return $ \x y -> binop "_leq" y x} <|>
                             do {symbol "<"; return $ \x y -> Call "not" [Call "_leq" [y,x]]} <|>
@@ -292,12 +298,6 @@ parseDef =  do symbol "function"
                symbol "="
                e <- parseExp 
                return $ FDef fname args rettp e
-            -- <|>
-            --do symbol "def"
-            --   var <- parseVar
-            --   symbol "="
-            --   e <- parseExp
-            --   return $ EDef var e  
 
 
 parseDefs :: Parser [Def] 

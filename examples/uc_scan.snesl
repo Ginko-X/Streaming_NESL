@@ -3,24 +3,24 @@
 -- fibonacci number
 function fibo(x:int) :int = if x < 2 then 1 else fibo(x-1)+fibo(x-2)
 
--- !! Will deadlock with streaming interpreter
+-- !! Will deadlock with streaming interpreter when #v >= 8 (bs=1)
 -- unite-and-conquer (exclusive) scan
 -- only for a sequence with length of power of 2
 function ex_scan(v:{int}) : {int} =
     let is = scanExPlus({1 : x in v});
-        odds = concat({{x|not(i%2==0)} :  i in is, x in v});
-	evens = concat({{x|i%2 == 0} : i in is, x in v})
+        odds = {x: i in is, x in v | i%2 !=0};
+	evens ={x: i in is, x in v | i%2 ==0}
     in if empty(odds) then {0} else
         let ps = {x+y : x in odds, y in evens}
         in concat({{s,s+x} : s in ex_scan(ps), x in evens})
 
--- !! Will deadlock with streaming interpreter
+-- !! Will deadlock with streaming interpreter when #v >=4 (bs =1)
 -- unite-and-conquer (inclusive) scan
 -- only for a sequence with length of power of 2
 function in_scan(v:{int}) : {int} =
     let is = scanExPlus({1 : x in v});
-        odds = concat({{x|not(i%2==0)} :  i in is, x in v});
-	evens = concat({{x|i%2 == 0} : i in is, x in v})
+        odds = {x: i in is, x in v | i%2 !=0};
+	evens ={x: i in is, x in v | i%2 ==0}
     in if empty(odds) then evens else
        let ps = {x+y : x in odds, y in evens}
        in concat({{s-x,s} : s in in_scan(ps), x in odds})
@@ -30,8 +30,8 @@ function scanred(v:{int}, n:int) : ({int},int) =
     if n==1 then ({0}, the(v))
     else
       let is = scanExPlus({1 : x in v});
-          evens = concat({{x|i%2==0} :  i in is, x in v});
-          odds = concat({{x|not(i%2 == 0)} : i in is, x in v});
+          odds = {x: i in is, x in v | i%2 !=0};
+          evens ={x: i in is, x in v | i%2 ==0};
           ps = {x+y : x in evens, y in odds};
-         (ss,r) = scanred(ps,n/2)
+          (ss,r) = scanred(ps,n/2)
       in (concat({{s,s+x} : s in ss, x in evens}), r)
