@@ -1,4 +1,7 @@
 # Working Progress
++ Week 40 (31 Jul ~ 6 Aug)
+    + Bug fixes for recursion
+
 + Week 39 (24 Jul ~ 30 Jul)
     + Add recursions to the streaming interpreter [`SvcodeProcInterpLong.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProcInterpLong.hs)
         + modified to unfold functions during runtime
