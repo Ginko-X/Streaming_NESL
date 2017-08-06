@@ -20,8 +20,9 @@ type Svctx = [(RSId, SState)]
 type SState = (BufState, Suppliers, Clients, Proc ())
 
 data BufState = Filling [AVal] 
-              | Draining [AVal]
-              | Eos deriving (Show, Eq) 
+              | Draining [AVal] Bool 
+              deriving (Show, Eq) 
+
 
 type Suppliers = [RSId]  -- incoming edges
 type Clients  = [((RSId,Int), Int)] --outgoing edges
@@ -120,7 +121,7 @@ stealing :: Svctx -> Either String Svctx
 stealing [] = Left "Deadlock!"
 
 stealing ((sid, (Filling as@(a0:_), sup, bs, p)):ss) = 
-  Right $ (sid, (Draining as, sup,bs,p)) : ss 
+  Right $ (sid, (Draining as False, sup,bs,p)) : ss 
 
 stealing (s:ss) = stealing ss >>= (\ss' -> return (s:ss'))
 
@@ -145,16 +146,16 @@ lookupAval :: Svctx -> (RSId, Int) -> Either String ([AVal],Svctx)
 lookupAval ctx (s@(sf,r,sid),i) = 
   case lookup s ctx of 
       Nothing -> Left  $ "lookupAval: undefined stream " ++ show s  
-      Just (Draining a, c, bs, p) -> 
+      Just (Draining a b, c, bs, p) -> 
         if checkWithKey bs ((sf,r,-1),i) 0
         then let bs' = updateWithKey bs ((sf,r,-1),i) (length a)  
-                 ctx' = updateWithKey ctx s (Draining a, c, bs', p)
+                 ctx' = updateWithKey ctx s (Draining a b, c, bs', p)
              in Right (a, ctx')
         else Right ([],ctx)
       
       Just (Filling _, _,_, _) -> Right ([], ctx)
 
-      Just (Eos, _, _, _) -> Right ([], ctx)
+      --Just (Eos, _, _, _) -> Right ([], ctx)
 
 
 
@@ -430,6 +431,8 @@ lookupOpA op r =
 allEnd :: [((RSId,Int),Int)] -> Int -> Bool 
 allEnd bs len = all (\(_,c) -> c >= len) bs 
 
+allStart bs = all (\(_,c) -> c == 0) bs 
+
 
 resetCur :: [((RSId,Int),Int)] -> [((RSId,Int), Int)]
 resetCur bs = map (\(rsid, _) -> (rsid, 0)) bs 
@@ -440,69 +443,61 @@ sSIdInterp :: Int -> RSId -> SvcodeP Bool
 sSIdInterp bufSize sid = 
   do (buf, sups, bs, p) <- lookupRSid sid 
      case p of 
-       -- 1. Done 
        Done () -> 
          case buf of 
            -- 1.1 the last chunk, so must use stealing 
-           Filling as -> let buf' = if null as then Eos else Draining as 
-                         in do updateCtx sid (buf', sups, bs, Done()) 
-                               return True
-           
-           -- 1.2 just wait all clients finish reading its buffer
-           Draining as -> if allEnd bs (length as)
-                          then do updateCtx sid (Eos, sups, resetCur bs, Done ()) 
-                                  returnC (length as,1) True  -- add cost 
-                          else return True
-
-           -- 1.3 do nothing
-           Eos -> return True
-
-       -- 2. Pout
+           Filling as -> do if null as then costInc (0,0) else costInc (0,1) -- add cost            
+                            updateCtx sid (Draining as True, sups, bs, p) 
+                            return True   
+           Draining as True ->  return True
+           Draining as False -> do updateCtx sid (Draining as True, sups, bs, p) 
+                                   returnC (0,1) True  -- add cost 
+                              --if allStart bs -- may be not necessary 
+                              --  then do updateCtx sid (Draining as True, sups, bs, p) 
+                              --          returnC (0,1) True  -- add cost 
+                              --  else if allEnd bs (length as) 
+                              --        then do updateCtx sid (Draining as True, sups, bs, p) 
+                              --                returnC (0,1) True  -- add cost                 
+                              --        else return False
        Pout a p' ->  
          case buf of 
-           -- 2.1 fill the buffer until full 
-           -- and then switch to draining 
            Filling as -> do let buf' = if length as +1 >= bufSize  
-                                         then Draining $ as ++ [a] 
+                                         then Draining (as ++ [a]) False
                                          else Filling $ as ++ [a]
+                            costInc (1,0)
                             updateCtx sid (buf', sups, bs, p') 
                             sSIdInterp bufSize sid  
-
-           -- 2.2 only check if all clients have finished reading the buffer
-           -- if so, switch to filling
-           Draining as -> 
+           Draining as _ -> 
              if allEnd bs (length as)
-               then do updateCtx sid (Filling [], sups, resetCur bs, Pout a p')
-                       costInc (length as, 1)  -- cost work `bufSize`, step 1
+               then do updateCtx sid (Filling [], sups, resetCur bs, p)
+                       costInc (0, 1)  -- add cost
                        sSIdInterp bufSize sid -- start filling
-               else return False -- blocking 
+               else return False -- blocking           
+           --Draining as True -- impossible ??
 
-           -- 2.3 can not happen
-           Eos -> fail $ "Premature EOS "
-       
--- 3. Pin i p'
--- for simplicity, only try to read from the supplier and modify the cursor if
--- read successfully (so not necessary to distinguish between 3.2 & 3.3)
        Pin i p' -> 
          case buf of 
-           Eos -> fail $ "Premature EOS"  -- 3.1
-
-           _ ->   -- 3.2 & 3.3
+           _ ->  
              do (bufSup, supSup, flagSup,pSup) <- lookupRSid (sups!!i)
-                case lookup (sid,i) flagSup of -- find own cursor from supplier's clients
+                case lookup (sid,i) flagSup of 
                   Nothing -> fail $ show sid ++ " reads an undefined supplier " ++ show (sups!!i)
                   Just cursor -> 
-                    case bufSup of -- check the bufState of the supplier
-                      -- read a `Nothing`
-                      Eos -> do updateCtx sid (buf,sups,bs, p' Nothing) 
-                                sSIdInterp bufSize sid  -- loop 
-
-                      -- read unavailable, blocking
-                      Filling _ -> return False  
-                      
-                      Draining asSup -> 
+                    case bufSup of -- check the bufState of the supplier                    
+                      Filling _ -> return False -- read unavailable, blocking                      
+                      Draining asSup False ->   -- normal read
                         if cursor >= length asSup
                           then return False -- read blocking 
+                          else -- read successfully
+                            do let flagSup' = markRead flagSup (sid,i) cursor
+                               updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
+                               updateCtx sid (buf,sups,bs,p' (Just $ asSup !! cursor))
+                               costInc (1,0)  -- cost work 1, step 0
+                               sSIdInterp bufSize sid -- loop
+                      Draining asSup True ->   -- read the last chunk
+                        if cursor >= length asSup
+                          then 
+                            do updateCtx sid (buf,sups,bs,p' Nothing)
+                               sSIdInterp bufSize sid -- loop 
                           else -- read successfully
                             do let flagSup' = markRead flagSup (sid,i) cursor
                                updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
@@ -512,7 +507,6 @@ sSIdInterp bufSize sid =
 
 
 -- interpret an instruction
-
 sInstrInterp :: Int -> SId -> SInstr -> SvcodeP Bool
 sInstrInterp bufSize r def@(SDef sid _) = 
   do sf <- getSF
@@ -527,9 +521,6 @@ sInstrInterp bufSize r (WithCtrl ctrl ins code st) =
      let ctrlR = (sf,r,ctrl)
          retSids = tree2Sids st 
      (buf,c,curs,p) <- lookupRSid ctrlR
-     
-     --bs <- localCtrl (sf,r, ctrl) $ mapM (sInstrInterp bufSize r) code 
-     --return $ all (\x -> x) bs
 
      case lookup ((sf,r,-2),0) curs of
        Nothing -> -- the 1st value has already been read
@@ -540,7 +531,7 @@ sInstrInterp bufSize r (WithCtrl ctrl ins code st) =
                       return $ all (\x -> x) bs              
        Just 0 ->  
          case buf of 
-           Eos ->  -- `ctrl` is empty
+           Draining [] True ->  -- `ctrl` is empty
              do let retRSids = s2Rs retSids sf r 
                 doneStreams retRSids
                 updateCtx ctrlR (buf, c, delWithKey curs ((sf,r,-2),0), p) 
@@ -594,20 +585,14 @@ doneStream ret =
   do (_,sups, cs,_) <- lookupRSid ret
      -- delete itself from its suppliers' client list
      zipWithM_ (\s i -> delRSClient (ret,i) s) sups [0..] 
-     updateCtx ret (Eos, sups, resetCur cs, Done ())
+     updateCtx ret (Draining [] True, sups, resetCur cs, Done ())
 
---doneStream :: [RSId] -> SvcodeP ()
---doneStream rets = 
---  mapM_ (\s -> do (_,sup, flags,_) <- lookupRSid s
---                  updateCtx s (Eos,sup, resetCur flags, Done ()))
---        rets  
-
-
+-- ???
 isEos :: RSId -> SvcodeP Bool
 isEos sid = 
-  do (buf, _, _,_) <- lookupRSid sid
-     case buf of 
-       Eos -> return True
+  do (buf, _, _, p) <- lookupRSid sid
+     case p of 
+       Done () -> return True
        _ -> return False
 
 
@@ -678,7 +663,7 @@ roundN :: Int -> (Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx)) ->
             [Svctx] -> [[[AVal]]]  -> Either String ([[[AVal]]], [Svctx])
 roundN 0 f ctxs as = Right (as,ctxs) 
 roundN c f ctxs as = 
-  if all (\(_,(buf,_, _,p)) -> buf == Eos) (head ctxs)
+  if all (\(_,(buf,_, _,p)) -> p == Done ()) (head ctxs)  -- ??
     then return (as,ctxs)
     else
       do (as',ctx') <- f (head ctxs) (head as)
