@@ -1,6 +1,8 @@
 # Working Progress
 + Week 40 (31 Jul ~ 6 Aug)
-    + Bug fixes for recursion
+    + bug fixes for recursion
+    + bug fixes for the cost model of the streaming interpreter
+    + for details see [#20](https://github.com/Ginko-X/Streaming_NESL/issues/20)
 
 + Week 39 (24 Jul ~ 30 Jul)
     + Add recursions to the streaming interpreter [`SvcodeProcInterpLong.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeProcInterpLong.hs)
