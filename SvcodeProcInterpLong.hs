@@ -65,10 +65,10 @@ runSvcodePExp (SFun [] st code fresh) bs _ fe =
          ctrl = (0,head retSids,0) 
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d 
                       $ zip retSids [0..]
-     (_,(w0,s0), ctx) <- rSvcodeP (sInit code (head retSids) d' sup) [] ctrl fe 0
+     (_,_, ctx) <- rSvcodeP (sInit code (head retSids) d' sup) [] ctrl fe 0
      (as,(w1,s1), _) <- rrobin (mapM_ (sInstrInterp bs (head retSids)) code) 
-                           ctx retRSids (map (\_ -> []) retSids) (w0,s0) fe
-     return (fst $ constrSv st as,(w0+w1,s0+s1))
+                           ctx retRSids (map (\_ -> []) retSids) (0,0) fe
+     return (fst $ constrSv st as,(w1,s1))
 
 
 addClient :: Dag -> SId -> (SId,Int) -> Dag
@@ -102,14 +102,14 @@ rrobin m ctx retRSids as0 (w0,s0) fe =
                              do (a,c) <- lookupAval c0 s
                                 return (a:a0,c)) 
                          ([],ctx') retRSids 
-     let as' = zipWith (++) as0 (reverse as) 
-     (res,_,_) <- rSvcodeP (mapM (\(s,_) -> isDone s) retRSids) ctx'' ctrl fe 0
-     if all (\x -> x) res 
-       then return (as', (w0+w1,s0+s1), ctx'') 
+     let as' = zipWith (++) as0 (reverse as)
+         work = w0+w1
+     if all (\(_,(_,_,_,p)) -> p == Done ()) ctx'' 
+       then return (as',(work, s0+s1) , ctx'') 
        else if equalCtx ctx ctx'' 
             then do unlockCtx <- stealing ctx''  -- try stealing
-                    rrobin m unlockCtx retRSids as' (w0+w1,s0+s1) fe
-            else rrobin m ctx'' retRSids as' (w0+w1,s0+s1) fe
+                    rrobin m unlockCtx retRSids as' (work,s0+s1+1) fe
+            else rrobin m ctx'' retRSids as' (work,s0+s1) fe
 
 
 replaceSid :: RSId -> SId -> RSId
@@ -443,24 +443,23 @@ sInstrInterp bufSize r (WithCtrl ctrl ins code st) =
      (buf,c,curs,p) <- lookupRSid ctrlR
 
      case lookup ((sf,r,-2),0) curs of
-       Nothing -> -- the 1st output of ctrl has already been read
-         do bs <- mapM isDone [(sf,r,s) | s <- retSids]
-            if foldl (&&) True bs
-              then return ()
-              else localCtrl ctrlR $ mapM_ (sInstrInterp bufSize r) code
+       Nothing -> -- WithCtrl already unfolded
+         localCtrl ctrlR $ mapM_ (sInstrInterp bufSize r) code
 
        Just 0 ->  
          case buf of 
            Draining [] True ->  -- `ctrl` is empty
-             do let retRSids = s2Rs retSids sf r 
-                doneStreams retRSids
-                updateCtx ctrlR (buf, c, delWithKey curs ((sf,r,-2),0), p)
-                -- delete pseudoclient 
-                mapM_ (delRSClient ((sf,r,-3),0)) [(sf,r,i) | i <- ins]  
+             do bs <- mapM isDone [(sf,r,s) | s <- retSids]
+                if foldl (&&) True bs 
+                 then return ()
+                 else do let retRSids = s2Rs retSids sf r 
+                         doneStreams retRSids
+                         -- delete pseudoclient 
+                         mapM_ (delRSClient ((sf,r,-3),0)) [(sf,r,i) | i<-ins]
            
            Filling [] ->  return () -- keep waiting
 
-           _ ->  -- `ctrl` is nonempty:  unfold `code`
+           _ ->  -- `ctrl` is nonempty: unfold `code`
              do let (sup,d) = geneSupDag code ctrl
                 localCtrl ctrlR $ mapM_ (\i -> sInstrInit i r d sup) code 
                 (_,_,curs,_) <- lookupRSid ctrlR 
