@@ -1,10 +1,10 @@
 {- SVCODE Streaming Interpreter with arbitrary buffer size -}
 
-module SvcodeProcInterpLong where
+module SvcodeSXInterp where
 
 import SvcodeSyntax
 import SneslSyntax
-import SvcodeProc
+import SvcodeXducer
 import SneslCompiler (tree2Sids)
 
 import Control.Monad
@@ -15,7 +15,7 @@ type RSId = (Int,SId,SId)
 
 type Svctx = [(RSId, SState)]
 
-type SState = (BufState, Suppliers, Clients, Proc ())
+type SState = (BufState, Suppliers, Clients, Xducer ())
 
 data BufState = Filling [AVal] 
               | Draining [AVal] Bool 
@@ -126,20 +126,20 @@ stealing ((sid, (Filling as@(a0:_), sup, bs, p)):ss) =
 stealing (s:ss) = stealing ss >>= (\ss' -> return (s:ss'))
 
 
--- not 100% correct because Procs are not comparable
+-- not 100% correct because Xducers are not comparable
 equalCtx :: Svctx -> Svctx -> Bool
 equalCtx [] [] = True
 equalCtx ((s1,(buf1,c1,bs1,p1)):ctx1) ((s2,(buf2,c2,bs2,p2)):ctx2) =         
   if (s1 == s2) && (buf1 == buf2) && (c1 == c2) && (bs1 == bs2) 
-       && (compProc p1 p2)
+       && (compXducer p1 p2)
     then equalCtx ctx1 ctx2 
     else False 
 
-compProc :: Proc () -> Proc () -> Bool
-compProc (Pin i1 _) (Pin i2 _) = i1 == i2 
-compProc (Pout a p1) (Pout b p2) = (a == b) && (compProc p1 p2)
-compProc (Done a) (Done b) = a == b 
-compProc _ _ = False
+compXducer :: Xducer () -> Xducer () -> Bool
+compXducer (Pin i1 _) (Pin i2 _) = i1 == i2 
+compXducer (Pout a p1) (Pout b p2) = (a == b) && (compXducer p1 p2)
+compXducer (Done a) (Done b) = a == b 
+compXducer _ _ = False
 
 
 lookupAval :: Svctx -> (RSId, Int) -> Either String ([AVal],Svctx)
@@ -252,7 +252,7 @@ sInstrInit (SDef sid e) r d sup =
   do sf <- getSF
      clR <- getClientR d sf r sid 
      supR <- getSupR sup sf r sid     
-     p <- sExpProcInit e  
+     p <- sExpXducerInit e  
      ctx <- getCtx
      case lookup (sf,r,sid) ctx of 
        Nothing -> addCtx (sf,r,sid) (Filling [], supR, curStart clR, p)
@@ -320,46 +320,46 @@ connectRSIds _ _ = fail $ "connectRSIds: RSId lengths mismatch."
 
 
 ---- SExpression init
-sExpProcInit :: SExp -> SvcodeP (Proc ())
-sExpProcInit Ctrl = return $ rout (BVal False)
-sExpProcInit EmptyCtrl = return $ Done () 
-sExpProcInit (Const a) = return (mapConst a)
-sExpProcInit (MapConst _ a) = return (mapConst a)
-sExpProcInit (Usum _) = return usumProc
-sExpProcInit (ToFlags _) = return toFlags 
+sExpXducerInit :: SExp -> SvcodeP (Xducer ())
+sExpXducerInit Ctrl = return $ rout (BVal False)
+sExpXducerInit EmptyCtrl = return $ Done () 
+sExpXducerInit (Const a) = return (mapConst a)
+sExpXducerInit (MapConst _ a) = return (mapConst a)
+sExpXducerInit (Usum _) = return usumXducer
+sExpXducerInit (ToFlags _) = return toFlags 
 
-sExpProcInit (MapTwo op _ _) = 
+sExpXducerInit (MapTwo op _ _) = 
   do fop <- lookupOpA op opAEnv0
      return (mapTwo fop)
 
-sExpProcInit (MapOne op _) = 
+sExpXducerInit (MapOne op _) = 
   do fop <- lookupOpA op opAEnv0
      return (mapOne fop)
 
-sExpProcInit (Pack _ _) = return packProc
-sExpProcInit (UPack _ _) = return upackProc
-sExpProcInit (Distr _ _) = return pdistProc
-sExpProcInit (SegDistr _ _ ) = return segDistrProc
-sExpProcInit (SegFlagDistr _ _ _) = return segFlagDistrProc
-sExpProcInit (PrimSegFlagDistr _ _ _) = return primSegFlagDistrProc
-sExpProcInit (B2u _) = return b2uProc
-sExpProcInit (SegscanPlus _ _) = return segScanPlusProc 
-sExpProcInit (ReducePlus _ _) = return segReducePlusProc
-sExpProcInit (SegConcat _ _) = return segConcatProc
-sExpProcInit (USegCount _ _) = return uSegCountProc
-sExpProcInit (InterMergeS ss) = return (interMergeProc $ length ss)
+sExpXducerInit (Pack _ _) = return packXducer
+sExpXducerInit (UPack _ _) = return upackXducer
+sExpXducerInit (Distr _ _) = return pdistXducer
+sExpXducerInit (SegDistr _ _ ) = return segDistrXducer
+sExpXducerInit (SegFlagDistr _ _ _) = return segFlagDistrXducer
+sExpXducerInit (PrimSegFlagDistr _ _ _) = return primSegFlagDistrXducer
+sExpXducerInit (B2u _) = return b2uXducer
+sExpXducerInit (SegscanPlus _ _) = return segScanPlusXducer 
+sExpXducerInit (ReducePlus _ _) = return segReducePlusXducer
+sExpXducerInit (SegConcat _ _) = return segConcatXducer
+sExpXducerInit (USegCount _ _) = return uSegCountXducer
+sExpXducerInit (InterMergeS ss) = return (interMergeXducer $ length ss)
 
-sExpProcInit (SegInterS ss) = 
+sExpXducerInit (SegInterS ss) = 
   let chs = zipWith (\_ x -> (x*2,x*2+1)) ss [0..] 
-  in return $ segInterProc chs 
+  in return $ segInterXducer chs 
 
-sExpProcInit (PriSegInterS ss) = 
+sExpXducerInit (PriSegInterS ss) = 
   let chs = zipWith (\_ x -> (x*2,x*2+1)) ss [0..] 
-  in return $ priSegInterProc chs 
+  in return $ priSegInterXducer chs 
 
-sExpProcInit (SegMerge _ _) = return segMergeProc 
-sExpProcInit (Check _ _) = return checkProc
-sExpProcInit (IsEmpty _) = return isEmptyProc
+sExpXducerInit (SegMerge _ _) = return segMergeXducer 
+sExpXducerInit (Check _ _) = return checkXducer
+sExpXducerInit (IsEmpty _) = return isEmptyXducer
 
 
 lookupOpA :: OP -> OpAEnv -> SvcodeP ([AVal] -> AVal)

@@ -5,16 +5,12 @@ import SneslSyntax
 import SvcodeSyntax
 import SneslTyping
 import DataTrans
-
--- provide two kinds of SVCODE eager interperter inside
 import SvcodeInterp
 
--- provide three streaming SVCODE interpreters:
--- 1. bufferSize 1, simple loop-scheduler
--- 2. arbitrary buffer size, full-filled loop-scheduling with stealing
--- 3. arbitrary buffer size, two-phase scheduler
---import SvcodeProcInterp 
-import SvcodeProcInterpLong 
+-- arbitrary buffer size, full-filled loop-scheduling with stealing
+import SvcodeSXInterp 
+
+-- arbitrary buffer size, old two-phase scheduling
 --import SvcodeSInterp  
 
 

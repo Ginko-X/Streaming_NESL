@@ -1,18 +1,18 @@
 {- SVCODE transducers -}
 
-module SvcodeProc where
+module SvcodeXducer where
 
 import SvcodeSyntax
 import SneslSyntax
 import DataTrans (i2flags)
 
 
-data Proc a = Pin Int (Maybe AVal -> Proc a)  
-            | Pout AVal (Proc a)  
+data Xducer a = Pin Int (Maybe AVal -> Xducer a)  
+            | Pout AVal (Xducer a)  
             | Done a 
 
 
-instance Monad Proc where
+instance Monad Xducer where
   return a = Done a
 
   (Pin i g) >>= f = Pin i (\x -> g x >>= f) 
@@ -20,21 +20,21 @@ instance Monad Proc where
   Done a >>= f = f a 
 
 
-instance (Show a) => Show (Proc a) where
-  show (Pin i p) = "<Pin " ++ show i ++ " <Proc>>"
+instance (Show a) => Show (Xducer a) where
+  show (Pin i p) = "<Pin " ++ show i ++ " <Xducer>>"
   show (Pout a p) = "<Pout " ++ show a ++ " " ++ show p ++ "> "
   show (Done a) = "<Done " ++ show a ++ "> "
 
 
-instance Functor Proc where
+instance Functor Xducer where
   fmap f t = t >>= return . f
 
-instance Applicative Proc where
+instance Applicative Xducer where
   pure = return
   tf <*> ta = tf >>= \f -> fmap f ta
 
 
-instance (Eq a) => Eq (Proc a) where
+instance (Eq a) => Eq (Xducer a) where
   Done a == Done b = a == b
   Pout a p1 == Pout b p2 = (a == b) && (p1 == p2)
   _ == _ = False  -- ??
@@ -42,42 +42,42 @@ instance (Eq a) => Eq (Proc a) where
 
 
 
-rin :: Int -> (AVal -> Proc ()) -> Proc ()
+rin :: Int -> (AVal -> Xducer ()) -> Xducer ()
 rin i p = Pin i (\x ->
   case x of 
     Nothing -> Done ()
     Just v -> p v)
 
 -- Eos is not allowed to read 
-rinx :: String -> Int -> Proc AVal
+rinx :: String -> Int -> Xducer AVal
 rinx proc i = Pin i (\ x -> 
   case x of 
     Nothing -> error $ proc ++ " premature end of stream" 
     Just a -> Done a)
 
 
-rout :: AVal -> Proc ()
+rout :: AVal -> Xducer ()
 rout a = Pout a (Done ())
 
 
-rinOut :: Proc ()
+rinOut :: Xducer ()
 rinOut = rin 0 (\x -> rout x >> rinOut)
  
 
-mapConst :: AVal -> Proc ()
+mapConst :: AVal -> Xducer ()
 mapConst a = p
   where p = rin 0 (\x -> rout a >> p) 
 
 
 
-toFlags :: Proc ()
+toFlags :: Xducer ()
 toFlags = p 
   where p = rin 0 (\(IVal a) -> mapM_ rout [BVal b | b <- i2flags a] >> p)
 
 
 
-usumProc :: Proc ()
-usumProc = p
+usumXducer :: Xducer ()
+usumXducer = p
   where p = rin 0 (\x -> 
               case x of 
                 BVal False -> rout (BVal False) >> p 
@@ -85,7 +85,7 @@ usumProc = p
 
 
 -- the 2nd supplier stream can not be shorter (but can be longer ??!) than 1st
-mapTwo :: ([AVal] -> AVal) -> Proc ()
+mapTwo :: ([AVal] -> AVal) -> Xducer ()
 mapTwo op = p 
   where p = rin 0 (\x -> 
               do y <- rinx "mapTwo" 1 
@@ -94,37 +94,37 @@ mapTwo op = p
 
 
 
-mapOne :: ([AVal] -> AVal) -> Proc ()
+mapOne :: ([AVal] -> AVal) -> Xducer ()
 mapOne op = p 
   where p = rin 0 (\x -> rout (op [x]) >> p)
 
 
 
-checkProc :: Proc ()
-checkProc = rin 0 (\x -> 
-              do y <- rinx "checkProc" 1 
+checkXducer :: Xducer ()
+checkXducer = rin 0 (\x -> 
+              do y <- rinx "checkXducer" 1 
                  if x == y 
-                   then checkProc 
-                   else error "checkProc: runtime error")
+                   then checkXducer 
+                   else error "checkXducer: runtime error")
 
 
 
-packProc :: Proc ()
-packProc =  rin 0 (\x -> 
+packXducer :: Xducer ()
+packXducer =  rin 0 (\x -> 
               case x of 
-                BVal False -> rinx "packProc" 1 >> packProc
-                BVal True -> rinx "packProc" 1 >>= rout >> packProc)
+                BVal False -> rinx "packXducer" 1 >> packXducer
+                BVal True -> rinx "packXducer" 1 >>= rout >> packXducer)
 
 
-upackProc :: Proc ()
-upackProc = rin 0 (\x -> 
+upackXducer :: Xducer ()
+upackXducer = rin 0 (\x -> 
               case x of 
-                BVal False -> uInx 1 >> upackProc
-                BVal True -> uInOutx 1 >> rout (BVal True) >> upackProc)
+                BVal False -> uInx 1 >> upackXducer
+                BVal True -> uInOutx 1 >> rout (BVal True) >> upackXducer)
 
 
 -- read an unary and throw it away (can be Eos)
-uIn :: Int -> Proc ()
+uIn :: Int -> Xducer ()
 uIn i = rin i (\x ->  
           case x of 
             BVal False -> uIn i
@@ -132,30 +132,30 @@ uIn i = rin i (\x ->
 
 
 -- must read an unary and throw it away (no Eos)
-uInx :: Int -> Proc ()
+uInx :: Int -> Xducer ()
 uInx i = do x <- rinx "uInx" i 
             case x of 
               BVal False -> uInx i
               BVal True -> Done ()
 
 -- must read and output an unary (no Eos)
-uInOutx :: Int -> Proc ()
+uInOutx :: Int -> Xducer ()
 uInOutx i = do x <- rinx "uInOutx" i
                case x of 
                  BVal False -> rout x >> (uInOutx i)
                  BVal True -> Done ()
 
 
-pdistProc :: Proc ()
-pdistProc = p
+pdistXducer :: Xducer ()
+pdistXducer = p
   where p = rin 0 (\x -> 
-              do y <- rinx "pdistProc" 1 
+              do y <- rinx "pdistXducer" 1 
                  case y of 
                    BVal False -> rout x >> (uOutx 1 x) >> p 
                    BVal True -> p)
  
 
-uOutx :: Int -> AVal -> Proc ()
+uOutx :: Int -> AVal -> Xducer ()
 uOutx i a = do x <- rinx "uOutx" i
                case x of 
                  BVal False -> rout a >> (uOutx i a)
@@ -163,38 +163,38 @@ uOutx i a = do x <- rinx "uOutx" i
 
 
 
-segDistrProc :: Proc ()
-segDistrProc = p 
+segDistrXducer :: Xducer ()
+segDistrXducer = p 
   where p = do vs <- uRecord 0
                if null vs then Done ()
                else  
-                 do y <- rinx "segDistrProc" 1
+                 do y <- rinx "segDistrXducer" 1
                     case y of
                       BVal False -> mapM_ rout vs >> uOutsx 1 vs >> p 
                       BVal True -> p
 
 
 
-segFlagDistrProc :: Proc ()
-segFlagDistrProc = p []
+segFlagDistrXducer :: Xducer ()
+segFlagDistrXducer = p []
   where p vs = rin 0 (\x -> 
                  case x of 
                    BVal False -> do vs' <- uRecordx 1; p (vs++vs')
                    BVal True -> 
-                     do y <- rinx "segFlagDistrProc" 2
+                     do y <- rinx "segFlagDistrXducer" 2
                         case y of 
                           BVal False -> mapM_ rout vs >> uOutsx 2 vs >> (p [])
                           BVal True -> p [])
 
 
 
-primSegFlagDistrProc :: Proc ()
-primSegFlagDistrProc = p []
+primSegFlagDistrXducer :: Xducer ()
+primSegFlagDistrXducer = p []
   where p vs = rin 0 (\x -> 
                  case x of 
-                   BVal False -> do y <- rinx "primSegFlagDistrProc" 1; p (vs ++ [y])
+                   BVal False -> do y <- rinx "primSegFlagDistrXducer" 1; p (vs ++ [y])
                    BVal True -> 
-                     do y <- rinx "primSegFlagDistrProc" 2
+                     do y <- rinx "primSegFlagDistrXducer" 2
                         case y of 
                           BVal False -> mapM_ rout vs >> uOutsx 2 vs >> (p [])
                           BVal True -> p [])
@@ -202,7 +202,7 @@ primSegFlagDistrProc = p []
 
 
 -- read in and output a unary (without the True flag)
-uRecord :: Int -> Proc [AVal]
+uRecord :: Int -> Xducer [AVal]
 uRecord i =
   let p vs = Pin i (\x -> 
                case x of 
@@ -212,7 +212,7 @@ uRecord i =
   in (p [])
 
 
-uRecordx :: Int -> Proc [AVal]
+uRecordx :: Int -> Xducer [AVal]
 uRecordx i =
   let p vs = do x <- rinx "uRecordx" i 
                 case x of 
@@ -223,15 +223,15 @@ uRecordx i =
 
 -- repeat `as` until read a `True` from channel `i` 
 -- and don't allow Eos when reading channel `i` 
-uOutsx :: Int -> [AVal] -> Proc ()
+uOutsx :: Int -> [AVal] -> Xducer ()
 uOutsx i as = do x <- rinx "uOutsx" i        
                  case x of 
                    BVal False -> mapM_ rout as >> (uOutsx i as)
                    BVal True -> Done ()
 
 
-b2uProc :: Proc ()
-b2uProc = p 
+b2uXducer :: Xducer ()
+b2uXducer = p 
   where p = rin 0 (\x -> 
               case x of 
                 BVal True -> rout (BVal False) >> rout (BVal True) >> p 
@@ -239,34 +239,34 @@ b2uProc = p
 
 
 
-segScanPlusProc :: Proc ()
-segScanPlusProc = p 0 
+segScanPlusXducer :: Xducer ()
+segScanPlusXducer = p 0 
   where p acc = rin 0 (\x -> 
                   case x of 
                     BVal True -> p 0
                     BVal False -> 
-                      do y <- rinx "segScanPlusProc" 1 
+                      do y <- rinx "segScanPlusXducer" 1 
                          case y of 
                            IVal a -> rout (IVal acc) >> p (a+acc)
-                           _ -> error "segScanPlusProc: read some non-integer")
+                           _ -> error "segScanPlusXducer: read some non-integer")
 
 
 
-segReducePlusProc :: Proc ()
-segReducePlusProc = 
+segReducePlusXducer :: Xducer ()
+segReducePlusXducer = 
   let p acc = rin 0 (\x -> 
                 case x of 
                   BVal True -> rout (IVal acc) >> (p 0)
                   BVal False -> 
-                    do y <- rinx "segReducePlusProc" 1 
+                    do y <- rinx "segReducePlusXducer" 1 
                        case y of 
                          IVal a -> p (acc + a)
-                         _ -> error "segReducePlusProc: read some non-integer")
+                         _ -> error "segReducePlusXducer: read some non-integer")
   in (p 0)
 
 
-segConcatProc :: Proc ()
-segConcatProc = 
+segConcatXducer :: Xducer ()
+segConcatXducer = 
   let p = rin 0 (\x -> 
             case x of 
               BVal False -> uInOutx 1 >> p 
@@ -274,13 +274,13 @@ segConcatProc =
   in p  
                 
 
-uSegCountProc :: Proc ()
-uSegCountProc = 
+uSegCountXducer :: Xducer ()
+uSegCountXducer = 
   let p = rin 0 (\x -> 
             case x of 
               BVal True -> rout (BVal True) >> p
               BVal False -> 
-                do y <- rinx "uSegCountProc" 1
+                do y <- rinx "uSegCountXducer" 1
                    case y of 
                      BVal False -> p 
                      BVal True -> rout (BVal False) >> p)
@@ -290,8 +290,8 @@ uSegCountProc =
 
 
 
-segMergeProc :: Proc ()
-segMergeProc = 
+segMergeXducer :: Xducer ()
+segMergeXducer = 
   let p = rin 0 (\x -> 
             case x of 
               BVal False -> uInOutx 1 >> p
@@ -299,8 +299,8 @@ segMergeProc =
   in p 
 
 --1
-interMergeProc :: Int -> Proc ()
-interMergeProc c = 
+interMergeXducer :: Int -> Xducer ()
+interMergeXducer c = 
   let p = rin 0 (\x -> 
             case x of 
               BVal True -> mapM_ uInOutx [1..c-1] >> rout (BVal True) >> p       
@@ -311,8 +311,8 @@ interMergeProc c =
   in p
 
 --2
-segInterProc :: [(Int,Int)] -> Proc ()
-segInterProc cs = 
+segInterXducer :: [(Int,Int)] -> Xducer ()
+segInterXducer cs = 
   let (j,i) = head cs 
       p = rin i (\x -> 
             case x of 
@@ -321,7 +321,7 @@ segInterProc cs =
    in p      
 
 
-segInterP :: (Int, Int) -> Proc ()
+segInterP :: (Int, Int) -> Xducer ()
 segInterP (j,i) = 
   let p = rin i (\x -> 
             case x of 
@@ -330,17 +330,17 @@ segInterP (j,i) =
   in p 
 
 --3
-priSegInterProc :: [(Int, Int)] -> Proc ()
-priSegInterProc cs = 
+priSegInterXducer :: [(Int, Int)] -> Xducer ()
+priSegInterXducer cs = 
   let (j,i) = head cs 
       p = rin i (\x -> 
             case x of 
-              BVal False -> rinx "priSegInterProc" j >>= rout >> p 
+              BVal False -> rinx "priSegInterXducer" j >>= rout >> p 
               BVal True -> mapM_ priSegInterP (tail cs) >> p )
       in p 
 
 
-priSegInterP :: (Int, Int) -> Proc ()
+priSegInterP :: (Int, Int) -> Xducer ()
 priSegInterP (j,i) = 
   let p = rin i (\x -> 
             case x of 
@@ -349,27 +349,27 @@ priSegInterP (j,i) =
   in p   
 
 
-isEmptyProc :: Proc ()
-isEmptyProc = 
+isEmptyXducer :: Xducer ()
+isEmptyXducer = 
   rin 0 (\x -> 
     case x of 
-      BVal False -> rout x >> uInx 0 >> isEmptyProc 
-      BVal True -> rout x >> isEmptyProc)
+      BVal False -> rout x >> uInx 0 >> isEmptyXducer 
+      BVal True -> rout x >> isEmptyXducer)
 
 
 
 -------------
 
-evalProc :: Proc () -> [SvVal] -> SvVal -> SvVal
-evalProc (Pin i p) ss s = 
+evalXducer :: Xducer () -> [SvVal] -> SvVal -> SvVal
+evalXducer (Pin i p) ss s = 
   let (a, tailS) = (pread $ ss !! i )
       ss' =  updateList ss i tailS
-   in evalProc (p a) ss' s
+   in evalXducer (p a) ss' s
 
-evalProc (Pout a p) ss s = 
-  evalProc p ss (pwrite a s) 
+evalXducer (Pout a p) ss s = 
+  evalXducer p ss (pwrite a s) 
 
-evalProc (Done ()) _ s = reverseSv s 
+evalXducer (Done ()) _ s = reverseSv s 
 
 
 

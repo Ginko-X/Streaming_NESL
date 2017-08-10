@@ -7,7 +7,7 @@ import SneslSyntax
 import SneslCompiler (tree2Sids)
 import DataTrans (i2flags)
 import SneslInterp (flags2len, seglist, wrapWork)
-import SvcodeProc
+import SvcodeXducer
 
 import Data.List (transpose)
 
@@ -159,7 +159,7 @@ sInstrInterp :: SInstr -> Svcode ()
 -- provide two kinds of eager interpreting solutions:
 sInstrInterp (SDef sid i) = 
   --sExpInterp i >>= addCtx sid   -- old eager interpreter 
-  sExpInterpProc i >>= addCtx sid -- transducer interpreter
+  sExpInterpXducer i >>= addCtx sid -- transducer interpreter
 
 
 sInstrInterp (WithCtrl c _ defs st) =
@@ -363,87 +363,87 @@ sExpInterp (IsEmpty s1) =
 
 
 
------------ interpret SExps using Proc ----------------
+----------- interpret SExps using Xducers ----------------
 
-sExpInterpProc :: SExp -> Svcode SvVal
+sExpInterpXducer :: SExp -> Svcode SvVal
 
-sExpInterpProc Ctrl = returnInstrC [] (SBVal [False])
+sExpInterpXducer Ctrl = returnInstrC [] (SBVal [False])
 
-sExpInterpProc EmptyCtrl = returnInstrC [] (SBVal [])
+sExpInterpXducer EmptyCtrl = returnInstrC [] (SBVal [])
 
-sExpInterpProc (Const a) = 
+sExpInterpXducer (Const a) = 
   do c <- getCtrl
-     sExpInterpProc (MapConst c a)
+     sExpInterpXducer (MapConst c a)
 
 
-sExpInterpProc (MapConst sid a) = 
+sExpInterpXducer (MapConst sid a) = 
   do let v0 = case a of 
                 IVal _ -> SIVal []
                 BVal _ -> SBVal []
-     svProc [sid] (mapConst a) v0 
+     svXducer [sid] (mapConst a) v0 
 
 
-sExpInterpProc (ToFlags sid) = svProc [sid] toFlags (SBVal []) 
+sExpInterpXducer (ToFlags sid) = svXducer [sid] toFlags (SBVal []) 
 
-sExpInterpProc (Usum sid) = svProc [sid] usumProc  (SBVal [])
+sExpInterpXducer (Usum sid) = svXducer [sid] usumXducer  (SBVal [])
  
 
-sExpInterpProc (MapTwo op s1 s2) = 
+sExpInterpXducer (MapTwo op s1 s2) = 
   do (fop, tp) <- lookupOpA op opAEnv0
      let v0 = case tp of 
                 TInt -> SIVal []
                 TBool -> SBVal []
-     svProc [s1,s2] (mapTwo fop) v0
+     svXducer [s1,s2] (mapTwo fop) v0
 
 
-sExpInterpProc (MapOne op s1) = 
+sExpInterpXducer (MapOne op s1) = 
   do (fop,tp) <- lookupOpA op opAEnv0
      let v0 = case tp of 
                 TInt -> SIVal []
                 TBool -> SBVal []
-     svProc [s1] (mapOne fop) v0 
+     svXducer [s1] (mapOne fop) v0 
 
 
-sExpInterpProc (Pack s1 s2) = svProc' [s2,s1] packProc 1
+sExpInterpXducer (Pack s1 s2) = svXducer' [s2,s1] packXducer 1
 
 
-sExpInterpProc (UPack s1 s2) = svProc [s2,s1] upackProc (SBVal [])
+sExpInterpXducer (UPack s1 s2) = svXducer [s2,s1] upackXducer (SBVal [])
 
 
-sExpInterpProc (Distr s1 s2) = svProc' [s1,s2] pdistProc 0 
+sExpInterpXducer (Distr s1 s2) = svXducer' [s1,s2] pdistXducer 0 
  
 
-sExpInterpProc (SegDistr s1 s2) = svProc [s1,s2] segDistrProc (SBVal [])
+sExpInterpXducer (SegDistr s1 s2) = svXducer [s1,s2] segDistrXducer (SBVal [])
 
 
-sExpInterpProc (SegFlagDistr s1 s2 s3) = 
-  svProc [s2,s1,s3] segFlagDistrProc (SBVal []) 
+sExpInterpXducer (SegFlagDistr s1 s2 s3) = 
+  svXducer [s2,s1,s3] segFlagDistrXducer (SBVal []) 
  
 
-sExpInterpProc (PrimSegFlagDistr s1 s2 s3) = 
-  svProc' [s2,s1,s3] primSegFlagDistrProc 1
+sExpInterpXducer (PrimSegFlagDistr s1 s2 s3) = 
+  svXducer' [s2,s1,s3] primSegFlagDistrXducer 1
 
 
-sExpInterpProc (B2u sid) = svProc [sid] b2uProc (SBVal [])
+sExpInterpXducer (B2u sid) = svXducer [sid] b2uXducer (SBVal [])
 
 
-sExpInterpProc (SegscanPlus s1 s2) = svProc [s2,s1] segScanPlusProc (SIVal [])
+sExpInterpXducer (SegscanPlus s1 s2) = svXducer [s2,s1] segScanPlusXducer (SIVal [])
  
 
-sExpInterpProc (ReducePlus s1 s2) = svProc [s2,s1] segReducePlusProc (SIVal [])
+sExpInterpXducer (ReducePlus s1 s2) = svXducer [s2,s1] segReducePlusXducer (SIVal [])
   
 
-sExpInterpProc (SegConcat s1 s2) = svProc [s2,s1] segConcatProc (SBVal [])
+sExpInterpXducer (SegConcat s1 s2) = svXducer [s2,s1] segConcatXducer (SBVal [])
  
 
-sExpInterpProc (USegCount s1 s2) = svProc [s2,s1] uSegCountProc (SBVal [])
+sExpInterpXducer (USegCount s1 s2) = svXducer [s2,s1] uSegCountXducer (SBVal [])
  
 
-sExpInterpProc (InterMergeS ss) = 
-  svProc ss (interMergeProc $ length ss) (SBVal [])
+sExpInterpXducer (InterMergeS ss) = 
+  svXducer ss (interMergeXducer $ length ss) (SBVal [])
 
 
-sExpInterpProc (SegInterS ss) = 
+sExpInterpXducer (SegInterS ss) = 
   do vs <- mapM (\(s1,s2) -> 
                     do v1 <- lookupSid s1
                        v2 <- lookupSid s2 
@@ -451,10 +451,10 @@ sExpInterpProc (SegInterS ss) =
                 ss
      let vss = concat vs
          cs = [(i*2,i*2+1) | i <- [0..length vss `div` 2 -1]] -- channel numbers
-     returnInstrC vss $ evalProc (segInterProc cs) vss (SBVal [])
+     returnInstrC vss $ evalXducer (segInterXducer cs) vss (SBVal [])
 
 
-sExpInterpProc (PriSegInterS ss) = 
+sExpInterpXducer (PriSegInterS ss) = 
   do vs <- mapM (\(s1,s2) -> 
                      do v1 <- lookupSid s1
                         v2 <- lookupSid s2
@@ -463,14 +463,14 @@ sExpInterpProc (PriSegInterS ss) =
      let vss = concat vs 
          cs = [(i*2,i*2+1) | i <- [0..length vss `div` 2 -1]]
          v0 = sv0 (head vss)
-     returnInstrC vss $ evalProc (priSegInterProc cs) vss v0
+     returnInstrC vss $ evalXducer (priSegInterXducer cs) vss v0
 
 
-sExpInterpProc (SegMerge s1 s2) = svProc [s2,s1] segMergeProc (SBVal [])
+sExpInterpXducer (SegMerge s1 s2) = svXducer [s2,s1] segMergeXducer (SBVal [])
  
-sExpInterpProc (Check s1 s2) = svProc [s1,s2] checkProc (SBVal []) 
+sExpInterpXducer (Check s1 s2) = svXducer [s1,s2] checkXducer (SBVal []) 
 
-sExpInterpProc (IsEmpty s1) = svProc [s1] isEmptyProc (SBVal [])
+sExpInterpXducer (IsEmpty s1) = svXducer [s1] isEmptyXducer (SBVal [])
 
 
 lookupOpA :: OP -> OpAEnv -> Svcode ([AVal] -> AVal, Type) 
@@ -486,16 +486,16 @@ sv0 v = case v of
     SBVal _ -> SBVal []
 
 
-svProc :: [SId] -> Proc () -> SvVal -> Svcode SvVal 
-svProc sids proc v0 = 
+svXducer :: [SId] -> Xducer () -> SvVal -> Svcode SvVal 
+svXducer sids proc v0 = 
   do vs <- mapM lookupSid sids      
-     returnInstrC vs $ evalProc proc vs v0
+     returnInstrC vs $ evalXducer proc vs v0
 
 
-svProc' :: [SId] -> Proc () -> Int -> Svcode SvVal 
-svProc' sids proc i = 
+svXducer' :: [SId] -> Xducer () -> Int -> Svcode SvVal 
+svXducer' sids proc i = 
   do vs <- mapM lookupSid sids      
-     returnInstrC vs $ evalProc proc vs $ sv0 $ vs !! i 
+     returnInstrC vs $ evalXducer proc vs $ sv0 $ vs !! i 
 
 --------------------------------------------------
 
