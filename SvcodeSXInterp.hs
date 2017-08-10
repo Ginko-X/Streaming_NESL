@@ -1,4 +1,5 @@
 {- SVCODE Streaming Interpreter with arbitrary buffer size -}
+-- support recursion
 
 module SvcodeSXInterp where
 
@@ -220,7 +221,7 @@ clRSid cls sf sid =
 
 
 s2Rs :: [SId] -> Int -> SId -> [RSId]
-s2Rs sids sf sid = zip3 (repeat sf) (repeat sid) sids
+s2Rs sids sf r = [(sf,r, sid) | sid <- sids] 
 
 curStart :: [(RSId,Int)] -> Clients
 curStart cls = map (\cl -> (cl,0)) cls
@@ -449,10 +450,11 @@ sInstrInterp bufSize r (WithCtrl ctrl ins code st) =
        Just 0 ->  
          case buf of 
            Draining [] True ->  -- `ctrl` is empty
-             do bs <- mapM isDone [(sf,r,s) | s <- retSids]
+             do bs <- mapM isDone $ s2Rs retSids sf r
                 if foldl (&&) True bs 
                  then return ()
-                 else do let retRSids = s2Rs retSids sf r 
+                 else do let retSids' = filter (\r -> r > ctrl) retSids
+                             retRSids = s2Rs retSids' sf r                 
                          doneStreams retRSids
                          -- delete pseudoclient 
                          mapM_ (delRSClient ((sf,r,-3),0)) [(sf,r,i) | i<-ins]
