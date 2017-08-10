@@ -4,9 +4,10 @@ module SneslInterp where
 
 import SneslSyntax
 import SneslParser
+
 import Data.Char (chr, ord)
 import Data.List (transpose)
-import Data.Bits ((.&.))
+
 
 
 runSneslInterpDefs :: [Def] -> SEnv -> Either String SEnv
@@ -28,12 +29,6 @@ sneslInterpDef (FDef fname args _ e) =
      return e1
 
 
---sneslInterpDef (EDef i e) r = 
---  case rSnesl (eval e r) of
---    Right (v, nw, ns) ->  return ((i,v):r)
---    Left s -> fail $ "Snesl runtime error: "++s
-
-
 runSneslExp :: Exp -> SEnv -> Either String (Val,Int,Int)
 runSneslExp e env = 
   case rSnesl (eval e) env of
@@ -42,11 +37,10 @@ runSneslExp e env =
 
 
 lookupVar :: Id -> Snesl Val 
-lookupVar i = 
-  do env <- askSEnv 
+lookupVar i = Snesl $ \ env -> 
      case lookup i env of
-        Just a -> return a
-        Nothing -> fail $ "bad variable: " ++ i
+        Just a -> Right (a,0,0)
+        Nothing -> fail $ "lookupVar: bad variable " ++ i
 
 
 askSEnv :: Snesl SEnv
@@ -97,22 +91,26 @@ eval (GComp e0 ps) =
          vs' = transpose vs''
          v0l = length $ head vs''  
      if all (\v -> length v == v0l) vs''
-     then (do 
-             let binds = zipWith (\pl vl -> 
+     then do let binds = zipWith (\pl vl -> 
                                  concat $ zipWith (\(p,_) v -> bind p v) pl vl)
                                (replicate (length vs') ps) vs' 
+                 bindVars = concat $ map (\(p,_) -> getPatVars p) ps
+                 freeVar = filter (\x -> not $ x `elem` bindVars) (getVars e0) 
+             mapM (\v -> lookupVar v >>= distrCost v0l) freeVar  -- add distr cost
              vss <- par $ zipWith (\e b -> localSEnv b $ eval e) 
                                   (replicate (length vs') e0) binds
-             returnc (1,1) $ SVal vss)
+             returnc (1,1) $ SVal vss
      else fail "length mismatch in comprehension"
      
 
 --restricted comprehension
 eval (RComp e0 e1) = 
   do (AVal (BVal b)) <- eval e1
+     let freeVar = getVars e0
+     mapM_  (\v -> lookupVar v >>= packCost) freeVar -- add pack cost
      case b of 
-        True -> (do v <- eval e0; returnc (1,1) (SVal [v]))
-        _ -> returnc (1,1) $ SVal []
+       True -> (do v <- eval e0; returnc (1,1) (SVal [v]))
+       _ -> returnc (1,1) $ SVal []
 
 
 
@@ -133,6 +131,24 @@ par (t : ts) = Snesl $ \ env ->
        Left e' -> Left e'
 
 
+distrCost :: Int -> Val -> Snesl ()
+distrCost l (AVal _) = costInc (l,1)
+distrCost l (TVal v1 v2) = distrCost l v1 >> distrCost l v2 
+
+-- ?? 
+distrCost l (SVal sv) = mapM_ (distrCost l) sv 
+  --do mapM_ (distrCost l) sv
+  --   costInc (l* (length sv +1),1)
+
+
+packCost :: Val -> Snesl ()
+packCost (AVal _) = costInc (1,1)
+packCost (TVal v1 v2) = packCost v1 >> packCost v2
+packCost (SVal sv) = costInc (length sv, 1) -- ??
+
+
+costInc :: (Int, Int) -> Snesl () 
+costInc (w,s) = Snesl $ \ _ -> Right ((), w,s)
 
 returnc :: (Int, Int) -> a -> Snesl a
 returnc (w,s) a = Snesl $ \ _  -> Right (a, w, s)
@@ -200,7 +216,7 @@ se0 = [("_plus", primop cplus),
       ("part", FVal (\ [SVal vs, SVal flags] -> 
                             let bs = [b | AVal (BVal b) <- flags]
                                 l = length vs
-                            in if (sum [1| b <- bs, not b] == l) .&. (last bs) then
+                            in if (sum [1| b <- bs, not b] == l) && (last bs) then
                                  returnc (wrapWork l,1) $ SVal [SVal v | v <- seglist (flags2len bs) vs]
                                else fail "part: flag mismatch")),
 

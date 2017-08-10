@@ -8,7 +8,6 @@ import DataTrans
 import SneslParser
 import SneslTyping
 
-import Data.List (union)
 import Data.Set (fromList, toList)
 
 
@@ -269,32 +268,6 @@ getImportSid ctrl (SDef sid e) =
 getImportSid ctrl (WithCtrl _ imps _ _) = filter (\i -> i < ctrl) imps  
 getImportSid ctrl (SCall _ args _) =  filter (\i -> i < ctrl) args
 
-
--- get the free varibales in the expression
-getVars :: Exp -> [Id]
-getVars (Var x) = [x]
-getVars (Lit a) = []
-getVars (Tup e1 e2) = foldl union [] $ map getVars [e1,e2]
-getVars (SeqNil tp) = []
-getVars (Seq es) = foldl union [] $ map getVars es
-getVars (Let p e1 e2) = e1Vars ++ filter (\x -> not $ x `elem` binds) (getVars e2) 
-    where binds = getPatVars p 
-          e1Vars = getVars e1 
-
-getVars (Call fname es) = foldl union [] $ map getVars es 
-
-getVars (GComp e0 ps) = pVars ++ filter (\x -> not $ x `elem` binds) e0vs
-    where e0vs = getVars e0
-          binds = foldl union [] $ map (\(p,_) -> getPatVars p) ps
-          pVars = foldl union [] $ map (\(_,e) -> getVars e) ps 
-
-getVars (RComp e0 e1) = foldl union [] $ map getVars [e0,e1]
-
-
-getPatVars :: Pat -> [Id]
-getPatVars (PVar x) = [x]
-getPatVars PWild = [] 
-getPatVars (PTup p1 p2) = concat $ map getPatVars [p1,p2] 
 
 
 -- generate empty/undefined stream SIds
