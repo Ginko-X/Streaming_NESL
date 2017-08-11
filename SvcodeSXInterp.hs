@@ -10,13 +10,14 @@ import SneslCompiler (tree2Sids)
 
 import Control.Monad
 import Data.Set (fromList, toList)
-
+import qualified Data.Map.Strict as M
 
 type RSId = (Int,SId,SId)
 
-type Svctx = [(RSId, SState)]
 
-type SState = (BufState, Suppliers, Clients, Xducer ())
+type Svctx = M.Map RSId Process
+
+type Process = (BufState, Suppliers, Clients, Xducer ())
 
 data BufState = Filling [AVal] 
               | Draining [AVal] Bool 
@@ -66,7 +67,7 @@ runSvcodePExp (SFun [] st code fresh) bs _ fe =
          ctrl = (0,head retSids,0) 
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d 
                       $ zip retSids [0..]
-     (_,_, ctx) <- rSvcodeP (sInit code (head retSids) d' sup) [] ctrl fe 0
+     (_,_, ctx) <- rSvcodeP (sInit code (head retSids) d' sup) M.empty ctrl fe 0
      (as,(w1,s1), _) <- rrobin (mapM_ (sInstrInterp bs (head retSids)) code) 
                            ctx retRSids (map (\_ -> []) retSids) (0,0) fe
      return (fst $ constrSv st as,(w1,s1))
@@ -105,9 +106,9 @@ rrobin m ctx retRSids as0 (w0,s0) fe =
                          ([],ctx') retRSids 
      let as' = zipWith (++) as0 (reverse as)
          work = w0+w1
-     if all (\(_,(_,_,_,p)) -> p == Done ()) ctx'' 
+     if M.foldl (\b (_,_,_,p) -> b && (p == Done ())) True ctx'' 
        then return (as',(work, s0+s1) , ctx'') 
-       else if equalCtx ctx ctx'' 
+       else if compCtx ctx ctx'' 
             then do unlockCtx <- stealing ctx''  -- try stealing
                     rrobin m unlockCtx retRSids as' (work,s0+s1+1) fe
             else rrobin m ctx'' retRSids as' (work,s0+s1) fe
@@ -116,24 +117,33 @@ rrobin m ctx retRSids as0 (w0,s0) fe =
 replaceSid :: RSId -> SId -> RSId
 replaceSid (sf,r,_) sid = (sf,r,sid)
 
-
+-- ??
 -- pick out the first non-empty stream in Filling mode to drain
 stealing :: Svctx -> Either String Svctx
-stealing [] = Left "Deadlock!"
+stealing ctx = 
+  do let ctxl = M.toAscList ctx 
+     ctx' <- switchOne ctxl
+     return $ M.fromList ctx'
 
-stealing ((sid, (Filling as@(a0:_), sup, bs, p)):ss) = 
+switchOne :: [(RSId,Process)] -> Either String [(RSId,Process)]
+switchOne [] = Left "Deadlock!"
+switchOne ((sid, (Filling as@(a0:_), sup, bs, p)):ss) = 
   Right $ (sid, (Draining as False, sup,bs,p)) : ss 
-
-stealing (s:ss) = stealing ss >>= (\ss' -> return (s:ss'))
+switchOne (s:ss) = switchOne ss >>= (\ss' -> return (s:ss'))
 
 
 -- not 100% correct because Xducers are not comparable
-equalCtx :: Svctx -> Svctx -> Bool
-equalCtx [] [] = True
-equalCtx ((s1,(buf1,c1,bs1,p1)):ctx1) ((s2,(buf2,c2,bs2,p2)):ctx2) =         
+compCtx :: Svctx -> Svctx -> Bool
+compCtx ctx1 ctx2 = 
+  let c1 = M.toList ctx1
+      c2 = M.toList ctx2
+   in compListCtx c1 c2 
+
+compListCtx [] [] = True
+compListCtx ((s1,(buf1,c1,bs1,p1)):ctx1) ((s2,(buf2,c2,bs2,p2)):ctx2) =         
   if (s1 == s2) && (buf1 == buf2) && (c1 == c2) && (bs1 == bs2) 
        && (compXducer p1 p2)
-    then equalCtx ctx1 ctx2 
+    then compListCtx ctx1 ctx2 
     else False 
 
 compXducer :: Xducer () -> Xducer () -> Bool
@@ -145,12 +155,12 @@ compXducer _ _ = False
 
 lookupAval :: Svctx -> (RSId, Int) -> Either String ([AVal],Svctx)
 lookupAval ctx (s@(sf,r,sid),i) = 
-  case lookup s ctx of 
+  case M.lookup s ctx of 
       Nothing -> Left  $ "lookupAval: undefined stream " ++ show s  
       Just (Draining a b, c, bs, p) -> 
         if checkWithKey bs ((sf,r,-1),i) 0
         then let bs' = updateWithKey bs ((sf,r,-1),i) (length a)  
-                 ctx' = updateWithKey ctx s (Draining a b, c, bs', p)
+                 ctx' = M.adjust (\_ -> (Draining a b, c, bs', p)) s ctx 
              in Right (a, ctx')
         else Right ([],ctx)
       
@@ -158,19 +168,19 @@ lookupAval ctx (s@(sf,r,sid),i) =
 
 
 
-addCtx :: RSId -> SState -> SvcodeP ()
-addCtx s v = SvcodeP $ \ c _ _ _ -> Right ((), (0,0),c++[(s,v)])
+addCtx :: RSId -> Process -> SvcodeP ()
+addCtx s v = SvcodeP $ \ c _ _ _ -> Right ((), (0,0), M.insert s v c)
 
-addCtxChk :: RSId -> SState -> SvcodeP ()
+addCtxChk :: RSId -> Process -> SvcodeP ()
 addCtxChk s v = 
   do ctx <- getCtx
-     case lookup s ctx of 
+     case M.lookup s ctx of 
        Nothing -> addCtx s v 
        Just _ -> return ()
 
 
-updateCtx :: RSId -> SState -> SvcodeP ()
-updateCtx s v = SvcodeP $ \ c _ _ _ -> Right ((),(0,0),updateWithKey c s v) 
+updateCtx :: RSId -> Process -> SvcodeP ()
+updateCtx s v = SvcodeP $ \ c _ _ _ -> Right ((),(0,0),M.adjust (\_ -> v) s c) 
 
 getCtx :: SvcodeP Svctx
 getCtx = SvcodeP $ \ c _ _ _ -> Right (c,(0,0),c)
@@ -195,9 +205,9 @@ localCtrl :: RSId -> SvcodeP a -> SvcodeP a
 localCtrl ctrl m = SvcodeP $ \ ctx _ fe sf -> rSvcodeP m ctx ctrl fe sf 
 
 
-lookupRSid :: RSId -> SvcodeP SState
+lookupRSid :: RSId -> SvcodeP Process
 lookupRSid r = SvcodeP $ \c _ _ _ -> 
-    case lookup r c of 
+    case M.lookup r c of 
         Nothing -> Left $ "lookupRSid: undefined SId " ++ show r
         Just st -> Right (st,(0,0),c)  
 
@@ -255,7 +265,7 @@ sInstrInit (SDef sid e) r d sup =
      supR <- getSupR sup sf r sid     
      p <- sExpXducerInit e  
      ctx <- getCtx
-     case lookup (sf,r,sid) ctx of 
+     case M.lookup (sf,r,sid) ctx of 
        Nothing -> addCtx (sf,r,sid) (Filling [], supR, curStart clR, p)
        Just (buf,sup0,cl0,_) -> 
          updateCtx (sf,r,sid) (buf, sup0 ++ supR, cl0 ++ (curStart clR), p)
@@ -572,17 +582,17 @@ runSvcodePExp' (SFun [] st code fresh) count bs fe =
          retRSids = zip (s2Rs retSids 0 (head retSids)) [0..] 
          ctrl = (0,head retSids,0)
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d $ zip retSids [0..]
-     (_,_,ctx) <- rSvcodeP (sInit code (head retSids) d' sup) [] ctrl fe 0
+     (_,_,ctx) <- rSvcodeP (sInit code (head retSids) d' sup) M.empty ctrl fe 0
 
      (as, ctxs) <- roundN count (round1 (mapM_ (sInstrInterp bs (head retSids)) code) ctrl retRSids fe) [ctx]
                      ([map (\_ -> []) retSids]) 
      let str = map (\(a,c,i) -> "Round "++ show i ++"\nOutput:" ++ show a ++ "\n" 
-                      ++ showCtx c ++ "\n") 
+                      ++ showCtx (M.toList c) ++ "\n") 
                $ zip3 (reverse as) (reverse ctxs) [0..]
      return $ concat str
 
 
-showCtx :: Svctx -> String
+showCtx :: [(RSId,Process)] -> String
 showCtx [] = ""
 showCtx (((sf,r,sid),(buf,c,bs,p)):ss) = 
   "(" ++ show sf ++ "," ++ show r ++ ", S" ++ show sid  ++ "), (" 
@@ -595,11 +605,11 @@ roundN :: Int -> (Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx)) ->
             [Svctx] -> [[[AVal]]]  -> Either String ([[[AVal]]], [Svctx])
 roundN 0 f ctxs as = Right (as,ctxs) 
 roundN c f ctxs as = 
-  if all (\(_,(_,_, _,p)) -> p == Done ()) (head ctxs)  
+  if M.foldl (\b (_,_, _,p) -> b && (p == Done ())) True (head ctxs)
     then return (as,ctxs)
     else
       do (as',ctx') <- f (head ctxs) (head as)
-         if (length ctxs > 0) && (equalCtx ctx' $ ctxs!!0)
+         if (length ctxs > 0) && (compCtx ctx' $ ctxs!!0)
          then do unlockCtx <- stealing ctx'
                  roundN (c-1) f (unlockCtx:ctxs) (as':as)
          else roundN (c-1) f (ctx':ctxs) (as':as)
