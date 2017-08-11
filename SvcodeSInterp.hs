@@ -4,7 +4,7 @@ module SvcodeSInterp where
 
 import SvcodeSyntax
 import SneslSyntax
-import SvcodeProc
+import SvcodeXducer
 import SneslCompiler (tree2Sids)
 import SneslInterp (wrapWork)
 
@@ -15,7 +15,7 @@ import Data.Set (fromList, toList)
 
 type Svctx = [(SId, SState)]
 
-type SState = (BufState, Suppliers, Clients, Proc ())
+type SState = (BufState, Suppliers, Clients, Xducer ())
 
 data BufState = Filling [AVal] 
               | Draining [AVal]
@@ -67,8 +67,8 @@ instance Applicative SvcodeP where
 
 
 
-runSvcodePExp :: SFun -> Int -> Bool -> Either String (SvVal, (Int,Int))
-runSvcodePExp (SFun [] st code _) bufSize mflag = 
+runSvcodePExp :: SFun -> Int -> Bool -> FEnv -> Either String (SvVal, (Int,Int))
+runSvcodePExp (SFun [] st code _) bufSize mflag _ = 
   do let (sup,d) = geneSupDag code 0
          lv = geneLevels d sup 
          retSids = zip (tree2Sids st) [0..]
@@ -172,25 +172,25 @@ lookupSInstr :: [SInstr] -> SId -> Maybe SInstr
 lookupSInstr [] _ = Nothing
 lookupSInstr (def@(SDef sid1 _):ss) sid2 = 
   if sid1 == sid2 then (Just def) else lookupSInstr ss sid2 
-lookupSInstr (WithCtrl _ code _ :ss) sid2 = 
+lookupSInstr (WithCtrl _ _ code _ :ss) sid2 = 
   case lookupSInstr code sid2 of 
     Nothing -> lookupSInstr ss sid2
     v -> v 
 
 
--- not 100% correct because Procs are not comparable
+-- not 100% correct because Xducers are not comparable
 equalCtx :: Svctx -> Svctx -> Bool
 equalCtx [] [] = True
 equalCtx ((s1,(buf1,c1,bs1,p1)):ctx1) ((s2,(buf2,c2,bs2,p2)):ctx2) =         
-  if (s1 == s2) && (buf1 == buf2) && (c1 == c2) && (bs1 == bs2) && (compProc p1 p2)
+  if (s1 == s2) && (buf1 == buf2) && (c1 == c2) && (bs1 == bs2) && (compXducer p1 p2)
     then equalCtx ctx1 ctx2 
     else False 
 
-compProc :: Proc () -> Proc () -> Bool
-compProc (Pin i1 _) (Pin i2 _) = i1 == i2 
-compProc (Pout a p1) (Pout b p2) = (a == b) && (compProc p1 p2)
-compProc (Done a) (Done b) = a == b 
-compProc _ _ = False
+compXducer :: Xducer () -> Xducer () -> Bool
+compXducer (Pin i1 _) (Pin i2 _) = i1 == i2 
+compXducer (Pout a p1) (Pout b p2) = (a == b) && (compXducer p1 p2)
+compXducer (Done a) (Done b) = a == b 
+compXducer _ _ = False
 
 
 
@@ -288,73 +288,73 @@ sInstrInit :: SInstr -> Dag -> Sup -> SvcodeP ()
 sInstrInit (SDef sid e) d sup = 
   do let cls = d !! sid 
          suppliers = sup !! sid 
-     p <- sExpProcInit e
+     p <- sExpXducerInit e
      case e of 
        EmptyCtrl -> addCtx sid (Eos, suppliers, map (\ cl -> (cl,0)) cls, p)
        _ -> addCtx sid (Filling [], suppliers, map (\ cl -> (cl,0)) cls, p) 
 
 
-sInstrInit (WithCtrl ctrl code _) d sup = 
+sInstrInit (WithCtrl ctrl _ code _) d sup = 
      mapM_ (\i -> sInstrInit i d sup) code 
 
 
 ---- SExpression init
-sExpProcInit :: SExp -> SvcodeP (Proc ())
-sExpProcInit Ctrl = return $ rout (BVal False)
+sExpXducerInit :: SExp -> SvcodeP (Xducer ())
+sExpXducerInit Ctrl = return $ rout (BVal False)
 
-sExpProcInit EmptyCtrl = return $ Done () 
+sExpXducerInit EmptyCtrl = return $ Done () 
 
-sExpProcInit (Const a) = return (mapConst a)
+sExpXducerInit (Const a) = return (mapConst a)
   
-sExpProcInit (MapConst s1 a) = return (mapConst a)
+sExpXducerInit (MapConst s1 a) = return (mapConst a)
 
-sExpProcInit (Usum _) = return usumProc
+sExpXducerInit (Usum _) = return usumXducer
 
-sExpProcInit (ToFlags _) = return toFlags 
+sExpXducerInit (ToFlags _) = return toFlags 
 
-sExpProcInit (MapTwo op _ _) = 
+sExpXducerInit (MapTwo op _ _) = 
   do fop <- lookupOpA op opAEnv0
      return (mapTwo fop)
 
-sExpProcInit (MapOne op _) = 
+sExpXducerInit (MapOne op _) = 
   do fop <- lookupOpA op opAEnv0
      return (mapOne fop)
 
-sExpProcInit (Pack _ _) = return packProc
+sExpXducerInit (Pack _ _) = return packXducer
 
-sExpProcInit (UPack _ _) = return upackProc
+sExpXducerInit (UPack _ _) = return upackXducer
 
-sExpProcInit (Distr _ _) = return pdistProc
+sExpXducerInit (Distr _ _) = return pdistXducer
 
-sExpProcInit (SegDistr _ _ ) = return segDistrProc
+sExpXducerInit (SegDistr _ _ ) = return segDistrXducer
 
-sExpProcInit (SegFlagDistr _ _ _) = return segFlagDistrProc
+sExpXducerInit (SegFlagDistr _ _ _) = return segFlagDistrXducer
 
-sExpProcInit (PrimSegFlagDistr _ _ _) = return primSegFlagDistrProc
+sExpXducerInit (PrimSegFlagDistr _ _ _) = return primSegFlagDistrXducer
 
-sExpProcInit (B2u _) = return b2uProc
+sExpXducerInit (B2u _) = return b2uXducer
 
-sExpProcInit (SegscanPlus _ _) = return segScanPlusProc 
+sExpXducerInit (SegscanPlus _ _) = return segScanPlusXducer 
 
-sExpProcInit (ReducePlus _ _) = return segReducePlusProc
+sExpXducerInit (ReducePlus _ _) = return segReducePlusXducer
 
-sExpProcInit (SegConcat _ _) = return segConcatProc
+sExpXducerInit (SegConcat _ _) = return segConcatXducer
 
-sExpProcInit (USegCount _ _) = return uSegCountProc
+sExpXducerInit (USegCount _ _) = return uSegCountXducer
 
-sExpProcInit (InterMergeS ss) = return (interMergeProc $ length ss)
+sExpXducerInit (InterMergeS ss) = return (interMergeXducer $ length ss)
 
-sExpProcInit (SegInterS ss) = 
+sExpXducerInit (SegInterS ss) = 
   let chs = zipWith (\_ x -> (x*2,x*2+1)) ss [0..] 
-  in return $ segInterProc chs 
+  in return $ segInterXducer chs 
 
-sExpProcInit (PriSegInterS ss) = 
+sExpXducerInit (PriSegInterS ss) = 
   let chs = zipWith (\_ x -> (x*2,x*2+1)) ss [0..] 
-  in return $ priSegInterProc chs 
+  in return $ priSegInterXducer chs 
 
-sExpProcInit (SegMerge _ _) = return segMergeProc 
+sExpXducerInit (SegMerge _ _) = return segMergeXducer 
 
-sExpProcInit (Check _ _) = return checkProc
+sExpXducerInit (Check _ _) = return checkXducer
 
 
 
@@ -566,7 +566,7 @@ instrGeneSup :: [SInstr] -> SId -> [(SId, String,[SId])]
 instrGeneSup [] _ = []
 instrGeneSup ((SDef sid sexp):ss) c = (sid,i,cl0) : instrGeneSup ss c
     where (cl0, i) = getChanExp sexp c
-instrGeneSup ((WithCtrl newc ss _):ss') c = cl ++ instrGeneSup ss' c
+instrGeneSup ((WithCtrl newc _ ss _):ss') c = cl ++ instrGeneSup ss' c
     where cl = instrGeneSup ss newc
 
 
