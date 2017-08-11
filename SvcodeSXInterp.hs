@@ -63,7 +63,7 @@ runSvcodePExp :: SFun -> Int -> Bool -> FEnv -> Either String (SvVal, (Int,Int))
 runSvcodePExp (SFun [] st code fresh) bs _ fe = 
   do let (sup,d) = geneSupDag code 0
          retSids = tree2Sids st 
-         retRSids = zip (zip3 (repeat 0) (repeat $ head retSids) retSids) [0..]         
+         retRSids = [((0,head retSids,r),i) | (r,i) <- zip retSids [0..]]
          ctrl = (0,head retSids,0) 
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d 
                       $ zip retSids [0..]
@@ -76,8 +76,8 @@ runSvcodePExp (SFun [] st code fresh) bs _ fe =
 addClient :: Dag -> SId -> (SId,Int) -> Dag
 addClient d i c = 
   case lookup i d of 
-    Nothing -> addWithKey d i c
-    Just cl -> updateWithKey d i $ cl ++ [c] 
+    Nothing -> addByKey d i c
+    Just cl -> updateByKey d i $ cl ++ [c] 
 
 
 constrSv :: STree -> [[AVal]] -> (SvVal, [[AVal]])
@@ -158,8 +158,8 @@ lookupAval ctx (s@(sf,r,sid),i) =
   case M.lookup s ctx of 
       Nothing -> Left  $ "lookupAval: undefined stream " ++ show s  
       Just (Draining a b, c, bs, p) -> 
-        if checkWithKey bs ((sf,r,-1),i) 0
-        then let bs' = updateWithKey bs ((sf,r,-1),i) (length a)  
+        if checkKeyVal bs ((sf,r,-1),i) 0
+        then let bs' = updateByKey bs ((sf,r,-1),i) (length a)  
                  ctx' = M.adjust (\_ -> (Draining a b, c, bs', p)) s ctx 
              in Right (a, ctx')
         else Right ([],ctx)
@@ -254,8 +254,7 @@ getSupR d sf r sid =
 ------ processes (including xducer) initialization
 
 sInit :: [SInstr] -> SId -> Dag -> Sup -> SvcodeP ()
-sInit code r d sup = 
-  mapM_ (\i -> sInstrInit i r d sup) code
+sInit code r d sup = mapM_ (\i -> sInstrInit i r d sup) code
 
 
 sInstrInit :: SInstr -> SId -> Dag -> Sup -> SvcodeP ()
@@ -478,9 +477,9 @@ sInstrInterp bufSize r (WithCtrl ctrl ins code st) =
 
                 -- add real clients to ctrl and import sids
                 let ctrlCl = case lookup ctrl d of 
-                               Nothing -> delWithKey curs ((sf,r,-2),0)
+                               Nothing -> delByKey curs ((sf,r,-2),0)
                                Just cl -> let rs = clRSid cl sf r 
-                                              c0 = delWithKey curs ((sf,r,-2),0)
+                                              c0 = delByKey curs ((sf,r,-2),0)
                                            in c0 ++ curStart rs
                 updateCtx ctrlR (buf, c, ctrlCl, p) 
                 
@@ -534,7 +533,7 @@ addRSClient cls s1 =
 delRSClient :: (RSId,Int) -> RSId -> SvcodeP ()
 delRSClient cl s1 = 
   do (buf1,sup1,cl1,p1) <- lookupRSid s1
-     updateCtx s1 (buf1,sup1, delWithKey cl1 cl , p1)
+     updateCtx s1 (buf1,sup1, delByKey cl1 cl , p1)
 
 
 isDone :: RSId -> SvcodeP Bool
@@ -546,31 +545,31 @@ isDone sid =
 
 
 markRead :: Clients -> (RSId,Int) -> Int -> Clients
-markRead cs sid oldCursor = updateWithKey cs sid (oldCursor+1)
+markRead cs sid oldCursor = updateByKey cs sid (oldCursor+1)
 
 
 -- update the first pair with the key `k` 
-updateWithKey :: (Eq a) => [(a,b)] -> a -> b -> [(a,b)]
-updateWithKey [] _ _ = []
-updateWithKey (p:ps) k v = 
-  if fst p == k then (k,v): ps else p:updateWithKey ps k v
+updateByKey :: (Eq a) => [(a,b)] -> a -> b -> [(a,b)]
+updateByKey [] _ _ = []
+updateByKey (p:ps) k v = 
+  if fst p == k then (k,v): ps else p:updateByKey ps k v
 
--- if key `a` doesnt exist, then and such a key and value `b`
-addWithKey :: (Eq a) => [(a,[b])] -> a -> b -> [(a,[b])]
-addWithKey [] a b = [(a,[b])]  
-addWithKey (p0@(k0,v0):ps) k v = 
-  if k0 == k then ((k0,v0++[v]): ps) else p0:addWithKey ps k v
+-- if key `a` doesnt exist, then add such a key and value `b`
+addByKey :: (Eq a) => [(a,[b])] -> a -> b -> [(a,[b])]
+addByKey [] a b = [(a,[b])]  
+addByKey (p0@(k0,v0):ps) k v = 
+  if k0 == k then ((k0,v0++[v]): ps) else p0:addByKey ps k v
 
-delWithKey :: (Eq a) => [(a,b)] -> a -> [(a,b)]
-delWithKey [] _ = []
-delWithKey (p0@(k0,v0):ps) k = 
-  if k0 == k then ps else p0:delWithKey ps k
+delByKey :: (Eq a) => [(a,b)] -> a -> [(a,b)]
+delByKey [] _ = []
+delByKey (p0@(k0,v0):ps) k = 
+  if k0 == k then ps else p0:delByKey ps k
 
 
-checkWithKey :: (Eq a) => (Eq b) => [(a,b)] -> a -> b -> Bool
-checkWithKey [] _ _ = False
-checkWithKey (p0@(k0,v0):ps) k v = 
-  if (k0 == k) && (v == v0) then True else checkWithKey ps k v 
+checkKeyVal :: (Eq a) => (Eq b) => [(a,b)] -> a -> b -> Bool
+checkKeyVal [] _ _ = False
+checkKeyVal (p0@(k0,v0):ps) k v = 
+  if (k0 == k) && (v == v0) then True else checkKeyVal ps k v 
 
 
 ------- run the program and print out the Svctx of each round  -------------
@@ -660,7 +659,7 @@ geneDagFromSup sup =
       allSids = toList $ fromList $ ss1 ++ (concat ss2) 
       d0 = map (\sid -> (sid,[])) allSids
    in foldl (\d (sid, sups) -> 
-              foldl (\d' (s,i) -> addWithKey d' s (sid,i) ) d $ zip sups [0..]
+              foldl (\d' (s,i) -> addByKey d' s (sid,i) ) d $ zip sups [0..]
             ) d0 sup
   
 
