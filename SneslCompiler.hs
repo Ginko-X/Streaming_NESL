@@ -364,6 +364,10 @@ compEnv0 = [
              ("part",  FStr (\[t1'@(SStr _ _), t2'@(SStr (BStr _) _)] -> part t1' t2') )]
 
 
+-- {1,2,3} {FT FFT}
+-- <1,2,3>  <FFFT> ; <FTFFT> <FFFFFT>
+-- USegCount <FTFFT> <FFFFFT> => <F F T>
+-- <1 2 3> <FT FFT> <F F T>  => {{1},{2,3}}
 part :: STree -> STree -> SneslTrans STree
 part (SStr t1 _) (SStr (BStr t2) f2) = 
     do s1 <- emit (USegCount t2 f2) 

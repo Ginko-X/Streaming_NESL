@@ -201,7 +201,7 @@ primSegFlagDistrXducer = p []
 
 
 
--- read in and output a unary (without the True flag)
+-- read and output an unary (without the last True flag)
 uRecord :: Int -> Xducer [AVal]
 uRecord i =
   let p vs = Pin i (\x -> 
@@ -278,15 +278,24 @@ uSegCountXducer :: Xducer ()
 uSegCountXducer = 
   let p = rin 0 (\x -> 
             case x of 
-              BVal True -> rout (BVal True) >> p
+              BVal True -> rout x >> p 
               BVal False -> 
                 do y <- rinx "uSegCountXducer" 1
                    case y of 
-                     BVal False -> p 
+                     BVal False -> rout y >> uInInter 1 0 >> p
                      BVal True -> rout (BVal False) >> p)
 
   in p 
 
+
+-- read an unary (and throw it away) from `i`
+-- at the same time interlacedly read an equal number of elements from `j`
+uInInter :: Int -> Int -> Xducer ()
+uInInter i j = 
+    do x <- rinx "uInInter" i 
+       case x of
+         BVal False -> Pin j (\_ -> uInInter i j)
+         BVal True -> Pin j (\_ -> Done ())
 
 
 
