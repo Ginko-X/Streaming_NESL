@@ -126,7 +126,7 @@ stealing ctx =
      return $ M.fromList ctx'
 
 switchOne :: [(RSId,Process)] -> Either String [(RSId,Process)]
-switchOne [] = Left "Deadlock!"
+switchOne [] = Left "Deadlock!" 
 switchOne ((sid, (Filling as@(a0:_), sup, bs, p)):ss) = 
   Right $ (sid, (Draining as False, sup,bs,p)) : ss 
 switchOne (s:ss) = switchOne ss >>= (\ss' -> return (s:ss'))
@@ -538,10 +538,13 @@ delRSClient cl s1 =
 
 isDone :: RSId -> SvcodeP Bool
 isDone sid = 
-  do (_, _, _, p) <- lookupRSid sid
-     case p of 
-       Done () -> return True
+  do (buf, _, _, p) <- lookupRSid sid
+     case buf of 
+       Draining _ True -> if p == Done () then return True else return False
        _ -> return False
+     --case p of 
+     --  Done () -> return True
+     --  _ -> return False
 
 
 markRead :: Clients -> (RSId,Int) -> Int -> Clients
