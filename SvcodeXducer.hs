@@ -77,26 +77,25 @@ toFlags = p
 
 
 usumXducer :: Xducer ()
-usumXducer = p
-  where p = rin 0 (\x -> 
-              case x of 
-                BVal False -> rout (BVal False) >> p 
-                BVal True -> p)
+usumXducer = 
+    rin 0 (\x -> 
+      case x of 
+        BVal False -> rout x >> usumXducer
+        BVal True -> usumXducer)
 
 
 -- the 2nd supplier stream can not be shorter (but can be longer ??!) than 1st
 mapTwo :: ([AVal] -> AVal) -> Xducer ()
-mapTwo op = p 
-  where p = rin 0 (\x -> 
-              do y <- rinx "mapTwo" 1 
-                 rout (op [x,y])
-                 p)
+mapTwo op = 
+    rin 0 (\x -> 
+      do y <- rinx "mapTwo" 1 
+         rout (op [x,y])
+         mapTwo op)
 
 
 
 mapOne :: ([AVal] -> AVal) -> Xducer ()
-mapOne op = p 
-  where p = rin 0 (\x -> rout (op [x]) >> p)
+mapOne op = rin 0 (\x -> rout (op [x]) >> mapOne op)
 
 
 
@@ -120,15 +119,7 @@ upackXducer :: Xducer ()
 upackXducer = rin 0 (\x -> 
               case x of 
                 BVal False -> uInx 1 >> upackXducer
-                BVal True -> uInOutx 1 >> rout (BVal True) >> upackXducer)
-
-
--- read an unary and throw it away (can be Eos)
-uIn :: Int -> Xducer ()
-uIn i = rin i (\x ->  
-          case x of 
-            BVal False -> uIn i
-            BVal True -> Done ())
+                BVal True -> uInOutx 1 >> rout x >> upackXducer)
 
 
 -- must read an unary and throw it away (no Eos)
@@ -147,13 +138,14 @@ uInOutx i = do x <- rinx "uInOutx" i
 
 
 pdistXducer :: Xducer ()
-pdistXducer = p
-  where p = rin 0 (\x -> 
-              do y <- rinx "pdistXducer" 1 
-                 case y of 
-                   BVal False -> rout x >> (uOutx 1 x) >> p 
-                   BVal True -> p)
- 
+pdistXducer = 
+  rin 0 (\x -> 
+    do y <- rinx "pdistXducer" 1 
+       case y of 
+         BVal False -> rout x >> (uOutx 1 x) >> pdistXducer
+         BVal True -> pdistXducer)
+
+
 
 uOutx :: Int -> AVal -> Xducer ()
 uOutx i a = do x <- rinx "uOutx" i
@@ -162,7 +154,8 @@ uOutx i a = do x <- rinx "uOutx" i
                  BVal True -> Done ()
 
 
-
+-- for sequence distribution, may be not necessary to support
+-- 1.
 segDistrXducer :: Xducer ()
 segDistrXducer = p 
   where p = do vs <- uRecord 0
@@ -174,7 +167,7 @@ segDistrXducer = p
                       BVal True -> p
 
 
-
+-- 2.
 segFlagDistrXducer :: Xducer ()
 segFlagDistrXducer = p []
   where p vs = rin 0 (\x -> 
@@ -187,7 +180,7 @@ segFlagDistrXducer = p []
                           BVal True -> p [])
 
 
-
+-- 3.
 primSegFlagDistrXducer :: Xducer ()
 primSegFlagDistrXducer = p []
   where p vs = rin 0 (\x -> 
@@ -231,11 +224,11 @@ uOutsx i as = do x <- rinx "uOutsx" i
 
 
 b2uXducer :: Xducer ()
-b2uXducer = p 
-  where p = rin 0 (\x -> 
-              case x of 
-                BVal True -> rout (BVal False) >> rout (BVal True) >> p 
-                BVal False -> rout (BVal True) >> p)
+b2uXducer =
+  rin 0 (\x -> 
+    case x of 
+      BVal True -> rout (BVal False) >> rout (BVal True) >> b2uXducer 
+      BVal False -> rout (BVal True) >> b2uXducer)
 
 
 
@@ -267,11 +260,10 @@ segReducePlusXducer =
 
 segConcatXducer :: Xducer ()
 segConcatXducer = 
-  let p = rin 0 (\x -> 
-            case x of 
-              BVal False -> uInOutx 1 >> p 
-              BVal True -> rout (BVal True) >> p)
-  in p  
+    rin 0 (\x -> 
+      case x of 
+        BVal False -> uInOutx 1 >> segConcatXducer
+        BVal True -> rout x >> segConcatXducer)
                 
 
 uSegCountXducer :: Xducer ()
@@ -304,10 +296,10 @@ segMergeXducer =
   let p = rin 0 (\x -> 
             case x of 
               BVal False -> uInOutx 1 >> p
-              BVal True -> rout (BVal True) >> p)
+              BVal True -> rout x >> p)
   in p 
 
---1
+
 interMergeXducer :: Int -> Xducer ()
 interMergeXducer c = 
   let p = rin 0 (\x -> 
@@ -319,7 +311,7 @@ interMergeXducer c =
                                 p )
   in p
 
---2
+
 segInterXducer :: [(Int,Int)] -> Xducer ()
 segInterXducer cs = 
   let (j,i) = head cs 
@@ -338,7 +330,7 @@ segInterP (j,i) =
               BVal True -> Done ())
   in p 
 
---3
+
 priSegInterXducer :: [(Int, Int)] -> Xducer ()
 priSegInterXducer cs = 
   let (j,i) = head cs 
@@ -346,7 +338,7 @@ priSegInterXducer cs =
             case x of 
               BVal False -> rinx "priSegInterXducer" j >>= rout >> p 
               BVal True -> mapM_ priSegInterP (tail cs) >> p )
-      in p 
+  in p 
 
 
 priSegInterP :: (Int, Int) -> Xducer ()
