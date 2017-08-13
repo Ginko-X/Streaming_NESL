@@ -294,8 +294,8 @@ uInInter :: Int -> Int -> Xducer ()
 uInInter i j = 
     do x <- rinx "uInInter" i 
        case x of
-         BVal False -> Pin j (\_ -> uInInter i j)
-         BVal True -> Pin j (\_ -> Done ())
+         BVal False -> rinx "uInInter" j >> uInInter i j
+         BVal True -> rinx "uInInter" j >> Done ()
 
 
 
