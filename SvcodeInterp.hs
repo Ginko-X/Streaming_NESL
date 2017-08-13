@@ -115,11 +115,22 @@ returnsvc (w,s) a = Svcode $ \ c ctrl (w0,s0) _ -> Right (a, (w0+w,s0+s), c)
 
 -- compute the cost of an instruction when return the interpretation result
 returnInstrC :: [SvVal] -> SvVal -> Svcode SvVal
-returnInstrC inVs outV  = 
+returnInstrC inVs outV = 
     do ls <- mapM streamLenM inVs
        let inWork = sum ls  
            outWork = streamLen outV
        returnsvc (wrapWork (inWork + outWork), 1) outV  
+
+
+-- for counting the cost of Xducer interpreter
+returnXducerC :: [SvVal] -> SvVal -> Svcode SvVal
+returnXducerC inVs outV = 
+    do ls <- mapM streamLenM inVs
+       let inWork = sum ls 
+           outWork = streamLen outV
+           work = inWork + outWork
+       if work == 0 then return outV           
+       else returnsvc (work,1) outV
 
 
 getCtrl :: Svcode SId 
@@ -367,9 +378,9 @@ sExpInterp (IsEmpty s1) =
 
 sExpInterpXducer :: SExp -> Svcode SvVal
 
-sExpInterpXducer Ctrl = returnInstrC [] (SBVal [False])
+sExpInterpXducer Ctrl = returnXducerC [] (SBVal [False])
 
-sExpInterpXducer EmptyCtrl = returnInstrC [] (SBVal [])
+sExpInterpXducer EmptyCtrl = returnXducerC [] (SBVal [])
 
 sExpInterpXducer (Const a) = 
   do c <- getCtrl
@@ -451,7 +462,7 @@ sExpInterpXducer (SegInterS ss) =
                 ss
      let vss = concat vs
          cs = [(i*2,i*2+1) | i <- [0..length vss `div` 2 -1]] -- channel numbers
-     returnInstrC vss $ evalXducer (segInterXducer cs) vss (SBVal [])
+     returnXducerC vss $ evalXducer (segInterXducer cs) vss (SBVal [])
 
 
 sExpInterpXducer (PriSegInterS ss) = 
@@ -463,7 +474,7 @@ sExpInterpXducer (PriSegInterS ss) =
      let vss = concat vs 
          cs = [(i*2,i*2+1) | i <- [0..length vss `div` 2 -1]]
          v0 = sv0 (head vss)
-     returnInstrC vss $ evalXducer (priSegInterXducer cs) vss v0
+     returnXducerC vss $ evalXducer (priSegInterXducer cs) vss v0
 
 
 sExpInterpXducer (SegMerge s1 s2) = svXducer [s2,s1] segMergeXducer (SBVal [])
@@ -489,13 +500,14 @@ sv0 v = case v of
 svXducer :: [SId] -> Xducer () -> SvVal -> Svcode SvVal 
 svXducer sids proc v0 = 
   do vs <- mapM lookupSid sids      
-     returnInstrC vs $ evalXducer proc vs v0
+     returnXducerC vs $ evalXducer proc vs v0
 
 
 svXducer' :: [SId] -> Xducer () -> Int -> Svcode SvVal 
 svXducer' sids proc i = 
   do vs <- mapM lookupSid sids      
-     returnInstrC vs $ evalXducer proc vs $ sv0 $ vs !! i 
+     returnXducerC vs $ evalXducer proc vs $ sv0 $ vs !! i 
+
 
 --------------------------------------------------
 
