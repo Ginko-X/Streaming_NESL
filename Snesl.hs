@@ -120,20 +120,17 @@ runTop _ (TRr e count) env@(_,_,v0,f0,bs,_) =
          Right ctx -> putStr ctx >> return env 
          Left err -> putStrLn err >> return env 
 
-
+-- show the exp SVCODE
 runTop _ (TCode e) env@(_,_,v0,_,_,_) = 
     case runCompileExp e v0 of
          Right code -> putStr (show code) >> return env 
          Left err -> putStrLn err >> return env 
 
--- only show generated code, do not change env
-runTop _ (TFCode def) env@(_,_,v0,f0,_,_) = 
-    case runCompileDef def (v0,f0) of
-         Right (v1,f1) -> do 
-           do putStrLn $ show $ head v1
-              putStrLn $ show $ head f1 
-              return env 
-         Left err -> putStrLn err >> return env                   
+-- show the function SVCODE
+runTop _ (TFCode fid) env@(_,_,v0,f0,_,_) = 
+  case lookup fid f0 of
+    Just f -> putStrLn (show f) >> return env
+    Nothing -> putStrLn ("Undefined function " ++ fid) >> return env                   
 
 
 runTop _ (TBs bs) env@(e0,t0,v0,f0,_,mflag) = 
