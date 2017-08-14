@@ -10,6 +10,7 @@ import SneslCompiler (tree2Sids)
 
 import Control.Monad
 import Data.Set (fromList, toList)
+import Network.CGI.Protocol (replace)
 import qualified Data.Map.Strict as M
 
 type RSId = (Int,SId,SId)
@@ -32,22 +33,24 @@ type Sup = [(SId,[SId])]  -- supplier list
 type Dag = [(SId,[(SId,Int)])] -- client list
 
 
+type REnv = M.Map RSId RSId   -- 
 
-newtype SvcodeP a = SvcodeP {rSvcodeP :: Svctx -> RSId -> FEnv -> Int-> 
-                                Either String (a,(Int,Int),Svctx)}
+
+newtype SvcodeP a = SvcodeP {rSvcodeP :: Svctx -> RSId -> FEnv -> Int-> REnv ->
+                                Either String (a,(Int,Int),Svctx, REnv)}
                                   
 instance  Monad SvcodeP where
-    return a = SvcodeP $ \ctx ctrl fe sf -> Right (a,(0,0),ctx) 
+    return a = SvcodeP $ \ctx ctrl fe sf re -> Right (a,(0,0),ctx, re) 
 
-    m >>= f = SvcodeP $ \ctx ctrl fe sf -> 
-        case rSvcodeP m ctx ctrl fe sf of 
-            Right (a,(w,s),ctx') -> 
-                case rSvcodeP (f a) ctx' ctrl fe sf of
-                    Right (b,(w',s'),ctx'') -> Right (b,(w+w',s+s'),ctx'')
+    m >>= f = SvcodeP $ \ctx ctrl fe sf re -> 
+        case rSvcodeP m ctx ctrl fe sf re of 
+            Right (a,(w,s),ctx',re') -> 
+                case rSvcodeP (f a) ctx' ctrl fe sf re' of
+                    Right (b,(w',s'),ctx'',re'') -> Right (b,(w+w',s+s'),ctx'',re'')
                     Left err' -> Left err'
             Left err -> Left err 
 
-    fail err = SvcodeP $ \ _ _ _ _ -> Left $ "SVCODE runtime error: " ++ err
+    fail err = SvcodeP $ \ _ _ _ _ _ -> Left $ "SVCODE runtime error: " ++ err
 
 
 instance Functor SvcodeP where
@@ -67,9 +70,9 @@ runSvcodePExp (SFun [] st code fresh) bs _ fe =
          ctrl = (0,head retSids,0) 
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d 
                       $ zip retSids [0..]
-     (_,_, ctx) <- rSvcodeP (sInit code (head retSids) d' sup) M.empty ctrl fe 0
-     (as,(w1,s1), _) <- rrobin (mapM_ (sInstrInterp bs (head retSids)) code) 
-                           ctx retRSids (map (\_ -> []) retSids) (0,0) fe
+     (_,_, ctx,re) <- rSvcodeP (sInit code (head retSids) d' sup) M.empty ctrl fe 0 M.empty
+     (as,(w1,s1), _,_) <- rrobin (mapM_ (sInstrInterp bs (head retSids)) code) 
+                           ctx retRSids (map (\_ -> []) retSids) (0,0) fe re
      return (fst $ constrSv st as,(w1,s1))
 
 
@@ -96,22 +99,22 @@ constrSv (SStr t1 t2) as =
 
 -- scheduling  
 rrobin :: SvcodeP () -> Svctx -> [(RSId,Int)] -> [[AVal]] -> (Int,Int)
-           -> FEnv -> Either String ([[AVal]],(Int,Int),Svctx)           
-rrobin m ctx retRSids as0 (w0,s0) fe = 
+           -> FEnv -> REnv -> Either String ([[AVal]],(Int,Int),Svctx,REnv)           
+rrobin m ctx retRSids as0 (w0,s0) fe re = 
   do let ctrl = replaceSid (fst $ head retRSids) 0
-     (_,(w1,s1), ctx') <- rSvcodeP m ctx ctrl fe 0
+     (_,(w1,s1), ctx',re') <- rSvcodeP m ctx ctrl fe 0　re
      (as,ctx'') <- foldM (\(a0,c0) s -> 
-                             do (a,c) <- lookupAval c0 s
+                             do (a,c) <- lookupAval c0 s re'
                                 return (a:a0,c)) 
                          ([],ctx') retRSids 
      let as' = zipWith (++) as0 (reverse as)
          work = w0+w1
-     if M.foldl (\b (_,_,_,p) -> b && (p == Done ())) True ctx'' 
-       then return (as',(work, s0+s1) , ctx'') 
+     if M.foldl (\b (_,_,_,p) -> b && (p == Done ())) True ctx''   -- !!
+       then return (as',(work, s0+s1) , ctx'',re') 
        else if compCtx ctx ctx'' 
             then do unlockCtx <- stealing ctx''  -- try stealing
-                    rrobin m unlockCtx retRSids as' (work,s0+s1+1) fe
-            else rrobin m ctx'' retRSids as' (work,s0+s1) fe
+                    rrobin m unlockCtx retRSids as' (work,s0+s1+1) fe re'
+            else rrobin m ctx'' retRSids as' (work,s0+s1) fe re'
 
 
 replaceSid :: RSId -> SId -> RSId
@@ -153,47 +156,59 @@ compXducer (Done a) (Done b) = a == b
 compXducer _ _ = False
 
 
-lookupAval :: Svctx -> (RSId, Int) -> Either String ([AVal],Svctx)
-lookupAval ctx (s@(sf,r,sid),i) = 
-  case M.lookup s ctx of 
-      Nothing -> Left  $ "lookupAval: undefined stream " ++ show s  
-      Just (Draining a b, c, bs, p) -> 
-        if checkKeyVal bs ((sf,r,-1),i) 0
-        then let bs' = updateByKey bs ((sf,r,-1),i) (length a)  
-                 ctx' = M.adjust (\_ -> (Draining a b, c, bs', p)) s ctx 
-             in Right (a, ctx')
-        else Right ([],ctx)
-      
-      Just (Filling _, _,_, _) -> Right ([], ctx)
+lookupAval :: Svctx -> (RSId, Int) -> REnv -> Either String ([AVal],Svctx)
+lookupAval ctx (s@(sf,r,sid),i) re = 
+   let s' = rsidMap s re
+   in case M.lookup s' ctx of 
+        Nothing -> Left  $ "lookupAval: undefined stream " ++ show s'  
+        Just (Draining a b, c, bs, p) -> 
+          if checkKeyVal bs ((sf,r,-1),i) 0
+          then let bs' = updateByKey bs ((sf,r,-1),i) (length a)  
+                   ctx' = M.adjust (\_ -> (Draining a b, c, bs', p)) s' ctx 
+               in Right (a, ctx')
+          else Right ([],ctx)
+        
+        Just (Filling _, _,_, _) -> Right ([], ctx)
 
 
 
 addCtx :: RSId -> Process -> SvcodeP ()
-addCtx s v = SvcodeP $ \ c _ _ _ -> Right ((), (0,0), M.insert s v c)
+addCtx s v = SvcodeP $ \ c _ _ _ re -> 
+  let s' = rsidMap s re in Right ((), (0,0), M.insert s' v c, re)
+
 
 addCtxChk :: RSId -> Process -> SvcodeP ()
 addCtxChk s v = 
   do ctx <- getCtx
-     case M.lookup s ctx of 
-       Nothing -> addCtx s v 
+     s' <- rsidMapM s 
+     case M.lookup s' ctx of 
+       Nothing -> addCtx s' v 
        Just _ -> return ()
 
 
+
+-- add RSId mapping; 
+-- Note: if the key is already present in the map, the old value will be replaced
+addREnv :: RSId -> RSId -> SvcodeP ()
+addREnv s1 s2 = SvcodeP $ \ c _ _ _ re -> Right ((),(0,0),c, M.insert s1 s2 re)
+
+
 updateCtx :: RSId -> Process -> SvcodeP ()
-updateCtx s v = SvcodeP $ \ c _ _ _ -> Right ((),(0,0),M.adjust (\_ -> v) s c) 
+updateCtx s v = SvcodeP $ \ c _ _ _ re -> 
+  let s' = rsidMap s re in Right ((),(0,0),M.adjust (\_ -> v) s' c,re) 
 
 getCtx :: SvcodeP Svctx
-getCtx = SvcodeP $ \ c _ _ _ -> Right (c,(0,0),c)
+getCtx = SvcodeP $ \ c _ _ _ re -> Right (c,(0,0),c,re)
 
 
-getSF = SvcodeP $ \ c _ _ sf -> Right (sf, (0,0),c)
+getSF = SvcodeP $ \ c _ _ sf re -> Right (sf, (0,0),c,re)
 
 localSF :: Int -> SvcodeP a -> SvcodeP a 
-localSF sf m = SvcodeP $ \ ctx ctrl fe _ -> rSvcodeP m ctx ctrl fe sf 
+localSF sf m = SvcodeP $ \ ctx ctrl fe _ re -> rSvcodeP m ctx ctrl fe sf re
 
 
 getCtrl :: SvcodeP RSId
-getCtrl = SvcodeP $ \ ctx ctrl _ _ -> Right (ctrl,(0,0),ctx)
+getCtrl = SvcodeP $ \ ctx ctrl _ _ re -> Right (ctrl,(0,0),ctx,re)
 
 
 getSuppiler sid = 
@@ -202,25 +217,38 @@ getSuppiler sid =
 
 
 localCtrl :: RSId -> SvcodeP a -> SvcodeP a 
-localCtrl ctrl m = SvcodeP $ \ ctx _ fe sf -> rSvcodeP m ctx ctrl fe sf 
+localCtrl ctrl m = SvcodeP $ \ ctx _ fe sf re -> rSvcodeP m ctx ctrl fe sf re 
 
 
 lookupRSid :: RSId -> SvcodeP Process
-lookupRSid r = SvcodeP $ \c _ _ _ -> 
-    case M.lookup r c of 
-        Nothing -> Left $ "lookupRSid: undefined SId " ++ show r
-        Just st -> Right (st,(0,0),c)  
+lookupRSid r = SvcodeP $ \c _ _ _ re -> 
+    case M.lookup (rsidMap r re) c of 
+        Nothing -> Left $ "lookupRSid: undefined RSId " ++ show r
+        Just st -> Right (st,(0,0),c,re)  
+
+
+rsidMap :: RSId -> REnv -> RSId
+rsidMap s re = 
+  case M.lookup s re of 
+    Nothing -> s
+    Just s' -> rsidMap s' re
+
+
+-- lookup the mapped RSId in REnv 
+-- if no mapping exists, return itself
+rsidMapM :: RSId -> SvcodeP RSId
+rsidMapM s = SvcodeP $ \ c _ _ _ re  -> Right (rsidMap s re, (0,0),c,re)
 
 
 lookupFId :: FId -> SvcodeP SFun
-lookupFId fid = SvcodeP $ \c _ fe _ -> 
+lookupFId fid = SvcodeP $ \c _ fe _ re -> 
     case lookup fid fe of 
         Nothing -> Left $ "lookupFId: undefined FId " ++ show fid
-        Just sf -> Right (sf,(0,0),c)  
+        Just sf -> Right (sf,(0,0),c,re)  
 
 
 costInc :: (Int, Int) -> SvcodeP ()
-costInc (w,s) = SvcodeP $ \ c _ _ sf -> Right ((), (w,s), c)
+costInc (w,s) = SvcodeP $ \ c _ _ sf re -> Right ((), (w,s), c,re)
 
 
 clRSid :: [(SId,Int)] -> Int -> SId -> [(RSId,Int)]
@@ -237,25 +265,29 @@ curStart :: [(RSId,Int)] -> Clients
 curStart cls = map (\cl -> (cl,0)) cls
 
 
+
 getClientR :: Dag -> Int -> Int  -> SId -> SvcodeP [(RSId,Int)]
 getClientR d sf r sid = 
   case lookup sid d of
     Nothing -> return []
-    Just cls -> return $ clRSid cls sf r 
+    Just cls ->  
+      do let (clR,is) = unzip $ clRSid cls sf r
+         clR' <- mapM rsidMapM clR 
+         return $ zip clR' is 
 
 
 getSupR :: Sup -> Int -> Int  -> SId -> SvcodeP [RSId]
 getSupR d sf r sid = 
   case lookup sid d of
     Nothing -> return [] 
-    Just sups -> return $ s2Rs sups sf r 
+    Just sups -> mapM rsidMapM $ s2Rs sups sf r 
 
+ 
 
 ------ processes (including xducer) initialization
 
 sInit :: [SInstr] -> SId -> Dag -> Sup -> SvcodeP ()
 sInit code r d sup = mapM_ (\i -> sInstrInit i r d sup) code
-
 
 sInstrInit :: SInstr -> SId -> Dag -> Sup -> SvcodeP ()
 sInstrInit (SDef sid e) r d sup = 
@@ -279,14 +311,16 @@ sInstrInit (WithCtrl ctrl ins code st) r d sup =
      -- initial the return sids
      let retSids = tree2Sids st 
          retRSids = s2Rs retSids sf r
-     retClsR <- mapM (getClientR d sf r) retSids     
+     retClsR <- mapM (getClientR d sf r) retSids 
+     --retRSids' <- mapM rsidMapM retRSids    
      zipWithM_ (\s cl -> addCtxChk s (Filling [], [], curStart cl, Done ()))
-       retRSids retClsR  -- `Done ()` will be replaced when unfolding WithCtrl
+       retRSids retClsR  
+     
+     ins' <- mapM rsidMapM (s2Rs ins sf r)
+     mapM_ (addRSClient [((sf,r,-3),0)]) ins'  -- add pseudoclient
 
-     mapM_ (addRSClient [((sf,r,-3),0)]) (s2Rs ins sf r) -- add pseudoclient
 
-
-sInstrInit (SCall fid argSid retSids) r d _ = 
+sInstrInit (SCall fid argSid retSids) r d sup = 
   do (SFun fmArgs st code count) <- lookupFId fid
      let fmRets = tree2Sids st      
          (fmSup,fmDag) = geneSupDag code 0 
@@ -295,38 +329,56 @@ sInstrInit (SCall fid argSid retSids) r d _ =
      let fmSf = sf +1 
          fmR = (r*count) + (head retSids)
          fmCtrlR = (fmSf,fmR,0) 
-     
-     let argSidR = s2Rs argSid sf r -- actual parameters
+        
+         argRSids = s2Rs argSid sf r -- actual parameters
+         retRSids = s2Rs retSids sf r
          fmArgsR = s2Rs fmArgs fmSf fmR -- formal parameters
          fmRetsR = s2Rs fmRets fmSf fmR
-     fmArgsClsR <- mapM (getClientR fmDag fmSf fmR) (0:fmArgs)
-     
-     zipWithM_ (\a cl -> addCtxChk a (Filling [], [], curStart cl, rinOut)) 
-       (fmCtrlR:fmArgsR) fmArgsClsR
+         
+     ctrl <- getCtrl
+     zipWithM_ addREnv (fmCtrlR:fmArgsR++retRSids) (ctrl: argRSids++fmRetsR) -- add mappings
      
      localCtrl fmCtrlR $ localSF fmSf $ sInit code fmR fmDag fmSup --unfolding
+     
+     -- add clients to the actual ctrl and paramters
+     ctrlCl <- getClientR fmDag fmSf fmR 0 
+     fmArgsClsR <- mapM (getClientR fmDag fmSf fmR) fmArgs
+     zipWithM_ (\s cl -> addRSClient cl s) (ctrl:argRSids) (ctrlCl:fmArgsClsR)
 
-     let retRSids = s2Rs retSids sf r
      retClsR <- mapM (getClientR d sf r) retSids
-     zipWithM_ (\s cl -> addCtxChk s (Filling [], [], curStart cl, rinOut))
-       retRSids retClsR  
-     
-     ctrl <- getCtrl
-     connectRSIds (ctrl:argSidR) (fmCtrlR:fmArgsR)
-     connectRSIds fmRetsR retRSids
+     zipWithM_ (\ret cl -> addRSClient cl ret) fmRetsR retClsR
+
+
+--supReplace :: RSId -> RSId -> RSId -> SvcodeP ()
+--supReplace s@(_,_,sid) sup1 sup2 = 
+--  do if sid < 0 then return ()
+--     else  
+--        do (buf,sups,cl,p) <- lookupRSid s  
+--           let sups' = replace sup1 sup2 sups
+--           updateCtx s (buf, sups', cl,p)
+
+--clReplace :: RSId -> RSId -> RSId -> SvcodeP ()
+--clReplace s cl1 cl2 = 
+--  do (buf,sups,cls,p) <- lookupRSid s
+--     let (clRis,curs) = unzip cls 
+--         (clR,is) = unzip clRis
+--         clR' = replace cl1 cl2 clR
+--         cls' = zip (zip clR' is) curs
+--     updateCtx s (buf,sups,cls',p)
+
 
      
--- pipe [ s1 ] --- 0 --> [ s2 ]
--- s1 is s2's only supplier
-connectRSIds :: [RSId] -> [RSId] -> SvcodeP ()
-connectRSIds [] [] = return ()
-connectRSIds (s1:s1s) (s2:s2s) = 
-  do (buf1,sup1,cl1,p1) <- lookupRSid s1
-     (buf2,sup2,cl2,p2) <- lookupRSid s2  
-     updateCtx s1 (buf1,sup1,cl1 ++ [((s2,0),0)],p1)
-     updateCtx s2 (buf2,[s1],cl2,rinOut) 
-     connectRSIds s1s s2s 
-connectRSIds _ _ = fail $ "connectRSIds: RSId lengths mismatch."
+---- pipe [ s1 ] --- 0 --> [ s2 ]
+---- s1 is s2's only supplier
+--connectRSIds :: [RSId] -> [RSId] -> SvcodeP ()
+--connectRSIds [] [] = return ()
+--connectRSIds (s1:s1s) (s2:s2s) = 
+--  do (buf1,sup1,cl1,p1) <- lookupRSid s1
+--     (buf2,sup2,cl2,p2) <- lookupRSid s2  
+--     updateCtx s1 (buf1,sup1,cl1 ++ [((s2,0),0)],p1)
+--     updateCtx s2 (buf2,[s1],cl2,rinOut) 
+--     connectRSIds s1s s2s 
+--connectRSIds _ _ = fail $ "connectRSIds: RSId lengths mismatch."
 
 
 ---- SExpression init
@@ -381,8 +433,9 @@ lookupOpA op r =
 
 ----- run a process
 sSIdInterp :: Int -> RSId -> SvcodeP ()
-sSIdInterp bufSize sid = 
-  do (buf, sups, bs, p) <- lookupRSid sid 
+sSIdInterp bufSize sid0 = 
+  do sid <- rsidMapM sid0
+     (buf, sups, bs, p) <- lookupRSid sid 
      case p of 
        Done () -> 
          case buf of 
@@ -408,10 +461,11 @@ sSIdInterp bufSize sid =
        Pin i p' -> 
          case buf of 
            _ ->  
-             do (bufSup, supSup, flagSup,pSup) <- lookupRSid (sups!!i)
+             do supRep <- rsidMapM (sups!!i)
+                (bufSup, supSup, flagSup,pSup) <- lookupRSid supRep
                 case lookup (sid,i) flagSup of 
                   Nothing -> fail $ show sid ++ " reads an undefined supplier " 
-                                      ++ show (sups!!i)
+                                      ++ show supRep
                   Just cursor -> 
                     case bufSup of                
                       Filling _ -> return () -- read unavailable, blocking 
@@ -421,7 +475,7 @@ sSIdInterp bufSize sid =
                           then return () -- read blocking 
                           else -- read successfully
                             do let flagSup' = markRead flagSup (sid,i) cursor
-                               updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
+                               updateCtx supRep (bufSup, supSup, flagSup',pSup)  
                                updateCtx sid (buf,sups,bs,p' (Just $ asSup !! cursor))
                                costInc (1,0) 
                                sSIdInterp bufSize sid -- loop
@@ -433,7 +487,7 @@ sSIdInterp bufSize sid =
                                sSIdInterp bufSize sid -- loop 
                           else -- read successfully
                             do let flagSup' = markRead flagSup (sid,i) cursor
-                               updateCtx (sups!!i) (bufSup, supSup, flagSup',pSup)  
+                               updateCtx supRep (bufSup, supSup, flagSup',pSup)  
                                updateCtx sid (buf,sups,bs,p' (Just $ asSup !! cursor))
                                costInc (1,0)  
                                sSIdInterp bufSize sid -- loop
@@ -466,7 +520,8 @@ sInstrInterp bufSize r (WithCtrl ctrl ins code st) =
                              retRSids = s2Rs retSids' sf r                 
                          doneStreams retRSids
                          -- delete pseudoclient 
-                         mapM_ (delRSClient ((sf,r,-3),0)) [(sf,r,i) | i<-ins]
+                         ins' <- mapM rsidMapM [(sf,r,i) | i<-ins]
+                         mapM_ (delRSClient ((sf,r,-3),0)) ins'
            
            Filling [] ->  return () -- keep waiting
 
@@ -484,27 +539,24 @@ sInstrInterp bufSize r (WithCtrl ctrl ins code st) =
                 updateCtx ctrlR (buf, c, ctrlCl, p) 
                 
                 -- delete pseudoclient and add real clients for import SIds
-                insClR <- mapM (getClientR d sf r) ins                                  
-                mapM_ (delRSClient ((sf,r,-3),0)) [(sf,r,i) | i <- ins]  
-                zipWithM_ (\cl i -> addRSClient cl i) insClR [(sf,r,s) | s <- ins] 
+                insClR <- mapM (getClientR d sf r) ins
+                --ins' <- mapM rsidMap [(sf,r,i) | i<-ins]                                  
+                mapM_ (delRSClient ((sf,r,-3),0)) [(sf,r,i) | i <- ins] 
+                ins' <- mapM rsidMapM [(sf,r,s) | s <- ins]
+                zipWithM_ (\cl i -> addRSClient cl i) insClR ins'
                 
                 -- run `code`
-                localCtrl ctrlR $ mapM_ (sInstrInterp bufSize r) code 
+                --localCtrl ctrlR $ mapM_ (sInstrInterp bufSize r) code 
 
 
 sInstrInterp bufSize r (SCall fid _ retSids) =
-  do (SFun fmArgs st code count) <- lookupFId fid
+  do (SFun _ _ code count) <- lookupFId fid
      sf <- getSF
      let fmSF = sf+1 
          fmR = (r*count) + head retSids
-         fmArgsR = s2Rs (0:fmArgs) fmSF fmR 
-         fmCtrl = (fmSF,fmR,0)
-     localCtrl fmCtrl $ localSF fmSF $ mapM (sSIdInterp bufSize) fmArgsR
-     localCtrl fmCtrl $ localSF fmSF $ mapM (sInstrInterp bufSize fmR) code    
-     let retRSids = s2Rs retSids sf r 
-     mapM_ (sSIdInterp bufSize) retRSids
+     localSF fmSF $ mapM_ (sInstrInterp bufSize fmR) code  -- function body
 
-
+  
 
 allEnd :: [((RSId,Int),Int)] -> Int -> Bool 
 allEnd bs len = all (\(_,c) -> c >= len) bs 
@@ -526,8 +578,9 @@ doneStream ret =
 
 addRSClient :: [(RSId,Int)] -> RSId -> SvcodeP ()
 addRSClient cls s1 = 
-  do (buf1,sup1,cl1,p1) <- lookupRSid s1
-     updateCtx s1 (buf1,sup1, cl1 ++ (curStart cls), p1)
+  do s1' <- rsidMapM s1 
+     (buf1,sup1,cl1,p1) <- lookupRSid s1'
+     updateCtx s1' (buf1,sup1, cl1 ++ (curStart cls), p1)
 
 
 delRSClient :: (RSId,Int) -> RSId -> SvcodeP ()
@@ -577,17 +630,17 @@ checkKeyVal (p0@(k0,v0):ps) k v =
 
 ------- run the program and print out the Svctx of each round  -------------
 -- 
-runSvcodePExp' :: SFun -> Int -> Int -> FEnv -> Either String String
+runSvcodePExp' :: SFun -> Int -> Int -> FEnv -> Either String String 
 runSvcodePExp' (SFun [] st code fresh) count bs fe = 
   do let (sup,d) = geneSupDag code 0
          retSids = tree2Sids st
          retRSids = zip (s2Rs retSids 0 (head retSids)) [0..] 
          ctrl = (0,head retSids,0)
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d $ zip retSids [0..]
-     (_,_,ctx) <- rSvcodeP (sInit code (head retSids) d' sup) M.empty ctrl fe 0
+     (_,_,ctx,re) <- rSvcodeP (sInit code (head retSids) d' sup) M.empty ctrl fe 0 M.empty
 
-     (as, ctxs) <- roundN count (round1 (mapM_ (sInstrInterp bs (head retSids)) code) ctrl retRSids fe) [ctx]
-                     ([map (\_ -> []) retSids]) 
+     (as, ctxs) <- roundN count (round1 (mapM_ (sInstrInterp bs (head retSids)) code) ctrl retRSids fe) 
+                    re [ctx] ([map (\_ -> []) retSids]) 
      let str = map (\(a,c,i) -> "Round "++ show i ++"\nOutput:" ++ show a ++ "\n" 
                       ++ showCtx (M.toList c) ++ "\n") 
                $ zip3 (reverse as) (reverse ctxs) [0..]
@@ -603,30 +656,30 @@ showCtx (((sf,r,sid),(buf,c,bs,p)):ss) =
     
 
 
-roundN :: Int -> (Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx)) -> 
-            [Svctx] -> [[[AVal]]]  -> Either String ([[[AVal]]], [Svctx])
-roundN 0 f ctxs as = Right (as,ctxs) 
-roundN c f ctxs as = 
+roundN :: Int -> (REnv -> Svctx -> [[AVal]] -> Either String ([[AVal]], Svctx,REnv))
+            -> REnv -> [Svctx] -> [[[AVal]]]  -> Either String ([[[AVal]]], [Svctx])
+roundN 0 f _ ctxs as = Right (as,ctxs) 
+roundN c f re ctxs as = 
   if M.foldl (\b (_,_, _,p) -> b && (p == Done ())) True (head ctxs)
     then return (as,ctxs)
     else
-      do (as',ctx') <- f (head ctxs) (head as)
+      do (as',ctx',re') <- f re (head ctxs) (head as)
          if (length ctxs > 0) && (compCtx ctx' $ ctxs!!0)
          then do unlockCtx <- stealing ctx'
-                 roundN (c-1) f (unlockCtx:ctxs) (as':as)
-         else roundN (c-1) f (ctx':ctxs) (as':as)
+                 roundN (c-1) f re' (unlockCtx:ctxs) (as':as)
+         else roundN (c-1) f re' (ctx':ctxs) (as':as)
      
 
-round1 :: SvcodeP () -> RSId -> [(RSId,Int)] -> FEnv -> Svctx -> [[AVal]] 
-           -> Either String ([[AVal]], Svctx) 
-round1 m ctrl st fe ctx as0 = 
-  do (_,_, ctx') <- rSvcodeP m ctx ctrl fe 0
+round1 :: SvcodeP () -> RSId -> [(RSId,Int)] -> FEnv -> REnv -> Svctx -> [[AVal]] 
+           -> Either String ([[AVal]], Svctx,REnv) 
+round1 m ctrl st fe re ctx as0 = 
+  do (_,_, ctx',re') <- rSvcodeP m ctx ctrl fe 0 re
      (as,ctx'') <- foldM (\(a0,c0) s -> 
-                            do (a,c) <- lookupAval c0 s
+                            do (a,c) <- lookupAval c0 s re'
                                return (a:a0,c))
                         ([],ctx') st 
      let as' = zipWith (++) as0 (reverse as) 
-     return (as', ctx'') 
+     return (as', ctx'',re') 
 
 -----------------------------------}
 
