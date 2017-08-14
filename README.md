@@ -2,8 +2,8 @@
 + Week 41 (7~13 Aug)
     + Streaming interpreter [`SvcodeSXInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeSXInterp.hs) code optmization and bug fixes
         + replaced list of pair with Data.Map for the structure of `Svctx`
-	+ added `REnv` in `SvcodeP` Monad for RSId mappings used when unfolding SCalls
-	    + buggy, work in process
+        + added `REnv` in `SvcodeP` Monad for RSId mappings used when unfolding SCalls
+            + buggy, work in process
     + Cost model bug fixes
     + Related discussions [#20](https://github.com/Ginko-X/Streaming_NESL/issues/20)
     
