@@ -216,6 +216,12 @@ getSuppiler sid =
      return sup 
 
 
+getCtxClient s = SvcodeP $ \c _ _ _ re -> 
+  case M.lookup s c of 
+    Nothing -> Right ([],(0,0),c,re)
+    Just (_,_,cl,_) -> Right (fst $ unzip cl, (0,0),c,re)
+
+
 localCtrl :: RSId -> SvcodeP a -> SvcodeP a 
 localCtrl ctrl m = SvcodeP $ \ ctx _ fe sf re -> rSvcodeP m ctx ctrl fe sf re 
 
@@ -334,6 +340,8 @@ sInstrInit (SCall fid argSid retSids) r d sup =
          retRSids = s2Rs retSids sf r
          fmArgsR = s2Rs fmArgs fmSf fmR -- formal parameters
          fmRetsR = s2Rs fmRets fmSf fmR
+     
+     retCtxCls <- mapM getCtxClient retRSids  -- get clients before mapping
          
      ctrl <- getCtrl
      zipWithM_ addREnv (fmCtrlR:fmArgsR++retRSids) (ctrl: argRSids++fmRetsR) -- add mappings
@@ -346,7 +354,7 @@ sInstrInit (SCall fid argSid retSids) r d sup =
      zipWithM_ (\s cl -> addRSClient cl s) (ctrl:argRSids) (ctrlCl:fmArgsClsR)
 
      retClsR <- mapM (getClientR d sf r) retSids
-     zipWithM_ (\ret cl -> addRSClient cl ret) fmRetsR retClsR
+     zipWithM_ (\ret cl -> addRSClient cl ret) fmRetsR $ zipWith (++) retClsR retCtxCls
 
 
 --supReplace :: RSId -> RSId -> RSId -> SvcodeP ()
@@ -465,7 +473,7 @@ sSIdInterp bufSize sid0 =
                 (bufSup, supSup, flagSup,pSup) <- lookupRSid supRep
                 case lookup (sid,i) flagSup of 
                   Nothing -> fail $ show sid ++ " reads an undefined supplier " 
-                                      ++ show supRep
+                                      ++ show supRep 
                   Just cursor -> 
                     case bufSup of                
                       Filling _ -> return () -- read unavailable, blocking 
