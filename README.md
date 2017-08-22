@@ -1,4 +1,7 @@
 # Working Progress
++ Week 42 (14~20 Aug)
+    + Started correctness proofs with a toy version exercise [#25](https://github.com/Ginko-X/Streaming_NESL/issues/25)
+    
 + Week 41 (7~13 Aug)
     + Streaming interpreter [`SvcodeSXInterp.hs`](https://github.com/Ginko-X/Streaming_NESL/blob/master/SvcodeSXInterp.hs) code optmization and bug fixes
         + replaced list of pair with Data.Map for the structure of `Svctx`

@@ -156,7 +156,7 @@ emptyStream (BStr s) = addCtx s $ SBVal []
 emptyStream (PStr st1 st2)  = emptyStream st1 >> emptyStream st2
 emptyStream (SStr st1 st2) = emptyStream st1 >> (addCtx st2 $ SBVal [])
  
-
+-- value copy
 makeCtx :: [SId] -> [SId] -> Svcode Svctx
 makeCtx s1s s2s =　
   do vs <- mapM lookupSid s1s 
