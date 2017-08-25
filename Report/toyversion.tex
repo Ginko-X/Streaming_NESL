@@ -261,7 +261,8 @@ $$
 \subsection{Extended translation:}
 Translation environment $\delta = [\Map{x_1}{r_1}, ..., \Map{x_i}{r_i} ]$.\\
 
-\Jug{ \Trans{\delta}{e}{\Talet{p}{r}}{r_0}{r_1}}
+\Jug{ \Trans{\delta}{e}{\Talet{p}{r}}{r_0}{r_1}} 
+($\forall r_i \in codom(\delta). r_i < r_0$)
 $$
 \infer[(\delta(x)=r)]{\Trans{\delta}{x}{\Talet{\epsilon}{r}}{r_0} {r_0}}{}
 $$
@@ -394,7 +395,8 @@ Define a function $rset$ to convert $rs$ to a set of $r$: \\
 \subsection{Extended translation:}
 
 \Jug{\Trans{\delta}{e}{\Talet{p}{rs}}{r_0} {r_1} }
-(fixed $\delta = [\Map{x_1}{rs_1}, ..., \Map{x_i}{rs_i} ]$) \\[1ex]
+(fixed $\delta = [\Map{x_1}{rs_1}, ..., \Map{x_i}{rs_i} ]$, 
+and $\forall rs_i \in codom(\delta).\forall r' \in rset(rs_i). r' < r_0$) \\
 $$
 \infer{\Trans{\delta}{e_1+e_2}{\Talet{p1;(p2;p3)}{rs3}} {r} {r_3}}
 {\Trans{\delta}{e_1}{\Talet{p_1}{rs_1}} {r} {r_1} & \Trans{\delta}{e_2}{\Talet{p_2}{rs_2}} {r_1} {r_2} & \TransP{rs_1}{rs_2}{\Talet{p_3}{rs_3}} {r_2} {r_3} }
