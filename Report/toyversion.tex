@@ -1,0 +1,688 @@
+\documentclass[a4paper]{article}
+
+\usepackage{proof}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{bussproofs}
+\usepackage{color}
+\usepackage{geometry}
+\usepackage{enumerate}
+ 
+\geometry{left=2.5cm,right=2.5cm,top=3cm,bottom=3cm}
+
+\newtheorem{thm}[equation]{Theorem}
+\newtheorem{lem}[equation]{Lemma}
+\newtheorem{prop}[equation]{Proposition}
+\newtheorem{cor}[equation]{Corollary}
+\newtheorem{conj}[equation]{Conjecture}
+
+%syntax shorthands
+\def\Mov#1#2{\mathbf{mov} \ #1  \ #2 }
+\def\Add#1#2#3{\mathbf{add} \ #1 \ #2 \ #3 }
+\def\Fst#1{\mathbf{fst} (#1)}
+\def\Snd#1{\mathbf{snd} (#1)}
+\def\Int{\mathbf{Int}}
+\def\Let#1#2#3{\mathbf{let} \ #1 = #2 \ \mathbf{in} \ #3}
+\def\Gplus#1#2{\mathbf{gplus} (#1,#2)}
+\def\*#1{\mathbf{#1}\ }
+
+
+% symbol shorthands
+\def\Eva{\downarrow}
+\def\Ra{\Rightarrow}
+\def\Env{\ \vdash\ } 
+\def\Sgm{\sigma}
+
+% special font
+\def\MC{\mathcal{C}} 
+\def\ME{\mathcal{E}} 
+\def\MP{\mathcal{P}} 
+\def\MT{\mathcal{T}} 
+\def\MV{\mathcal{V}}
+
+
+
+% Judgment
+\def\Jug#1{Judgment \boxed{#1} \\[1ex]}
+
+\def\Map#1#2{#1 \mapsto #2}
+
+% Evaluation
+\def\Eval#1#2#3{#1 \Env #2 \Eva #3 } 
+\def\FEval#1#2{#1 \Eva #2}  % function evaluation
+
+% target semantics 
+\def\TaSem#1#2#3{\langle #1,#2 \rangle \Eva #3}  
+\def\Talet#1#2{\mathtt{let} \ #1 \ \mathtt{in} \ #2}
+
+% compiling/translation
+\def\Trans#1#2#3#4#5{#1 \Env #2 \Ra^{#4}_{#5} #3} 
+\def\TransP#1#2#3#4#5{\mathbf{transPlus} (#1,#2) \Ra^{#4}_{#5} #3}
+
+%typing
+\def\Type#1#2#3{#1 \Env #2 : #3 } 
+
+%value representation
+\def\ValRep#1#2#3#4{#1 \Env #2 \triangleright_{#4} #3}
+
+% rule with a name
+\def\ERule#1#2{\textsc{E-#1} : \vcenter{#2}}
+\def\PRule#1#2{\textsc{P-#1} : \vcenter{#2}}
+\def\CRule#1#2{\textsc{C-#1} : \vcenter{#2}}
+
+% only rule name
+\def\EName#1{\textsc{E-#1}}
+\def\PName#1{\textsc{P-#1}}
+\def\CName#1{\textsc{C-#1}}
+
+%proof tree shorthands
+\def\AC#1{\AxiomC{$#1$}}
+\def\UC#1{\UnaryInfC{$#1$}}
+\def\BC#1{\BinaryInfC{$#1$}}
+\def\TC#1{\TrinaryInfC{$#1$}}
+\def\DP{\DisplayProof}
+\def\LeLa{\LeftLabel}
+\def\PT#1{#1 \DisplayProof} 
+%UnaryInfC with a deriviation name
+\def\UCN#1#2{\AC{#1} \noLine \UC{#2}}
+
+
+%color
+\def\Blue{\color{blue}}
+
+
+
+\title{Toy language formalization}
+
+\begin{document}
+\maketitle
+
+\setcounter{section}{-1}
+
+\section{Level-0}
+\subsection{Source language:}
+
+$$e ::= n \ |\ e_1 + e_2 \ $$
+$$ ( n \in \*{Z} )$$
+
+
+\subsection{Source language semantics:}
+
+\Jug{e \Eva n}
+
+$$
+\ERule{Cons}{
+\infer{n \Eva n}{}
+}\qquad
+\ERule{Plus}{\infer[(n_1+n_2= n_3)]{e_1 + e_2 \Eva n_3}{e_1 \Eva n_1 & e_2 \Eva n_2}
+}\qquad
+$$
+
+\subsection{Target language:}
+$$ r \in \*N = \{0,1,2,...\} $$
+$$ s ::= \Mov{r}{n} \ |\ \Add{r_1}{r_2}{r_3}$$
+$$ p ::= s \  |\ p_1;p_2 $$
+
+
+
+\subsection{Target language semantics: }
+Environment $\Sgm = [\Map{r_1}{n_1}, ..., \Map{r_i}{n_i}]$.
+
+
+\Jug{\TaSem{p}{\Sgm}{\Sgm'}}. 
+$$
+\PRule{Mov}{\infer{\TaSem {\Mov{r}{n}} \Sgm {\Sgm[\Map{r}{n}]}}{}
+}\qquad
+$$
+$$
+\PRule{Add}{\infer[(\Sgm(r_2)=n_2, \Sgm(r_3)=n_3, n_2+n_3=n_1)]
+{\TaSem {\Add{r_1}{r_2}{r_3}} \Sgm {\Sgm[\Map{r_1}{n_1}]}}{}
+}\qquad
+$$
+$$
+\PRule{Seq}{\infer{\TaSem {p_1;p_2} \Sgm {\Sgm_2}}
+{\TaSem {p_1} \Sgm {\Sgm_1} & \TaSem {p_2} {\Sgm_1} {\Sgm_2}}
+}\qquad
+$$ 
+
+\subsection{Translation:}
+\Jug{e \Ra_{r_1}^{r_0} \Talet{p}{r}}
+Newly generated register identifiers  start from $r_0$, end at (but not include) $r_1$.
+$$
+\CRule{Cons}{\infer{n \Ra^{r_0}_{r_0+1} \Talet{\Mov{r_0}{n}}{r_0}}{}
+}\qquad
+$$
+
+$$
+\CRule{Plus}{\infer{e_1+e_2 \Ra^{r_0}_{r_2'+1} \Talet{p_1;(p_2;\Add{r_2'}{r_1}{r_2})}{r_2'+1}}
+{e_1 \Ra^{r_0}_{r_1'} \Talet{p_1}{r_1}  & e_2 \Ra^{r_1'}_{r_2'} \Talet{p_2}{r_2}}
+}\qquad 
+$$ \\[1ex]
+
+
+\subsection{Correctness theorem:}
+
+\begin{lem}
+	If $e \Ra^{r_0}_{r_1} \Talet{p}{r}$, then $r_0 \le r_1$ and $r < r_1$.
+	\label{fresh}
+\end{lem}
+
+\begin{thm}
+ If $e \Eva n$ (by some derivation $\ME$), $e \Ra^{r_0}_{r_1} \Talet{p}{r}$ (by $\MC$), then $\TaSem{p}{\Sgm}{\Sgm'}$ (by $\MP$), $\forall r' < r_0.\Sgm'(r') = \Sgm(r')$, and $\Sgm'(r) = n$ .  
+\end{thm}
+ 
+
+\begin{proof}
+ By induction on the syntax of $e$:
+ \begin{itemize}
+ 	\item Case $e = n_0$, then $n = n_0$, by $\EName{Cons}$: $\ME$ = 
+ 	$\infer{n_0 \Eva n_0} {}$,
+ 	by $\CName{Cons}: \MC = $
+ 	$\infer{n_0 \Ra^{r_0}_{r_0+1} \Talet{\Mov{r_0}{n_0}}{r_0}}{}$,
+ 	so $p$ = $\Mov{r_0}{n_0}$, $r= r_0$. \\
+  Then by $\PName{Mov}$, we get $\MP$ =
+  $\infer{\TaSem {\Mov{r_0}{n_0}} \Sgm {\Sgm[\Map{r_0}{n_0}]}}{}$.\\ 
+  Therefore we have
+  $\forall r' < r_0. \Sgm[\Map{r_0}{n_0}](r') = \Sgm(r') $, and
+   $\Sgm[\Map{r_0}{n_0}](r_0) = n_0 $ as required.
+ 	
+  \item Case $e = e_1 + e_2$.\\
+  By \EName{Plus}, $\ME$ must have the shape:   
+    \PT{
+    	\UCN{\ME_1}{e_1 \Eva n_1}
+    	\UCN{\ME_2}{e_2 \Eva n_2}
+    	\BC{ e_1 + e_2 \Eva n_1 + n_2}
+    }, thus $n = n_1 + n_2 $. \\
+  
+  By \CName{Plus}, $\MC$ must have the shape:
+  \PT{
+  	\UCN{\MC_1}{e_1 \Ra^{r_0}_{r_1'} \Talet{p_1}{r_1}}
+  	\UCN{\MC_2}{e_2 \Ra^{r_1'}_{r_2'} \Talet{p_2}{r_2}}
+  	\BC{e_1+e_2 \Ra^{r_0}_{r_2'+1} \Talet{p_1;p_2;\Add{r_2'}{r_1}{r_2}}{r_2'}}
+  } 
+
+  So $p = p_1;p_2;\Add{r_2'}{r_1}{r_2}$, and $r = r_2'$.\\
+  
+  By IH on $\ME_1$ with $\MC_1$, we get $\MP_1 =  \TaSem{p_1}{\Sgm}{\Sgm_1}$ for some  $\Sgm_1$, $\forall r' < r_0. \Sgm_1(r') = \Sgm(r')$, and $\Sgm_1(r_1) = n_1$. \\
+
+  Likewise, by IH on  $\ME_2$ with $\MC_2$, we get $ \MP_2 = \TaSem{p_2}{\Sgm_1}{\Sgm_2}$ for some $\Sgm_2$, $\forall r'' < r_1'. \Sgm_2(r'') = \Sgm_1(r'')$,  and $\Sgm_2(r_2) = n_2$.\\ 
+  
+  By Lemma \ref{fresh} on $\MC_1$, $r_0 \le r_1'$, and $r_1 < r_1'$. Since $r_0 \le r_1'$, we get $\forall r''' < r_0. \Sgm_2(r''') = \Sgm_1(r''') = \Sgm(r''')$; since $r_1 < r_1'$, we get $\Sgm_2(r_1) = \Sgm_1(r_1) = n_1$. \\
+  
+  Use $\PName{Seq}$ and $\PName{Add}$, we construct: \\
+  \PT{
+  	\UCN{\MP_1}{\TaSem{p_1}{\Sgm}{\Sgm_1}}
+  		\UCN{\MP_2}{\TaSem{p_2}{\Sgm_1}{\Sgm_2}} 
+  		\RightLabel{$(\Sgm_2(r_2)=n_2, \Sgm_2(r_1) = n_1)$}
+  		\AC{}
+  		\UC{\TaSem{\Add{r_2'}{r_1}{r_2}}{\Sgm_2}{\Sgm_2[\Map{r_2'}{n_1+ n_2}]}}
+  	\BC{\TaSem{p_2;\Add{r_2'}{r_1}{r_2}}{\Sgm_1}{\Sgm_2[\Map{r_2'}{n_1+ n_2}]}}
+    \BC{\TaSem{p_1;(p_2;\Add{r_2'}{r_1}{r_2})}{\Sgm}{{\Sgm_2[\Map{r_2'}{n_1+ n_2}]}}}
+  }\\
+  
+  Therefore, $\Sgm_2[\Map{r_2'}{n_1+ n_2}](r_2') =  n_1 + n_2 = n$. Take $\Sgm' = \Sgm_2$ and we are done.
+   
+
+ \end{itemize}
+\end{proof}
+
+\hspace{1cm}
+
+
+\section{Level-1}
+\subsection{Extended source language}
+$$e ::= ... \ |\ x \ |\ \Let{x}{e_1}{e_2} $$
+
+\subsection{Extended semantics: }
+High-level runtime environment $\rho = [\Map{x_1}{n_1}, ..., \Map{x_i}{n_i} ]$. \\
+
+\Jug{\Eval{\rho}{e}{n}}
+$$
+\infer[(\rho(x)=n)]{\Eval{\rho}{x}{n}}{}
+\qquad
+\infer{\Eval{\rho} {\Let{x}{e_1}{e_2}} {n} }
+{\Eval{\rho}{e_1}{ n_1} & \Eval{\rho[\Map{x}{n_1}]} {e_2} {n} }
+\qquad
+$$
+
+\subsection{Target language:}
+(added $\epsilon$ to $p$)
+$$ r \in \*N = \{0,1,2,...\} $$
+$$ s ::= \Mov{r}{n} \ |\ \Add{r_1}{r_2}{r_3}$$
+$$ p ::= \epsilon \ | \  s \  |\ p_1;p_2 $$
+
+\subsection{Extended target language semantics: }
+\Jug{\TaSem{p}{\Sgm}{\Sgm'}}
+$$
+\infer{\TaSem {\epsilon} \Sgm {\Sgm}}{}
+\qquad
+$$
+
+
+\subsection{Extended translation:}
+Translation environment $\delta = [\Map{x_1}{r_1}, ..., \Map{x_i}{r_i} ]$.\\
+
+\Jug{ \Trans{\delta}{e}{\Talet{p}{r}}{r_0}{r_1}}
+$$
+\infer[(\delta(x)=r)]{\Trans{\delta}{x}{\Talet{\epsilon}{r}}{r_0} {r_0}}{}
+$$
+$$
+\infer{\Trans{\delta}{\Let{x}{e_1}{e_2}}{\Talet{p_1;p_2}{r_2}} {r_0} {r_2'} }
+	{\Trans{\delta}{e_1}{\Talet{p_1}{r_1}} {r_0} {r_1'} & \Trans{\delta[\Map{x}{r_1}]}{e_2}{\Talet{p_2}{r_2}} {r_1'} {r_2'}} 
+$$
+
+
+\subsection{Correctness theorem: }
+
+\begin{lem}
+	If $\Trans{\delta}{e}{\Talet{p}{r}}{r_0}{r_1}$, then $r_0 \le r_1$ and $r < r_1$.
+	\label{fresh1}
+\end{lem}
+
+\begin{thm}
+	If $\Eval{\rho}{e}{n}$, $\Trans{\delta}{e}{\Talet{p}{r}} {r_0} {r'}$, and $\forall x \in dom(\rho).\rho(x) = \Sgm(\delta(x))$,
+	then $\TaSem{p}{\Sgm}{\Sgm'}$, $\forall r' < r_0.\Sgm'(r') = \Sgm(r') $, and $\Sgm'(r) = n$. 
+\end{thm}
+
+
+\section{Level-2}
+\subsection{Extended source language:}
+$$e ::= ... \ |\ (e_1,e_2) \ |\ \Fst{e} \ |\ \Snd{e}$$
+
+\subsection{Added values:}
+
+$$v ::= n \ | \ (v_1,v_2) $$
+
+\subsection{Added source language type system:}
+$$ \tau ::= \Int \ | \ (\tau_1,\tau_2) $$
+
+Type environment $\Gamma = [\Map{x_1}{\tau_1}, ..., \Map{x_i}{\tau_i} ]$.
+
+\begin{itemize}
+
+\item \Jug{\Type{\Gamma}{e}{\tau}}
+$$
+\infer{\Type{\Gamma}{n}{\Int}}{}
+\qquad
+\infer{\Type{\Gamma}{e_1+e_2}{\tau}}
+{\Type{\Gamma}{e_1}{\tau} & \Type{\Gamma}{e_2}{\tau}}
+$$
+
+$$
+\infer[(\Gamma(x)=\tau)]{\Type{\Gamma}{x}{\tau}}{}
+\qquad
+\infer{\Type{\Gamma}{\Let{x}{e_1}{e_2}}{\tau}}
+{\Type{\Gamma}{e_1}{\tau_1} & \Type{\Gamma[\Map{x}{\tau_1}]}{e_2}{\tau}}
+$$
+
+$$
+\infer{\Type{\Gamma}{(e_1,e_2)}{(\tau_1, \tau_2)}}
+{\Type{\Gamma}{e_1}{\tau_1} & \Type{\Gamma}{e_2}{\tau_2}} 
+\qquad
+\infer{\Type{\Gamma}{\Fst{e}}{\tau_1}}
+{\Type{\Gamma}{e}{(\tau_1,\tau_2)}}
+\qquad
+\infer{\Type{\Gamma}{\Snd{e}}{\tau_2}}
+{\Type{\Gamma}{e}{(\tau_1,\tau_2)}}
+$$
+
+\item \Jug{\Type{}{v}{\tau}}
+$$
+\infer{\Type{}{n}{\Int}}{}
+\qquad
+\infer{\Type{}{(v_1,v_2)}{(\tau_1,\tau_2)}}
+{\Type{}{v_1}{\tau_1} & \Type{}{v_2}{\tau_2}}
+$$ 
+
+\item  Auxiliary \Jug{\Type{}{\*{gplus}(v_1,v_2)}{\tau}}
+\indent (general plus operation typing rules)
+$$\infer{\Type{}{\*{gplus}(n_1,n_2)}{\Int}}{}
+\qquad
+\infer{\Type{}{\*{gplus}((v_{10},v_{11}),(v_{20},v_{21}))}{(\tau_1,\tau_2)}}
+{\Type{}{\*{gplus}(v_{10},v_{20})}{\tau_1} & {\Type{}{\*{gplus}(v_{11},v_{21})}{\tau_2}}} 
+$$
+
+\end{itemize}
+
+
+\subsection{Extended semantics: }
+
+\Jug{\rho \Env e \Eva v }
+(fixed runtime environment $\rho = [\Map{x_1}{v_1}, ..., \Map{x_i}{v_i} ]$) 
+$$
+\infer{\Eval{\rho}{n}{n}}{}
+\qquad
+\infer{\Eval{\rho}{e_1+e_2}{v_3}}
+{\Eval{\rho}{e_1}{v_1} & \Eval{\rho}{e_2}{v_2} & \FEval{\Gplus{v_1}{v_2}}{v_3}}
+$$
+
+$$
+\infer[(\rho(x)=v)]{\rho \Env x \Eva v}{}
+\qquad
+\infer{\rho \Env \Let{x}{e_1}{e_2} \Eva v }
+{\rho \Env e_1 \Eva v_1 & \rho[\Map{x}{v_1}] \Env e_2 \Eva v }
+$$
+
+$$
+\infer{\Eval{\rho}{(e_1,e_2)}{(v_1,v_2)}}
+{\Eval{\rho}{e_1}{v_1} & {\Eval{\rho}{e_2}{v_2}}}
+\qquad
+\infer{\Eval{\rho}{\Fst{e}}{v_1}}
+{\Eval{\rho}{e}{(v_1,v_2)}}
+\qquad
+\infer{\Eval{\rho}{\Snd{e}}{v_2}}
+{\Eval{\rho}{e}{(v_1,v_2)}}
+$$ \\[1ex]
+
+Auxiliary \Jug{\FEval{\Gplus{v_1}{v_2}}{v_3}}
+$$
+\infer[(n_1+n_2=n_3)]{\FEval{\Gplus{n_1}{n_2}}{n_3}}{}
+\qquad
+\infer{\FEval{\Gplus{(v_{10},v_{11})}{(v_{20},v_{21})}}{(v_{30},v_{31})}}
+{\FEval{\Gplus{v_{10}}{v_{20}}}{v_{30}}  & \FEval{\Gplus{v_{11}}{v_{21}}}{v_{31}}}
+\qquad
+$$ \\[1ex]
+
+\subsection{Target language:}
+$$ rs ::= r \ | \ (rs_1,rs_2) $$
+$s$, $p$ and semantics no change. \\
+
+Define a function $rset$ to convert $rs$ to a set of $r$: \\
+\indent $rset(r) = \{r\}$ \\
+\indent $rset((rs_1,rs_2)) = rset(rs_1) \cup rset(rs_2)$
+
+
+\subsection{Extended translation:}
+
+\Jug{\Trans{\delta}{e}{\Talet{p}{rs}}{r_0} {r_1} }
+(fixed $\delta = [\Map{x_1}{rs_1}, ..., \Map{x_i}{rs_i} ]$) \\[1ex]
+$$
+\infer{\Trans{\delta}{e_1+e_2}{\Talet{p1;(p2;p3)}{rs3}} {r} {r_3}}
+{\Trans{\delta}{e_1}{\Talet{p_1}{rs_1}} {r} {r_1} & \Trans{\delta}{e_2}{\Talet{p_2}{rs_2}} {r_1} {r_2} & \TransP{rs_1}{rs_2}{\Talet{p_3}{rs_3}} {r_2} {r_3} }
+$$
+$$
+\infer{\Trans{\delta}{\Let{x}{e_1}{e_2}}{\Talet{p_1;p_2}{rs_2}} {r_0}{r_2}} 
+{\Trans{\delta}{e_1}{\Talet{p_1}{rs_1}}{r_0}{r_1} & \Trans{\delta[\Map{x}{rs_1}]}{e_2}{\Talet{p_2}{rs_2}} {r_1} {r_2} } 
+$$
+
+$$
+\infer{\Trans{\delta}{(e_1,e_2)}{\Talet{p_1;p_2}{(rs_1,rs_2)}} {r_0} {r_2} }
+{\Trans{\delta}{e_1}{\Talet{p_1}{rs_1}} {r_0} {r_1} & \Trans{\delta}{e_2}{\Talet{p_2}{rs_2}} {r_1} {r_2}}
+$$
+
+$$
+\infer{\Trans{\delta}{\Fst{e}}{\Talet{p_1}{rs_1}} {r_0} {r_1}}
+{\Trans{\delta}{e}{\Talet{p_1}{(rs_1,rs_2)}} {r_0}{r_1}}
+\qquad
+\infer{\Trans{\delta}{\Snd{e}}{\Talet{p_1}{rs_2}} {r_0} {r_1}}
+{\Trans{\delta}{e}{\Talet{p_1}{(rs_1,rs_2)}} {r_0}{r_1}}
+$$ \\[1ex]
+
+
+Auxiliary \Jug{ \TransP{rs_1}{rs_2}{\Talet{p}{rs_3}} {r_0} {r_1}}
+$$
+\infer{\TransP{r_1}{r_2}{\Talet{\Add{r_3}{r_1}{r_2}}{r_3}} {r_3}{r_3+1}}{}
+$$
+$$
+\infer{\TransP{(rs_{10},rs_{11})}{(rs_{20},rs_{21})}{\Talet{p_1;p_2}{(rs_{30},rs_{31})}} {r_0} {r_2}}
+{\TransP{rs_{10}}{rs_{20}}{\Talet{p_1}{rs_{30}}} {r_0} {r_1} & \TransP{rs_{11}}{rs_{21}}{\Talet{p_2}{rs_{31}}} {r_1} {r_2} } 
+$$
+
+\subsection{Value representation:}
+\Jug{\ValRep{\Sgm}{v}{rs}{\tau}}
+($v: \tau$ can be represented as $rs$ in $\Sgm$)
+$$
+\infer[(\Sgm(r)=n)]{\ValRep{\Sgm}{n}{r}{\Int}}{}
+\qquad
+\infer{\ValRep{\Sgm}{(v_1,v_2)}{(rs_1,rs_2)}{(\tau_1,\tau_2)}}
+{\ValRep{\Sgm}{v_1}{rs_1}{\tau_1} & {\ValRep{\Sgm}{v_2}{rs_2}{\tau_2}}}
+\qquad
+$$
+
+
+
+
+\subsection{Correctness theorem:}
+\begin{lem}
+	If $\TransP{rs_1}{rs_2}{\Talet{p}{rs_3}}{r_0}{r_1}$, then $r_0 \le r_1$ and $\forall r \in rset(rs_3). r < r_1$.
+	\label{trans-fresh}
+\end{lem}
+
+\begin{lem}
+	If $\Trans{\delta}{e}{\Talet{p}{rs}}{r_0}{r_1}$, then $r_0 \le r_1$ and $\forall r \in rset(rs).r < r_1$.
+	\label{fresh2}
+\end{lem}
+
+
+\begin{lem}
+   If \begin{enumerate}[(i)]
+   	\item $\ValRep{\Sgm}{v_1}{rs_1}{\tau}$, and $\ValRep{\Sgm}{v_2}{rs_2}{\tau}$
+   	\item $\FEval{\Gplus{v_1}{v_2}}{v_3}$
+   	\item $\TransP{rs_1}{rs_2}{\Talet{p}{rs_3}} {r_0} {r_1}$
+   \end{enumerate}
+   then 
+   \begin{enumerate}[(i)]
+   	\item $\TaSem{p}{\Sgm}{\Sgm'}$ 
+   	\item $\ValRep{\Sgm'}{v_3}{rs_3}{\tau}$
+   	\item $\forall r < r_0. \Sgm'(r) = \Sgm(r)$ 
+   \end{enumerate}
+\label{plus-thm}   
+\end{lem}
+
+\begin{thm}
+	If 
+	\begin{enumerate}[(i)]
+		\item $\Type{\Gamma}{e}{\tau}$ (by some derivation $\MT$),
+		\item $\Eval{\rho}{e}{v}$ (by $\ME$), and $\forall x \in dom(\Gamma). \rho(x):\Gamma(x)$, 
+		\item $\Trans{\delta}{e}{\Talet{p}{rs}}{r_0}{r_1}$ (by $\MC$),
+		and $\forall x \in dom(\Gamma).\ValRep{\Sgm}{\rho(x)}{\delta(x)}{\Gamma(x)}$
+	\end{enumerate}
+	then 
+	\begin{enumerate}[(i)]
+		\item $\TaSem{p}{\Sgm}{\Sgm'}$ (by $\MP$),
+		\item  $\ValRep{\Sgm'}{v}{rs}{\tau}$ (by $\MV$)
+		\item $\forall r < r_0.\Sgm'(r) = \Sgm(r) $. 
+	\end{enumerate} 
+\end{thm}
+
+
+ 
+\begin{proof}
+By induction on the syntax of $e$.
+	\begin{itemize}
+	\item Case $e = e_1 + e_2$.\\
+	Then must have: 
+	\PT{
+		\UCN{\MT_1}{\Type{\Gamma}{e_1}{\tau}}
+		\UCN{\MT_2}{\Type{\Gamma}{e_2}{\tau}}
+		\LeLa{$\MT =$} 
+		\BC{\Type{\Gamma}{e_1+e_2}{\tau}}
+    }
+	
+	\PT{
+		\UCN{\ME_1}{\Eval{\rho}{e_1}{v_1}}
+		\UCN{\ME_2}{\Eval{\rho}{e_2}{v_2}}
+		\UCN{\ME_3}{\FEval{\Gplus{v_1}{v_2}}{v}}
+		\LeLa{$\ME =$} 
+		\TC{\Eval{\rho}{e_1+e_2}{v}}
+	}
+	
+\makebox[0.9\textwidth][c] {
+	\PT{		
+		\UCN{\MC_1}{\Trans{\delta}{e_1}{\Talet{p_1}{rs_1}}{r_0}{r_1}}
+		\UCN{\MC_2}{\Trans{\delta}{e_2}{\Talet{p_2}{rs_2}}{r_1}{r_2}}
+		\UCN{\MC_3}{\TransP{rs_1}{rs_2}{\Talet{p_3}{rs_3}}{r_2}{r_3}}
+		\LeLa{$\MC=$}
+		\TC{\Trans{\delta}{e_1+e_2}{\Talet{p1;(p2;p3)}{rs_3}}{r_0}{r_3}}
+	}
+}
+
+So $p= p1;p2;p3, rs=rs_3$.\\
+By IH on $\MT_1,\ME_1,\MC_1$, we get $\MP_1$ of $\TaSem{p_1}{\Sgm}{\Sgm_1}$, $\MV_1$ of $ \ValRep{\Sgm_1}{v_1}{rs_1}{\tau}$, and $\forall r < r_0. \Sgm_1(r) = \Sgm(r)$.\\
+Likewise, by IH on $\MT_2,\ME_2,\MC_2$, we get $\MP_2$ of $\TaSem{p_2}{\Sgm_1}{\Sgm_2}$, $\MV_2$ of $ \ValRep{\Sgm_2}{v_2}{rs_2}{\tau}$, and $\forall r' < r_1. \Sgm_2(r') = \Sgm_1(r')$.\\
+
+By theorem \ref{plus-thm} on $\MV_1,\MV_2, \ME_3,\MC_3$ , we get $\MP_3$ of $\TaSem{p_3}{\Sgm_2}{\Sgm_3}$, $\ValRep{\Sgm_3}{v}{rs_3}{\tau}$, and $\forall r'' < r_2. \Sgm_3(r'') = \Sgm_2(r’‘)$. \\
+
+Then we can construct:\\
+
+	\PT{
+	\UCN{\MP_1}{\TaSem{p_1}{\Sgm}{\Sgm_1}}
+	\UCN{\MP_2}{\TaSem{p_2}{\Sgm_1}{\Sgm_2}}
+	\UCN{\MP_3}{\TaSem{p_3}{\Sgm_2}{\Sgm_3}}
+    \BC{\TaSem{p_2;p_3}{\Sgm_1}{\Sgm_3}}
+    \BC{\TaSem{p_1;(p_2;p_3)}{\Sgm}{\Sgm_3}}
+	}	
+    \\[1ex]
+    
+By lemma \ref{fresh2} on $\MC_1$, we get $r_0 \le r_1$. Similarly, we also get $r_1 \le r_2$ by lemma \ref{fresh2} on $MC_2$. 
+Therefore, $r_0 \le r_1 \le r_2$, hence $\forall r''' < r_0. \Sgm_3(r''') = \Sgm_2(r''') = \Sgm_1(r''') = \Sgm(r''')$. 
+ 
+ Take $\Sgm' = \Sgm_3$ and we are done.
+ 
+ \item Case $e=(e_1,e_2).$\\
+ Must have:
+ 	\PT{
+ 		\UCN{\MT_1}{\Type{\Gamma}{e_1}{\tau_1}}
+ 		\UCN{\MT_2}{\Type{\Gamma}{e_2}{\tau_2}}
+		\LeLa{$\MT =$} 
+ 		\BC{\Type{\Gamma}{(e_1,e_2)}{(\tau_1,\tau_2)}}
+    }
+ 
+ 	\PT{
+ 		\UCN{\ME_1}{\Eval{\rho}{e_1}{v_1}}
+ 		\UCN{\ME_2}{\Eval{\rho}{e_2}{v_2}}
+ 		\LeLa{$\ME =$} 
+ 		\BC{\Eval{\rho}{(e_1,e_2)}{(v_1,v_2)}}
+ 	} 
+ 	
+ 	\PT{
+ 		\UCN{\MC_1}{\Trans{\delta}{e_1}{\Talet{p_1}{rs_1}}{r_0}{r_1}}
+ 		\UCN{\MC_2}{\Trans{\delta}{e_2}{\Talet{p_2}{rs_2}}{r_1}{r_2}}
+ 		\LeLa{$\MC=$}
+ 		\BC{\Trans{\delta}{(e_1,e_2)}{\Talet{p1;p2}{(rs_1,rs_2)}}{r_0}{r_2}}
+ 	} \\[1ex]
+ 
+ So $\tau = (\tau_1,\tau_2), v = (v_1,v_2), rs = (rs_1,rs_2)$.\\
+ By IH on $\MT_1,\ME_1,\MC_1$, we get $\MP_1$ of $\TaSem{p_1}{\Sgm}{\Sgm_1}$, $\MV_1$ of$ \ValRep{\Sgm_1}{v_1}{rs_1}{\tau_1}$, and $\forall r < r_0. \Sgm_1(r) = \Sgm(r)$.\\
+ Likewise, by IH on $\MT_2,\ME_2,\MC_2$, we get $\MP_2$ of $\TaSem{p_2}{\Sgm_1}{\Sgm_2}$, $\MV_2$ of $ \ValRep{\Sgm_2}{v_2}{rs_2}{\tau_2}$, and  $\forall r' < r_1. \Sgm_2(r') = \Sgm_1(r')$.\\
+ 
+ Then we can construct:\\
+ 
+ \PT{
+ 	\UCN{\MP_1}{\TaSem{p_1}{\Sgm}{\Sgm_1}}
+ 	\UCN{\MP_2}{\TaSem{p_2}{\Sgm_1}{\Sgm_2}} 
+ 	\BC{\TaSem{p_1;p_2}{\Sgm}{\Sgm_2}}
+ }\\[1ex]
+
+ By lemma \ref{fresh2} on $\MC_1$, we have $r_0 \le r_1$, and $\forall r \in rset(rs_1). r < r_1$. \\
+ Since $r_0 \le r_1$, we get $\forall r'' < r_0. \Sgm_2(r'') = \Sgm_1(r'') = \Sgm(r'')$. \\ 
+ Since $\forall r \in rset(rs_1). r < r_1$, then $\forall r \in rset(rs_1). \Sgm_2(r) = \Sgm_1(r)$. Therefore, there exists some $\MV_1'$ of  $\ValRep{\Sgm_2}{v_1}{rs_1}{\tau_1}$.\\
+ 
+ Then we can construct:
+ \PT{
+ 	\UCN{\MV_1'}{\ValRep{\Sgm_2}{v_1}{rs_1}{\tau_1}}
+ 	\UCN{\MV_2}{\ValRep{\Sgm_2}{v_2}{rs_2}{\tau_2}}
+ 	\BC{\ValRep{\Sgm_2}{(v_1,v_2)}{(rs_1,rs_2)}{(\tau_1,\tau_2)}}
+ } \\[1ex]
+ 
+ Take $\Sgm' = \Sgm_2$ and we are done.
+ 
+
+\item Case $e = \Let{x}{e_1}{e_2}$. \\[1ex]
+ Must have:
+ \PT{
+	\UCN{\MT_1}{\Type{\Gamma}{e_1}{\tau_1}}
+	\UCN{\MT_2}{\Type{\Gamma[\Map{x}{\tau_1}]}{e_2}{\tau}}
+	\LeLa{$\MT =$} 
+	\BC{\Type{\Gamma}{\Let{x}{e_1}{e_2}}{\tau}}
+ 	}
+
+ \PT{	
+	\UCN{\ME_1}{\Eval{\rho}{e_1}{v_1}}
+	\UCN{\ME_2}{\Eval{\rho[\Map{x}{v_1}]}{e_2}{v}}
+	\LeLa{$\ME =$} 
+	\BC{\Eval{\rho}{\Let{x}{e_1}{e_2}}{v}}
+	} 
+	
+ \PT{
+	\UCN{\MC_1}{\Trans{\delta}{e_1}{\Talet{p_1}{rs_1}}{r_0}{r_1}}
+	\UCN{\MC_2}{\Trans{\delta[\Map{x}{rs_1}]}{e_2}{\Talet{p_2}{rs}}{r_1}{r_2}}
+	\LeLa{$\MC=$}
+	\BC{\Trans{\delta}{\Let{x}{e_1}{e_2}}{\Talet{p_1;p_2}{rs}}{r_0}{r_2}}
+    } \\[1ex]
+
+ So $p = p_1;p_2$. \\
+ By IH on $\MT_1,\ME_1,\MC_1$, we get $\MP_1$ = $\TaSem{p_1}{\Sgm}{\Sgm_1}$, $\MV_1 = \ValRep{\Sgm_1}{v_1}{rs_1}{\tau_1}$, and $\forall r < r_0. \Sgm_1(r) = \Sgm(r)$.\\
+ 
+ Since from $\MV_1$ we know $v_1:\tau_1$, then $\rho[\Map{x}{v_1}](x) : \Gamma[\Map{x}{\tau_1}](x)$ holds, and \\ $\ValRep{\Sgm_1}{\rho[\Map{x}{v_1}](x)}{\delta[\Map{x}{rs_1}](x)}{\Gamma[\Map{x}{\tau_1}](x)}$ also holds. \\
+ 
+ Then by IH on  $\MT_2,\ME_2,\MC_2$, we get $\MP_2$ = $\TaSem{p_2}{\Sgm_1}{\Sgm_2}$, $\MV_2 = \ValRep{\Sgm_2}{v}{rs}{\tau}$, and $\forall r' < r_1. \Sgm_2(r') = \Sgm_1(r')$.\\
+ 
+ So we can construct
+  \PT{
+ 	 \UCN{\MP_1}{\TaSem{p_1}{\Sgm}{\Sgm_1}}
+ 	 \UCN{\MP_2}{\TaSem{p_2}{\Sgm_1}{\Sgm_2}} 
+  	 \BC{\TaSem{p_1;p_2}{\Sgm}{\Sgm_2}}
+  }\\
+
+ By lemma \ref{fresh2} on $\MC_1$: $r_0 \le r_1$. Therefore, $\forall r'' < r_0. \Sgm_2(r'') = \Sgm_1(r'') = \Sgm(r'')$.
+ 
+ Take $\Sgm' = \Sgm_2$ and we are done. 
+
+\item  Case $e = n$.
+
+Must have $\MT = \infer{\Type{\Gamma}{n}{\Int}}{}$, $\ME =\infer{ \Eval{\rho}{n}{n}}{}$, and $\MC = \infer{\Trans{\delta}{n}{\Talet{\Mov{r_0}{n}}{r_0}}{r_0}{r_0+1}}{}$. \\
+So $p = \Mov{r_0}{n}, rs= r_0, v=n$, and $\tau = \Int$. \\
+Then immediately we get $\infer{\TaSem{\Mov{r_0}{n}}{\Sgm}{\Sgm[\Map{r_0}{n}]}}{}$, 
+$\ValRep{\Sgm[\Map{r_0}{n}]}{n}{r_0}{\Int}$, \\
+and $\forall r < r_0. \Sgm[\Map{r_0}{n}](r) = \Sgm(r)$ as required. 
+
+\item Case $e_=x$. 
+
+Must have $\MT = \infer[(\Gamma(x)= \tau)]{\Type{\Gamma}{x}{\tau}}{}$,
+$\ME = \infer[(\rho(x)=v)]{\Eval{\rho}{x}{v}}{}$, \\
+and $\MC = \infer[(\delta(x)=rs)]{\Trans{\delta}{x}{\Talet{\epsilon}{rs}}{r_0}{r_0}}{}$. \\
+So $p= \epsilon.$ \\
+Immediately we get $\TaSem{\epsilon}{\Sgm}{\Sgm}$, $\ValRep{\Sgm}{v}{rs}{\tau}$, and $\forall r < r_0. \Sgm(r) = \Sgm(r)$ as required.
+
+\item Case $e = \Fst{e_1}$.
+
+Must have: 
+\PT{
+	\UCN{\MT_1}{\Type{\Gamma}{e_1}{(\tau_1,\tau_2)}}
+	\LeLa{$\MT = $}
+	\UC{\Type{\Gamma}{\Fst{e_1}}{\tau_1}}
+} for some $\tau_2$,
+
+\PT{
+	\UCN{\ME_1}{\Eval{\rho}{e_1}{(v_1,v_2)}}
+	\LeLa{$\ME = $}
+	\UC{\Eval{\rho}{\Fst{e_1}}{v_1}} 
+} for some $v_2$, 
+
+
+\PT{
+	\UCN{\MC_1}{\Trans{\delta}{e_1}{\Talet{p}{(rs_1,rs_2)}}{r_0}{r_1}}
+	\LeLa{$\MC = $}
+	\UC{\Trans{\delta}{\Fst{e_1}}{\Talet{p}{rs_1}}{r_0}{r_1}}
+} for some $rs_2$. \\
+
+So $\tau = \tau_1, v = v_1, rs = rs_1. $\\
+By IH on $\MT_1, \ME_1, \MC_1$, we get $\MP$ of $\TaSem{p}{\Sgm}{\Sgm_1}$, 
+$\MV_1$ of $\ValRep{\Sgm}{(v_1,v_2)}{(rs_1,rs_2)}{(\tau_1,\tau_2)}$,\\
+and $\forall r < r_0. \Sgm_1(r) = \Sgm(r)$. \\
+$\MV_1$ must have the shape: 
+	\PT{
+		\UCN{\MV}{\ValRep{\Sgm_1}{v_1}{rs_1}{\tau_1}}
+		\UCN{}{\ValRep{\Sgm_1}{v_2}{rs_2}{\tau_2}}
+		\BC{\ValRep{\Sgm_1}{(v_1,v_2)}{(rs_1,rs_2)}{(\tau_1,\tau_2)}}
+	}
+
+So now we have $\MV$. Take $\Sgm' = \Sgm_1$ and we are done. 
+
+\item  The case  where $ e = \Snd{e_1}$ is analogous to the case above.
+
+\end{itemize}
+
+\end{proof}
+
+\end{document}

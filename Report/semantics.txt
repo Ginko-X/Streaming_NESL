@@ -1,0 +1,124 @@
+
+pi ::= int | bool | ...
+
+tau ::= pi | () | (tau1, tau2) | {tau}
+
+a ::= n | T | F
+
+e ::= x | let x = e1 in e2 | phi(x1,...,xn)
+       | {e0 : x in x0 using x1...xn} | {e0 | x0 using x1...xn}
+
+phi ::= cst_a
+        + | - | * | <= | ...
+        unit | pair | fst | snd | zip
+	part | concat | mkseq
+	iota | reduce_¤ | scan_¤
+
+  maybe replace iota with rep : int -> {()}
+   then iota(n) = scan_+({1 : () in rep(n)})
+
+Gamma ::= [x1 |-> tau1 , ... xn |-> taun]
+typing judgment: Gamma |- e : tau
+
+v ::= a | () | (v1,v2) | {v1, ..., vn}
+
+value-typing judgment:  |- v : tau
+
+rho ::= [x1 |-> v1, ..., xn |-> vn] (no repeated x's)
+
+judgment: rho |- e down v 
+
+aux judgment: phi(v1,...,vn) down v
+
+==
+
+st ::= () | (s, st)
+
+p ::= st | let s = theta(s1...sn) in p0
+       | let (s1...sn) = WithCtrl s p1 in p0
+
+theta ::= cst_a
+        | map_+ | map_- | map_* | map_<= | ...
+	| dist | pack
+	| ...
+
+generalize to thetas with multiple outputs? probably not, for now
+
+as ::= <a1,...,an>
+
+w ::= () | (as, w)
+
+sigma ::= [s1 |-> as1, ..., sn |-> asn]
+
+judgment: (p, sigma) down (st, sigma')
+
+aux judgement: theta(as1,...asn) down as
+
+==
+
+representation judgment: v <|_tau w,  v1...vn <|^*_tau w
+
+==
+
+trans-time environment xi = [x1 |-> st1, ... xn |-> stn]
+
+translation judgment: xi |- e => p
+  maybe as function [[e]]^xi = p
+
+aux translation judgment xi |- phi(x1...xn) => p
+
+e.g.,
+
+[x |-> (sd, sf)] |- empty(x) => let s = IsEmpty(sf) in s
+
+==
+
+theorem: if [] |- e : tau, and
+            [] |- e down v, and
+	    [] |- e => p
+	 then (p,[]) down (st,sigma),
+              and v <|_tau sigma*(st)
+
+generalized for proof by induction:
+if Gamma |- e : tau, 
+   and rho : Gamma
+         (i.e, for all x in dom Gamma, |- rho(x) : Gamma(x))
+   and rho |- e down v
+   and xi |- e => p
+   and rho ~_Gamma sigma
+         (i.e, or all x in dom Gamma. rho(x) <|_Gamma(x) sigma*(xi(x))
+then (p, sigma) down (st, sigma')
+   and v <|_tau sigma'*(st)
+
+
+aux theorem:
+Spse phi : (tau_1,...,tau_n) -> tau, and
+spse v1:tau1, ..., vn:taun
+
+if phi(v1...vn) down v and {v1} <|_tau1 w1 ... {vn} <|_taun wn
+  and sigma(x1)..
+and phi(x1...xn) => p
+then (p,sigma) down (st, sigma') and v <|_tau sigma'*(st)
+
+== toy version
+
+source:
+
+  e ::= n | e1 + e2
+         | x | let x = e1 in e2
+         | (e1, e2) | fst(e) | snd(e)
+
+
+target:
+
+  i ::= mov r1 , r2        # r1 := r2
+      | add r1, r2, r3     # r1 := r2 + r3
+      | movi r, n          # r := n
+
+  p ::= return r
+      | i; p
+
+formalize semantics of source and target,
+ translation function, and correctness theorem
+ 
+
