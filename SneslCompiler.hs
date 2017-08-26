@@ -390,8 +390,11 @@ iotas :: SId -> SneslTrans STree
 iotas s = 
     do s1 <- emit (ToFlags s)
        s2 <- emit (Usum s1)
-       s3 <- emit (MapConst s2 (IVal 1))
-       s4 <- emit (SegscanPlus s3 s1)
+       (st@(IStr s3'), code) <- ctrlTrans 
+                                 (do s3 <- emit (Const (IVal 1)); 
+                                     return $ IStr s3) 
+       emitInstr (WithCtrl s2 [] code st)
+       s4 <- emit (SegscanPlus s3' s1)
        return (SStr (IStr s4) s1) 
 
 
