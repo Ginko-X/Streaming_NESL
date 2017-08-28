@@ -134,16 +134,22 @@ checkXducerN = loop0 p
 
 -- packXducer.
 packXducer :: Xducer ()
-packXducer =  rin 0 (\x -> 
+packXducer = rin 0 (\x -> 
               case x of 
                 BVal False -> rinx "packXducer" 1 >> packXducer
                 BVal True -> rinx "packXducer" 1 >>= rout >> packXducer)
+-- ??!!
+packXducerN = rin 1 (\x -> 
+              case x of 
+                BVal False -> rinx "packXducer" 2 >> packXducerN
+                BVal True -> rinx "packXducer" 2 >>= rout >> packXducerN)
 
-packXducerN = loop0 p 
-  where p = do (BVal x) <- rinx "packXducer(x)" 1
-               y <- rinx "packXducer(y)" 2
-               if x then rout y 
-               else return ()
+  --loop0 p 
+  --where p = do BVal x <- rinx "packXducer(flag)" 1
+  --             y <- rinx "packXducer(data)" 2
+  --             if x then rout y 
+  --             else return ()
+
 
 -- upackXducer.
 upackXducer :: Xducer ()
@@ -152,10 +158,15 @@ upackXducer = rin 0 (\x ->
                 BVal False -> uInx 1 >> upackXducer
                 BVal True -> uInOutx 1 >> rout x >> upackXducer)
 
-upackXducerN = loop0 p 
-  where p = do (BVal x) <- rinx "upackXducer(x)" 1 
-               if x then uInOutx 2 >> rout (BVal x) 
-               else uInx 2
+upackXducerN = 
+  rin 1 (\x -> 
+              case x of 
+                BVal False -> uInx 2 >> upackXducerN
+                BVal True -> uInOutx 2 >> rout x >> upackXducerN)
+  --loop0 p 
+  --where p = do (BVal x) <- rinx "upackXducer(x)" 1 
+  --             if x then uInOutx 2 >> rout (BVal x) 
+  --             else uInx 2
 
 
 
@@ -362,8 +373,8 @@ uSegCountXducerN = loop0 p
                if b1 then rout (BVal True)
                else do BVal b2 <- rinx "uSegCountXducerN(data)" 2
                        rout (BVal False)
-                       if b2 then return ()
-                       else uInInter 2 1 
+                       if b2 then p
+                       else uInInter 2 1 >> p
 
 
 -- read an unary (and throw it away) from `i`
