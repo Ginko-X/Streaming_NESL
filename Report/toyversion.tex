@@ -6,6 +6,7 @@
 \usepackage{color}
 \usepackage{geometry}
 \usepackage{enumerate}
+\usepackage{extarrows}
  
 \geometry{left=2.5cm,right=2.5cm,top=3cm,bottom=3cm}
 
@@ -89,7 +90,11 @@
 %color
 \def\Blue{\color{blue}}
 
+%notation
+\def\ConEq#1{\xlongequal{<#1}}  % Sgm conditional equation
 
+\def\SetLe{\lessdot} % forall r in set . r < r0  
+ 
 
 \title{Toy language formalization}
 
@@ -97,6 +102,7 @@
 \maketitle
 
 \setcounter{section}{-1}
+
 
 \section{Level-0}
 \subsection{Source language:}
@@ -262,7 +268,6 @@ $$
 Translation environment $\delta = [\Map{x_1}{r_1}, ..., \Map{x_i}{r_i} ]$.\\
 
 \Jug{ \Trans{\delta}{e}{\Talet{p}{r}}{r_0}{r_1}} 
-($\forall r_i \in codom(\delta). r_i < r_0$)
 $$
 \infer[(\delta(x)=r)]{\Trans{\delta}{x}{\Talet{\epsilon}{r}}{r_0} {r_0}}{}
 $$
@@ -273,15 +278,23 @@ $$
 
 
 \subsection{Correctness theorem: }
+Notation: \\
+We use $\Sgm_1 \ConEq{r} \Sgm_2$ to denote: $\forall r' < r. \Sgm_1(r') = \Sgm_2(r')$.
+It is easy to prove that this relation has the following properties:
+\begin{itemize}
+	\item (Transitivity) if $\Sgm_1 \ConEq{r} \Sgm_2$, and $\Sgm_2 \ConEq{r} \Sgm_3 $, then $\Sgm_1 \ConEq{r} \Sgm_3$.
+	\item if $\Sgm_1 \ConEq{r} \Sgm_2$, $r' < r$, then $\Sgm_1 \ConEq{r'} \Sgm_2$
+\end{itemize}
+
 
 \begin{lem}
-	If $\Trans{\delta}{e}{\Talet{p}{r}}{r_0}{r_1}$, then $r_0 \le r_1$ and $r < r_1$.
+	If $\Trans{\delta}{e}{\Talet{p}{r}}{r_0}{r_1}$, then $r_0 \le r_1$.
 	\label{fresh1}
 \end{lem}
 
 \begin{thm}
-	If $\Eval{\rho}{e}{n}$, $\Trans{\delta}{e}{\Talet{p}{r}} {r_0} {r'}$, and $\forall x \in dom(\rho).\rho(x) = \Sgm(\delta(x))$,
-	then $\TaSem{p}{\Sgm}{\Sgm'}$, $\forall r' < r_0.\Sgm'(r') = \Sgm(r') $, and $\Sgm'(r) = n$. 
+	If $\Eval{\rho}{e}{n}$, $\Trans{\delta}{e}{\Talet{p}{r}} {r_0} {r'}$, and $\forall x \in dom(\rho).\delta(x) < r_0 \wedge \rho(x) = \Sgm(\delta(x))$,
+	then $\TaSem{p}{\Sgm}{\Sgm'}$, $\Sgm'(r) = n$,  $\Sgm' \ConEq{r_0} \Sgm$, and $r < r'$. 
 \end{thm}
 
 
@@ -395,8 +408,7 @@ Define a function $rset$ to convert $rs$ to a set of $r$: \\
 \subsection{Extended translation:}
 
 \Jug{\Trans{\delta}{e}{\Talet{p}{rs}}{r_0} {r_1} }
-(fixed $\delta = [\Map{x_1}{rs_1}, ..., \Map{x_i}{rs_i} ]$, 
-and $\forall rs_i \in codom(\delta).\forall r' \in rset(rs_i). r' < r_0$) \\
+(fixed $\delta = [\Map{x_1}{rs_1}, ..., \Map{x_i}{rs_i} ]$)\\
 $$
 \infer{\Trans{\delta}{e_1+e_2}{\Talet{p1;(p2;p3)}{rs3}} {r} {r_3}}
 {\Trans{\delta}{e_1}{\Talet{p_1}{rs_1}} {r} {r_1} & \Trans{\delta}{e_2}{\Talet{p_2}{rs_2}} {r_1} {r_2} & \TransP{rs_1}{rs_2}{\Talet{p_3}{rs_3}} {r_2} {r_3} }
@@ -444,13 +456,21 @@ $$
 
 
 \subsection{Correctness theorem:}
+Notation:\\
+For some set $s$ and some $r$, we use $s \SetLe r$ to denote : $\forall r' \in s. r' < r$. It is easy to show that this relation has the following properties:
+
+\begin{itemize}
+	\item $s_1 \SetLe r, s_2 \SetLe r \Leftrightarrow s_1 \cup s_2 \SetLe r$.
+	\item if $s \SetLe r$, $r < r'$, then $s \SetLe r'$
+\end{itemize}
+
+
 \begin{lem}
-	If $\TransP{rs_1}{rs_2}{\Talet{p}{rs_3}}{r_0}{r_1}$, then $r_0 \le r_1$ and $\forall r \in rset(rs_3). r < r_1$.
-	\label{trans-fresh}
+	If $\TransP{rs_1}{rs_2}{\Talet{p}{rs_3}}{r_0}{r_1}$, then $r_0 \le r_1$.
 \end{lem}
 
 \begin{lem}
-	If $\Trans{\delta}{e}{\Talet{p}{rs}}{r_0}{r_1}$, then $r_0 \le r_1$ and $\forall r \in rset(rs).r < r_1$.
+	If $\Trans{\delta}{e}{\Talet{p}{rs}}{r_0}{r_1}$, then $r_0 \le r_1$.
 	\label{fresh2}
 \end{lem}
 
@@ -460,12 +480,16 @@ $$
    	\item $\ValRep{\Sgm}{v_1}{rs_1}{\tau}$, and $\ValRep{\Sgm}{v_2}{rs_2}{\tau}$
    	\item $\FEval{\Gplus{v_1}{v_2}}{v_3}$
    	\item $\TransP{rs_1}{rs_2}{\Talet{p}{rs_3}} {r_0} {r_1}$
+   	\item $rset((rs_1,rs_2)) \SetLe r_0$
    \end{enumerate}
    then 
    \begin{enumerate}[(i)]
    	\item $\TaSem{p}{\Sgm}{\Sgm'}$ 
    	\item $\ValRep{\Sgm'}{v_3}{rs_3}{\tau}$
-   	\item $\forall r < r_0. \Sgm'(r) = \Sgm(r)$ 
+   	\item $\Sgm' \ConEq{r_0} \Sgm$
+   	\item $ rset(rs_3) \SetLe r_1  $.
+   	
+   	\label{trans-fresh} 
    \end{enumerate}
 \label{plus-thm}   
 \end{lem}
@@ -473,16 +497,17 @@ $$
 \begin{thm}
 	If 
 	\begin{enumerate}[(i)]
-		\item $\Type{\Gamma}{e}{\tau}$ (by some derivation $\MT$),
-		\item $\Eval{\rho}{e}{v}$ (by $\ME$), and $\forall x \in dom(\Gamma). \rho(x):\Gamma(x)$, 
-		\item $\Trans{\delta}{e}{\Talet{p}{rs}}{r_0}{r_1}$ (by $\MC$),
-		and $\forall x \in dom(\Gamma).\ValRep{\Sgm}{\rho(x)}{\delta(x)}{\Gamma(x)}$
+		\item $\Type{\Gamma}{e}{\tau}$ (by some derivation $\MT$)
+		\item $\Eval{\rho}{e}{v}$ (by $\ME$) 
+		\item $\Trans{\delta}{e}{\Talet{p}{rs}}{r_0}{r}$ (by $\MC$)
+		\item $\forall x \in dom(\Gamma).\rho(x):\Gamma(x) \wedge rset(\delta(x)) \SetLe r_0  \wedge  \ValRep{\Sgm}{\rho(x)}{\delta(x)}{\Gamma(x)}$
 	\end{enumerate}
 	then 
 	\begin{enumerate}[(i)]
-		\item $\TaSem{p}{\Sgm}{\Sgm'}$ (by $\MP$),
+		\item $\TaSem{p}{\Sgm}{\Sgm'}$ (by $\MP$)
 		\item  $\ValRep{\Sgm'}{v}{rs}{\tau}$ (by $\MV$)
-		\item $\forall r < r_0.\Sgm'(r) = \Sgm(r) $. 
+		\item $\Sgm' \ConEq{r_0} \Sgm $
+		\item  $rset(rs) \SetLe r$
 	\end{enumerate} 
 \end{thm}
 
@@ -518,11 +543,14 @@ By induction on the syntax of $e$.
 	}
 }
 
-So $p= p1;p2;p3, rs=rs_3$.\\
-By IH on $\MT_1,\ME_1,\MC_1$, we get $\MP_1$ of $\TaSem{p_1}{\Sgm}{\Sgm_1}$, $\MV_1$ of $ \ValRep{\Sgm_1}{v_1}{rs_1}{\tau}$, and $\forall r < r_0. \Sgm_1(r) = \Sgm(r)$.\\
-Likewise, by IH on $\MT_2,\ME_2,\MC_2$, we get $\MP_2$ of $\TaSem{p_2}{\Sgm_1}{\Sgm_2}$, $\MV_2$ of $ \ValRep{\Sgm_2}{v_2}{rs_2}{\tau}$, and $\forall r' < r_1. \Sgm_2(r') = \Sgm_1(r')$.\\
+So $p= p1;p2;p3, rs=rs_3, r = r_3$.\\
+By IH on $\MT_1,\ME_1,\MC_1$, we get $\MP_1$ of $\TaSem{p_1}{\Sgm}{\Sgm_1}$, $\MV_1$ of $ \ValRep{\Sgm_1}{v_1}{rs_1}{\tau}$, $\Sgm_1 \ConEq{r_0} \Sgm$, and $rset(rs_1) \SetLe r_1$.\\
+Likewise, by IH on $\MT_2,\ME_2,\MC_2$, we get $\MP_2$ of $\TaSem{p_2}{\Sgm_1}{\Sgm_2}$, $\MV_2$ of $ \ValRep{\Sgm_2}{v_2}{rs_2}{\tau}$, $ \Sgm_2 \ConEq{r_1} \Sgm_1$, and $rset(rs_2) \SetLe r_2$.\\
 
-By theorem \ref{plus-thm} on $\MV_1,\MV_2, \ME_3,\MC_3$ , we get $\MP_3$ of $\TaSem{p_3}{\Sgm_2}{\Sgm_3}$, $\ValRep{\Sgm_3}{v}{rs_3}{\tau}$, and $\forall r'' < r_2. \Sgm_3(r'') = \Sgm_2(r’‘)$. \\
+By lemma \ref{fresh2} on $\MC_2$, we get $r_1 \le r_2$, hence  $rset(rs_1) \SetLe r_2$. Therefore,  $ rset(rs_1) \cup rset(rs_2) = rset((rs_1,rs_2)) = \SetLe r_2$.
+
+Now by Lemma \ref{plus-thm} on $\MV_1,\MV_2, \ME_3,\MC_3$ , we get $\MP_3$ of $\TaSem{p_3}{\Sgm_2}{\Sgm_3}$, $\ValRep{\Sgm_3}{v}{rs_3}{\tau}$, $\Sgm_3 \ConEq{r_2} \Sgm_2$, and
+$rset(rs_3) \SetLe r_3$ . \\
 
 Then we can construct:\\
 
@@ -535,9 +563,9 @@ Then we can construct:\\
 	}	
     \\[1ex]
     
-By lemma \ref{fresh2} on $\MC_1$, we get $r_0 \le r_1$. Similarly, we also get $r_1 \le r_2$ by lemma \ref{fresh2} on $MC_2$. 
-Therefore, $r_0 \le r_1 \le r_2$, hence $\forall r''' < r_0. \Sgm_3(r''') = \Sgm_2(r''') = \Sgm_1(r''') = \Sgm(r''')$. 
- 
+By lemma \ref{fresh2} on $\MC_1$, we get $r_0 \le r_1$.
+Therefore, $r_0 \le r_1 \le r_2$. $\Sgm_3 \ConEq{r_0} \Sgm_2 \ConEq{r_0}  \Sgm_1 \ConEq{r_0} \Sgm.$
+
  Take $\Sgm' = \Sgm_3$ and we are done.
  
  \item Case $e=(e_1,e_2).$\\
@@ -563,9 +591,9 @@ Therefore, $r_0 \le r_1 \le r_2$, hence $\forall r''' < r_0. \Sgm_3(r''') = \Sgm
  		\BC{\Trans{\delta}{(e_1,e_2)}{\Talet{p1;p2}{(rs_1,rs_2)}}{r_0}{r_2}}
  	} \\[1ex]
  
- So $\tau = (\tau_1,\tau_2), v = (v_1,v_2), rs = (rs_1,rs_2)$.\\
- By IH on $\MT_1,\ME_1,\MC_1$, we get $\MP_1$ of $\TaSem{p_1}{\Sgm}{\Sgm_1}$, $\MV_1$ of$ \ValRep{\Sgm_1}{v_1}{rs_1}{\tau_1}$, and $\forall r < r_0. \Sgm_1(r) = \Sgm(r)$.\\
- Likewise, by IH on $\MT_2,\ME_2,\MC_2$, we get $\MP_2$ of $\TaSem{p_2}{\Sgm_1}{\Sgm_2}$, $\MV_2$ of $ \ValRep{\Sgm_2}{v_2}{rs_2}{\tau_2}$, and  $\forall r' < r_1. \Sgm_2(r') = \Sgm_1(r')$.\\
+ So $\tau = (\tau_1,\tau_2), v = (v_1,v_2), rs = (rs_1,rs_2), r =r_2$.\\
+ By IH on $\MT_1,\ME_1,\MC_1$, we get $\MP_1$ of $\TaSem{p_1}{\Sgm}{\Sgm_1}$, $\MV_1$ of $ \ValRep{\Sgm_1}{v_1}{rs_1}{\tau_1}$, $\Sgm_1 \ConEq{r_0} \Sgm$, and $rset(rs_1) \SetLe r_1$.\\
+ Likewise, by IH on $\MT_2,\ME_2,\MC_2$, we get $\MP_2$ of $\TaSem{p_2}{\Sgm_1}{\Sgm_2}$, $\MV_2$ of $ \ValRep{\Sgm_2}{v_2}{rs_2}{\tau_2}$, $\Sgm_2 \ConEq{r_1} \Sgm_1$, and $rset(rs_2) \SetLe r_2$.\\
  
  Then we can construct:\\
  
@@ -575,9 +603,9 @@ Therefore, $r_0 \le r_1 \le r_2$, hence $\forall r''' < r_0. \Sgm_3(r''') = \Sgm
  	\BC{\TaSem{p_1;p_2}{\Sgm}{\Sgm_2}}
  }\\[1ex]
 
- By lemma \ref{fresh2} on $\MC_1$, we have $r_0 \le r_1$, and $\forall r \in rset(rs_1). r < r_1$. \\
- Since $r_0 \le r_1$, we get $\forall r'' < r_0. \Sgm_2(r'') = \Sgm_1(r'') = \Sgm(r'')$. \\ 
- Since $\forall r \in rset(rs_1). r < r_1$, then $\forall r \in rset(rs_1). \Sgm_2(r) = \Sgm_1(r)$. Therefore, there exists some $\MV_1'$ of  $\ValRep{\Sgm_2}{v_1}{rs_1}{\tau_1}$.\\
+ By lemma \ref{fresh2} on $\MC_1$, we get $r_0 \le r_1$, hence $\Sgm_2 \ConEq{r_0} \Sgm_1 \ConEq{r_0} \Sgm$. \\ 
+
+ Since $rset(rs_1) \SetLe r_1$, we have $\forall r' \in rset(rs_1). \Sgm_2(r') = \Sgm_1(r')$ (by $\Sgm_2 \ConEq{r_1} \Sgm_1$ ). Therefore, there exists some $\MV_1'$ of  $\ValRep{\Sgm_2}{v_1}{rs_1}{\tau_1}$.\\
  
  Then we can construct:
  \PT{
@@ -585,6 +613,9 @@ Therefore, $r_0 \le r_1 \le r_2$, hence $\forall r''' < r_0. \Sgm_3(r''') = \Sgm
  	\UCN{\MV_2}{\ValRep{\Sgm_2}{v_2}{rs_2}{\tau_2}}
  	\BC{\ValRep{\Sgm_2}{(v_1,v_2)}{(rs_1,rs_2)}{(\tau_1,\tau_2)}}
  } \\[1ex]
+ 
+ By lemma \ref{fresh2} on $\MC_2$, we get $r_1 \le r_2$, hence $rset(rs_1) \SetLe r_2$.
+ Therefore, $rset(rs) = rset((rs_1,rs_2)) = (rset(rs_1) \cup rset(rs_2)) \SetLe r_2$.
  
  Take $\Sgm' = \Sgm_2$ and we are done.
  
@@ -612,12 +643,12 @@ Therefore, $r_0 \le r_1 \le r_2$, hence $\forall r''' < r_0. \Sgm_3(r''') = \Sgm
 	\BC{\Trans{\delta}{\Let{x}{e_1}{e_2}}{\Talet{p_1;p_2}{rs}}{r_0}{r_2}}
     } \\[1ex]
 
- So $p = p_1;p_2$. \\
- By IH on $\MT_1,\ME_1,\MC_1$, we get $\MP_1$ = $\TaSem{p_1}{\Sgm}{\Sgm_1}$, $\MV_1 = \ValRep{\Sgm_1}{v_1}{rs_1}{\tau_1}$, and $\forall r < r_0. \Sgm_1(r) = \Sgm(r)$.\\
+ So $p = p_1;p_2, r = r_2$. \\
+ By IH on $\MT_1,\ME_1,\MC_1$, we get $\MP_1$ = $\TaSem{p_1}{\Sgm}{\Sgm_1}$, $\MV_1 = \ValRep{\Sgm_1}{v_1}{rs_1}{\tau_1}$, $\Sgm_1 \ConEq{r_0} \Sgm$ and $rset(rs_1) \SetLe r_1$.\\
  
- Since from $\MV_1$ we know $v_1:\tau_1$, then $\rho[\Map{x}{v_1}](x) : \Gamma[\Map{x}{\tau_1}](x)$ holds, and \\ $\ValRep{\Sgm_1}{\rho[\Map{x}{v_1}](x)}{\delta[\Map{x}{rs_1}](x)}{\Gamma[\Map{x}{\tau_1}](x)}$ also holds. \\
- 
- Then by IH on  $\MT_2,\ME_2,\MC_2$, we get $\MP_2$ = $\TaSem{p_2}{\Sgm_1}{\Sgm_2}$, $\MV_2 = \ValRep{\Sgm_2}{v}{rs}{\tau}$, and $\forall r' < r_1. \Sgm_2(r') = \Sgm_1(r')$.\\
+ Since from $\MV_1$ we know $v_1:\tau_1$, then $\rho[\Map{x}{v_1}](x) : \Gamma[\Map{x}{\tau_1}](x)$ and \\ $\ValRep{\Sgm_1}{\rho[\Map{x}{v_1}](x)}{\delta[\Map{x}{rs_1}](x)}{\Gamma[\Map{x}{\tau_1}](x)}$ must hold. Also, we already have $rset(\delta[\Map{x}{rs_1}](x)) \SetLe r_1$. 
+ Then by IH on  $\MT_2,\ME_2,\MC_2$, we get $\MP_2$ = $\TaSem{p_2}{\Sgm_1}{\Sgm_2}$, $\MV_2 = \ValRep{\Sgm_2}{v}{rs}{\tau}$, $ \Sgm_2 \ConEq{r_1} \Sgm_1$, and
+ $rset(rs) \SetLe r_2$.\\
  
  So we can construct
   \PT{
@@ -626,17 +657,17 @@ Therefore, $r_0 \le r_1 \le r_2$, hence $\forall r''' < r_0. \Sgm_3(r''') = \Sgm
   	 \BC{\TaSem{p_1;p_2}{\Sgm}{\Sgm_2}}
   }\\
 
- By lemma \ref{fresh2} on $\MC_1$: $r_0 \le r_1$. Therefore, $\forall r'' < r_0. \Sgm_2(r'') = \Sgm_1(r'') = \Sgm(r'')$.
+ By lemma \ref{fresh2} on $\MC_1$: $r_0 \le r_1$, hence $\Sgm_2 \ConEq{r_0} \Sgm_1 \ConEq{r_0} \Sgm$.
  
  Take $\Sgm' = \Sgm_2$ and we are done. 
 
 \item  Case $e = n$.
 
 Must have $\MT = \infer{\Type{\Gamma}{n}{\Int}}{}$, $\ME =\infer{ \Eval{\rho}{n}{n}}{}$, and $\MC = \infer{\Trans{\delta}{n}{\Talet{\Mov{r_0}{n}}{r_0}}{r_0}{r_0+1}}{}$. \\
-So $p = \Mov{r_0}{n}, rs= r_0, v=n$, and $\tau = \Int$. \\
+So $p = \Mov{r_0}{n}, rs= r_0, v=n, r = r_0$, and $\tau = \Int$. \\
 Then immediately we get $\infer{\TaSem{\Mov{r_0}{n}}{\Sgm}{\Sgm[\Map{r_0}{n}]}}{}$, 
-$\ValRep{\Sgm[\Map{r_0}{n}]}{n}{r_0}{\Int}$, \\
-and $\forall r < r_0. \Sgm[\Map{r_0}{n}](r) = \Sgm(r)$ as required. 
+$\ValRep{\Sgm[\Map{r_0}{n}]}{n}{r_0}{\Int}$, 
+$\Sgm[\Map{r_0}{n}] \ConEq{r_0} \Sgm(r)$, and $rset(r) = \{r_0\}\SetLe r_0+1$ as required. 
 
 \item Case $e_=x$. 
 
@@ -644,7 +675,8 @@ Must have $\MT = \infer[(\Gamma(x)= \tau)]{\Type{\Gamma}{x}{\tau}}{}$,
 $\ME = \infer[(\rho(x)=v)]{\Eval{\rho}{x}{v}}{}$, \\
 and $\MC = \infer[(\delta(x)=rs)]{\Trans{\delta}{x}{\Talet{\epsilon}{rs}}{r_0}{r_0}}{}$. \\
 So $p= \epsilon.$ \\
-Immediately we get $\TaSem{\epsilon}{\Sgm}{\Sgm}$, $\ValRep{\Sgm}{v}{rs}{\tau}$, and $\forall r < r_0. \Sgm(r) = \Sgm(r)$ as required.
+Immediately we get $\TaSem{\epsilon}{\Sgm}{\Sgm}$, $\ValRep{\Sgm}{v}{rs}{\tau}$, $\Sgm \ConEq{r_0} \Sgm$ and 
+$rset(rs) \SetLe r_0$ (from assumption) as required.
 
 \item Case $e = \Fst{e_1}$.
 
@@ -668,10 +700,13 @@ Must have:
 	\UC{\Trans{\delta}{\Fst{e_1}}{\Talet{p}{rs_1}}{r_0}{r_1}}
 } for some $rs_2$. \\
 
-So $\tau = \tau_1, v = v_1, rs = rs_1. $\\
+So $\tau = \tau_1, v = v_1, rs = rs_1,r = r_1. $\\
 By IH on $\MT_1, \ME_1, \MC_1$, we get $\MP$ of $\TaSem{p}{\Sgm}{\Sgm_1}$, 
 $\MV_1$ of $\ValRep{\Sgm}{(v_1,v_2)}{(rs_1,rs_2)}{(\tau_1,\tau_2)}$,\\
-and $\forall r < r_0. \Sgm_1(r) = \Sgm(r)$. \\
+ $\Sgm_1 \ConEq{r_0} \Sgm$, and $rset((rs_1,rs_2)) \SetLe r_1$.\\
+
+Since $rset((rs_1,rs_2)) = rset(rs_1) \cup rset(rs_2)$, therefore $rset(rs_1) \SetLe r_1$ must hold.
+
 $\MV_1$ must have the shape: 
 	\PT{
 		\UCN{\MV}{\ValRep{\Sgm_1}{v_1}{rs_1}{\tau_1}}
