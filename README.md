@@ -1,4 +1,8 @@
 # Working Progress
++ Week 43 (21~27 Aug)
+    + Toy verison correctness proof bug fixes
+    + Rewrote Xducers with `loop0`, fixed all known bugs, but code still messy
+    
 + Week 42 (14~20 Aug)
     + Started correctness proofs with a toy version exercise [#25](https://github.com/Ginko-X/Streaming_NESL/issues/25)
     
