@@ -37,7 +37,6 @@ instance Applicative Svcode where
   tf <*> ta = tf >>= \f -> fmap f ta
 
 
-
 -- run the svcode translated from an SNESL expression
 runSvcodeExp :: SFun -> FEnv -> Either String (SvVal, (Int,Int))
 runSvcodeExp (SFun [] st code _) fe = 
@@ -48,6 +47,21 @@ runSvcodeExp (SFun [] st code _) fe =
             Just vs -> Right (vs, (w,s))
     Left err -> Left err  
 
+
+-------- for TDebug ----------
+runSvcodeDebug :: SFun -> FEnv -> Int -> Either String ([SInstr],Svctx)
+runSvcodeDebug (SFun [] st code _) fe count = 
+  case roundN [] 0 fe count code of 
+    Right ctx -> Right (take count code, ctx)
+    Left err -> Left err  
+ 
+roundN ctx ctrl fe count code = 
+  case rSvcode (sInstrInterp (head code) >> getCtrl) ctx ctrl (0,0) fe of 
+    Right (ctrl',_,ctx') -> 
+      if count > 0 then roundN ctx' ctrl' fe (count-1) (tail code)
+      else Right ctx 
+    Left err -> Left err
+-------------------
 
 
 lookupTreeCtx :: STree -> Svctx -> Maybe SvVal
@@ -465,7 +479,9 @@ sExpInterpXducer (SegInterS ss) =
      let vss = concat vs
          cs = [(i*2,i*2+1) | i <- [0..length vss `div` 2 -1]] -- channel numbers
          cs' = [(x+1,y+1) | (x,y) <- cs]  -- add a ctrl stream 
-     returnXducerC vss $ evalXducer (segInterXducerN cs') vss (SBVal [])
+     ctrl <- getCtrl
+     vctrl <- lookupSid ctrl
+     returnXducerC (vctrl:vss) $ evalXducer (segInterXducerN cs') (vctrl:vss) (SBVal [])
 
 -- !
 sExpInterpXducer (PriSegInterS ss) = 
@@ -473,12 +489,14 @@ sExpInterpXducer (PriSegInterS ss) =
                      do v1 <- lookupSid s1
                         v2 <- lookupSid s2
                         return [v1,v2]) 
-                ss
+                ss  
      let vss = concat vs 
          cs = [(i*2,i*2+1) | i <- [0..length vss `div` 2 -1]]
          cs' = [(x+1,y+1) | (x,y) <- cs]  -- add a ctrl stream          
          v0 = sv0 (head vss)
-     returnXducerC vss $ evalXducer (priSegInterXducerN cs') vss v0
+     ctrl <- getCtrl
+     vctrl <- lookupSid ctrl
+     returnXducerC (vctrl:vss) $ evalXducer (priSegInterXducerN cs') (vctrl:vss) v0
 
 
 sExpInterpXducer (SegMerge s1 s2) = svXducer [s2,s1] segMergeXducerN (SBVal [])

@@ -340,7 +340,7 @@ segConcatXducer =
 segConcatXducerN  = loop0 p 
   where p = do BVal b <- rinx "segConcatXducer(flag)" 1 
                if b then rout (BVal True)
-               else uInOutx 2 
+               else uInOutx 2 >> p
                 
 
 -- uSegCountXducer.
@@ -388,7 +388,8 @@ segMergeXducer =
 segMergeXducerN = loop0 p 
   where p = do BVal b <- rinx "segMergeXducer(flag)" 1
                if b then rout (BVal True)
-               else uInOutx 2 
+               else uInOutx 2 >> p
+
 
 -- interMergeXducer.
 interMergeXducer :: Int -> Xducer ()
@@ -413,7 +414,7 @@ interMergeXducerN c = loop0 p
                rout (BVal True)
 
 
--- segInterXducer. bug?
+-- segInterXducer ?
 segInterXducer :: [(Int,Int)] -> Xducer ()
 segInterXducer cs = 
   let (j,i) = head cs 
@@ -460,7 +461,7 @@ priSegInterP (j,i) =
   in p   
 
 
--- isEmptyXducer.
+-- .
 isEmptyXducer :: Xducer ()
 isEmptyXducer = 
   rin 0 (\x -> 

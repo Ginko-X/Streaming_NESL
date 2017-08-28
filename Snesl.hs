@@ -30,18 +30,21 @@ import Numeric (showGFloat)
 
    :d <exp> <file> Generate the DAG file that can be used in graph-easy
 
-   :r <exp> <Int> Interpret the `exp` streamingly in a round robin fashion 
+   :r <exp> <int> Interpret the `exp` streamingly in a round robin fashion 
                   and print out the first `int` rounds of Svctx (unless all
                   the Procs already shutdown before that round)
-
+   
    :c <exp>       Display translated SVCODE program for the expression
 
    :fc <func>     Display translated SVCODE program for the function
 
-   :bs <Int>      Set buffer size, i.e., the maximum number of elements 
+   :bs <int>      Set buffer size, i.e., the maximum number of elements 
                   a buffer can hold
 
    :m <T/F>       F:SIMD(default),T:MIMD, only works for streaming interpreter
+
+   :D <exp> <int> run `int` lines of SVCODE and show the Svctx (only for eager
+                  interpreter)
 
    :q             Exit
 -}
@@ -120,6 +123,18 @@ runTop _ (TRr e count) env@(_,_,v0,f0,bs,_) =
          Right ctx -> putStr ctx >> return env 
          Left err -> putStrLn err >> return env 
 
+-- run `count` lines of SVCODE and show the Svctx
+-- only for eager interpreter
+-- SCall instruction is regarded as only one line
+runTop _ (TDebug e count) env@(_,_,v0,f0,bs,_) = 
+    case runDebug e count env of
+         Right (instrs,ctx) -> 
+           do mapM_ (\i -> putStrLn (show i)) instrs
+              putStrLn ""
+              mapM_ (\c -> putStrLn (show c)) ctx 
+              return env 
+         Left err -> putStrLn err >> return env          
+
 -- show the exp SVCODE
 runTop _ (TCode e) env@(_,_,v0,_,_,_) = 
     case runCompileExp e v0 of
@@ -156,7 +171,15 @@ runExp b e env@(e0,t0,v0,f0,bs,mflag) =
          else Left $ "SNESL and SVCODE results are different:" ++ show sneslRes 
                      ++ ", " ++ show svcodeRes' 
 
-  
+
+-- eager interp 
+runDebug :: Exp -> Int -> InterEnv -> Either String ([SInstr],SvcodeInterp.Svctx)
+runDebug e count env@(e0,t0,v0,f0,bs,mflag) = 
+    do sneslTy <- runTypingExp e t0   
+       svcode <- runCompileExp e v0
+       runSvcodeDebug svcode f0 count
+
+
 runDef :: Bool -> Def -> InterEnv -> Either String InterEnv
 runDef b def env@(e0,t0,v0,f0,bs,mflag) = 
    do funcTyEnv <- runTypingDefs [def] t0
@@ -186,6 +209,7 @@ testString str env@(e0,t0,v0,f0,bs,mflag) =
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
          else fail $ "SNESL and SVCODE results are different." ++ show sneslRes 
                       ++ " " ++ show svcodeRes'
+
 
 
 
