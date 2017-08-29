@@ -58,8 +58,8 @@ runSvcodeDebug (SFun [] st code _) fe count =
 roundN ctx ctrl fe count code = 
   case rSvcode (sInstrInterp (head code) >> getCtrl) ctx ctrl (0,0) fe of 
     Right (ctrl',_,ctx') -> 
-      if count > 0 then roundN ctx' ctrl' fe (count-1) (tail code)
-      else Right ctx 
+      if count > 0 && length code > 1 then roundN ctx' ctrl' fe (count-1) (tail code)
+      else Right ctx' 
     Left err -> Left err
 -------------------
 
@@ -432,7 +432,6 @@ sExpInterpXducer (MapOne op s1) =
 
 
 sExpInterpXducer (Pack s1 s2) = svXducer' [s2,s1] packXducerN 1
-
 
 sExpInterpXducer (UPack s1 s2) = svXducer [s2,s1] upackXducerN (SBVal [])
 
