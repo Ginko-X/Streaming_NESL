@@ -138,17 +138,13 @@ packXducer = rin 0 (\x ->
               case x of 
                 BVal False -> rinx "packXducer" 1 >> packXducer
                 BVal True -> rinx "packXducer" 1 >>= rout >> packXducer)
--- ??!!
-packXducerN = rin 1 (\x -> 
-              case x of 
-                BVal False -> rinx "packXducer" 2 >> packXducerN
-                BVal True -> rinx "packXducer" 2 >>= rout >> packXducerN)
 
-  --loop0 p 
-  --where p = do BVal x <- rinx "packXducer(flag)" 1
-  --             y <- rinx "packXducer(data)" 2
-  --             if x then rout y 
-  --             else return ()
+-- with special ctrl
+packXducerN = loop0 p 
+  where p = do BVal x <- rinx "packXducer(flag)" 1
+               y <- rinx "packXducer(data)" 2
+               if x then rout y 
+               else return ()
 
 
 -- upackXducer.
@@ -158,16 +154,10 @@ upackXducer = rin 0 (\x ->
                 BVal False -> uInx 1 >> upackXducer
                 BVal True -> uInOutx 1 >> rout x >> upackXducer)
 
-upackXducerN = 
-  rin 1 (\x -> 
-              case x of 
-                BVal False -> uInx 2 >> upackXducerN
-                BVal True -> uInOutx 2 >> rout x >> upackXducerN)
-  --loop0 p 
-  --where p = do (BVal x) <- rinx "upackXducer(x)" 1 
-  --             if x then uInOutx 2 >> rout (BVal x) 
-  --             else uInx 2
-
+upackXducerN = loop0 p 
+  where p = do (BVal x) <- rinx "upackXducer(flag)" 1 
+               if x then uInOutx 2 >> rout (BVal True) 
+               else uInx 2
 
 
 -- must read an unary and throw it away (no Eos)

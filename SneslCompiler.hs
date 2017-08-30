@@ -332,8 +332,13 @@ pack (PStr t1 t2) b =
      return (PStr st1 st2)  
 
 pack (SStr t s) b = 
-    do st1 <- emit (Distr b s) 
-       st2 <- pack t st1 
+    do st1 <- emit (Distr b s)
+--       st2 <- pack t st1
+
+       ctrl <- emit (Usum s)
+       (st2, code) <- ctrlTrans (pack t st1)
+       emitInstr (WithCtrl ctrl [] code st2)        
+
        st3 <- emit (UPack s b)
        return (SStr st2 st3)
 
