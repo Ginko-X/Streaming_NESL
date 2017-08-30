@@ -64,9 +64,21 @@ loop0 :: Xducer () -> Xducer ()
 loop0 xd = rin 0 (\ _ -> xd >> loop0 xd)
 
 
---mapConst :: AVal -> Xducer ()
---mapConst a = p
---  where p = rin 0 (\x -> rout a >> p) 
+loopu :: Int -> Xducer () -> Xducer () -> Xducer ()
+loopu i xdF xdT = 
+  do BVal b <- rinx "loopu" i 
+     if b then xdT 
+     else xdF >> loopu i xdF xdT
+
+
+
+-- must read and output an unary (excluding the last T flag)
+uInOutx :: Int -> Xducer ()
+uInOutx i = do x <- rinx "uInOutx" i
+               case x of 
+                 BVal False -> rout x >> (uInOutx i)
+                 BVal True -> Done ()
+
 
 constXducerN :: AVal -> Xducer ()
 constXducerN a = loop0 p 
@@ -92,7 +104,7 @@ usumXducer =
 
 -- ?!
 usumXducerN = loop0 p 
-  where p = uInOutx 1 
+  where p = loopu 1 (rout (BVal False)) (Done ())   -- uInOutx 1 
 
 
 
@@ -154,10 +166,15 @@ upackXducer = rin 0 (\x ->
                 BVal False -> uInx 1 >> upackXducer
                 BVal True -> uInOutx 1 >> rout x >> upackXducer)
 
+--upackXducerN = loop0 p 
+--  where p = do (BVal x) <- rinx "upackXducer(flag)" 1 
+--               if x then uInOutx 2 >> rout (BVal True) 
+--               else uInx 2
+
 upackXducerN = loop0 p 
   where p = do (BVal x) <- rinx "upackXducer(flag)" 1 
-               if x then uInOutx 2 >> rout (BVal True) 
-               else uInx 2
+               if x then loopu 2 (rout (BVal False)) (rout (BVal True)) 
+               else loopu 2 (return ()) (Done ())
 
 
 -- must read an unary and throw it away (no Eos)
@@ -167,12 +184,6 @@ uInx i = do x <- rinx "uInx" i
               BVal False -> uInx i
               BVal True -> Done ()
 
--- must read and output an unary (excluding the last T flag)
-uInOutx :: Int -> Xducer ()
-uInOutx i = do x <- rinx "uInOutx" i
-               case x of 
-                 BVal False -> rout x >> (uInOutx i)
-                 BVal True -> Done ()
       
 
 -- pdistXducer.
@@ -186,7 +197,8 @@ pdistXducer =
 
 pdistXducerN = loop0 p 
   where p = do x <- rinx "pdistXducer(x)" 1
-               uOutx 2 x 
+               loopu 2 (rout x) (Done ())
+               --uOutx 2 x 
  
 
 uOutx :: Int -> AVal -> Xducer ()
