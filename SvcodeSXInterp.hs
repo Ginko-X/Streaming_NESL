@@ -120,7 +120,6 @@ rrobin m ctx retRSids as0 (w0,s0) fe re =
 replaceSid :: RSId -> SId -> RSId
 replaceSid (sf,r,_) sid = (sf,r,sid)
 
--- ??
 -- pick out the first non-empty stream in Filling mode to drain
 stealing :: Svctx -> Either String Svctx
 stealing ctx = 
@@ -357,79 +356,49 @@ sInstrInit (SCall fid argSid retSids) r d sup =
      zipWithM_ (\ret cl -> addRSClient cl ret) fmRetsR $ zipWith (++) retClsR retCtxCls
 
 
---supReplace :: RSId -> RSId -> RSId -> SvcodeP ()
---supReplace s@(_,_,sid) sup1 sup2 = 
---  do if sid < 0 then return ()
---     else  
---        do (buf,sups,cl,p) <- lookupRSid s  
---           let sups' = replace sup1 sup2 sups
---           updateCtx s (buf, sups', cl,p)
-
---clReplace :: RSId -> RSId -> RSId -> SvcodeP ()
---clReplace s cl1 cl2 = 
---  do (buf,sups,cls,p) <- lookupRSid s
---     let (clRis,curs) = unzip cls 
---         (clR,is) = unzip clRis
---         clR' = replace cl1 cl2 clR
---         cls' = zip (zip clR' is) curs
---     updateCtx s (buf,sups,cls',p)
-
-
-     
----- pipe [ s1 ] --- 0 --> [ s2 ]
----- s1 is s2's only supplier
---connectRSIds :: [RSId] -> [RSId] -> SvcodeP ()
---connectRSIds [] [] = return ()
---connectRSIds (s1:s1s) (s2:s2s) = 
---  do (buf1,sup1,cl1,p1) <- lookupRSid s1
---     (buf2,sup2,cl2,p2) <- lookupRSid s2  
---     updateCtx s1 (buf1,sup1,cl1 ++ [((s2,0),0)],p1)
---     updateCtx s2 (buf2,[s1],cl2,rinOut) 
---     connectRSIds s1s s2s 
---connectRSIds _ _ = fail $ "connectRSIds: RSId lengths mismatch."
-
-
 ---- SExpression init
 sExpXducerInit :: SExp -> SvcodeP (Xducer ())
 sExpXducerInit Ctrl = return $ rout (BVal False)
 sExpXducerInit EmptyCtrl = return $ Done () 
-sExpXducerInit (Const a) = return (mapConst a)
-sExpXducerInit (MapConst _ a) = return (mapConst a)
-sExpXducerInit (Usum _) = return usumXducer
-sExpXducerInit (ToFlags _) = return toFlags 
+sExpXducerInit (Const a) = return (constXducerN a)
+--sExpXducerInit (MapConst _ a) = return (mapConst a)
+sExpXducerInit (Usum _) = return usumXducerN
+sExpXducerInit (ToFlags _) = return toFlagsN 
 
 sExpXducerInit (MapTwo op _ _) = 
   do fop <- lookupOpA op opAEnv0
-     return (mapTwo fop)
+     return (mapTwoN fop)
 
 sExpXducerInit (MapOne op _) = 
   do fop <- lookupOpA op opAEnv0
-     return (mapOne fop)
+     return (mapOneN fop)
 
-sExpXducerInit (Pack _ _) = return packXducer
-sExpXducerInit (UPack _ _) = return upackXducer
-sExpXducerInit (Distr _ _) = return pdistXducer
-sExpXducerInit (SegDistr _ _ ) = return segDistrXducer
-sExpXducerInit (SegFlagDistr _ _ _) = return segFlagDistrXducer
-sExpXducerInit (PrimSegFlagDistr _ _ _) = return primSegFlagDistrXducer
-sExpXducerInit (B2u _) = return b2uXducer
-sExpXducerInit (SegscanPlus _ _) = return segScanPlusXducer 
-sExpXducerInit (ReducePlus _ _) = return segReducePlusXducer
-sExpXducerInit (SegConcat _ _) = return segConcatXducer
-sExpXducerInit (USegCount _ _) = return uSegCountXducer
-sExpXducerInit (InterMergeS ss) = return (interMergeXducer $ length ss)
+sExpXducerInit (Pack _ _) = return packXducerN
+sExpXducerInit (UPack _ _) = return upackXducerN
+sExpXducerInit (Distr _ _) = return pdistXducerN
+sExpXducerInit (SegDistr _ _ ) = return segDistrXducerN
+sExpXducerInit (SegFlagDistr _ _ _) = return segFlagDistrXducerN
+sExpXducerInit (PrimSegFlagDistr _ _ _) = return primSegFlagDistrXducerN
+sExpXducerInit (B2u _) = return b2uXducerN
+sExpXducerInit (SegscanPlus _ _) = return segScanPlusXducerN 
+sExpXducerInit (ReducePlus _ _) = return segReducePlusXducerN
+sExpXducerInit (SegConcat _ _) = return segConcatXducerN
+sExpXducerInit (USegCount _ _) = return uSegCountXducerN
+sExpXducerInit (InterMergeS ss) = return (interMergeXducerN $ length ss + 1)
 
 sExpXducerInit (SegInterS ss) = 
   let chs = zipWith (\_ x -> (x*2,x*2+1)) ss [0..] 
-  in return $ segInterXducer chs 
+      chs' = [(x+1,y+1)| (x,y) <- chs]
+  in return $ segInterXducerN chs' 
 
 sExpXducerInit (PriSegInterS ss) = 
   let chs = zipWith (\_ x -> (x*2,x*2+1)) ss [0..] 
-  in return $ priSegInterXducer chs 
+      chs' = [(x+1,y+1)| (x,y) <- chs]
+  in return $ priSegInterXducerN chs' 
 
-sExpXducerInit (SegMerge _ _) = return segMergeXducer 
-sExpXducerInit (Check _ _) = return checkXducer
-sExpXducerInit (IsEmpty _) = return isEmptyXducer
+sExpXducerInit (SegMerge _ _) = return segMergeXducerN 
+sExpXducerInit (Check _ _) = return checkXducerN
+sExpXducerInit (IsEmpty _) = return isEmptyXducerN
 
 
 lookupOpA :: OP -> OpAEnv -> SvcodeP ([AVal] -> AVal)

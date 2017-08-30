@@ -337,7 +337,8 @@ pack (SStr t s) b =
 
        ctrl <- emit (Usum s)
        (st2, code) <- ctrlTrans (pack t st1)
-       emitInstr (WithCtrl ctrl [] code st2)        
+       let imps = getImportSids ctrl code
+       emitInstr (WithCtrl ctrl imps code st2)
 
        st3 <- emit (UPack s b)
        return (SStr st2 st3)

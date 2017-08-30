@@ -37,7 +37,7 @@ instance Applicative Xducer where
 instance (Eq a) => Eq (Xducer a) where
   Done a == Done b = a == b
   Pout a p1 == Pout b p2 = (a == b) && (p1 == p2)
-  _ == _ = False  -- ??
+  _ == _ = False 
 
 
 
@@ -64,9 +64,9 @@ loop0 :: Xducer () -> Xducer ()
 loop0 xd = rin 0 (\ _ -> xd >> loop0 xd)
 
 
-mapConst :: AVal -> Xducer ()
-mapConst a = p
-  where p = rin 0 (\x -> rout a >> p) 
+--mapConst :: AVal -> Xducer ()
+--mapConst a = p
+--  where p = rin 0 (\x -> rout a >> p) 
 
 constXducerN :: AVal -> Xducer ()
 constXducerN a = loop0 p 
