@@ -59,10 +59,11 @@ done = Done ()
 
 
 loop0 :: Xducer () -> Xducer ()
-loop0 xd = Pin 0 (\ x -> 
-             case x of 
-              Just _ -> xd >> loop0 xd
-              Nothing -> done)
+loop0 xd = p
+  where p = Pin 0 (\ x -> 
+              case x of 
+                Just _ -> xd >> p 
+                Nothing -> done)
 
 
 loopu :: Int -> Xducer () -> Xducer () -> Xducer ()
@@ -80,31 +81,6 @@ loopuv i xdF xdT = p 0
                    else xdF acc >>= p 
 
 
--- must read and output an unary (excluding the last T flag)
-uInOutx :: Int -> Xducer ()
-uInOutx i = loopu i routF done
-
-
--- must read an unary and throw it away (no Eos)
-uInx :: Int -> Xducer ()
-uInx i = loopu i done done
-
-
-uOutx :: Int -> AVal -> Xducer ()
-uOutx i a = loopu i (rout a) done
-
-
--- repeat outputing `as` until read a `True` from channel `i` 
-uOutsx :: Int -> [AVal] -> Xducer ()
-uOutsx i as = loopu i (mapM_ rout as) done
-
- 
--- read an unary (and throw it away) from `i`
--- at the same time interlacedly read an equal number of elements from `j`
-uInInter :: Int -> Int -> Xducer ()
-uInInter i j = loopu i (rinx "uInInter" j >> done) (rinx "uInInter" j >> done)
-
-
 
 -------------- Xducers ---------------------
 
@@ -114,7 +90,7 @@ constXducerN a = loop0 $ rout a
 
 -- toFlags.
 toFlagsN = loop0 p  
-  where p = do (IVal a) <- rinx "toFlagsXducer(data)" 1 
+  where p = do IVal a <- rinx "toFlagsXducer(data)" 1 
                mapM_ rout [BVal b | b <- i2flags a]
 
 
@@ -139,7 +115,7 @@ mapOneN op = loop0 p
 checkXducerN = loop0 p 
   where p = do x <- rinx "checkXducer(x)" 1 
                y <- rinx "checkXducer(y)" 2 
-               if x == y then return ()
+               if x == y then done
                else error  "checkXducer: runtime error"
 
 
@@ -149,7 +125,7 @@ packXducerN = loop0 p
   where p = do BVal x <- rinx "packXducer(flag)" 1
                y <- rinx "packXducer(data)" 2
                if x then rout y 
-               else return ()
+               else done
 
 
 -- upackXducer.
@@ -167,7 +143,7 @@ pdistXducerN = loop0 p
 
 -- b2uXducer
 b2uXducerN = loop0 p 
-  where p = do (BVal x) <- rinx "b2uXducer(x)" 1
+  where p = do BVal x <- rinx "b2uXducer(x)" 1
                if x then routF >> routT
                else routT
 
@@ -187,7 +163,7 @@ segReducePlusXducerN = loop0 $ loopuv 1 xdF xdT
 
 
 --segConcatXducer :: Xducer ()
-segConcatXducerN  = loop0 $ loopu 1 (uInOutx 2) (routT)
+segConcatXducerN  = loop0 $ loopu 1 (loopu 2 routF done) routT
 
 
 --uSegCountXducer :: Xducer ()
@@ -195,34 +171,35 @@ uSegCountXducerN = loop0 p
   where p = loopu 1 u routT
         u = do BVal b2 <- rinx "uSegCountXducerN(data)" 2
                routF   -- eager output 
-               if b2 then return ()
-               else uInInter 2 1 
+               if b2 then done
+               else let rin0 = rinx "uSegCountXducerN(flag)" 1 >> done 
+                    in loopu 2 rin0 rin0
 
 
 --segMergeXducer :: Xducer ()
 segMergeXducerN = segConcatXducerN
 
 
---interMergeXducer :: Int -> Xducer ()
-interMergeXducerN c = loop0 $ mapM_ uInOutx [1..c-1] >> routT
+interMergeXducerN :: Int -> Xducer ()
+interMergeXducerN c = loop0 $ mapM_ (\i -> loopu i routF done) [1..c-1] >> routT
 
 
---segInterXducer :: [(Int,Int)] -> Xducer ()
-segInterXducerN cs = loop0 $ mapM_ segInterP cs 
-  where segInterP (j,i) = loopu i (uInOutx j >> routT) done
+segInterXducerN :: [(Int,Int)] -> Xducer ()
+segInterXducerN cs = loop0 $ mapM_ u cs 
+  where u (j,i) = loopu i (loopu j routF routT) done
  
 
---priSegInterXducer :: [(Int, Int)] -> Xducer ()
-priSegInterXducerN cs = loop0 $ mapM_ priSegInterP cs 
-   where priSegInterP (j,i) = loopu i (rinx "priSegInterP" j >>= rout) done
+priSegInterXducerN :: [(Int, Int)] -> Xducer ()
+priSegInterXducerN cs = loop0 $ mapM_ u cs 
+   where u (j,i) = loopu i (rinx "priSegInter" j >>= rout) done
  
 
---isEmptyXducer :: Xducer ()
+isEmptyXducerN :: Xducer ()
 isEmptyXducerN = loop0 p 
   where p = do BVal b <- rinx "isEmptyXducer(data)" 1
                rout (BVal b)  -- eager output
-               if b then return ()
-               else uInx 1
+               if b then done
+               else loopu 1 done done 
 
 
 
@@ -230,20 +207,20 @@ isEmptyXducerN = loop0 p
 -- 1.
 segDistrXducerN :: Xducer ()
 segDistrXducerN = loop0 p 
-  where p = do vs <- uRecordx 1 
-               uOutsx 2 vs 
+  where p = do vs <- uRecordx 1
+               loopu 2 (mapM_ rout vs) done 
 
 -- 2.
 segFlagDistrXducerN = loop0 (p []) 
   where p vs = do BVal b1 <- rinx "segFlagDistrXducer(flag1)" 1 
                   if not b1 then do vs' <- uRecordx 2; p (vs++vs')
-                  else uOutsx 3 vs 
+                  else loopu 3 (mapM_ rout vs) done 
 
 -- 3.
 primSegFlagDistrXducerN = loop0 (p [])
   where p vs = do BVal b1 <- rinx "primSegFlagDistrXducer(flag1)" 1 
                   if not b1 then do y <- rinx "primSegFlagDistrXducer(data)" 2; p (vs++[y])
-                  else uOutsx 3 vs 
+                  else loopu 3 (mapM_ rout vs) done 
 
 -- read and return an unary (excluding the last T flag)
 uRecordx :: Int -> Xducer [AVal]
