@@ -74,12 +74,11 @@ loopu i xdF xdT = p
 
 
 -- only for scanPlus and reducePlus
-loopuv :: Int -> (Int -> Xducer Int) -> (Int -> Xducer ()) -> Xducer ()
-loopuv i xdF xdT = p 0
+loopuv :: Int -> a -> (a -> Xducer a) -> (a -> Xducer ()) -> Xducer ()
+loopuv i acc0 xdF xdT = p acc0
   where p acc = do BVal b <- rinx "loopuv" i 
                    if b then xdT acc
                    else xdF acc >>= p 
-
 
 
 -------------- Xducers ---------------------
@@ -149,17 +148,16 @@ b2uXducerN = loop0 p
 
 
 -- segScanPlusXducer.
-segScanPlusXducerN = loop0 $ loopuv 1 xdF (\_ -> done)
+segScanPlusXducerN = loop0 $ loopuv 1 0 xdF (\_ -> done)
   where xdF acc = do rout (IVal acc)
                      IVal a <- rinx "segScanPlusXducer(data)" 2
                      return (acc + a) 
 
 
 -- segReducePlusXducer
-segReducePlusXducerN = loop0 $ loopuv 1 xdF xdT
+segReducePlusXducerN = loop0 $ loopuv 1 0 xdF (\a -> rout (IVal a)) 
   where xdF acc = do IVal a <- rinx "segReducePlusXducer(data)" 2 
                      return (acc + a)
-        xdT acc = rout $ IVal acc 
 
 
 --segConcatXducer :: Xducer ()
@@ -203,7 +201,7 @@ isEmptyXducerN = loop0 p
 
 
 
--- for sequence distribution, may be not necessary to support
+---- for sequence distribution, may be not necessary to support
 -- 1.
 segDistrXducerN :: Xducer ()
 segDistrXducerN = loop0 p 
@@ -211,28 +209,29 @@ segDistrXducerN = loop0 p
                loopu 2 (mapM_ rout vs) done 
 
 -- 2.
-segFlagDistrXducerN = loop0 (p []) 
-  where p vs = do BVal b1 <- rinx "segFlagDistrXducer(flag1)" 1 
-                  if not b1 then do vs' <- uRecordx 2; p (vs++vs')
-                  else loopu 3 (mapM_ rout vs) done 
+segFlagDistrXducerN = loop0 p
+  where p = do vs <- loopuv' 1 [] (\a -> do y <- uRecordx 2; return $ a++y) return
+               loopu 3 (mapM_ rout vs) done 
 
 -- 3.
-primSegFlagDistrXducerN = loop0 (p [])
-  where p vs = do BVal b1 <- rinx "primSegFlagDistrXducer(flag1)" 1 
-                  if not b1 then do y <- rinx "primSegFlagDistrXducer(data)" 2; p (vs++[y])
-                  else loopu 3 (mapM_ rout vs) done 
+primSegFlagDistrXducerN = loop0 p
+  where p = do vs <- loopuv' 1 [] (\a -> do y <- rinx "primSeg" 2; return $ a++[y]) return
+               loopu 3 (mapM_ rout vs) done 
 
--- read and return an unary (excluding the last T flag)
+
+loopuv' :: Int -> a -> (a -> Xducer a) -> (a -> Xducer a) -> Xducer a
+loopuv' i acc0 xdF xdT = p acc0
+  where p acc = do BVal b <- rinx "loopuv" i 
+                   if b then xdT acc
+                   else xdF acc >>= p
+
+-- read and return an unary (including the last T flag)
 uRecordx :: Int -> Xducer [AVal]
-uRecordx i =
-  let p vs = do x <- rinx "uRecordx" i 
-                case x of 
-                  (BVal False) -> p ((BVal False):vs)  
-                  (BVal True) -> Done (reverse (BVal True : vs))
-  in (p [])
+uRecordx i = loopuv' i [] xdF xdT
+  where xdF acc = return $ BVal False : acc 
+        xdT acc = return $ reverse (BVal True : acc)
 
-
-
+ 
 ---------------------------
 
 evalXducer :: Xducer () -> [SvVal] -> SvVal -> SvVal
