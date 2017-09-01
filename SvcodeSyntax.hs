@@ -9,7 +9,6 @@ data SExp = Ctrl
            | ToFlags SId
            | Usum SId
            | Const AVal
-           | MapConst SId AVal           
            | MapOne OP SId
            | MapTwo OP SId SId
            | SegscanPlus SId SId 
@@ -23,7 +22,6 @@ data SExp = Ctrl
            | B2u SId
            | SegConcat SId SId
            | USegCount SId SId
-           | SegMerge SId SId 
            | InterMergeS [SId]  
            | SegInterS [(SId,SId)] 
            | PriSegInterS [(SId,SId)] 
@@ -181,6 +179,6 @@ getSupExp (Pack s1 s2) c = ([c,s2,s1],"Pack")
 getSupExp (UPack s1 s2) c = ([c,s2,s1],"UPack")
 getSupExp (SegConcat s1 s2) c = ([c,s2,s1],"SegConcat")
 getSupExp (USegCount s1 s2) c = ([c,s2,s1],"USegCount")
-getSupExp (SegMerge s1 s2) c = ([c,s2,s1],"SegMerge")  
+--getSupExp (SegMerge s1 s2) c = ([c,s2,s1],"SegMerge")  
 getSupExp (Check s1 s2) c = ([c,s1,s2],"Check")
 

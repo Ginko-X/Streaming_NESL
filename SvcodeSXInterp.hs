@@ -396,7 +396,7 @@ sExpXducerInit (PriSegInterS ss) =
       chs' = [(x+1,y+1)| (x,y) <- chs]
   in return $ priSegInterXducerN chs' 
 
-sExpXducerInit (SegMerge _ _) = return segMergeXducerN 
+--sExpXducerInit (SegMerge _ _) = return segMergeXducerN 
 sExpXducerInit (Check _ _) = return checkXducerN
 sExpXducerInit (IsEmpty _) = return isEmptyXducerN
 

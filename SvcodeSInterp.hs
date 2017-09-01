@@ -352,7 +352,7 @@ sExpXducerInit (PriSegInterS ss) =
   let chs = zipWith (\_ x -> (x*2,x*2+1)) ss [0..] 
   in return $ priSegInterXducer chs 
 
-sExpXducerInit (SegMerge _ _) = return segMergeXducer 
+--sExpXducerInit (SegMerge _ _) = return segMergeXducer 
 
 sExpXducerInit (Check _ _) = return checkXducer
 

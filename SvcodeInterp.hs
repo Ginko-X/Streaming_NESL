@@ -213,19 +213,15 @@ sExpInterp Ctrl = returnInstrC [] (SBVal [False])
 
 sExpInterp EmptyCtrl = returnInstrC [] (SBVal [])     
 
--- MapConst: Map the const 'a' to the stream 'sid2'
-sExpInterp (MapConst sid a) = 
-    do v <- lookupSid sid
+sExpInterp (Const a) = 
+    do ctrl <- getCtrl
+       v <- lookupSid ctrl
        l <- streamLenM v
        let as = case a of 
                  IVal i -> SIVal $ replicate l i 
                  BVal b -> SBVal $ replicate l b
        returnInstrC [v] as
-
-
-sExpInterp (Const a) = 
-    do ctrl <- getCtrl
-       sExpInterp (MapConst ctrl a)
+       --sExpInterp (MapConst ctrl a)
     
 
 -- toflags: generate flag segments for a stream of integers
@@ -328,7 +324,6 @@ sExpInterp (ReducePlus s1 s2) =
        returnInstrC [v1',v2'] $ SIVal $ segSum ls v1 
 
 
--- remove all the 'T' flags except for the last one
 sExpInterp (SegConcat s1 s2) = 
     do v1'@(SBVal v1) <- lookupSid s1
        v2'@(SBVal v2) <- lookupSid s2
@@ -370,12 +365,6 @@ sExpInterp (PriSegInterS ss) =
      returnInstrC (concat vs2) $ priSegInterS vs1 
 
 
-sExpInterp (SegMerge s1 s2) = 
-  do v1'@(SBVal v1) <- lookupSid s1
-     v2'@(SBVal v2) <- lookupSid s2
-     returnInstrC [v1',v2'] $ SBVal $ segMerge v1 v2 
-
-
 sExpInterp (Check s1 s2) = 
    do v1 <- lookupSid s1
       v2 <- lookupSid s2
@@ -401,13 +390,6 @@ sExpInterpXducer (Const a) =
                 IVal _ -> SIVal []
                 BVal _ -> SBVal []
      svXducer [] (constXducerN a) v0 
-
-
---sExpInterpXducer (MapConst sid a) =  -- 5
---  do let v0 = case a of 
---                IVal _ -> SIVal []
---                BVal _ -> SBVal []
---     svXducer [sid] (mapConst a) v0 
 
 
 sExpInterpXducer (ToFlags sid) = svXducer [sid] toFlagsN (SBVal []) 
@@ -497,8 +479,6 @@ sExpInterpXducer (PriSegInterS ss) =
      vctrl <- lookupSid ctrl
      returnXducerC (vctrl:vss) $ evalXducer (priSegInterXducerN cs') (vctrl:vss) v0
 
-
-sExpInterpXducer (SegMerge s1 s2) = svXducer [s2,s1] segMergeXducerN (SBVal [])
  
 sExpInterpXducer (Check s1 s2) = svXducer [s1,s2] checkXducerN (SBVal []) 
 
@@ -603,19 +583,6 @@ flagPartPrim vs fs = seglist ls vs
     where ls = flags2len fs 
 
 
--- segment merge
--- e.g [FFTFT FT] , [FTFFT] => [FFT FFT]
-segMerge :: [Bool] -> [Bool] -> [Bool]
-segMerge b1 b2 = concat $ takeSeg ls b1' 
-    where ls = flags2len b2
-          b1' = map init $ partFlags b1
-
-takeSeg :: [Int] -> [[Bool]] -> [[Bool]]
-takeSeg [] _ = []
-takeSeg (i:is) bs = take i bs ++ [[True]] ++ (takeSeg is (drop i bs))
-
-
-
 
 -- interleave merge
 -- [F,T,F,T] ++ [F,T,F,F,T]  => [F,F,T,F,F,F,T]
@@ -631,12 +598,12 @@ interMergeS bs = foldl interMerge b0 bs
     where b0 = replicate n True
           n = length $ flags2len $ head bs
 
- --Another implementation of interMergeS without using interMerge
---interMergeS bs = concat $ map ((++[True]).(filter (==False))) bs'
+-- Another implementation of interMergeS without using interMerge
+-- interMergeS bs = concat $ map ((++[True]).(filter (==False))) bs'
 --  where bs' = map concat $ transpose $  map partFlags bs 
 
 
--- 
+-- e.g [FFTFT FT] , [FTFFT] => [FFT FFT]
 segConcat :: [Bool] -> [Bool] -> [Bool]
 segConcat [] [] = []
 segConcat (False:fs1) f2@(False:fs2) = False: segConcat fs1 f2

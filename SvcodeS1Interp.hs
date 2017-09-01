@@ -244,7 +244,7 @@ sExpXducerInit EmptyCtrl = return $ Done ()
 
 sExpXducerInit (Const a) = return (mapConst a)
   
-sExpXducerInit (MapConst s1 a) = return (mapConst a)
+--sExpXducerInit (MapConst s1 a) = return (mapConst a)
 
 sExpXducerInit (Usum _) = return usumXducer
 
@@ -290,7 +290,7 @@ sExpXducerInit (PriSegInterS ss) =
   let chs = zipWith (\_ x -> (x*2,x*2+1)) ss [0..] 
   in return $ priSegInterXducer chs 
 
-sExpXducerInit (SegMerge _ _) = return segMergeXducer 
+--sExpXducerInit (SegMerge _ _) = return segMergeXducer 
 
 --sExpXducerInit (Check )
 

@@ -39,30 +39,6 @@ runCompileExp e ve =
         Right (st, sv, count) -> Right $ SFun [] st (SDef 0 Ctrl : sv) count 
         Left err -> Left err 
 
-
---- Streaming Compiler APIs -----
-
---runSCompileDefs :: [Def] -> (VEnv,FEnv) -> Either String (VEnv,FEnv)
---runSCompileDefs [] e = return e 
---runSCompileDefs (d:ds) (ve,fe) = 
---    case rSneslTrans (runSCompileDef d) 1 ve of 
---        Right (ve', _, _) -> 
---            case runSCompileDefs ds ((ve'++ve),fe) of 
---              Right e -> Right e 
---              Left err -> Left $ "SCompiling error: " ++ err
---        Left err' -> Left $ "Compiling error: " ++ err'
-
-
---runSCompileDef :: Def -> SneslTrans VEnv
---runSCompileDef (FDef fname args _ e) = 
---    do let (argSts, _) = args2tree args 1
---           (ids, _) = unzip argSts 
---           f ids = localVEnv argSts $ translate e 
---           r1 = [(fname, FStr f)]  -- FStr 
---       return r1 
-
-
-
 -------------------------------
 
 
@@ -317,7 +293,7 @@ distrSegRecur (SStr (PStr s1 s2) s3) s =
 
 distrSegRecur (SStr (SStr s0 s1) s2) s = 
    do newS1 <- emit (SegFlagDistr s1 s2 s)
-      s1' <- emit (SegMerge s1 s2)
+      s1' <- emit (SegConcat s1 s2)
       newS0 <- distrSegRecur (SStr s0 s1') s 
       return (SStr newS0 newS1)
 
@@ -446,7 +422,7 @@ mergeRecur trs@((SStr (SStr t1 s1) s2):_) =
     do let (t1s,ps) = unzip 
                [(t1,(s1,s2)) | (SStr (SStr t1 s1) s2) <- trs]
        s2' <- emit (SegInterS ps)
-       ps' <- mapM (\(x,y) -> emit (SegMerge x y)) ps
+       ps' <- mapM (\(x,y) -> emit (SegConcat x y)) ps
        trs' <- mergeRecur (zipWith SStr t1s ps')
        return (SStr trs' s2')
 
