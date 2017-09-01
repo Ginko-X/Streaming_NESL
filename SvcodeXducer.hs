@@ -172,7 +172,7 @@ uSegCountXducerN = loop0 p
 
 
 --segMergeXducer :: Xducer ()
-segMergeXducerN = segConcatXducerN
+--segMergeXducerN = segConcatXducerN
 
 
 interMergeXducerN :: Int -> Xducer ()

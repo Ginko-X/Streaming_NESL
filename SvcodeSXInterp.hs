@@ -361,7 +361,6 @@ sExpXducerInit :: SExp -> SvcodeP (Xducer ())
 sExpXducerInit Ctrl = return $ rout (BVal False)
 sExpXducerInit EmptyCtrl = return $ Done () 
 sExpXducerInit (Const a) = return (constXducerN a)
---sExpXducerInit (MapConst _ a) = return (mapConst a)
 sExpXducerInit (Usum _) = return usumXducerN
 sExpXducerInit (ToFlags _) = return toFlagsN 
 
@@ -396,7 +395,6 @@ sExpXducerInit (PriSegInterS ss) =
       chs' = [(x+1,y+1)| (x,y) <- chs]
   in return $ priSegInterXducerN chs' 
 
---sExpXducerInit (SegMerge _ _) = return segMergeXducerN 
 sExpXducerInit (Check _ _) = return checkXducerN
 sExpXducerInit (IsEmpty _) = return isEmptyXducerN
 
@@ -572,9 +570,6 @@ isDone sid =
      case buf of 
        Draining _ True -> if p == Done () then return True else return False
        _ -> return False
-     --case p of 
-     --  Done () -> return True
-     --  _ -> return False
 
 
 markRead :: Clients -> (RSId,Int) -> Int -> Clients
