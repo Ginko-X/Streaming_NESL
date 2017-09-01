@@ -171,10 +171,6 @@ uSegCountXducerN = loop0 p
                     in loopu 2 rin0 rin0
 
 
---segMergeXducer :: Xducer ()
---segMergeXducerN = segConcatXducerN
-
-
 interMergeXducerN :: Int -> Xducer ()
 interMergeXducerN c = loop0 $ mapM_ (\i -> loopu i routF done) [1..c-1] >> routT
 

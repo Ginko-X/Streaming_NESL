@@ -155,7 +155,6 @@ getSupExp Ctrl _ = ([],"Ctrl")
 getSupExp EmptyCtrl _ = ([],"EmptyCtrl")
 getSupExp (Const a) c = ([c],"Const " ++ show a)
 
---getSupExp (MapConst s1 a) c = ([s1],"MapConst " ++ show a)
 getSupExp (MapOne op s1) c = ([c,s1],"MapOne " ++ show op)
 getSupExp (MapTwo op s1 s2) c = ([c,s1,s2],"MapTwo " ++ show op)
 
@@ -179,6 +178,5 @@ getSupExp (Pack s1 s2) c = ([c,s2,s1],"Pack")
 getSupExp (UPack s1 s2) c = ([c,s2,s1],"UPack")
 getSupExp (SegConcat s1 s2) c = ([c,s2,s1],"SegConcat")
 getSupExp (USegCount s1 s2) c = ([c,s2,s1],"USegCount")
---getSupExp (SegMerge s1 s2) c = ([c,s2,s1],"SegMerge")  
 getSupExp (Check s1 s2) c = ([c,s1,s2],"Check")
 
