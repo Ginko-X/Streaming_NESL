@@ -1,0 +1,366 @@
+\def\s{\mathit{s}}  
+\def\st{\mathit{st}} 
+
+%\def\v{\vec v}
+\def\v{\rightharpoonup v}
+
+%\def\vec#1{\overrightarrow{#1}}
+\def\unit{()}
+
+\def\vrange#1#2{\langle #1,...,#2 \rangle}
+
+\def\emptyv{\langle \rangle}
+
+\def\phi{\varphi}
+
+\def\ctrl{\mathtt{Ctrl}}
+\def\consta#1{\mathtt{Const_{#1}}} 
+\def\toflag{\mathtt{ToFlags}}
+\def\usum{\mathtt{Usum}}
+\def\maptwo{\mathtt{MapTwo}}
+\def\scan{\mathtt{ScanPlus}}
+\def\sdef#1#2{#1 := #2}
+\def\withctrl#1#2#3{#3 := \mathtt{WithCtrl}(#1,#2)}
+
+\def\T{\mathtt{T}} 
+\def\F{\mathtt{F}} 
+\def\oT{\singl{\T}}
+\def\oF{\singl{\F}}
+
+\def\tail#1{\mathtt{tail}(#1)} 
+
+\def\appop{\operatorname{++}}
+\def\vapp#1#2{#1 \appop #2}
+
+\def\seval#1#2#3#4{\langle #1,#2 \rangle \Eva^{#3} #4} 
+\def\sevalf#1#2#3#4{SEva_{\phi}(#1,...,#2) \Eva^{#3} #4} 
+\def\block#1#2#3{Block_{\phi}(#1,...,#2) \Downarrow #3}  
+\def\unary#1#2#3{Unary_{\phi}(#1,...,#2) \Downarrow #3}
+\def\da{\Downarrow}
+
+\def\blockv#1#2#3#4{Block_{\phi,#4}(#1,...,#2) \Downarrow #3}  
+\def\unaryv#1#2#3#4#5{Unary_{\phi,#4}(#1,...,#2) \Downarrow^{#5} #3}
+
+
+
+\def\singl#1{\langle #1 \rangle}
+\def\Maps#1#2{#1 \rightarrowtail #2}
+\def\xR#1#2{\xRightarrow[#1]{#2}}
+
+
+%translation
+\def\sfun#1#2{(#1,#2)}
+\def\tranf#1#2#3#4#5{Trans_\phi(#1,...,#2) \xRightarrow[#4]{#3} #5}  
+
+\providecommand{\versionnumber}{0.0.1}
+
+\section{Level-0}
+Draft version \versionnumber
+
+\subsection{Source language syntax}
+(Ignore empty sequence for now)\\
+Expressions:
+$$e ::= x \ | \ \Let{x}{e_1}{e_2} \ | \ \hcall{\Tupk{x}} \ | \ \Comp{e}{x}{y}{\cdot} $$
+$$\hcall = \*{const}_n \ | \ \*{iota} \ | \ \*{plus} $$ 
+
+Values: \\
+$$ n \in \*{Z} $$
+$$ v::= n \ | \ \Seqk{v}$$
+
+\subsection{Type system}
+$$\tau ::= \int | \tseq{\tau_1}$$
+
+Type environment $\Gamma = [\Map{x_1}{\tau_1}, ..., \Map{x_i}{\tau_i} ]$.
+\begin{itemize}
+
+\item \Jug{\Type{\Gam}{e}{\tau}}
+
+\PT{
+	\AxiomC{}
+	\RiLa{(\Gam(x) = \tau)}
+    \UC{\Type{\Gam}{x}{\tau}}
+}
+\PT{
+	\AC{\Type{\Gam}{e_1}{\tau_1}}
+	\AC{\Type{\Gam[\Map{x}{\tau_1}]}{e_2}{\tau}}
+	\BC{\Type{\Gam}{\Let{x}{e_1}{e_2}}{\tau}}
+}\\[1ex]
+
+
+\PT{
+	\AC{\Type{}{\TypeF{\Tupk{\tau}}}{\tau}}
+	\RiLa{((\Gam(x_i)= \tau_i)^k_{i=1})}
+	\UC{\Type{\Gam}{\hcall{\Tupk{x}}}{\tau}}
+}
+\PT{
+	\AC{\Type{\Gam[\Map{x}{\tau_1}]}{e}{\tau}}
+	\RiLa{(\Gam(y)=\tseq{\tau_1})}
+	\UC{\Type{\Gam}{\Comp{e}{x}{y}{\cdot}}{\tseq{\tau}}}
+}\\[2ex]
+
+
+\item Auxiliary \Jug{\Type{}{\TypeF\Tupk{\tau}}{\tau}}
+
+\PT{\Axiom{\Type{}{\const{n}}{\int}}}
+\PT{\Axiom{\Type{}{\iota{\int}}{\tseq{\int}}}}
+\PT{\Axiom{\Type{}{\plus{\int}{\int}}{\int}}}
+
+
+\end{itemize}
+
+\subsection{Source language semantics}
+\begin{itemize}
+
+\item \Jug{\Eval{\rho}{e}{v}}
+\PT{
+	\AxiomC{}
+	\RiLa{(\rho(x)=v)}
+	\UC{\Eval{\rho}{x}{v}}
+}
+\PT{
+	\AC{\Eval{\rho}{e_1}{v_1}}
+	\AC{\Eval{\rho[\Map{x}{v_1}]}{e_2}{v}}
+	\BC{\Eval{\rho}{\Let{e_1}{x}{e_2}}{v}}	
+}\\[1ex]
+
+\PT{
+	\AC{\Eval{}{\EvalF{\Tupk{v}}}{v}}
+	\RiLa{((\rho(x_i)=v_i)^k_{i=1})}
+	\UC{\Eval{\rho}{\hcall{\Tupk{x}}}{v}}
+}
+\PT{
+	\AC{(\Eval{[\Map{x_i}{v_i}]}{e}{v_i'})^k_{i=1}}
+	\RiLa{(\rho(y)=\Seqk{v})}
+	\UC{\Eval{\rho}{\Comp{e}{x}{y}{\cdot}}{\Seqk{v'}}}
+}\\[1ex]
+
+\item Auxiliary \Jug{\Eval{}{\EvalF{\Tupk{v}}}{v}}
+
+\PT{\Axiom{\Eval{}{\const{n}}{n}}}
+\PT{\Axiom{\Eval{}{\iota{n}}{\{0,1,...,n-1\}}}}
+\PT{\AC{} 
+	\RiLa{(n_3= n_1+n_2)} 
+	\UC{\Eval{}{\plus{n_1}{n_2}}{n_3}}}
+
+\end{itemize}
+
+\subsection{SVCODE syntax}
+Stream id: $$\s \in \*{N} = \{0,1,2...\}$$
+Stream tree: $$ \st ::= \s \ | \ (\st_1,\s) $$
+SVCODE expressions: $$\varphi ::= \ctrl \ | \ \consta{a} \ | \ \toflag
+\ | \ \usum \ | \ \maptwo \ | \ \scan $$
+
+SVCODE program: 
+\begin{align*}
+	p ::= & \ \epsilon \\
+	     &| \ \sdef{\s}{\psi(s_1,...,s_i)} \\
+	     &| \ \withctrl{\s}{p}{\st} \\
+	     &| \ p_1;p_2 	 
+\end{align*}
+%$$ p ::= \epsilon \ | \ \s:= \psi(s_1,...,s_i) \ | \  \withctrl{\s}{p}{\st} \ | \ p_1;p_2 $$
+
+Target language values: 
+$$b \in \{\T,\F \}$$
+$$a ::= n \ | \ b \ | \ \unit $$
+$$\v ::= \vrange{a_1}{a_i} $$
+
+Define some operations on $\v$ for convenience:
+\begin{itemize}
+	\item $\vapp{\v_1}{\v_2} $: append $\v_2$ to $\v_1$
+	\item $\tail{\langle a_1, a_2,...,a_i \rangle} = \vrange{a_2}{a_i}$
+\end{itemize}
+
+
+\subsection{SVCODE semantics}
+%TODO add definition for empty streams mapping
+\begin{itemize}
+\item \Jug{\seval{p}{\sgm}{\v_c}{\sgm'}}
+
+\PT{\Axiom{\seval{\epsilon}{\sgm}{\v_c}{\sgm}}}
+\PT{\AC{\sevalf{\v_1}{\v_k}{\v_c}{\v}}
+	\RiLa{((\sgm(\s_i) = \v_i)^k_{i=1})}
+	\UC{\seval{\sdef{\s}{\phi\Tupk\s}}{\sgm}{\v_c}{\sgm[\Map{\s}{\v}]}}
+} \\[2ex]
+
+\PT{
+	\AC{}
+	\RiLa{(\sgm(\s)= \emptyv)}
+	\UC{\seval{\withctrl{\s}{p}{\st}}{\sgm}{\v_c}{\sgm[\Maps{\st}{\emptyv}]}}
+}\\[2ex]
+
+\PT{
+	\AC{\seval{p}{\sgm}{\v_s}{\sgm'}}
+	\RiLa{(\sgm(\s)= \v_s = \vrange {a_1} {a_i})}
+	\UC{\seval{\withctrl s p \st } \sgm {\v_c} \sgm'}
+}\\[2ex]
+
+\PT{
+	\AC{\seval{p_1}{\sgm}{\v_c}{\sgm''}}
+    \AC{\seval{p_2}{\sgm''}{\v_c}{\sgm'}}	
+    \BC{\seval{p_1;p_2}{\sgm}{\v_c}{\sgm'}}
+}
+
+
+\item Auxiliary \Jug{\sevalf{\v_1}{\v_k}{\v_c}{\v}}
+
+\PT{
+	\AC{\block{\v_{11}}{\v_{k1}}{\v_1}}
+	\AC{\sevalf{\v_{12}}{\v_{k2}}{\tail{\v_c}}{\v_2}}
+	\RiLa{(\v = \vapp{\v_1}{\v_2})}
+	\BC{\sevalf{\vapp{\v_{11}}{\v_{12}}}{\vapp{\v_{k1}}{\v_{k2}}}{\v_c}{\v}}
+}\\[2ex]
+	
+\PT{\Axiom{\sevalf {\v_1} {\v_k} \emptyv \emptyv}}
+	
+
+\item Auxiliary \Jug{\block{\v_1}{\v_k}{\v}}
+
+\PT{\Axiom{ \consta{a} \da \singl{a}}}
+\PT{\Axiom{\toflag(\singl{n}) \da \langle \F_1,...,\F_n,\T \rangle}}
+\PT{\AC{}
+	\RiLa{(n_3= n_1+n_2)}
+	\UC{\maptwo(\singl{n_1}, \singl{n_2}) \da \singl{n_3}}
+} \\
+
+\PT{
+	\AC{\unary{\singl \F}{\v_{k1}}{\v_1}}
+	\AC{\block{\v_{12}}{\v_{k2}}{\v_2}}
+	\RiLa{(\v = \vapp{\v_1}{\v_2})}
+	\BC{\block{\vapp {\singl\F} {\v_{12}}} {\vapp {\v_{k1}} {\v_{k2}}}{\v}}
+}\\[2ex]
+
+\PT{
+	\AC{\unary{\oT} {\v_k}{\v}}
+	\UC{\block{\oT}{\v_k} \v}
+}\\[2ex]
+
+\PT{
+	\AC{\unaryv{\singl \F}{\v_{k1}}{\singl{n_1}} {n_0} {n_0'}}
+	\AC{\blockv{\v_{12}}{\v_{k2}}{\v_2}{n_0'}}
+	\BC{\blockv{\vapp {\singl\F} {\v_{12}}} {\vapp {\v_{k1}} {\v_{k2}}}{\vapp {\singl{n_1}} {\v_2}} {n_0}}
+}\\[2ex]
+
+\PT{
+	\AC{\unaryv \oT {\v_k} {\singl{n_1}} {n_0} {}}
+	\UC{\blockv{\oT}{\v_k} {\singl{n_1}} {n_0}}
+}
+
+
+
+
+\item Auxiliary \Jug{\unary{\singl b}{\v_k}{\v}}
+
+\PT{ \Axiom{\usum(\oF) \da \singl\unit}}
+\PT{\Axiom{\usum(\oT) \da \emptyv }} \\[1ex]
+
+\PT{\Axiom{\scan_{n_0}(\oF,{\singl{n}}) \da^{n_0+n} {\singl{n_0}} 
+	}}
+\PT{\Axiom{\scan_{n_0}(\oT, \emptyv) \da {\singl{n_0}} }}
+
+\end{itemize}
+
+
+\subsection{Translation}
+\begin{itemize}
+	
+\item 
+\PT{
+	\AC{\Trans{\del}{e}{\s_0+1}{\s_1}{\sfun p {\st}}}
+	\UC{\Trans{\del}{e}{\s_0}{\s_1}{\Talet{\sdef{\s_0}{\ctrl};p}{\st}}}
+}\\[2ex]
+
+\item \Jug{\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}}
+
+\PT{\AC{}
+	\RiLa{(\del(x)= \st)}
+	\UC{\Trans{\del}{x}{\s_0}{\s_0}{\sfun{p}{\st}}}
+}
+\PT{\AC{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
+	\AC{\Trans{\del[\Map{x}{\st_1}]}{e_2}{\s_0'}{\s_1}{\sfun {p_2} {\st}}}
+	\BC{\Trans{\del}{\Let{x}{e_1}{e_2}}{\s_0}{\s_1}{\sfun {p_1;p_2} {\st}}}
+}
+
+\PT{
+	\AC{\tranf{\st_1}{\st_k}{\s_0}{\s_1}{\sfun{p}{\st}}}
+	\RiLa{((\del(x_i)=\st_i)^k_{i=1})}
+	\UC{\Trans{\del}{\phi \Tupk{x}}{\s_0}{\s_1}{\sfun{p}{\st}}}
+}
+
+\PT{
+	\AC{\Trans{[\Map{x}{\st_1}]}{e}{\s_0+1}{\s_1}{\sfun{p}{\st}}}
+	\RiLa{(\del(y)=(\st_1,\s_2))}
+	\UC{\Trans{\del}{\Comp{e}{x}{y}{\cdot}}{\s_0}{\s_1}{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p}{\st}}{\st}}}
+}
+
+
+\item Auxiliary \Jug{\tranf{\st_1}{\st_k}{\s_0}{\s_1}{\sfun{p}{\st}}}
+
+\PT{
+	\Axiom{\const{a} \xR{\s_0+1}{\s_0}
+		\sfun{\sdef{\s_0}{\consta{a}}}{\s_0}  }
+} \\ [6ex]
+
+\PT{
+	\AC{}
+	\RiLa{\left( \begin{aligned}
+		  \s_{i+1} & = \s_i + 1 \\
+		  p= & \sdef{\s_0}{\toflag(\s)} ; \\ 
+		     & \sdef{\s_1}{\usum(s_0)} ; \\
+		     & \withctrl{\s_1}{\sdef{\s_2}{\consta{1}}}{\s_2}; \\
+	         & \sdef{\s_3}{\scan(\s_0,s_2)}
+	    \end{aligned}\right)
+    }
+	\UC{\iota{\s} \xR{\s_4}{\s_0} {\sfun{p} {(\s_3,\s_0)}}}
+}\\[4ex]
+
+\PT{
+	\Axiom{\plus{\s_1}{\s_2} \xR{\s_0+1}{\s_0}
+	    \sfun{\sdef{\s_0}{\maptwo(\s_1,\s_2)}}{\s_0}}
+}
+
+
+\end{itemize}
+
+
+\subsection{Value representation}
+
+\emph{TODO: define $\sgm(\st)$}
+
+\Jug{\ValRep{\sgm}{v}{\tau}{\st}}
+
+\PT{
+	\AC{}
+	\RiLa{(\sgm(\s)=\singl{n})}
+	\UC{\ValRep{\sgm}{n}{\int}{\s}}
+}
+\PT{
+	\AC{(\ValRep{\sgm}{n_i}{\int}{\s_i})^k_{i=1}}
+	\RiLa{\left(
+		\begin{aligned}
+	        \sgm(\s)= & {\sgm(\s_1)} \appop {\sgm(\s_2)} \appop ...
+		               \appop {\sgm(\s_k)}   \\
+		    \sgm(\s') = & \langle \F_1,..., \F_k, \T \rangle
+		\end{aligned}
+		\right)}
+	\UC{\ValRep{\sgm}{\Seqk{n}}{\tseq{\int}}{(\s,\s')}}
+}\\[4ex]
+
+
+
+\PT{
+	\AC{(\ValRep{\sgm}{v_i}{\tau}{(\st_i,\s_i)})^k_{i=1}}
+	\RiLa{\left(
+		  \begin{aligned}
+		  	& \tau \ne \int \\
+		  	& \sgm(\st) = {\sgm(\st_1)} \appop {\sgm(\st_2)} \appop ...
+		  	\appop {\sgm(\st_k)}   \\
+		  	& \sgm(\s) = {\sgm(\s_1)} \appop {\sgm(\s_2)} \appop ...
+		  	\appop {\sgm(\s_k)}   \\
+		  	& \sgm(\s') = \langle \F_1,..., \F_k, \T \rangle
+		  \end{aligned}
+		\right)
+	}
+	\UC{\ValRep{\sgm}{\Seqk{v}}{\tseq{\tau}}{((st,s),s')}}
+}
+
+\subsection{Correctness proof}

@@ -1,0 +1,134 @@
+\documentclass[a4paper]{article}
+
+\usepackage{proof}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{bussproofs}
+%\usepackage{color}
+\usepackage{geometry}
+\usepackage{enumerate}
+\usepackage{extarrows}
+ 
+\geometry{left=2.5cm,right=2.5cm,top=3cm,bottom=3cm}
+
+\newtheorem{thm}[equation]{Theorem}
+\newtheorem{lem}[equation]{Lemma}
+\newtheorem{prop}[equation]{Proposition}
+\newtheorem{cor}[equation]{Corollary}
+\newtheorem{conj}[equation]{Conjecture}
+
+\def\*#1{\mathbf{#1}}
+
+%source language syntax
+\def\Let#1#2#3{\*{let} \ #1 = #2 \ \*{in} \ #3}
+\def\Comp#1#2#3#4{\{#1 : #2 \ \*{in} \ #3 \ \*{using} \ #4\}}
+
+\def\hcall{\phi} 
+
+\def\const#1{\*{const}_{#1} ()}
+\def\iota#1{\*{iota} (#1)} 
+\def\plus#1#2{\*{plus} (#1,#2)}
+
+
+
+%types
+\def\int{\*{int}}
+\def\tseq#1{\{#1\}}  
+
+
+% symbol shorthands
+\def\Eva{\downarrow}
+\def\Ra{\Rightarrow}
+\def\Env{\ \vdash\ } 
+
+\def\Seqk#1{\{ #1_1,...,#1_k \}}
+\def\Tupk#1{(#1_1,...,#1_k)}
+
+
+% greek letters
+\def\sgm{\sigma}
+\def\Gam{\Gamma}
+\def\del{\delta}
+
+
+% special font
+\def\MC{\mathcal{C}} 
+\def\ME{\mathcal{E}} 
+\def\MP{\mathcal{P}} 
+\def\MT{\mathcal{T}} 
+\def\MV{\mathcal{V}}
+
+
+
+% Judgment
+\def\Jug#1{Judgment \boxed{#1} \\[1ex]}
+
+\def\Map#1#2{#1 \mapsto #2}
+ 
+
+% Evaluation
+\def\Eval#1#2#3{#1 \Env #2 \Eva #3 } 
+\def\EvalF#1{Eva_\hcall#1}  % function evaluation
+
+% target semantics 
+\def\TaSem#1#2#3{\langle #1,#2 \rangle \Eva #3}  
+\def\Talet#1#2{\mathtt{let} \ #1 \ \mathtt{in} \ #2}
+
+% compiling/translation
+\def\Trans#1#2#3#4#5{#1 \Env #2 \xRightarrow[#4]{#3} #5} 
+\def\TransP#1#2#3#4#5{\mathbf{transPlus} (#1,#2) \Ra^{#3}_{#4} #5}
+
+%typing
+\def\Type#1#2#3{#1 \Env #2 : #3 } 
+\def\TypeF#1{Typ_\hcall#1} 
+
+
+%value representation
+\def\ValRep#1#2#3#4{#1 \Env #2 \triangleright_{#3} #4}
+
+% rule with a name
+\def\ERule#1#2{\textsc{E-#1} : \vcenter{#2}}
+\def\PRule#1#2{\textsc{P-#1} : \vcenter{#2}}
+\def\CRule#1#2{\textsc{C-#1} : \vcenter{#2}}
+
+% only rule name
+\def\EName#1{\textsc{E-#1}}
+\def\PName#1{\textsc{P-#1}}
+\def\CName#1{\textsc{C-#1}}
+
+%proof tree shorthands
+\def\AC#1{\AxiomC{$#1$}}
+\def\Axiom#1{\AxiomC{} \UnaryInfC{$#1$}}
+\def\UC#1{\UnaryInfC{$#1$}}
+\def\BC#1{\BinaryInfC{$#1$}}
+\def\TC#1{\TrinaryInfC{$#1$}}
+\def\DP{\DisplayProof}
+\def\LeLa#1{\LeftLabel{$#1$}}
+\def\RiLa#1{\RightLabel{$#1$}}
+\def\PT#1{#1 \DisplayProof \qquad} 
+%UnaryInfC with a deriviation name
+\def\UCN#1#2{\AxiomC{#1} \noLine \UC{#2}}
+
+
+%color
+%\def\Blue{\color{blue}}
+
+%notation
+\def\ConEq#1{\xlongequal{<#1}}  % Sgm conditional equation
+
+\def\SetLe{\lessdot} % forall r in set . r < r0  
+
+
+
+\title{SNESL formalization}
+\author{Dandan Xue}
+
+\begin{document}
+\maketitle
+
+
+\setcounter{section}{-1}
+
+\input{snesl0.tex}
+
+\end{document}
