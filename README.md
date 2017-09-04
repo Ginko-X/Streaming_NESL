@@ -1,4 +1,10 @@
 # Working Progress
++ Week 44 (28 Aug ~ 3 Sep)
+    + rewrite Xducers with `loopu`/`loopuv` 
+        + fixed `Pack` within a WithCtrl
+        + deleted two instructions `MapConst` and `SegMerge`
+    + [SNESL formalization Level-0 (draft 0.0.2)](https://github.com/Ginko-X/Streaming_NESL/blob/master/Report/main.pdf)
+
 + Week 43 (21~27 Aug)
     + Toy verison correctness proof bug fixes
     + Rewrote Xducers with `loop0`, fixed all known bugs, but code still messy
