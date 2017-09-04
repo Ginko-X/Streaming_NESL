@@ -8,6 +8,7 @@
 \usepackage{geometry}
 \usepackage{enumerate}
 \usepackage{extarrows}
+\usepackage{verbatim}
  
 \geometry{left=2.5cm,right=2.5cm,top=3cm,bottom=3cm}
 
@@ -84,7 +85,8 @@
 
 
 %value representation
-\def\ValRep#1#2#3#4{#1 \Env #2 \triangleright_{#3} #4}
+\def\ValRep#1#2#3{ #1 \triangleright_{#2} #3}
+
 
 % rule with a name
 \def\ERule#1#2{\textsc{E-#1} : \vcenter{#2}}

@@ -2,12 +2,16 @@
 \def\st{\mathit{st}} 
 
 \def\v{\vec v}
-
+\def\a{\vec a}
+\def\b{\vec b}
 
 %\def\vec#1{\overrightarrow{#1}}
 \def\unit{()}
 
+\def\ra{\rightarrow}
+
 \def\vrange#1#2{\langle #1,...,#2 \rangle}
+\def\lrange#1#2{\left[ #1,...,#2 \right]}
 
 \def\emptyv{\langle \rangle}
 
@@ -50,7 +54,7 @@
 
 %translation
 \def\sfun#1#2{(#1,#2)}
-\def\tranf#1#2#3#4#5{Trans_\phi(#1,...,#2) \xRightarrow[#4]{#3} #5}  
+\def\tranf#1#2#3#4#5{\Env Trans_\phi(#1,...,#2) \xRightarrow[#4]{#3} #5}  
 
 \providecommand{\versionnumber}{0.0.1}
 
@@ -129,7 +133,7 @@ Type environment $\Gamma = [\Map{x_1}{\tau_1}, ..., \Map{x_i}{\tau_i} ]$.
 	\UC{\Eval{\rho}{\hcall{\Tupk{x}}}{v}}
 }
 \PT{
-	\AC{(\Eval{[\Map{x_i}{v_i}]}{e}{v_i'})^k_{i=1}}
+	\AC{(\Eval{[\Map{x}{v_i}]}{e}{v_i'})^k_{i=1}}
 	\RiLa{(\rho(y)=\Seqk{v})}
 	\UC{\Eval{\rho}{\Comp{e}{x}{y}{\cdot}}{\Seqk{v'}}}
 }\\[1ex]
@@ -161,59 +165,69 @@ SVCODE program:
 
 Target language values: 
 $$b \in \{\T,\F \}$$
-$$a ::= n \ | \ b \ | \ \unit $$
-$$\v ::= \vrange{a_1}{a_i} $$
+$$a ::= n \ | \ b \ | \ \unit$$
+$$\b = \vrange{b_1}{b_i}$$ 
+$$\a = \vrange{a_1}{a_i}  $$
+$$\v ::= \a \ | \ (\v,\b) $$
 
-Define some operations on $\v$ for convenience:
+Define some operations for convenience:
 \begin{itemize}
-	\item $\vapp{\v_1}{\v_2} $: append $\v_2$ to $\v_1$
-	\item $\tail{\langle a_1, a_2,...,a_i \rangle} = \vrange{a_2}{a_i}$
+	\item $\appop: \v \ra  \v \ra \v$ \\
+	  $\vapp {\vrange{a_1}{a_i}} {\vrange{a_2}{a_j}} = \langle \a_1,...,a_i,a_2,...,a_j \rangle $ \\
+	  $\vapp{(\v_1,\b_1)}{(\v_2,\b_2)} = (\vapp{\v_1}{\v_2}, \vapp{\b_1}{\b_2})$
+	\item $\texttt{tail}: \a \ra \a$ \\
+	      $\tail{\langle a_1, a_2,...,a_i \rangle} = \vrange{a_2}{a_i}$
 \end{itemize}
 
 
 \subsection{SVCODE semantics}
-%TODO add definition for empty streams mapping
-\begin{itemize}
-\item \Jug{\seval{p}{\sgm}{\v_c}{\sgm'}}
 
-\PT{\Axiom{\seval{\epsilon}{\sgm}{\v_c}{\sgm}}}
-\PT{\AC{\sevalf{\v_1}{\v_k}{\v_c}{\v}}
-	\RiLa{((\sgm(\s_i) = \v_i)^k_{i=1})}
-	\UC{\seval{\sdef{\s}{\phi\Tupk\s}}{\sgm}{\v_c}{\sgm[\Map{\s}{\v}]}}
+%TODO add definition for empty streams mapping
+
+$\sgm = [\Map{\s_1}{\a_1},...,\Map{\s_i}{\a_i}]$ \\
+$\a_c$ is the control stream.
+\begin{itemize}
+
+\item \Jug{\seval{p}{\sgm}{\a_c}{\sgm'}}
+
+\PT{\Axiom{\seval{\epsilon}{\sgm}{\a_c}{\sgm}}}
+\PT{\AC{\sevalf{\a_1}{\a_k}{\a_c}{\a}}
+	\RiLa{((\sgm(\s_i) = \a_i)^k_{i=1})}
+	\UC{\seval{\sdef{\s}{\phi\Tupk\s}}{\sgm}{\a_c}{\sgm[\Map{\s}{\a}]}}
 } \\[2ex]
 
 \PT{
 	\AC{}
 	\RiLa{(\sgm(\s)= \emptyv)}
-	\UC{\seval{\withctrl{\s}{p}{\st}}{\sgm}{\v_c}{\sgm[\Maps{\st}{\emptyv}]}}
+	\UC{\seval{\withctrl{\s}{p}{\st}}{\sgm}{\a_c}{\sgm[\Maps{\st}{\emptyv}]}}
 }\\[2ex]
 
 \PT{
-	\AC{\seval{p}{\sgm}{\v_s}{\sgm'}}
-	\RiLa{(\sgm(\s)= \v_s = \vrange {a_1} {a_i})}
-	\UC{\seval{\withctrl s p \st } \sgm {\v_c} \sgm'}
+	\AC{\seval{p}{\sgm}{\a_s}{\sgm'}}
+	\RiLa{(\sgm(\s)= \a_s = \vrange {a_1} {a_i})}
+	\UC{\seval{\withctrl s p \st } \sgm {\a_c} \sgm'}
 }\\[2ex]
 
 \PT{
-	\AC{\seval{p_1}{\sgm}{\v_c}{\sgm''}}
-    \AC{\seval{p_2}{\sgm''}{\v_c}{\sgm'}}	
-    \BC{\seval{p_1;p_2}{\sgm}{\v_c}{\sgm'}}
+	\AC{\seval{p_1}{\sgm}{\a_c}{\sgm''}}
+    \AC{\seval{p_2}{\sgm''}{\a_c}{\sgm'}}	
+    \BC{\seval{p_1;p_2}{\sgm}{\a_c}{\sgm'}}
 }
 
 
-\item Auxiliary \Jug{\sevalf{\v_1}{\v_k}{\v_c}{\v}}
+\item Auxiliary \Jug{\sevalf{\a_1}{\a_k}{\a_c}{\a}}
 
 \PT{
-	\AC{\block{\v_{11}}{\v_{k1}}{\v_1}}
-	\AC{\sevalf{\v_{12}}{\v_{k2}}{\tail{\v_c}}{\v_2}}
-	\RiLa{(\v = \vapp{\v_1}{\v_2})}
-	\BC{\sevalf{\vapp{\v_{11}}{\v_{12}}}{\vapp{\v_{k1}}{\v_{k2}}}{\v_c}{\v}}
+	\AC{\block{\a_{11}}{\a_{k1}}{\a_1}}
+	\AC{\sevalf{\a_{12}}{\a_{k2}}{\tail{\a_c}}{\a_2}}
+	\RiLa{(\a = \vapp{\a_1}{\a_2})}
+	\BC{\sevalf{\vapp{\a_{11}}{\a_{12}}}{\vapp{\a_{k1}}{\a_{k2}}}{\a_c}{\a}}
 }\\[2ex]
 	
-\PT{\Axiom{\sevalf {\v_1} {\v_k} \emptyv \emptyv}}
+\PT{\Axiom{\sevalf {\a_1} {\a_k} \emptyv \emptyv}}
 	
 
-\item Auxiliary \Jug{\block{\v_1}{\v_k}{\v}}
+\item Auxiliary \Jug{\block{\a_1}{\a_k}{\a}}
 
 \PT{\Axiom{ \consta{a} \da \singl{a}}}
 \PT{\Axiom{\toflag(\singl{n}) \da \langle \F_1,...,\F_n,\T \rangle}}
@@ -223,32 +237,32 @@ Define some operations on $\v$ for convenience:
 } \\
 
 \PT{
-	\AC{\unary{\singl \F}{\v_{k1}}{\v_1}}
-	\AC{\block{\v_{12}}{\v_{k2}}{\v_2}}
-	\RiLa{(\v = \vapp{\v_1}{\v_2})}
-	\BC{\block{\vapp {\singl\F} {\v_{12}}} {\vapp {\v_{k1}} {\v_{k2}}}{\v}}
+	\AC{\unary{\singl \F}{\a_{k1}}{\a_1}}
+	\AC{\block{\a_{12}}{\a_{k2}}{\a_2}}
+	\RiLa{(\a = \vapp{\a_1}{\a_2})}
+	\BC{\block{\vapp {\singl\F} {\a_{12}}} {\vapp {\a_{k1}} {\a_{k2}}}{\a}}
 }\\[2ex]
 
 \PT{
-	\AC{\unary{\oT} {\v_k}{\v}}
-	\UC{\block{\oT}{\v_k} \v}
+	\AC{\unary{\oT} {\a_k}{\a}}
+	\UC{\block{\oT}{\a_k} \a}
 }\\[2ex]
 
 \PT{
-	\AC{\unaryv{\singl \F}{\v_{k1}}{\singl{n_1}} {n_0} {n_0'}}
-	\AC{\blockv{\v_{12}}{\v_{k2}}{\v_2}{n_0'}}
-	\BC{\blockv{\vapp {\singl\F} {\v_{12}}} {\vapp {\v_{k1}} {\v_{k2}}}{\vapp {\singl{n_1}} {\v_2}} {n_0}}
+	\AC{\unaryv{\singl \F}{\a_{k1}}{\singl{n_1}} {n_0} {n_0'}}
+	\AC{\blockv{\a_{12}}{\a_{k2}}{\a_2}{n_0'}}
+	\BC{\blockv{\vapp {\singl\F} {\a_{12}}} {\vapp {\a_{k1}} {\a_{k2}}}{\vapp {\singl{n_1}} {\a_2}} {n_0}}
 }\\[2ex]
 
 \PT{
-	\AC{\unaryv \oT {\v_k} {\singl{n_1}} {n_0} {}}
-	\UC{\blockv{\oT}{\v_k} {\singl{n_1}} {n_0}}
+	\AC{\unaryv \oT {\a_k} {\singl{n_1}} {n_0} {}}
+	\UC{\blockv{\oT}{\a_k} {\singl{n_1}} {n_0}}
 }
 
 
 
 
-\item Auxiliary \Jug{\unary{\singl b}{\v_k}{\v}}
+\item Auxiliary \Jug{\unary{\singl b}{\a_k}{\a}}
 
 \PT{ \Axiom{\usum(\oF) \da \singl\unit}}
 \PT{\Axiom{\usum(\oT) \da \emptyv }} \\[1ex]
@@ -261,9 +275,10 @@ Define some operations on $\v$ for convenience:
 
 
 \subsection{Translation}
-\begin{itemize}
-	
-\item 
+$\del = [\Map{x_1}{\st_1},..., \Map{x_i}{\st_i}] $
+
+\begin{itemize}	
+\item (??not necessary) \\
 \PT{
 	\AC{\Trans{\del}{e}{\s_0+1}{\s_1}{\sfun p {\st}}}
 	\UC{\Trans{\del}{e}{\s_0}{\s_1}{\Talet{\sdef{\s_0}{\ctrl};p}{\st}}}
@@ -273,7 +288,7 @@ Define some operations on $\v$ for convenience:
 
 \PT{\AC{}
 	\RiLa{(\del(x)= \st)}
-	\UC{\Trans{\del}{x}{\s_0}{\s_0}{\sfun{p}{\st}}}
+	\UC{\Trans{\del}{x}{\s_0}{\s_0}{\sfun{\epsilon}{\st}}}
 }
 \PT{\AC{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
 	\AC{\Trans{\del[\Map{x}{\st_1}]}{e_2}{\s_0'}{\s_1}{\sfun {p_2} {\st}}}
@@ -289,7 +304,7 @@ Define some operations on $\v$ for convenience:
 \PT{
 	\AC{\Trans{[\Map{x}{\st_1}]}{e}{\s_0+1}{\s_1}{\sfun{p}{\st}}}
 	\RiLa{(\del(y)=(\st_1,\s_2))}
-	\UC{\Trans{\del}{\Comp{e}{x}{y}{\cdot}}{\s_0}{\s_1}{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p}{\st}}{\st}}}
+	\UC{\Trans{\del}{\Comp{e}{x}{y}{\cdot}}{\s_0}{\s_1}{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p}{\st}}{(\st,\s_2)}}}
 }
 
 
@@ -323,44 +338,34 @@ Define some operations on $\v$ for convenience:
 
 
 \subsection{Value representation}
+\begin{itemize}
 
-\emph{TODO: define $\sgm(\st)$}
-
-\Jug{\ValRep{\sgm}{v}{\tau}{\st}}
+\item \Jug{\ValRep{v}{\tau}{\v}}
 
 \PT{
-	\AC{}
-	\RiLa{(\sgm(\s)=\singl{n})}
-	\UC{\ValRep{\sgm}{n}{\int}{\s}}
+	\Axiom{\ValRep{n}{\int}{\singl{n}}}
 }
 \PT{
-	\AC{(\ValRep{\sgm}{n_i}{\int}{\s_i})^k_{i=1}}
-	\RiLa{\left(
-		\begin{aligned}
-	        \sgm(\s)= & {\sgm(\s_1)} \appop {\sgm(\s_2)} \appop ...
-		               \appop {\sgm(\s_k)}   \\
-		    \sgm(\s') = & \langle \F_1,..., \F_k, \T \rangle
-		\end{aligned}
-		\right)}
-	\UC{\ValRep{\sgm}{\Seqk{n}}{\tseq{\int}}{(\s,\s')}}
+	\AC{(\ValRep{v_i}{\tau}{\v_i})^k_{i=1}}
+	\RiLa{(\v = \v_1 \appop \v_2 \appop ... \appop \v_k)}
+	\UC{\ValRep{\Seqk{v}}{\tseq{\tau}}{(\v,\langle \F_1,..., \F_k, \T \rangle)}}
+}
+\begin{comment}
+\PT{
+	\AC{\ValRep {\lrange{v_1}{v_k}} {\tau} {\v}}
+	\UC{\ValRep {\Seqk{v}}{\tseq{\tau}}{(\v,\langle \F_1,..., \F_k, \T \rangle)}}
 }\\[4ex]
 
-
-
+\item \Jug{\ValRep{\lrange{v_1}{v_k}}{\tau}{\v}}
 \PT{
-	\AC{(\ValRep{\sgm}{v_i}{\tau}{(\st_i,\s_i)})^k_{i=1}}
-	\RiLa{\left(
-		  \begin{aligned}
-		  	& \tau \ne \int \\
-		  	& \sgm(\st) = {\sgm(\st_1)} \appop {\sgm(\st_2)} \appop ...
-		  	\appop {\sgm(\st_k)}   \\
-		  	& \sgm(\s) = {\sgm(\s_1)} \appop {\sgm(\s_2)} \appop ...
-		  	\appop {\sgm(\s_k)}   \\
-		  	& \sgm(\s') = \langle \F_1,..., \F_k, \T \rangle
-		  \end{aligned}
-		\right)
-	}
-	\UC{\ValRep{\sgm}{\Seqk{v}}{\tseq{\tau}}{((st,s),s')}}
+	\Axiom{\ValRep{\lrange{n_1}{n_k}}{\int}{\vrange{n_1}{n_k}}}
+}
+\PT{
+	\AC{\ValRep{v_i}{\tau}{\v}}
+	\UC{\ValRep{\lrange{v_1}{v_k}}{\tseq{\tau}}{}}
 }
 
+\end{comment}
+
+\end{itemize}
 \subsection{Correctness proof}
