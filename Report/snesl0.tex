@@ -32,6 +32,7 @@
 \def\oF{\singl{\F}}
 
 \def\tail#1{\mathtt{tail}(#1)} 
+\def\sids#1{\mathtt{sids}(#1)}
 
 \def\appop{\operatorname{++}}
 \def\vapp#1#2{#1 \appop #2}
@@ -380,13 +381,15 @@ $\del = [\Map{x_1}{\st_1},..., \Map{x_i}{\st_i}] $
 	\item $\Type{}{\TypeF{\Tupk{\tau}}}{\tau}$
 	\item $\Eval{}{\EvalF{\Tupk{v}}}{v}$
 	\item $\tranf{\st_1}{\st_k}{\s_0}{\s_1}{\sfun{p}{\st}}$
+ 	\item $(\ValRep{v_i}{\tau_i}{\st_i})^k_{i=1}$
+ 	\item $\sids{\Tupk{\st}} \SetLe \s_0$
 	\end{enumerate}
  	then 
  	\begin{enumerate}[(i)]
  		\item $\seval{p}{\sgm}{\a_c}{\sgm'}$ (by $\MP$)
- 		\item $\ValRep{v}{\tau}{\sgm(\st)}$ (by $\MV$)
+ 		\item $\ValRep{v}{\tau}{\sgm'(\st)}$ (by $\MV$)
  		\item $\sgm' \ConEq{s_0} \sgm $
- 		\item $sids(\st) \SetLe \s_1$
+ 		\item $\sids{\st} \SetLe \s_1$
  		\item $\s_0 \le \s_1$
  	\end{enumerate}
 \end{lem}
@@ -398,14 +401,14 @@ $\del = [\Map{x_1}{\st_1},..., \Map{x_i}{\st_i}] $
 		\item $\Type{\Gam}{e}{\tau}$ (by some derivation $\MT$)
 		\item $\Eval{\rho}{e}{v}$ (by $\ME$) 
 		\item $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$ (by $\MC$)
-		\item $\forall x \in dom(\Gam).\rho(x):\Gam(x) \wedge sids(\del(x)) \SetLe \s_0  \wedge  \ValRep{\rho(x)}{\Gam(x)}{\sgm(\del(x))}$
+		\item $\forall x \in dom(\Gam).\rho(x):\Gam(x) \wedge \sids(\del(x)) \SetLe \s_0  \wedge  \ValRep{\rho(x)}{\Gam(x)}{\sgm(\del(x))}$
 	\end{enumerate}
 	then 
 	\begin{enumerate}[(i)]
 		\item $\seval{p}{\sgm}{\a_c}{\sgm'}$ (by $\MP$)
-		\item  $\ValRep{v}{\tau}{\sgm(\st)}$ (by $\MV$)
+		\item  $\ValRep{v}{\tau}{\sgm‘(\st)}$ (by $\MV$)
 		\item $\sgm' \ConEq{s_0} \sgm $
-		\item  $sids(\st) \SetLe \s_1$
+		\item  $\sids{\st} \SetLe \s_1$
 		\item $\s_0 \le \s_1$
 	\end{enumerate} 
 \end{thm}
