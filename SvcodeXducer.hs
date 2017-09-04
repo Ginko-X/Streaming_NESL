@@ -4,7 +4,6 @@ module SvcodeXducer where
 
 import SvcodeSyntax
 import SneslSyntax
-import DataTrans (i2flags)
 
 
 data Xducer a = Pin Int (Maybe AVal -> Xducer a)  

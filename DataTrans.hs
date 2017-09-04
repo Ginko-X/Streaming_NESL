@@ -5,8 +5,7 @@ module DataTrans where
 
 import SneslSyntax
 import SvcodeSyntax
-import SneslParser
-import SneslInterp
+import SvcodeInterp(flagPartPrim)
 import SneslTyping
 
 
@@ -15,32 +14,12 @@ import SneslTyping
 dataTrans :: Type -> Val -> SvVal
 dataTrans TInt (AVal (IVal i)) = SIVal [i]
 dataTrans TBool (AVal (BVal b)) = SBVal [b]
-dataTrans (TSeq t) (SVal vs) = SSVal vs' fs   
-    where vs' = seqTrans t vs 
-          fs = i2flags $ length vs 
+dataTrans (TSeq t) (SVal vs) = SSVal vs' fs 
+    where vs' = concatSsval t $ map (dataTrans t) vs 
+          fs = i2flags $ length vs  
 dataTrans (TTup t1 t2) (TVal v1 v2) = SPVal v1' v2'
     where v1' = dataTrans t1 v1  
           v2' = dataTrans t2 v2 
-
-
-
-seqTrans :: Type -> [Val] -> SvVal
-
-seqTrans TInt vs = SIVal vs' 
-    where vs' = [a | (AVal (IVal a)) <- vs]
-         
-seqTrans TBool vs = SBVal vs'
-    where vs' = [a | (AVal (BVal a)) <- vs]
-
-seqTrans (TSeq t) vs = SSVal vss fs  
-    where vs' = [s | SVal s <- vs ]
-          vss = concatSsval t (map (seqTrans t) vs') 
-          fs =  concat $ map (i2flags.length) vs' 
-
-seqTrans (TTup t1 t2) vs = SPVal vs1 vs2
-    where vsp = unzip [(v1, v2) | (TVal v1 v2) <- vs]  
-          vs1 = seqTrans t1 (fst vsp)
-          vs2 = seqTrans t2 (snd vsp)
 
 
 concatSsval :: Type -> [SvVal] -> SvVal 
@@ -54,11 +33,6 @@ concatSsval (TTup t1 t2) vs = SPVal s1' s2'
     where  (s1,s2) = unzip [(v1,v2) | (SPVal v1 v2) <-vs ]
            s1' = concatSsval t1 s1
            s2' = concatSsval t2 s2 
-
-
-i2flags :: Int -> [Bool]
-i2flags i = replicate i (False) ++ [True]
-
 
 
 ---- transformation from SVCODE to SNESL ------
@@ -78,6 +52,10 @@ dataTransBack (TTup t1 t2) (SPVal v1 v2) =
 
 dataTransBack t v = Left $ "dataTransBack: type and value does not match:" 
                            ++ show t ++ "," ++ show v 
+
+
+--partseg :: SvVal -> [Bool] -> [SvVal]
+--partseg (SIVal is) bs = [SIVal seg | seg <- flagPartPrim is bs] 
 
 
 seqTransBack :: Type -> SvVal -> Either String [Val]
@@ -114,7 +92,7 @@ segSeq (n:ns) vs = (SVal $ take n vs) : segSeq ns (drop n vs)
 
 
 
---- examples  ---
+{--- examples  ---
 
 -- SNESL: [{{3,4}},{2}}, {{}}, {{1}}]
 testExample1 = seqTransBack type1 $ seqTrans type1 example1
@@ -136,4 +114,4 @@ type2 = TTup (TSeq TInt) TBool
 example2 = [TVal (SVal [(AVal (IVal 3)), AVal (IVal 4)]) (AVal (BVal True)), 
                   TVal (SVal []) (AVal (BVal False)), 
                   TVal (SVal [(AVal (IVal 7)), (AVal (IVal 8))]) (AVal (BVal False))]
-
+-}

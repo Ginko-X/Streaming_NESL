@@ -5,8 +5,7 @@ module SvcodeInterp where
 import SvcodeSyntax
 import SneslSyntax
 import SneslCompiler (tree2Sids)
-import DataTrans (i2flags)
-import SneslInterp (flags2len, seglist, wrapWork)
+import SneslInterp (wrapWork)
 import SvcodeXducer
 
 import Data.List (transpose)

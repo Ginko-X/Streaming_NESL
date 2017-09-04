@@ -4,10 +4,6 @@ module SneslCompiler where
 
 import SneslSyntax
 import SvcodeSyntax
-import DataTrans
-import SneslParser
-import SneslTyping
-
 import Data.Set (fromList, toList)
 
 

@@ -10,7 +10,6 @@ import SneslCompiler (tree2Sids)
 
 import Control.Monad
 import Data.Set (fromList, toList)
-import Network.CGI.Protocol (replace)
 import qualified Data.Map.Strict as M
 
 type RSId = (Int,SId,SId)
