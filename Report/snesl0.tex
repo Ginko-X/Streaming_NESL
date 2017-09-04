@@ -56,7 +56,8 @@
 \def\sfun#1#2{(#1,#2)}
 \def\tranf#1#2#3#4#5{\Env Trans_\phi(#1,...,#2) \xRightarrow[#4]{#3} #5}  
 
-\providecommand{\versionnumber}{0.0.1}
+\providecommand{\versionnumber}{0.0.2}
+
 
 \section{Level-0}
 Draft version \versionnumber
@@ -182,7 +183,9 @@ Define some operations for convenience:
 
 \subsection{SVCODE semantics}
 
-%TODO add definition for empty streams mapping
+% TODO add definition for empty streams mapping
+% TODO define sids
+
 
 $\sgm = [\Map{\s_1}{\a_1},...,\Map{\s_i}{\a_i}]$ \\
 $\a_c$ is the control stream.
@@ -368,4 +371,42 @@ $\del = [\Map{x_1}{\st_1},..., \Map{x_i}{\st_i}] $
 \end{comment}
 
 \end{itemize}
+
+
 \subsection{Correctness proof}
+\begin{lem}
+	If 
+	\begin{enumerate}[(i)]
+	\item $\Type{}{\TypeF{\Tupk{\tau}}}{\tau}$
+	\item $\Eval{}{\EvalF{\Tupk{v}}}{v}$
+	\item $\tranf{\st_1}{\st_k}{\s_0}{\s_1}{\sfun{p}{\st}}$
+	\end{enumerate}
+ 	then 
+ 	\begin{enumerate}[(i)]
+ 		\item $\seval{p}{\sgm}{\a_c}{\sgm'}$ (by $\MP$)
+ 		\item $\ValRep{v}{\tau}{\sgm(\st)}$ (by $\MV$)
+ 		\item $\sgm' \ConEq{s_0} \sgm $
+ 		\item $sids(\st) \SetLe \s_1$
+ 		\item $\s_0 \le \s_1$
+ 	\end{enumerate}
+\end{lem}
+
+
+\begin{thm}
+	If 
+	\begin{enumerate}[(i)]
+		\item $\Type{\Gam}{e}{\tau}$ (by some derivation $\MT$)
+		\item $\Eval{\rho}{e}{v}$ (by $\ME$) 
+		\item $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$ (by $\MC$)
+		\item $\forall x \in dom(\Gam).\rho(x):\Gam(x) \wedge sids(\del(x)) \SetLe \s_0  \wedge  \ValRep{\rho(x)}{\Gam(x)}{\sgm(\del(x))}$
+	\end{enumerate}
+	then 
+	\begin{enumerate}[(i)]
+		\item $\seval{p}{\sgm}{\a_c}{\sgm'}$ (by $\MP$)
+		\item  $\ValRep{v}{\tau}{\sgm(\st)}$ (by $\MV$)
+		\item $\sgm' \ConEq{s_0} \sgm $
+		\item  $sids(\st) \SetLe \s_1$
+		\item $\s_0 \le \s_1$
+	\end{enumerate} 
+\end{thm}
+
