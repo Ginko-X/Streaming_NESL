@@ -4,6 +4,8 @@
         + fixed `Pack` within a WithCtrl
         + deleted two instructions `MapConst` and `SegMerge`
     + [SNESL formalization Level-0 (draft 0.0.2)](https://github.com/Ginko-X/Streaming_NESL/blob/master/Report/main.pdf)
+        + proof not finished (got stuck in the comprehension proof case)
+
 
 + Week 43 (21~27 Aug)
     + Toy verison correctness proof bug fixes
