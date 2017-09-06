@@ -127,7 +127,10 @@ packXducerN = loop0 p
 
 
 -- upackXducer.
-upackXducerN = loop0 $ loopu 1 (loopu 2 done done) (loopu 2 routF routT)
+upackXducerN = loop0 p
+  where p = do BVal x <- rinx "upackXducer(flag)" 1
+               if x then loopu 2 routF routT
+               else loopu 2 done done 
 
 
 -- pdistXducerN :: Xducer ()
