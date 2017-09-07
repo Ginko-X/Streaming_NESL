@@ -49,12 +49,15 @@
 \def\lcall{\psi} 
 \def\seval#1#2#3#4{\langle #1,#2 \rangle \Eva^{#3} #4} 
 \def\sevalf#1#2#3#4{{\lcall}(#1,...,#2) \Eva^{#3} #4}
+
 \def\block#1#2#3{{\lcall}(#1,...,#2) \Downarrow #3}  
-\def\unary#1#2#3{{\lcall}(#1,...,#2) \Downarrow #3}
+
 \def\da{\Downarrow}
+\def\dda{\downdownarrows}
+\def\unary#1#2#3{{\lcall}(#1,...,#2) \dda #3}
 
 \def\blockv#1#2#3#4{\lcall_{#1}(#2,...,#3) \Downarrow #4}  
-\def\unaryv#1#2#3#4#5{\lcall_{#1}(#2,...,#3) \Downarrow^{#4} #5}
+\def\unaryv#1#2#3#4#5{\lcall_{#1}(#2,...,#3) \dda^{#4} #5}
 
 
 
@@ -244,7 +247,10 @@ $\a_c$ is the control stream.
 }
 
 
-\item Auxiliary \Jug{\sevalf{\a_1}{\a_k}{\a_c}{\a}}
+\item $Transducer$ semantics: \\
+
+\Jug{\sevalf{\a_1}{\a_k}{\a_c}{\a}} 
+
 
 \PT{
 	\AC{\block{\a_{11}}{\a_{k1}}{\a_1}}
@@ -256,7 +262,9 @@ $\a_c$ is the control stream.
 \PT{\Axiom{\sevalf {\a_1} {\a_k} \emptyv \emptyv}}
 	
 
-\item Auxiliary \Jug{\block{\a_1}{\a_k}{\a}}
+\item Transducer $block$ semantics: \\ 
+
+\Jug{\block{\a_1}{\a_k}{\a}}
 
 \PT{\Axiom{ \consta{a} \da \singl{a}}}
 \PT{\Axiom{\toflag(\singl{n}) \da \langle \F_1,...,\F_n,\T \rangle}}
@@ -277,9 +285,19 @@ $\a_c$ is the control stream.
 	\UC{\block{\oT}{\a_k} \a}
 }\\[2ex]
 
-\begin{comment}
+
+\item Transducer $unary$ semantics:\\ 
+
+\Jug{\unary{\singl b}{\a_k}{\a}}
+
+\PT{ \Axiom{\usum(\oF) \da \singl\unit}}
+\PT{\Axiom{\usum(\oT) \da \emptyv }} \\[1ex]
+
+
 %loopuv
-\item  Auxiliary \Jug{\blockv{n}{\a_1}{\a_k}{\a}}
+\item Semantics of transducer block with $accumulator$: \\
+
+\Jug{\blockv{n}{\a_1}{\a_k}{\a}}
 \PT{
 	\AC{\unaryv{n_0} {\singl \F}{\a_{k1}}{n_0'} {\singl{n_1}}  }
 	\AC{\blockv{n_0'}{\a_{12}}{\a_{k2}}{\a_2}}
@@ -287,24 +305,20 @@ $\a_c$ is the control stream.
 }\\[2ex]
 
 \PT{
-	\AC{\unaryv \oT {\a_k} {\singl{n_1}} {n_0} {}}
-	\UC{\blockv{\oT}{\a_k} {\singl{n_1}} {n_0}}
+	\AC{\unaryv {n_0} \oT {\a_k} {} {\singl{n_1}}}
+	\UC{\blockv {n_0} \oT {\a_k} {\singl{n_1}} }
 }
-	content...
-\end{comment}
 
+\item Semantics of transducer unary with $accumulator$: \\
 
+\Jug{\unaryv{n}{\oF}{\a_k}{n'}{\a}}
 
-\item Auxiliary \Jug{\unary{\singl b}{\a_k}{\a}}
+\PT{\Axiom{\scan_{n_0}(\oF,{\singl{n}}) \da^{n_0+n} {\singl{n_0}} }} \\
 
-\PT{ \Axiom{\usum(\oF) \da \singl\unit}}
-\PT{\Axiom{\usum(\oT) \da \emptyv }} \\[1ex]
+\Jug{\unaryv{n}{\oT}{\a_k}{}{\a}}
 
-\begin{comment}
-\PT{\Axiom{\scan_{n_0}(\oF,{\singl{n}}) \da^{n_0+n} {\singl{n_0}} 
-	}}
 \PT{\Axiom{\scan_{n_0}(\oT, \emptyv) \da {\singl{n_0}} }}
-\end{comment}
+
 
 \end{itemize}
 
