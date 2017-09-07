@@ -12,11 +12,12 @@
  
 \geometry{left=2.5cm,right=2.5cm,top=3cm,bottom=3cm}
 
-\newtheorem{thm}[equation]{Theorem}
-\newtheorem{lem}[equation]{Lemma}
-\newtheorem{prop}[equation]{Proposition}
-\newtheorem{cor}[equation]{Corollary}
-\newtheorem{conj}[equation]{Conjecture}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{lem}{Lemma}[section]
+\newtheorem{defi}{Definition}[section]
+\newtheorem{prop}{Proposition}[section]
+\newtheorem{cor}{Corollary}[section]
+
 
 \def\*#1{\mathbf{#1}}
 
@@ -69,7 +70,7 @@
 
 % Evaluation
 \def\Eval#1#2#3{#1 \Env #2 \Eva #3 } 
-\def\EvalF#1{Eva_\hcall#1}  % function evaluation
+\def\EvalF#1{\hcall#1}  % function evaluation
 
 % target semantics 
 \def\TaSem#1#2#3{\langle #1,#2 \rangle \Eva #3}  
@@ -80,7 +81,7 @@
 
 %typing
 \def\Type#1#2#3{#1 \Env #2 : #3 } 
-\def\TypeF#1{Typ_\hcall#1} 
+\def\TypeF#1{\hcall#1} 
 
 
 %value representation

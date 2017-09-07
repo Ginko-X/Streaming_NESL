@@ -1,26 +1,35 @@
 \def\s{\mathit{s}}  
 \def\st{\mathit{st}} 
+\def\SId{\mathbf{SId}}
+\def\STree{\mathbf{STree}}
 
-\def\v{\vec v}
+\def\<{\langle} 
+\def\'>{\rangle}
+
+\def\->{\rightarrow}
+\def\=>{\Rightarrow}
+\def\prefix {\sqsubseteq}
+
+
+\def\v{w}
 \def\a{\vec a}
 \def\b{\vec b}
 
-%\def\vec#1{\overrightarrow{#1}}
 \def\unit{()}
 
-\def\ra{\rightarrow}
 
 \def\vrange#1#2{\langle #1,...,#2 \rangle}
 \def\lrange#1#2{\left[ #1,...,#2 \right]}
 
 \def\emptyv{\langle \rangle}
 
+\def\SVal{\mathbf{SVal}}
 
 \def\ctrl{\mathtt{Ctrl}}
 \def\consta#1{\mathtt{Const_{#1}}} 
 \def\toflag{\mathtt{ToFlags}}
 \def\usum{\mathtt{Usum}}
-\def\maptwo{\mathtt{MapTwo}}
+\def\maptwo#1{\mathtt{MapTwo}_{#1}}
 \def\scan{\mathtt{ScanPlus}}
 \def\sdef#1#2{#1 := #2}
 \def\withctrl#1#2#3{#3 := \mathtt{WithCtrl}(#1,#2)}
@@ -33,35 +42,40 @@
 \def\tail#1{\mathtt{tail}(#1)} 
 \def\sids#1{\mathtt{sids}(#1)}
 
-\def\appop{\operatorname{++}}
-\def\vapp#1#2{#1 \appop #2}
+\def\++{+\!+}
+\def\vapp#1#2{#1 {\++} #2}
+
 
 \def\lcall{\psi} 
 \def\seval#1#2#3#4{\langle #1,#2 \rangle \Eva^{#3} #4} 
-\def\sevalf#1#2#3#4{SEva_{\lcall}(#1,...,#2) \Eva^{#3} #4}
-\def\block#1#2#3{Block_{\lcall}(#1,...,#2) \Downarrow #3}  
-\def\unary#1#2#3{Unary_{\lcall}(#1,...,#2) \Downarrow #3}
+\def\sevalf#1#2#3#4{{\lcall}(#1,...,#2) \Eva^{#3} #4}
+\def\block#1#2#3{{\lcall}(#1,...,#2) \Downarrow #3}  
+\def\unary#1#2#3{{\lcall}(#1,...,#2) \Downarrow #3}
 \def\da{\Downarrow}
 
-\def\blockv#1#2#3#4{Block_{\lcall,#4}(#1,...,#2) \Downarrow #3}  
-\def\unaryv#1#2#3#4#5{Unary_{\lcall,#4}(#1,...,#2) \Downarrow^{#5} #3}
+\def\blockv#1#2#3#4{\lcall_{#1}(#2,...,#3) \Downarrow #4}  
+\def\unaryv#1#2#3#4#5{\lcall_{#1}(#2,...,#3) \Downarrow^{#4} #5}
 
 
 
 \def\singl#1{\langle #1 \rangle}
-\def\Maps#1#2{#1 \rightarrowtail #2}
-\def\xR#1#2{\xRightarrow[#1]{#2}}
+\def\|->{\mapsto}   % map 
+\def\>->{\rightarrowtail} % map a bunch of variables
+
+\def\>->#1#2{#1 \rightarrowtail #2}
+\def\=>#1#2{\xRightarrow[#2]{#1}}
 
 
 %translation
 \def\sfun#1#2{(#1,#2)}
-\def\tranf#1#2#3#4#5{\Env Trans_{\hcall}(#1,...,#2) \xRightarrow[#4]{#3} #5}  
+\def\tranf#1#2#3#4#5{\Env {\hcall}(#1,...,#2) \=>{#3}{#4} #5}  
 
-\providecommand{\versionnumber}{0.0.2}
+
+\providecommand{\versionnumber}{0.0.3}
 
 
 \section{Level-0}
-Draft version \versionnumber
+Draft version \versionnumber: changed some notations; added some definitions and lemmas; fixed some bugs.
 
 \subsection{Source language syntax}
 (Ignore empty sequence for now)\\
@@ -76,7 +90,7 @@ $$ v::= n \ | \ \Seqk{v}$$
 \subsection{Type system}
 $$\tau ::= \int | \tseq{\tau_1}$$
 
-Type environment $\Gamma = [\Map{x_1}{\tau_1}, ..., \Map{x_i}{\tau_i} ]$.
+Type environment $\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$.
 \begin{itemize}
 
 \item \Jug{\Type{\Gam}{e}{\tau}}
@@ -88,35 +102,35 @@ Type environment $\Gamma = [\Map{x_1}{\tau_1}, ..., \Map{x_i}{\tau_i} ]$.
 }
 \PT{
 	\AC{\Type{\Gam}{e_1}{\tau_1}}
-	\AC{\Type{\Gam[\Map{x}{\tau_1}]}{e_2}{\tau}}
+	\AC{\Type{\Gam[x \|-> \tau_1]}{e_2}{\tau}}
 	\BC{\Type{\Gam}{\Let{x}{e_1}{e_2}}{\tau}}
 }\\[1ex]
 
 
 \PT{
-	\AC{\Type{}{\TypeF{\Tupk{\tau}}}{\tau}}
+	\AC{\Type{}{\TypeF} {\Tupk{\tau} \-> \tau}}
 	\RiLa{((\Gam(x_i)= \tau_i)^k_{i=1})}
 	\UC{\Type{\Gam}{\hcall{\Tupk{x}}}{\tau}}
 }
 \PT{
-	\AC{\Type{[\Map{x}{\tau_1}]}{e}{\tau}}
+	\AC{\Type{[x \|-> {\tau_1}]}{e}{\tau}}
 	\RiLa{(\Gam(y)=\tseq{\tau_1})}
 	\UC{\Type{\Gam}{\Comp{e}{x}{y}{\cdot}}{\tseq{\tau}}}
 }\\[2ex]
 
 
-\item Auxiliary \Jug{\Type{}{\TypeF\Tupk{\tau}}{\tau}}
+\item Auxiliary \Jug{\Type{}{\TypeF} {\Tupk{\tau} \-> \tau}}
 
-\PT{\Axiom{\Type{}{\const{n}}{\int}}}
-\PT{\Axiom{\Type{}{\iota{\int}}{\tseq{\int}}}}
-\PT{\Axiom{\Type{}{\plus{\int}{\int}}{\int}}}
+\PT{\Axiom{\Type{}{\*{const}_n}{\int}}}
+\PT{\Axiom{\Type{}{\*{iota}}{\int \-> \tseq{\int}}}}
+\PT{\Axiom{\Type{}{\*{plus}}{\int \-> \int \-> \int}}}
 
 
 \end{itemize}
 
 \subsection{Source language semantics}
+$ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 \begin{itemize}
-
 \item \Jug{\Eval{\rho}{e}{v}}
 \PT{
 	\AxiomC{}
@@ -125,7 +139,7 @@ Type environment $\Gamma = [\Map{x_1}{\tau_1}, ..., \Map{x_i}{\tau_i} ]$.
 }
 \PT{
 	\AC{\Eval{\rho}{e_1}{v_1}}
-	\AC{\Eval{\rho[\Map{x}{v_1}]}{e_2}{v}}
+	\AC{\Eval{\rho[x \|-> v_1]}{e_2}{v}}
 	\BC{\Eval{\rho}{\Let{e_1}{x}{e_2}}{v}}	
 }\\[1ex]
 
@@ -135,7 +149,7 @@ Type environment $\Gamma = [\Map{x_1}{\tau_1}, ..., \Map{x_i}{\tau_i} ]$.
 	\UC{\Eval{\rho}{\hcall{\Tupk{x}}}{v}}
 }
 \PT{
-	\AC{(\Eval{[\Map{x}{v_i}]}{e}{v_i'})^k_{i=1}}
+	\AC{(\Eval{[x \|-> {v_i}]}{e}{v_i'})^k_{i=1}}
 	\RiLa{(\rho(y)=\Seqk{v})}
 	\UC{\Eval{\rho}{\Comp{e}{x}{y}{\cdot}}{\Seqk{v'}}}
 }\\[1ex]
@@ -143,7 +157,9 @@ Type environment $\Gamma = [\Map{x_1}{\tau_1}, ..., \Map{x_i}{\tau_i} ]$.
 \item Auxiliary \Jug{\Eval{}{\EvalF{\Tupk{v}}}{v}}
 
 \PT{\Axiom{\Eval{}{\const{n}}{n}}}
-\PT{\Axiom{\Eval{}{\iota{n}}{\{0,1,...,n-1\}}}}
+\PT{\AC{}
+	\RiLa{(n \ge 0)}
+	\UC{\Eval{}{\iota{n}}{\{0,1,...,n-1\}}}}
 \PT{\AC{} 
 	\RiLa{(n_3= n_1+n_2)} 
 	\UC{\Eval{}{\plus{n_1}{n_2}}{n_3}}}
@@ -151,44 +167,49 @@ Type environment $\Gamma = [\Map{x_1}{\tau_1}, ..., \Map{x_i}{\tau_i} ]$.
 \end{itemize}
 
 \subsection{SVCODE syntax}
-Stream id: $$\s \in \*{N} = \{0,1,2...\}$$
-Stream tree: $$ \st ::= \s \ | \ (\st_1,\s) $$
-SVCODE expressions: $$\psi ::= \ctrl \ | \ \consta{a} \ | \ \toflag
+Stream id: $$\s \in \SId = \*{N} = \{0,1,2...\}$$
+Stream tree: $$ \STree \ni \st ::= \s \ | \ (\st_1,\s) $$
+SVCODE operations: $$\psi ::= \ctrl \ | \ \consta{a} \ | \ \toflag
 \ | \ \usum \ | \ \maptwo \ | \ \scan $$
 
 SVCODE program: 
 \begin{align*}
-	p ::= & \ \epsilon \\
-	     &| \ \sdef{\s}{\psi(s_1,...,s_i)} \\
-	     &| \ \withctrl{\s}{p}{\st} \\
-	     &| \ p_1;p_2 	 
+	p :: & = \ \epsilon \\
+	     &\ \ | \ \sdef{\s}{\psi(s_1,...,s_i)} \\
+	     &\ \ | \ \withctrl{\s}{p}{\st} \\
+	     &\ \ | \ p_1;p_2 	 
 \end{align*}
-%$$ p ::= \epsilon \ | \ \s:= \psi(s_1,...,s_i) \ | \  \withctrl{\s}{p}{\st} \ | \ p_1;p_2 $$
+
 
 Target language values: 
 $$b \in \{\T,\F \}$$
-$$a ::= n \ | \ b \ | \ \unit$$
+$$ a ::= n \ | \ b \ | \ \unit$$
 $$\b = \vrange{b_1}{b_i}$$ 
 $$\a = \vrange{a_1}{a_i}  $$
-$$\v ::= \a \ | \ (\v,\b) $$
+$$\SVal \ni \v ::= \a \ | \ (\v,\b) $$
 
-Define some operations for convenience:
+Some notations and operations:
 \begin{itemize}
-	\item $\appop: \v \ra  \v \ra \v$ \\
-	  $\vapp {\vrange{a_1}{a_i}} {\vrange{a_2}{a_j}} = \langle \a_1,...,a_i,a_2,...,a_j \rangle $ \\
+	\item For some $a_0$ and $\a = \< a_1,...,a_i \'>$, $\< a_0 | \a \'>  = \< a_0,a_1,...,a_i \'>. $ 
+
+	\item $\++: \SVal \->  \SVal \-> \SVal$ \\
+	  $\vapp{\vrange{a_1}{a_i}} {\vrange{a_1'}{a_i'}} = \langle a_1,...,a_i,a_1',...,a_i' \rangle $ \\
 	  $\vapp{(\v_1,\b_1)}{(\v_2,\b_2)} = (\vapp{\v_1}{\v_2}, \vapp{\b_1}{\b_2})$
-	\item $\texttt{tail}: \a \ra \a$ \\
-	      $\tail{\langle a_1, a_2,...,a_i \rangle} = \vrange{a_2}{a_i}$
+
+	\item $\texttt{sids}$ converts a $\st \in \STree$ to a set of $\s \in \SId$: \\
+	$\sids{\s} = \{\s\}$ \\
+	$\sids{(\st,\s)} = \sids{\st} \cup \{\s\}$ 
+   
+    \item 
+    For some set $set$ of $\SId$ and some $\s \in \SId$, $set \SetLe \s$ denotes $\forall \s' \in set. \s' < \s$.
+
 \end{itemize}
 
 
 \subsection{SVCODE semantics}
 
-% TODO add definition for empty streams mapping
-% TODO define sids
-
-
-$\sgm = [\Map{\s_1}{\a_1},...,\Map{\s_i}{\a_i}]$ \\
+$\sgm = [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$.\\
+Notation $\sgm_1 \ConEq{\s} \sgm_2$ denotes $\forall \s' < \s. \sgm_1(\s') = \sgm_2(\s')$. \\
 $\a_c$ is the control stream.
 \begin{itemize}
 
@@ -197,19 +218,23 @@ $\a_c$ is the control stream.
 \PT{\Axiom{\seval{\epsilon}{\sgm}{\a_c}{\sgm}}}
 \PT{\AC{\sevalf{\a_1}{\a_k}{\a_c}{\a}}
 	\RiLa{((\sgm(\s_i) = \a_i)^k_{i=1})}
-	\UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm}{\a_c}{\sgm[\Map{\s}{\a}]}}
+	\UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm}{\a_c}{\sgm[\s \|-> \a]}}
 } \\[2ex]
 
 \PT{
 	\AC{}
-	\RiLa{(\sgm(\s)= \emptyv)}
-	\UC{\seval{\withctrl{\s}{p}{\st}}{\sgm}{\a_c}{\sgm[\Maps{\st}{\emptyv}]}}
+	\RiLa{(\sgm(\s)= \emptyv, \sids{\st} = \{s_1,...,\s_i\})}
+	\UC{\seval{\withctrl{\s}{p}{\st}}{\sgm}{\a_c}{\sgm[\s_1 \|-> \emptyv, ..., \s_i \|-> \emptyv]}}
 }\\[2ex]
 
 \PT{
-	\AC{\seval{p}{\sgm}{\a_s}{\sgm'}}
-	\RiLa{(\sgm(\s)= \a_s = \vrange {a_1} {a_i})}
-	\UC{\seval{\withctrl s p \st } \sgm {\a_c} \sgm'}
+	\AC{\seval{p}{\sgm}{\a_s}{\sgm''}}
+	\RiLa{\left(
+		\begin{aligned} 
+		&\sgm(\s)= \a_s = \< a_0 | \a \'> \\
+		&\sids{\st}=\{s_1,...,s_i\}
+		\end{aligned}\right)}
+	\UC{\seval{\withctrl s p \st } \sgm {\a_c} \sgm[\s_1 \|-> \sgm''(\s_1),...,\s_i \|-> \sgm''(\s_i)]}
 }\\[2ex]
 
 \PT{
@@ -223,9 +248,9 @@ $\a_c$ is the control stream.
 
 \PT{
 	\AC{\block{\a_{11}}{\a_{k1}}{\a_1}}
-	\AC{\sevalf{\a_{12}}{\a_{k2}}{\tail{\a_c}}{\a_2}}
+	\AC{\sevalf{\a_{12}}{\a_{k2}}{\a_c}{\a_2}}
 	\RiLa{(\a = \vapp{\a_1}{\a_2})}
-	\BC{\sevalf{\vapp{\a_{11}}{\a_{12}}}{\vapp{\a_{k1}}{\a_{k2}}}{\a_c}{\a}}
+	\BC{\sevalf{\vapp{\a_{11}}{\a_{12}}}{\vapp{\a_{k1}}{\a_{k2}}}{\< a_0 | \a_c \'>}{\a}}
 }\\[2ex]
 	
 \PT{\Axiom{\sevalf {\a_1} {\a_k} \emptyv \emptyv}}
@@ -236,8 +261,8 @@ $\a_c$ is the control stream.
 \PT{\Axiom{ \consta{a} \da \singl{a}}}
 \PT{\Axiom{\toflag(\singl{n}) \da \langle \F_1,...,\F_n,\T \rangle}}
 \PT{\AC{}
-	\RiLa{(n_3= n_1+n_2)}
-	\UC{\maptwo(\singl{n_1}, \singl{n_2}) \da \singl{n_3}}
+	\RiLa{(n_3= n_1 \oplus n_2)}
+	\UC{\maptwo{\oplus}(\singl{n_1}, \singl{n_2}) \da \singl{n_3}}
 } \\
 
 \PT{
@@ -252,17 +277,21 @@ $\a_c$ is the control stream.
 	\UC{\block{\oT}{\a_k} \a}
 }\\[2ex]
 
+\begin{comment}
+%loopuv
+\item  Auxiliary \Jug{\blockv{n}{\a_1}{\a_k}{\a}}
 \PT{
-	\AC{\unaryv{\singl \F}{\a_{k1}}{\singl{n_1}} {n_0} {n_0'}}
-	\AC{\blockv{\a_{12}}{\a_{k2}}{\a_2}{n_0'}}
-	\BC{\blockv{\vapp {\singl\F} {\a_{12}}} {\vapp {\a_{k1}} {\a_{k2}}}{\vapp {\singl{n_1}} {\a_2}} {n_0}}
+	\AC{\unaryv{n_0} {\singl \F}{\a_{k1}}{n_0'} {\singl{n_1}}  }
+	\AC{\blockv{n_0'}{\a_{12}}{\a_{k2}}{\a_2}}
+	\BC{\blockv{n_0} {\vapp {\singl\F} {\a_{12}}} {\vapp {\a_{k1}} {\a_{k2}}}{\vapp {\singl{n_1}} {\a_2}} }
 }\\[2ex]
 
 \PT{
 	\AC{\unaryv \oT {\a_k} {\singl{n_1}} {n_0} {}}
 	\UC{\blockv{\oT}{\a_k} {\singl{n_1}} {n_0}}
 }
-
+	content...
+\end{comment}
 
 
 
@@ -271,22 +300,45 @@ $\a_c$ is the control stream.
 \PT{ \Axiom{\usum(\oF) \da \singl\unit}}
 \PT{\Axiom{\usum(\oT) \da \emptyv }} \\[1ex]
 
+\begin{comment}
 \PT{\Axiom{\scan_{n_0}(\oF,{\singl{n}}) \da^{n_0+n} {\singl{n_0}} 
 	}}
 \PT{\Axiom{\scan_{n_0}(\oT, \emptyv) \da {\singl{n_0}} }}
+\end{comment}
 
 \end{itemize}
 
 
+\begin{thm}[deterministic ??]
+	\label{svcode-determ}
+	If $\seval{p}{\sgm}{\a_c}{\sgm'}$ and $\seval{p}{\sgm}{\a_c}{\sgm''}$, 
+	then $\sgm' = \sgm''$.
+\end{thm}
+
+\begin{defi}[Stream prefix]
+\end{defi}
+$\a$ is a $prefix$ of $\a'$: \\
+\Jug{\a \prefix \a'}
+\PT{\Axiom{\emptyv \prefix \a }}
+\PT{
+	\AC{\a \prefix \a'}
+	\UC{\<a_0 | \a \'> \prefix \<a_0 | \a' \'>}
+}
+
+\begin{lem}
+	If
+	\begin{enumerate}[(i)]
+		\item $(\a_i' \prefix  \a_i)^k_{i=1}$ and $\block{\a_1'}{\a_k'}{\a'}$, 
+		\item $(\a_i'' \prefix \a_i)^k_{i=1}$ and
+		$\block{\a_1''}{\a_k''}{\a''}$
+	\end{enumerate} 
+	then $(\a_i' = \a_i'')^k_{i=1}$ and $\a' = \a''$.
+\end{lem}
+
 \subsection{Translation}
-$\del = [\Map{x_1}{\st_1},..., \Map{x_i}{\st_i}] $
+$\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 
 \begin{itemize}	
-\item (??not necessary) \\
-\PT{
-	\AC{\Trans{\del}{e}{\s_0+1}{\s_1}{\sfun p {\st}}}
-	\UC{\Trans{\del}{e}{\s_0}{\s_1}{\Talet{\sdef{\s_0}{\ctrl};p}{\st}}}
-}\\[2ex]
 
 \item \Jug{\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}}
 
@@ -295,7 +347,7 @@ $\del = [\Map{x_1}{\st_1},..., \Map{x_i}{\st_i}] $
 	\UC{\Trans{\del}{x}{\s_0}{\s_0}{\sfun{\epsilon}{\st}}}
 }
 \PT{\AC{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
-	\AC{\Trans{\del[\Map{x}{\st_1}]}{e_2}{\s_0'}{\s_1}{\sfun {p_2} {\st}}}
+	\AC{\Trans{\del[x \|-> {\st_1}]}{e_2}{\s_0'}{\s_1}{\sfun {p_2} {\st}}}
 	\BC{\Trans{\del}{\Let{x}{e_1}{e_2}}{\s_0}{\s_1}{\sfun {p_1;p_2} {\st}}}
 }
 
@@ -306,7 +358,7 @@ $\del = [\Map{x_1}{\st_1},..., \Map{x_i}{\st_i}] $
 }
 
 \PT{
-	\AC{\Trans{[\Map{x}{\st_1}]}{e}{\s_0+1}{\s_1}{\sfun{p}{\st}}}
+	\AC{\Trans{[x \|-> {\st_1}]}{e}{\s_0+1}{\s_1}{\sfun{p}{\st}}}
 	\RiLa{(\del(y)=(\st_1,\s_2))}
 	\UC{\Trans{\del}{\Comp{e}{x}{y}{\cdot}}{\s_0}{\s_1}{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p}{\st}}{(\st,\s_2)}}}
 }
@@ -315,7 +367,7 @@ $\del = [\Map{x_1}{\st_1},..., \Map{x_i}{\st_i}] $
 \item Auxiliary \Jug{\tranf{\st_1}{\st_k}{\s_0}{\s_1}{\sfun{p}{\st}}}
 
 \PT{
-	\Axiom{\const{a} \xR{\s_0+1}{\s_0}
+	\Axiom{\const{a} \=>{\s_0+1}{\s_0}
 		\sfun{\sdef{\s_0}{\consta{a}}}{\s_0}  }
 } \\ [6ex]
 
@@ -329,14 +381,13 @@ $\del = [\Map{x_1}{\st_1},..., \Map{x_i}{\st_i}] $
 	         & \sdef{\s_3}{\scan(\s_0,s_2)}
 	    \end{aligned}\right)
     }
-	\UC{\iota{\s} \xR{\s_4}{\s_0} {\sfun{p} {(\s_3,\s_0)}}}
+	\UC{\iota{\s} \=>{\s_4}{\s_0} {\sfun{p} {(\s_3,\s_0)}}}
 }\\[4ex]
 
 \PT{
-	\Axiom{\plus{\s_1}{\s_2} \xR{\s_0+1}{\s_0}
-	    \sfun{\sdef{\s_0}{\maptwo(\s_1,\s_2)}}{\s_0}}
+	\Axiom{\plus{\s_1}{\s_2} \=>{\s_0+1}{\s_0}
+	    \sfun{\sdef{\s_0}{\maptwo{+}(\s_1,\s_2)}}{\s_0}}
 }
-
 
 \end{itemize}
 
@@ -351,9 +402,11 @@ $\del = [\Map{x_1}{\st_1},..., \Map{x_i}{\st_i}] $
 }
 \PT{
 	\AC{(\ValRep{v_i}{\tau}{\v_i})^k_{i=1}}
-	\RiLa{(\v = \v_1 \appop \v_2 \appop ... \appop \v_k)}
+	\RiLa{(\v = \v_1 \++ \v_2 \++ ... \++ \v_k)}
 	\UC{\ValRep{\Seqk{v}}{\tseq{\tau}}{(\v,\langle \F_1,..., \F_k, \T \rangle)}}
 }
+
+
 \begin{comment}
 \PT{
 	\AC{\ValRep {\lrange{v_1}{v_k}} {\tau} {\v}}
@@ -373,16 +426,21 @@ $\del = [\Map{x_1}{\st_1},..., \Map{x_i}{\st_i}] $
 
 \end{itemize}
 
+\begin{lem}
+	If $\ValRep{v}{\tau}{w}$, $\ValRep{v'}{\tau}{w}$,
+	then $v=v'$.
+\end{lem}
+
 
 \subsection{Correctness proof}
 \begin{lem}
 	If 
 	\begin{enumerate}[(i)]
-	\item $\Type{}{\TypeF{\Tupk{\tau}}}{\tau}$
+	\item $\Type{} {\TypeF} {\Tupk{\tau} \-> \tau}$
 	\item $\Eval{}{\EvalF{\Tupk{v}}}{v}$
 	\item $\tranf{\st_1}{\st_k}{\s_0}{\s_1}{\sfun{p}{\st}}$
  	\item $(\ValRep{v_i}{\tau_i}{\st_i})^k_{i=1}$
- 	\item $\sids{\Tupk{\st}} \SetLe \s_0$
+ 	\item $\bigcup^k_{i=1}\sids{\st_i} \SetLe \s_0$
 	\end{enumerate}
  	then 
  	\begin{enumerate}[(i)]
@@ -405,7 +463,7 @@ $\del = [\Map{x_1}{\st_1},..., \Map{x_i}{\st_i}] $
 	\end{enumerate}
 	then 
 	\begin{enumerate}[(i)]
-		\item $\seval{p}{\sgm}{\a_c}{\sgm'}$ (by $\MP$)
+		\item $\seval{p}{\sgm}{\singl{()}}{\sgm'}$ (by $\MP$)
 		\item  $\ValRep{v}{\tau}{\sgm'(\st)}$ (by $\MV$)
 		\item $\sgm' \ConEq{s_0} \sgm $
 		\item  $\sids{\st} \SetLe \s_1$
