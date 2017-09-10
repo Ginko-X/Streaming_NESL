@@ -9,6 +9,7 @@
 \usepackage{enumerate}
 \usepackage{extarrows}
 \usepackage{verbatim}
+\usepackage[ampersand]{easylist}
  
 \geometry{left=2.5cm,right=2.5cm,top=3cm,bottom=3cm}
 
@@ -17,6 +18,8 @@
 \newtheorem{defi}{Definition}[section]
 \newtheorem{prop}{Proposition}[section]
 \newtheorem{cor}{Corollary}[section]
+
+
 
 
 \def\*#1{\mathbf{#1}}
@@ -54,6 +57,7 @@
 
 
 % special font
+
 \def\MC{\mathcal{C}} 
 \def\ME{\mathcal{E}} 
 \def\MP{\mathcal{P}} 
@@ -109,15 +113,16 @@
 \def\RiLa#1{\RightLabel{$#1$}}
 \def\PT#1{#1 \DisplayProof \qquad} 
 %UnaryInfC with a deriviation name
-\def\UCN#1#2{\AxiomC{#1} \noLine \UC{#2}}
+\def\UCN#1#2{\AxiomC{$#1$} \noLine \UC{#2}}
 
 
 %color
 %\def\Blue{\color{blue}}
 
-%notation
+
 \def\ConEq#1{\xlongequal{<#1}}  % Sgm conditional equation
 
+\def\.<{\lessdot}
 \def\SetLe{\lessdot} % forall r in set . r < r0  
 
 

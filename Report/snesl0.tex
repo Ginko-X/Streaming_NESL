@@ -16,7 +16,7 @@
 \def\b{\vec b}
 
 \def\unit{()}
-
+\def\vunit{\langle () \rangle}
 
 \def\vrange#1#2{\langle #1,...,#2 \rangle}
 \def\lrange#1#2{\left[ #1,...,#2 \right]}
@@ -44,6 +44,11 @@
 
 \def\++{+\!+}
 \def\vapp#1#2{#1 {\++} #2}
+
+
+\def\~#1{\stackrel{#1}{\sim}}
+\def\x#1{\stackrel{#1}{\bowtie}} % sgm append
+
 
 
 \def\lcall{\psi} 
@@ -74,11 +79,14 @@
 \def\tranf#1#2#3#4#5{\Env {\hcall}(#1,...,#2) \=>{#3}{#4} #5}  
 
 
-\providecommand{\versionnumber}{0.0.3}
+\newcommand{\eq}[2]{\begin{equation}\label{#1} #2\end{equation}}
+
+\providecommand{\versionnumber}{0.0.4}
 
 
 \section{Level-0}
-Draft version \versionnumber: changed some notations; added some definitions and lemmas; fixed some bugs.
+
+Draft version \versionnumber: added the proof of the main correctness theorem (in process)
 
 \subsection{Source language syntax}
 (Ignore empty sequence for now)\\
@@ -96,7 +104,9 @@ $$\tau ::= \int | \tseq{\tau_1}$$
 Type environment $\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$.
 \begin{itemize}
 
-\item \Jug{\Type{\Gam}{e}{\tau}}
+\item Expression typing rules:\\
+
+ \Jug{\Type{\Gam}{e}{\tau}}
 
 \PT{
 	\AxiomC{}
@@ -126,8 +136,18 @@ Type environment $\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$.
 
 \PT{\Axiom{\Type{}{\*{const}_n}{\int}}}
 \PT{\Axiom{\Type{}{\*{iota}}{\int \-> \tseq{\int}}}}
-\PT{\Axiom{\Type{}{\*{plus}}{\int \-> \int \-> \int}}}
+\PT{\Axiom{\Type{}{\*{plus}}{(\int, \int) \-> \int}}}
 
+% value types
+\item Value typing rules: \\
+
+\Jug{\Type{}{v}{\tau}}
+
+\PT{\Axiom{\Type{}{n}{\int}}}
+\PT{
+	\AC{(\Type{}{v_i}{\tau})^k_{i=1}}
+	\UC{\Type{}{\Seqk{v}}{\tseq{\tau}}}
+}
 
 \end{itemize}
 
@@ -170,12 +190,16 @@ $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 \end{itemize}
 
 \subsection{SVCODE syntax}
-Stream id: $$\s \in \SId = \*{N} = \{0,1,2...\}$$
-Stream tree: $$ \STree \ni \st ::= \s \ | \ (\st_1,\s) $$
-SVCODE operations: $$\psi ::= \ctrl \ | \ \consta{a} \ | \ \toflag
-\ | \ \usum \ | \ \maptwo \ | \ \scan $$
+\begin{enumerate}[(1)]
+\item Stream id: $$\s \in \SId = \*{N} = \{0,1,2...\}$$
 
-SVCODE program: 
+\item Stream tree: $$ \STree \ni \st ::= \s \ | \ (\st_1,\s) $$
+\item SVCODE operations: $$\psi ::= \ctrl \ | \ \consta{a} \ | \ \toflag
+\ | \ \usum \ | \ \maptwo{\oplus} \ | \ \scan $$
+where $\oplus$ stands for some binary operation on $\int$. \\
+
+
+\item SVCODE program: 
 \begin{align*}
 	p :: & = \ \epsilon \\
 	     &\ \ | \ \sdef{\s}{\psi(s_1,...,s_i)} \\
@@ -184,39 +208,75 @@ SVCODE program:
 \end{align*}
 
 
-Target language values: 
+\item Target language values: 
 $$b \in \{\T,\F \}$$
 $$ a ::= n \ | \ b \ | \ \unit$$
 $$\b = \vrange{b_1}{b_i}$$ 
 $$\a = \vrange{a_1}{a_i}  $$
 $$\SVal \ni \v ::= \a \ | \ (\v,\b) $$
 
-Some notations and operations:
+\item Some notations and operations:
 \begin{itemize}
-	\item For some $a_0$ and $\a = \< a_1,...,a_i \'>$, $\< a_0 | \a \'>  = \< a_0,a_1,...,a_i \'>. $ 
+	\item For some $a_0$ and $\a = \< a_1,...,a_i \'>$, let $\< a_0 | \a \'>  = \< a_0,a_1,...,a_i \'>. $ 
 
 	\item $\++: \SVal \->  \SVal \-> \SVal$ \\
 	  $\vapp{\vrange{a_1}{a_i}} {\vrange{a_1'}{a_i'}} = \langle a_1,...,a_i,a_1',...,a_i' \rangle $ \\
 	  $\vapp{(\v_1,\b_1)}{(\v_2,\b_2)} = (\vapp{\v_1}{\v_2}, \vapp{\b_1}{\b_2})$
 
-	\item $\texttt{sids}$ converts a $\st \in \STree$ to a set of $\s \in \SId$: \\
+	\item $\texttt{sids}$ is a function that converts a $\st \in \STree$ to a set of $\s \in \SId$: \\
 	$\sids{\s} = \{\s\}$ \\
 	$\sids{(\st,\s)} = \sids{\st} \cup \{\s\}$ 
    
     \item 
-    For some set $set$ of $\SId$ and some $\s \in \SId$, $set \SetLe \s$ denotes $\forall \s' \in set. \s' < \s$.
+    For some set of $\SId$, $t$, and some $\s \in \SId$, let $t \SetLe \s$ denote $\forall \s' \in t. \s' < \s$.
 
 \end{itemize}
 
+\end{enumerate}
 
 \subsection{SVCODE semantics}
 
-$\sgm = [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$.\\
-Notation $\sgm_1 \ConEq{\s} \sgm_2$ denotes $\forall \s' < \s. \sgm_1(\s') = \sgm_2(\s')$. \\
-$\a_c$ is the control stream.
+SVCODE runtime environment $\sgm = [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$.\\
+We define some notations and operations related to $\sgm$:
+\begin{enumerate}[(1)]
+\item Let $\sgm_1 \ConEq{\s} \sgm_2$ denote $\forall \s' < \s. \sgm_1(\s') = \sgm_2(\s')$. \\
+
+\item \Jug{\sgm(\st) = w}
+\PT{\Axiom{\sgm(\s) = \a}} 
+\PT{
+	\AC{\sgm(\st)=w} 
+	\Axiom{\sgm(\s) = \a}
+	\BC{\sgm((\st,\s)) = (w,\a)}
+}
+
+\end{enumerate}
+
+\begin{defi}
+	\label{sgm-sim}
+	
+	$\sgm_1 {\~{\st}} \sgm_2 $
+	 iff \\
+	\indent (1) $dom(\sgm_1) = dom(\sgm_2)$ \\
+	\indent (2) $\forall s \in (dom(\sgm_1) - \sids{st}).\sgm_1(s)= \sgm_2(s)$ \\
+\end{defi}
+
+\begin{defi}
+	\label{sgm-join}
+	
+	For some $\sgm_1 \~{\st} \sgm_2$,
+	$\sgm_1 \x{\st} \sgm_2 = \sgm$ where 
+	$$\sgm(s) =
+		\begin{cases}
+		\sgm_1(\s) {\++} \sgm_2(s), & s \in \sids{\st} \\
+		\sgm_1(s),&  otherwise
+		\end{cases} $$ 
+\end{defi}
+
+SVCODE operational semantics: \\
 \begin{itemize}
 
 \item \Jug{\seval{p}{\sgm}{\a_c}{\sgm'}}
+$\a_c$ is the control stream.\\
 
 \PT{\Axiom{\seval{\epsilon}{\sgm}{\a_c}{\sgm}}}
 \PT{\AC{\sevalf{\a_1}{\a_k}{\a_c}{\a}}
@@ -329,15 +389,25 @@ $\a_c$ is the control stream.
 	then $\sgm' = \sgm''$.
 \end{thm}
 
-\begin{defi}[Stream prefix]
+%TODO define \sgm \x \sgm'
+\begin{lem}[??] \label{lem-sgm-join}
+	If $\sgm_1 \~{\st} \sgm_2$, (!!should have: import(p) = st)
+	$\seval{p}{\sgm_1}{\a_1}{\sgm_1'}$, 
+	$\seval{p}{\sgm_2}{\a_2}{\sgm_2'}$,
+	
+	then $\seval{p}{\sgm_1 \x{} \sgm_2}{\a_1 \++ \a_2}{\sgm_1' \x{} \sgm_2'}$
+\end{lem}
+
+\begin{defi}
+	$\a$ is a $prefix$ of $\a'$ if $\a \prefix \a'$.
 \end{defi}
-$\a$ is a $prefix$ of $\a'$: \\
 \Jug{\a \prefix \a'}
 \PT{\Axiom{\emptyv \prefix \a }}
 \PT{
 	\AC{\a \prefix \a'}
 	\UC{\<a_0 | \a \'> \prefix \<a_0 | \a' \'>}
 }
+
 
 \begin{lem}
 	If
@@ -346,8 +416,13 @@ $\a$ is a $prefix$ of $\a'$: \\
 		\item $(\a_i'' \prefix \a_i)^k_{i=1}$ and
 		$\block{\a_1''}{\a_k''}{\a''}$
 	\end{enumerate} 
-	then $(\a_i' = \a_i'')^k_{i=1}$ and $\a' = \a''$.
+	then \begin{enumerate}[(i)]
+		\item $(\a_i' = \a_i'')^k_{i=1}$ 
+		\item $\a' = \a''$.
+	\end{enumerate}
 \end{lem}
+
+
 
 \subsection{Translation}
 $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
@@ -448,6 +523,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 
 \subsection{Correctness proof}
 \begin{lem}
+	\label{function-correctness}
 	If 
 	\begin{enumerate}[(i)]
 	\item $\Type{} {\TypeF} {\Tupk{\tau} \-> \tau}$
@@ -468,15 +544,14 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 
 
 \begin{thm}
-	If 
+	\label{main-correctness}
+	\textbf{If} 
 	\begin{enumerate}[(i)]
 		\item $\Type{\Gam}{e}{\tau}$ (by some derivation $\MT$)
 		\item $\Eval{\rho}{e}{v}$ (by $\ME$) 
 		\item $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$ (by $\MC$)
-		\item $\forall x \in dom(\Gam).\rho(x):\Gam(x) \wedge \sids{\del(x)} \SetLe \s_0  \wedge  \ValRep{\rho(x)}{\Gam(x)}{\sgm(\del(x))}$
-	\end{enumerate}
-	then 
-	\begin{enumerate}[(i)]
+		\item $\forall x \in dom(\Gam). \Type{}{\rho(x)}{\Gam(x) } \wedge \sids{\del(x)} \SetLe \s_0  \wedge  \ValRep{\rho(x)}{\Gam(x)}{\sgm(\del(x))}$ \\
+	\textbf{then} 
 		\item $\seval{p}{\sgm}{\singl{()}}{\sgm'}$ (by $\MP$)
 		\item  $\ValRep{v}{\tau}{\sgm'(\st)}$ (by $\MV$)
 		\item $\sgm' \ConEq{s_0} \sgm $
@@ -484,4 +559,188 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 		\item $\s_0 \le \s_1$
 	\end{enumerate} 
 \end{thm}
+
+\begin{proof}
+	By induction on the syntax of $e$.
+	
+	\begin{itemize}
+		\item Case $e = \Comp{e_1}{x}{y}{\cdot}$. \\
+		
+		We first must have: 
+		\begin{enumerate}[(i)]
+		\item 
+		\PT{
+			\UCN{\MT_1}{\Type{[x \|-> {\tau_1}]}{e_1}{\tau_2}}
+			\LeLa{\MT = }
+			\RiLa{(\Gam(y)=\tseq{\tau_1})}
+			\UC{\Type{\Gam}{\Comp{e_1}{x}{y}{\cdot}}{\tseq{\tau_2}}}
+		}
+		
+		\item
+		\PT{
+			\UCN{\ME_i}{(\Eval{[x \|-> {v_i}]}{e_1}{v_i'})^k_{i=1}}
+			\LeLa{\ME = }
+			\RiLa{(\rho(y)=\Seqk{v})}
+			\UC{\Eval{\rho}{\Comp{e_1}{x}{y}{\cdot}}{\Seqk{v'}}}
+		} 
+		
+		\item 
+		\PT{
+			\UCN{\MC_1}{\Trans{[x \|-> {\st_1}]}{e_1}{\s_0+1}{\s_1}{\sfun{p_1}{\st_2}}}
+			\LeLa{\MC = }
+			\RiLa{(\del(y)=(\st_1,\s_2))}
+			\UC{\Trans{\del}{\Comp{e_1}{x}{y}{\cdot}}{\s_0}{\s_1}{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}}{(\st_2,\s_2)}}}
+		}
+	
+	 So $p= (\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}),
+	\tau = \tseq{\tau_2}, v = \Seqk{v'}, \st = (\st_2,\s_2). $ \\
+
+	\item $\Type{}{\rho(y)}{\Gam(y)}$ gives us $\Type{}{\Seqk{v}}{\tseq{\tau_1}}$, which must have the derivation:
+	\begin{equation}\label{type-vi}	
+	\PT{
+		\AC{(\Type{}{v_i}{\tau_1})^k_{i=1}}
+		\UC{\Type{}{\Seqk{v}}{\tseq{\tau_1}}}}
+	\end{equation}
+	
+	$\sids{\del(y)} \.< \s_0$ gives us
+	\begin{equation} \label{sids-st1-s2}
+	    \sids{\del(y)} = \sids{(\st_1,\s_2)} 
+	    = \sids{\st_1} \cup \{s_2\} \.< \s_0
+ 	\end{equation}
+	
+	$\ValRep{\rho(y)}{\Gam(y)}{\sgm(\del(y))} =
+ 	 \ValRep{\Seqk{v}}{\tseq{\tau_1}}{\sgm((\st_1,\s_2))}$ 
+ 	 must have the derivation: 
+ 	 \eq{valrep0}{
+ 	 \PT{
+		\UCN{\MV_i}{(\ValRep{v_i}{\tau_1}{\v_i})^k_{i=1}}
+		\UC{\ValRep{\Seqk{v}}{\tseq{\tau_1}}{\sgm((\st_1,\s_2))}}
+	 }}
+    where 
+    \eq{sgm-st1}
+    {\sgm(\st_1) = w =  w_1 \ {\++} \ w_2 \ {\++} ... {\++} \ w_k}
+
+    and \eq{sgm-s2}
+    {\sgm(\s_2) = \< \F_1,..., \F_k, \T \'>}
+	
+
+    Now we shall show: 
+	\item \label{proof-eval}
+	$\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\singl{()}}{\sgm'}$
+	
+	%TODO proof of MP0
+	\textbf{?? proof of MP0}
+	
+	Assume we have 
+	$\MP_0$ of $ \seval{\sdef{\s_0}{\usum(\s_2)}}{\sgm}{\singl{()}}{\sgm[\s_0 \|-> \vrange{()_1}{()_k}]}$
+	
+	Then $\MP$ must have the shape:
+	
+	$$ \PT{
+		\UCN{\MP_0}{\seval{\sdef{\s_0}{\usum(\s_2)}}{\sgm}{\singl{()}}{\sgm[\s_0 \|-> \vrange{()_1}{()_k}]}}
+		\UCN{\MP_1}{\seval{\withctrl{\s_0}{p_1}{\st_2}}{\sgm[\s_0 \|-> \vrange{()_1}{()_k}]}{\<()\'>}{\sgm'}}
+		\BC{\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\singl{()}}{\sgm'}}
+	} $$
+	
+	There are two possibilities for $\MP_1$: 
+	\begin{enumerate}
+	
+		\item \label{subcase-1}
+		Subcase $k=0$, that is $\sgm[\s_0 \|-> \vrange{()_1}{()_k}](\s_0) = \emptyv$.\\
+		So 
+	$$\PT{
+		\AC{}
+		\RiLa{(\sids{\st_2} = \{\s'_1,...,\s'_i\})}
+		\LeLa{\MP_1 = }
+		\UC{\seval{\withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\< () \'>}
+			{\sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_i' \|-> \emptyv]}}
+	  },$$ 
+    thus $\sgm' = \sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_i' \|-> \emptyv]$. 
+	
+	\item \label{subcase-2}
+	Subcase $k > 0$, that is $\sgm[\s_0 \|-> \vrange{()_1}{()_k}] = \< ()|\a \'> .$ \\
+	Then 
+	$$\PT{
+		\AC{\seval{p_1}{\sgm[\s_0 \|-> \vrange{()_1}{()_k}]}{\vrange{()_1}{()_k}}{\sgm''}}
+		\LeLa{\MP_1 = }
+		\UC{\seval{\withctrl {s_0} {p_1} {\st_2} } 
+				  {\sgm[\s_0 \|->   \vrange{()_1}{()_k}]} 
+				  {\< () \'>} 
+				  {\sgm[\s_0 \|-> \<()_1,...,()_k \'>]}}
+	}$$ in which $\sgm[\s_0 \|-> \<()_1,...,()_k \'>](\st_2) = \sgm''(\st_2).$
+
+	\end{enumerate}
+
+	
+	\item \label{proof-valre}
+	$\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_2))}$ by $\MV$. \\
+    We still have two subcases based on the two in the proof of (\ref{proof-eval}) respectively.
+    
+	\begin{itemize}
+		\item Subcase continuing (\ref{subcase-1}) \\
+		Since $k=0$, then $v = \{ \}$, $\sgm(\s_2) = \oT$ (from \eqref{sids-st1-s2}), and \\
+		$\sgm'(\s_2) = \sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_i' \|-> \emptyv](\s_2) = \sgm(\s_2) = \oT$, \\
+		$\sgm'(\st_2) = \sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_i' \|-> \emptyv](\st_2) = (...((\emptyv,\emptyv)_1,\emptyv)_2,...)_{i-1}.$ \\
+	
+		Therefore $\sgm'((\st_2,\s_2)) = (\sgm'(\st_2), \sgm'(\s_2))$ and we construct 
+		$$\MV = 
+		 \PT{\Axiom{\ValRep{\{\}}{\tseq{\tau_2}}{((...(\emptyv,\emptyv)_1,...)_{i-1},\oT)}}}$$ as required.
+		
+		\item Subcase continuing (\ref{subcase-2}) \\
+		Since we have 
+		$$\MT_1 = \PT{\AC{\Type{[x \|-> {\tau_1}]}{e_1}{\tau_2}}}$$
+		$$\ME_i = \PT{\AC{\Eval{[x \|-> {v_i}]}{e_1}{v_i',}}}$$
+		$$\MP_1 = \PT{\AC{\Trans{[x \|-> {\st_1}]}{e_1}{\s_0+1}{\s_1}{\sfun{p_1}{\st_2}}}}$$
+		
+		Let $\Gam_1 = [x \|-> \tau_1], \rho_i= [x \|-> v_i]$ and $\del_1 = [x \|-> \st_1]$. \\
+		From \eqref{type-vi} and \eqref{sids-st1-s2} it is clear that 
+		$$\forall z \in dom(\Gam_1). \Type{}{\rho_i(z)}{\Gam_1(z)} \wedge 
+		\sids{\del_1(z)} \.< \s_0 .$$
+		
+		We take $\sgm_i \~{\st_1} \sgm[\s_0 \|-> \<()_1,...,()_k \'>]$ 
+		such that $\sgm_i(\st_1)= w_i$. \\
+		From $\MV_i$ in \eqref{valrep0} we know that  
+		$$\forall z \in dom(\Gam_1). \ValRep{\rho_i(z)}{\Gam_1(z)}{\sgm_i(\del_1(z))}.$$
+	
+		
+		Then let $i$ range from $1$ to $k$: by IH on $\MT_1$ with $\ME_i$, $\MP_1$ we obtain the following result:
+		\eq{isgm}{(\seval{p_1}{\sgm_i}{\<()\'>}{\sgm_i'})^k_{i=1}}
+		\eq{vsgm}{(\ValRep{v'_i}{\tau_2}{\sgm_i'(\st_2)})^k_{i=1}}
+		\eq{}{(\sgm_i' \ConEq{\s_0 +1} \sgm_i)^k_{i=1}}
+		\eq{}{\sids{\st_2} {\.<} \s_1}
+		\eq{}{\s_0+1 \le \s_1}
+		
+	    Using Lemma \ref{lem-sgm-join} (k-1) times on \eqref{isgm} gives us
+	    $$\seval{p_1}{\sgm_1 \x{\st_1} ... \x{\st_1} \sgm_k}{\<()_1,...,()_k \'>}{\sgm_1' \x{\st_2} ... \x{\st_2} \sgm'_k}$$
+	    
+	    %TODO add property lemma
+	    By Lemma \ref{lem-join-property} 
+	    $${\sgm_1 \x{\st_1} ... \x{\st_1} \sgm_k} = \sgm[\s_0 \|-> \<()_1,...,()_k \'>]$$
+	    and
+	    $$\sgm_1' \x{\st_2} ... \x{\st_2} \sgm'_k = \sgm''$$ 
+	    in which $\sgm''(\st_2) = \sgm'(\st_2) {\++} ... {\++} \sgm'(\st_2).$\\
+		Let $\sgm'_i(\st_2) = w'_i$ and  $\sgm''(\st_2) = w'$, then
+		$w' = w'_1 {\++} ... {\++} w'_k$. \\
+		
+	    Since $\sgm'(\st_2) = \sgm''(\st_2) = w$, and $\sgm'(\s_2) = \sgm(\s_2) = \< \F_1,...,\F_k,\T \'>,$
+	    therefore $\sgm'((\st_2,\s_2)) = (\sgm'(\st_2),\sgm'(\s_2)) = (w,\< \F_1,...,\F_k,\T \'>)$, and now we can construct
+	    $$\MV = 
+	    \PT{
+	    	\AC{(\ValRep{v'_i}{\tau_2}{w'_i})^k_{i=1}}
+	    	\UC{\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{(w',\< \F_1,..., \F_k, \T \'>)}}
+	    }$$ as required.
+		
+	\end{itemize}
+	
+	\item $\sgm' \ConEq{\s_0} \sgm$
+	\item $\sids{(\st_2,\s_2)} {\.<} \s_1$ 
+	\item $\s_0 \le \s_1$ 
+	
+	\end{enumerate}
+ 
+ \item Case $e = x$.
+ \item Case $e = \Let{x}{e_1}{e_2}$
+ \item Case $e = \hcall\Tupk{x}$	
+	\end{itemize}	
+\end{proof}
 
