@@ -253,7 +253,7 @@ We define some notations and operations related to $\sgm$:
 \end{enumerate}
 
 \begin{defi}
-	\label{sgm-sim}
+	\label{def-sgm-sim}
 	
 	$\sgm_1 {\~{\st}} \sgm_2 $
 	 iff \\
@@ -265,7 +265,7 @@ It is easy to show that this relation $\overset{st}{\sim}$ is commutative, trans
 
 
 \begin{defi}
-	\label{sgm-join}
+	\label{def-sgm-join}
 	$\sgm_1 \x{\st} \sgm_2 = \sgm$ iff \\
 	(1) $\sgm_1 \~{\st} \sgm_2$  \\
 	(2) $\sgm(s) =
@@ -281,8 +281,9 @@ It is easy to show that this relation $\overset{st}{\sim}$ is commutative, trans
 \end{lem}
 
 \begin{lem}[??! wrong] \label{lem-join2}
-	If $\sgm_1 \~{\st} \sgm_2$ and $\sgm_1 \ConEq{s} \sgm_3$, 
-	then $\sgm_2 \ConEq{s} \sgm_3$. 
+	If $\sgm_1 \~{\st_1} \sgm'_1$, $\sgm_2 \~{\st_2} \sgm'_2$, $\sgm_1 \ConEq{s} \sgm_2$,
+	 and $\sgm'_1 \ConEq{\s} \sgm_2'$  
+	then $\sgm_1 \x{\st_1} \sgm_1' \ConEq{s} \sgm_2 \x{\st_2} \sgm'_2$. 
 \end{lem}
 
 SVCODE operational semantics: \\
@@ -396,8 +397,8 @@ $\a_c$ is the control stream.\\
 \end{itemize}
 
 
-\begin{thm}[deterministic ??]
-	\label{svcode-determ}
+\begin{thm}[SVCODE determinism]
+	\label{thm-svcode-determ}
 	If $\seval{p}{\sgm}{\a_c}{\sgm'}$ and $\seval{p}{\sgm}{\a_c}{\sgm''}$, 
 	then $\sgm' = \sgm''$.
 \end{thm}
@@ -755,43 +756,44 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 	So in this subcase $$\sgm' = \sgmp-nonempty.$$
 	
 	Using Lemma \ref{lem-sgm-join} (k-1) times on \eqref{compIH1} gives us
-	$$\seval{p_1}{(\x{\st_1} \sgm_i)^k_{i=1}}{\kunit}{(\x{\st_1} \sgm'_i)^k_{i=1}}$$
+	$$\seval{p_1}{(\x{\st_1} \sgm_i)^k_{i=1}}{\kunit}{(\x{\st_2} \sgm'_i)^k_{i=1}}$$
 	
 	%TODO add property lemma
 	By Lemma \ref{lem-join1} we can obtain
 	\eq{sgms-join}{
-		(\x{\st_1} \sgm_i)^k_{i=1} = \sgmsz}
+		(\x{\st_1} \sgm_i)^k_{i=1} = \sgmsz.}
 	
-	and \eq{sgms'-join}{
-		(\x{\st_1} \sgm'_i)^k_{i=1}= \sgm''}
+	Then by Theorem \ref{thm-svcode-determ}, we get
+	\eq{sgms'-join}{
+		(\x{\st_2} \sgm'_i)^k_{i=1}= \sgm''}
 	
-	in which $\sgm''(\st_2) = \sgm'_1(\st_2) {\++} ... {\++} \sgm'_k(\st_2).$\\
+	Therefore, $\sgm''(\st_2) = \sgm'_1(\st_2) {\++} ... {\++} \sgm'_k(\st_2)$ by Definition \ref{def-sgm-join}.\\
 	Let $\sgm'_i(\st_2) = w'_i$ and  $\sgm''(\st_2) = w'$, then
 	$w' = w'_1 {\++} ... {\++} w'_k$. \\
 	
-	Since $\sgm'(\st_2) = \sgm''(\st_2) = w$, and $\sgm'(\s_2) = \sgm(\s_2) = \stwo,$
-	therefore $\sgm'((\st_2,\s_2)) = (\sgm'(\st_2),\sgm'(\s_2)) = (w',\stwo)$, 
-	and now we can construct
+	Since $\sgm'(\st_2) = \sgm''(\st_2) = w'$, and {\color{red} $\sgm'(\s_2) = \sgm(\s_2) = \stwo$,(same problem)}
+	we now have $\sgm'((\st_2,\s_2)) = (\sgm'(\st_2),\sgm'(\s_2)) = (w',\stwo)$, 
+	and we can construct
 	$$\MV = 
 	\PT{
 		\AC{(\ValRep{v'_i}{\tau_2}{w'_i})^k_{i=1}}
 		\UC{\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{(w',\stwo)}}
-	}$$ as required.
+	}$$ as required. \\
 
 %vii
-	From \eqref{sgms-join} we have $\sgm_1 \~{\st_1} \sgmsz$ and 
-	$\sgm'_1 \~{\st_2} \sgm''.$ 
-	Take $i=1$ in \eqref{compIH3}, we have $\sgm'_1 \ConEq{\s_0+1} \sgm_1$, 
-	hence $\sgm'_1 \ConEq{\s_0} \sgm_1$. 
-	Using Lemma \ref{lem-join2} twice, we obtain 
+	From \eqref{sgms-join} we have $\sgm_i \~{\st_1} \sgmsz$, and  
+	from \eqref{sgms'-join} $\sgm'_i \~{\st_2} \sgm''.$ \\
+	\eqref{compIH3} implies $$(\sgm'_i \ConEq{\s_0} \sgm_i)^k_{i=1}$$.
+	
+	Using Lemma \ref{lem-join2} (k-1) times, we obtain 
 	$$\sgm'' \ConEq{\s_0} \sgmsz.$$
-	Therefore, $\sgmszs \ConEq{\s_0} \sgmsz \ConEq{\s_0} \sgm$.
+	Therefore, $\sgmszs \ConEq{\s_0} \sgmsz \ConEq{\s_0} \sgm$.\\
 
 	\end{itemize}
 
 % viii
 	\item TS: $\s_0 \le \s_1$ \\
-	From \eqref{compIH4} we immediately get $\s_0 \le \s_1$.
+	From \eqref{compIH4} we immediately get $\s_0 \le \s_1 -1 < \s_1$.\\
 	
 %ix
 	\item TS: $\sids{(\st_2,\s_2)} {\.<} \s_1$  \\
