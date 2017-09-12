@@ -10,7 +10,10 @@
 \usepackage{extarrows}
 \usepackage{verbatim}
 \usepackage[ampersand]{easylist}
- 
+\usepackage[linewidth=1pt]{mdframed}
+%\usepackage{tcolorbox}
+
+
 \geometry{left=2.5cm,right=2.5cm,top=3cm,bottom=3cm}
 
 \newtheorem{thm}{Theorem}[section]
@@ -30,11 +33,14 @@
 
 \def\hcall{\phi} 
 
+
 \def\const#1{\*{const}_{#1} ()}
 \def\iota#1{\*{iota} (#1)} 
 \def\plus#1#2{\*{plus} (#1,#2)}
 
-
+\def\constn#1{\*{const}_{#1}}
+\def\iotan{\*{iota}} 
+\def\plusn{\*{plus}}
 
 %types
 \def\int{\*{int}}
@@ -48,7 +54,7 @@
 
 \def\Seqk#1{\{ #1_1,...,#1_k \}}
 \def\Tupk#1{(#1_1,...,#1_k)}
-
+\def\replc#1#2{#2_1,...,#2_{#1}}
 
 % greek letters
 \def\sgm{\sigma}
@@ -76,6 +82,12 @@
 \def\Eval#1#2#3{#1 \Env #2 \Eva #3 } 
 \def\EvalF#1{\hcall#1}  % function evaluation
 
+%typing
+\def\Type#1#2#3{#1 \Env #2 : #3 } 
+%\def\TypeF#1#2 {\Env \hcall : (#1) \ra #2 }
+\def\Typef#1#2#3{ \Env #1 : (#2) \rightarrow #3}
+
+
 % target semantics 
 \def\TaSem#1#2#3{\langle #1,#2 \rangle \Eva #3}  
 \def\Talet#1#2{\mathtt{let} \ #1 \ \mathtt{in} \ #2}
@@ -83,19 +95,15 @@
 % compiling/translation
 \def\Trans#1#2#3#4#5{#1 \Env #2 \xRightarrow[#4]{#3} #5} 
 
-%typing
-\def\Type#1#2#3{#1 \Env #2 : #3 } 
-\def\TypeF#1{\hcall#1} 
-
 
 %value representation
 \def\ValRep#1#2#3{ #1 \triangleright_{#2} #3}
 
 
 % rule with a name
-\def\ERule#1#2{\textsc{E-#1} : \vcenter{#2}}
-\def\PRule#1#2{\textsc{P-#1} : \vcenter{#2}}
-\def\CRule#1#2{\textsc{C-#1} : \vcenter{#2}}
+\def\ERule#1#2{$\textsc{E-#1} : {#2}$}
+\def\PRule#1#2{$\textsc{P-#1} : {#2}$}
+\def\CRule#1#2{$\textsc{C-#1} : {#2}$}
 
 % only rule name
 \def\EName#1{\textsc{E-#1}}
