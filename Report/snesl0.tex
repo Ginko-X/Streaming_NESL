@@ -31,6 +31,14 @@
 \def\usum{\mathtt{Usum}}
 \def\maptwo#1{\mathtt{MapTwo}_{#1}}
 \def\scan{\mathtt{ScanPlus}}
+
+\def\constaf#1{\mathtt{Const_{#1}()}} 
+\def\toflagf#1{\mathtt{ToFlags}(#1)}
+\def\usumf#1{\mathtt{Usum}(#1)}
+\def\maptwof#1#2#3{\mathtt{MapTwo}_{#1}(#2,#3)}
+\def\scanf#1#2{\mathtt{ScanPlus}(#1,#2)}
+
+
 \def\sdef#1#2{#1 := #2}
 \def\withctrl#1#2#3{#3 := \mathtt{WithCtrl}(#1,#2)}
 
@@ -75,11 +83,11 @@
 \def\>->{\rightarrowtail} % map a bunch of variables
 \def\=>#1#2{\xRightarrow[#2]{#1}}
 
-\def\三{\equiv} 
 
 %translation
 \def\sfun#1#2{(#1,#2)}
-\def\tranf#1#2#3#4#5{\Env {\hcall}(#1,...,#2) \=>{#3}{#4} #5}  
+\def\Transf#1#2#3#4#5{\Trans{}{#1(#2)}{#3}{#4}{#5}}
+% \def\tranf#1#2#3#4#5{\Env {\hcall}(#1,...,#2) \=>{#3}{#4} #5}  
 
 
 \newcommand{\eq}[2]{\begin{equation}\label{#1} #2\end{equation}}
@@ -124,7 +132,7 @@ Type environment $\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$.
 
 
 \PT{
-	\AC{\Type{}{\TypeF} {\Tupk{\tau} \-> \tau}}
+	\AC{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
 	\RiLa{((\Gam(x_i)= \tau_i)^k_{i=1})}
 	\UC{\Type{\Gam}{\hcall{\Tupk{x}}}{\tau}}
 }
@@ -135,11 +143,11 @@ Type environment $\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$.
 }\\[2ex]
 
 
-\item Auxiliary \Jug{\Type{}{\TypeF} {\Tupk{\tau} \-> \tau}}
+\item Auxiliary \Jug{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
 
-\PT{\Axiom{\Type{}{\*{const}_n}{\int}}}
-\PT{\Axiom{\Type{}{\*{iota}}{\int \-> \tseq{\int}}}}
-\PT{\Axiom{\Type{}{\*{plus}}{(\int, \int) \-> \int}}}
+\PT{\Axiom{\Typef{\constn{n}}{}{\int}}}
+\PT{\Axiom{\Typef{\iotan}{\int} {\tseq{\int}}}}
+\PT{\Axiom{\Typef{\plusn}{\int,\int} {\int}}}
 
 % value types
 \item Value typing rules: \\
@@ -200,7 +208,7 @@ $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 
 \item Stream tree: $$ \STree \ni \st ::= \s \ | \ (\st_1,\s) $$
 \item SVCODE operations: $$\psi ::= \ctrl \ | \ \consta{a} \ | \ \toflag
-\ | \ \usum \ | \ \maptwo{\oplus} \ | \ \scan $$
+\ | \ \usum \ | \ \maptwo{\oplus} \ | \ \scan_{n_0} $$
 where $\oplus$ stands for some binary operation on $\int$. \\
 
 
@@ -349,8 +357,31 @@ $\a_c$ is the control stream.\\
 \PT{\AC{}
 	\RiLa{(n_3= n_1 \oplus n_2)}
 	\UC{\maptwo{\oplus}(\singl{n_1}, \singl{n_2}) \da \singl{n_3}}
-} \\
+} 
 
+%--- UsumF
+\PRule{UsumF}{
+	\PT{\AC{\blockf{\usum}{\b}{\a}}
+		\UC{\blockf{\usum}{ \<\F|\b \'>}{\<()|\a\'>}}
+	}
+}
+\PRule{UsumT}{
+	\PT{\Axiom{\blockf{\usum}{\oT}{\emptyv}}}
+}\\
+
+\PRule{ScanF}{
+	\PT{\AC{\blockf{\scan_{n_0+n}}{\b,\a}{\a'}}
+		\UC{\blockf{\scan_{n_0}}{\<\F|\b \'>, \<n|\a\'>}{\<n_0|\a'\'>}}
+	}		
+}
+\PRule{ScanT}{
+	\PT{\Axiom{\blockf{\scan_{n_0}}{\oT, \emptyv}{\emptyv}}}	
+}
+\\
+
+
+Or if we want to use $unary$ semantics maybe for later: \\
+\begin{mdframed}
 \PT{
 	\AC{\unary{\singl \F}{\a_{k1}}{\a_1}}
 	\AC{\block{\a_{12}}{\a_{k2}}{\a_2}}
@@ -363,7 +394,7 @@ $\a_c$ is the control stream.\\
 	\UC{\block{\oT}{\a_k} \a}
 }\\[2ex]
 
-
+\begin{itemize}
 \item Transducer $unary$ semantics:\\ 
 
 \Jug{\unary{\singl b}{\a_k}{\a}}
@@ -373,7 +404,7 @@ $\a_c$ is the control stream.\\
 
 
 %loopuv
-\item Semantics of transducer block with $accumulator$: \\
+\item Transducer block with $accumulator$: \\
 
 \Jug{\blockv{n}{\a_1}{\a_k}{\a}}
 \PT{
@@ -383,19 +414,21 @@ $\a_c$ is the control stream.\\
 }\\[2ex]
 
 \PT{
-	\AC{\unaryv {n_0} \oT {\a_k} {} {\singl{n_1}}}
-	\UC{\blockv {n_0} \oT {\a_k} {\singl{n_1}} }
+	\AC{\unaryv {n_0} \oT {\a_k} {} {\a}}
+	\UC{\blockv {n_0} \oT {\a_k} {\a} }
 }
 
-\item Semantics of transducer unary with $accumulator$: \\
+\item Transducer unary with $accumulator$: \\
 
 \Jug{\unaryv{n}{\oF}{\a_k}{n'}{\a}}
 
-\PT{\Axiom{\scan_{n_0}(\oF,{\singl{n}}) \da^{n_0+n} {\singl{n_0}} }} \\
+\PT{\Axiom{\scan_{n_0}(\oF,{\singl{n}}) \dda^{n_0+n} {\singl{n_0}} }} \\
 
 \Jug{\unaryv{n}{\oT}{\a_k}{}{\a}}
 
-\PT{\Axiom{\scan_{n_0}(\oT, \emptyv) \da {\singl{n_0}} }}
+\PT{\Axiom{\scan_{n_0}(\oT, \emptyv) \dda {\emptyv} }}
+\end{itemize}
+\end{mdframed}
 
 
 \end{itemize}
@@ -408,12 +441,12 @@ $\a_c$ is the control stream.\\
 \end{thm}
 
 
-\begin{lem}[??] \label{lem-sgm-join}
-	If $\sgm_1 \~{\st} \sgm_2$, (!!should have: import(p) = st)
+\begin{lem} \label{lem-sgm-join}
+	If $\sgm_1 \~{\st} \sgm_2$, 
 	$\seval{p}{\sgm_1}{\a_1}{\sgm_1'}$, 
 	$\seval{p}{\sgm_2}{\a_2}{\sgm_2'}$,
 	
-	then $\seval{p}{\sgm_1 \x{} \sgm_2}{\a_1 \++ \a_2}{\sgm_1' \x{} \sgm_2'}$
+	then $\seval{p}{\sgm_1 \x{\st} \sgm_2}{\a_1 \++ \a_2}{\sgm_1' \x{} \sgm_2'}$
 \end{lem}
 
 \begin{defi}
@@ -459,7 +492,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 }
 
 \PT{
-	\AC{\tranf{\st_1}{\st_k}{\s_0}{\s_1}{\sfun{p}{\st}}}
+	\AC{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
 	\RiLa{((\del(x_i)=\st_i)^k_{i=1})}
 	\UC{\Trans{\del}{\hcall \Tupk{x}}{\s_0}{\s_1}{\sfun{p}{\st}}}
 }
@@ -471,11 +504,11 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 }
 
 
-\item Auxiliary \Jug{\tranf{\st_1}{\st_k}{\s_0}{\s_1}{\sfun{p}{\st}}}
+\item Auxiliary \Jug{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
 
 \PT{
-	\Axiom{\const{a} \=>{\s_0+1}{\s_0}
-		\sfun{\sdef{\s_0}{\consta{a}}}{\s_0}  }
+	\Axiom{\Transf{\constn{n}}{}{\s_0+1}{\s_0}
+		\sfun{\sdef{\s_0}{\consta{n}()}}{\s_0}  }
 } \\ [6ex]
 
 \PT{
@@ -484,15 +517,15 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 		  \s_{i+1} & = \s_i + 1 \\
 		  p= & \sdef{\s_0}{\toflag(\s)} ; \\ 
 		     & \sdef{\s_1}{\usum(s_0)} ; \\
-		     & \withctrl{\s_1}{\sdef{\s_2}{\consta{1}}}{\s_2}; \\
-	         & \sdef{\s_3}{\scan(\s_0,s_2)}
+		     & \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{\s_2}; \\
+	         & \sdef{\s_3}{\scan_{0}(\s_0,s_2)}
 	    \end{aligned}\right)
     }
-	\UC{\iota{\s} \=>{\s_4}{\s_0} {\sfun{p} {(\s_3,\s_0)}}}
+	\UC{\Transf{\iotan}{\s}{\s_0}{\s_4}{\sfun{p} {(\s_3,\s_0)}}}
 }\\[4ex]
 
 \PT{
-	\Axiom{\plus{\s_1}{\s_2} \=>{\s_0+1}{\s_0}
+	\Axiom{\Transf{\plusn}{\s_1,\s_2}{\s_0}{\s_0+1}
 	    \sfun{\sdef{\s_0}{\maptwo{+}(\s_1,\s_2)}}{\s_0}}
 }
 
@@ -509,7 +542,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 }
 \PT{
 	\AC{(\ValRep{v_i}{\tau}{\v_i})^k_{i=1}}
-	\RiLa{(\v = \v_1 \++ \v_2 \++ ... \++ \v_k)}
+	\RiLa{(\v = \v_1 {\++} ... {\++} \v_k)}
 	\UC{\ValRep{\Seqk{v}}{\tseq{\tau}}{(\v,\langle \F_1,..., \F_k, \T \rangle)}}
 }
 
@@ -551,15 +584,16 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 	\label{function-correctness}
 	If 
 	\begin{enumerate}[(i)]
-	\item $\Type{} {\TypeF} {\Tupk{\tau} \-> \tau}$
-	\item $\Eval{}{\EvalF{\Tupk{v}}}{v}$
-	\item $\tranf{\st_1}{\st_k}{\s_0}{\s_1}{\sfun{p}{\st}}$
- 	\item $(\ValRep{v_i}{\tau_i}{\st_i})^k_{i=1}$
+	\item $\Typef{\hcall}{\replc{k}{\tau}}\tau$ (by some derivation $\MT$)
+	\item $\Eval{}{\EvalF{\Tupk{v}}}{v}$ (by $\ME$)
+	\item $\Transf{\hcall}{\replc k {\st}} {\s_0} {\s_1} {\sfun{p}{\st}}$ (by $\MC$)
+ 	\item $(\ValRep{v_i}{\tau_i}{\sgm(\st_i)})^k_{i=1}$
  	\item $\bigcup^k_{i=1}\sids{\st_i} \SetLe \s_0$
 	\end{enumerate}
  	then 
  	\begin{enumerate}[(i)]
- 		\item $\seval{p}{\sgm}{\a_c}{\sgm'}$ (by $\MP$)
+ 		\setcounter{enumi}{5}
+ 		\item $\seval{p}{\sgm}{\vunit}{\sgm'}$ (by $\MP$)
  		\item $\ValRep{v}{\tau}{\sgm'(\st)}$ (by $\MV$)
  		\item $\sgm' \ConEq{s_0} \sgm $
  	    \item $\s_0 \le \s_1$
@@ -568,15 +602,88 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
  	\end{enumerate}
 \end{lem}
 
+\begin{proof}
+By inducntion on the syntax of $\hcall$.
+\begin{itemize}
+	\item \label{thm-case-const} Case $\hcall = \constn{n}$ \\ 	
+	There is only one possibility for each of $\MT$, $\ME$ and $\MC$:
+	$$\MT = \PT{ \Axiom{\Typef{\constn{n}}{}{\int}}}$$
+	$$\ME = \PT{\Axiom{\Eval{}{\const{n}}{n}}}$$
+	$$\MC = \PT{\Axiom{\Transf{\constn{n}}{}{\s_0}{\s_0+1}
+			{\sfun{\sdef{\s_0}{\constaf{n}}}{\s_0}}}}$$
+
+\def\pconst{\sdef{\s_0}{\constaf{n}}}
+	So $k=0,\tau = \int, v = n, p = \pconst$, $\s_1 = \s_0+1$, and $\st = \s_0$
+
+	Since $\constaf{n}$ takes no arguments, there is only one 
+	possibility for $\MP$:
+	$$\PT{
+		\Axiom{\blockf{\consta{n}}{}{\singl{n}}}
+		\Axiom{\sevalfg{\consta{n}}{}{\emptyv}{\emptyv}}
+		\BC{\sevalfg{\consta{n}}{}{\vunit}{\singl{n}}}
+		\LeLa{\MP = }
+		\UC{\seval{\pconst}{\sgm}{\vunit}{\sgm[\s_0 \|-> \singl{n}]}}			
+	}$$
+	So $\sgm' = \sgm[\s_0 \|-> \singl{n}]$.
+	
+	Then we have $\MV$ = $\PT{\Axiom{\ValRep{n}{\int}{\sgm'(\s_0)}}}$. \\
+	Also clearly, $\sgm' \ConEq{\s_0} \sgm$, $\s_0 \le \s_0 +1$, 
+	$\sids{\s_0} \.< \s_0 +1$, and we are done.
+		
+	\item \label{thm-case-plus} Case $\hcall = \plusn$ \\ 	
+	We must have 
+	$$\MT = \PT{\Axiom{\Typef{\plusn}{\int,\int}{\int}}}$$
+	$$\ME = \PT{\Axiom{\Eval{}{\plus{n_1}{n_2}}{n_3}}}$$ where $n_3 = n_2 + n_1$, and 
+	$$\MC = \PT{\Axiom{\Transf{\plusn}{s_1,s_2}{\s_0}{s_0+1}
+			{\sfun{\sdef{\s_0}{\maptwof{+}{\s_1}{\s_2}}}}{\s_0}}}$$
+
+\def\pplus{\sdef{\s_0}{\maptwof{+}{\s_1}{\s_2}}}	
+	So $k=2,\tau_1 = \tau_2 = \tau = \int, v_1= n_1, v_2= n_2, v = n_3,
+	 \st_1= \s_1, \st_2 = \s_2, \st = \s_0, \s_1 = \s_0 +1$
+	 and $p = \pplus$. \\
+	 
+	 Assumption (iv) gives us
+	 $\ValRep{n_1}{\int}{\sgm(\s_1)}$ and 
+	 $\ValRep{n_2}{\int}{\sgm(\s_2)}$, which implies
+	 $\sgm(\s_1) = \singl{n_1}$ and $\sgm(\s_2) = \singl{n_2}$. \\
+	 
+	 For (v) we have $\s_1 < \s_0$ and $\s_2 < \s_0$. \\
+	 
+	 $\MP$ must have the shape: 
+	 $$\PT{
+		\UCN{\MP_1}{\blockf{\maptwo{+}}{\a_1,\a_2}{\a}}
+		\Axiom{\sevalfg{\maptwo{+}}{\a_1',\a_2'}{\emptyv}{\emptyv}}
+		\RiLa{(\a_1 {\++} \a_1' = \singl{n_1},\a_2 {\++} \a_2' = \singl{n_2})}
+		\BC{\sevalfg{\maptwo{+}}{\singl{n_1},\singl{n_2}}{\vunit}{\a}}
+		\RiLa{(\sgm(\s_1)= \singl{n_1}, \sgm(\s_2) = \singl{n_2})}
+		\UC{\seval{\pplus}{\sgm}{\vunit}{\sgm[\s_0 \|-> \a]}}
+	 }$$  
+	
+	Since there is only one rule for $\MP_1$, by which $\a_1$ must be
+	$\singl{n_1}$ and $\a_2$ must be $\singl{n_2}$ (, and $\a_1'$ = $\a_2' = \emptyv$), that is, 
+	$$\MP_1 = \PT{\Axiom{\blockf{\maptwo{+}}{\singl{n_1}, \singl{n_2}}{\singl{n_3}}}}$$
+	
+	Therefore, $\sgm' = \sgm[\s_0 \|-> \singl{n_3}]$.\\
+	Now it is clear that
+	$\MV = \infer{\ValRep{n_3}{\int}{\sgm'(\s_0)}}{}$,
+	 $\sgm' \ConEq{\s_0} \sgm$, $\s_0 \le \s_0 +1$ 
+	 and $\sids{\s_0} \.< \s_0+1$ as required. 
+	
+%case iota	
+	\item \label{thm-case-iota} Case $\hcall = \iotan$ \\ 	
+	
+\end{itemize}
+\end{proof}
+
 
 \begin{thm}
-	\label{main-correctness}
+	\label{mainthm-correctness}
 	\textbf{If} 
 	\begin{enumerate}[(i)]
 		\item $\Type{\Gam}{e}{\tau}$ (by some derivation $\MT$)
 		\item $\Eval{\rho}{e}{v}$ (by $\ME$) 
 		\item $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$ (by $\MC$)
-		\item $\forall x \in dom(\Gam). \Type{}{\rho(x)}{\Gam(x) } \wedge \sids{\del(x)} \SetLe \s_0  \wedge  \ValRep{\rho(x)}{\Gam(x)}{\sgm(\del(x))}$ \\
+		\item \label{mainthm-assum-env} $\forall x \in dom(\Gam). \Type{}{\rho(x)}{\Gam(x) } \wedge \sids{\del(x)} \SetLe \s_0  \wedge  \ValRep{\rho(x)}{\Gam(x)}{\sgm(\del(x))}$ \\
 	\textbf{then} 
 		\item $\seval{p}{\sgm}{\singl{()}}{\sgm'}$ (by $\MP$)
 		\item  $\ValRep{v}{\tau}{\sgm'(\st)}$ (by $\MV$)
@@ -657,10 +764,14 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
     and \eq{comp-ass-sgms2}
     {\sgm(\s_2) = \< \F_1,..., \F_k, \T \'>.}
     
+	\end{enumerate}
 
 
 %% proof		
-	First we shall show: 
+First we shall show: 
+	\begin{enumerate}[(i)]
+	\setcounter{enumi}{4}
+	
 	\item \label{comp-5}$\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\singl{()}}{\sgm'}$
 	\item $\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_2))}$ by $\MV$
 	\item $\sgm' \ConEq{\s_0} \sgm$ \\
@@ -680,7 +791,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 		\UC{\seval{\usumdef}{\sgm}{\vunit}{\sgm[\s_0 \|-> \a]}}
 	}$$
 	
-	From the rules $\PName{UsumF}$ and $\PName{UsumT}$ we know that $\b_1$ must end with $\T$ to be terminated. 
+	From the rules $\PName{UsumF}$ and $\PName{UsumT}$ we know that $\b_1$ must end with (and include exactly) one $\T$ so that $\MP_0'$ can terminate. 
 	Therefore, in our case, $\b_1$ can only be $\stwo$, and $\b_2 = \emptyv$.
 	Then using $\PName{UsumF}$ $k$ times and $\PName{UsumT}$ once, we obtain
 	$\MP_0'$ of 
@@ -755,7 +866,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 %vii
     Since $k=0$, from \eqref{comp-ass-sgmst1} we know $\forall s' \in \sids{\st_1}. \sgm(s') = \emptyv$. 
     For any $\s' \in \sids{\st_2}$ and $s' < \s_0$, it must have $\s' \in \sids{\st_1}$ 
-    (because $codom(\del_1) = \{\sids{\st_1}\}$), hence $\sgm(\s') = \emptyv = \sgm'(\s')$. 
+    (because $codom(\del_1) = \{\st_1\}$), hence $\sgm(\s') = \emptyv = \sgm'(\s')$. 
     Therefore, $$\sgm' \ConEq{\s_0} \sgm.$$
     
 
@@ -823,10 +934,128 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 	$$\sids{(\st_2,\s_2)} = \sids{\st_2} \cup \{s_2\} \.< \s_1.$$
 	
 	\end{enumerate}
+
+% case variable 
+ \item Case $e = x$.\\
+ We must have 
+ $$\MT = \PT{
+ 	\AxiomC{}
+ 	\RiLa{(\Gam(x) = \tau)}
+ 	\UC{\Type{\Gam}{x}{\tau}}
+ }$$
+ $$ \ME = 
+ \PT{
+ 	\AxiomC{}
+ 	\RiLa{(\rho(x)=v)}
+ 	\UC{\Eval{\rho}{x}{v}}
+ }$$
+ $$ \MC = 
+ \PT{\AC{}
+ 	\RiLa{(\del(x)= \st)}
+ 	\UC{\Trans{\del}{x}{\s_0}{\s_0}{\sfun{\epsilon}{\st}}}
+ }
+ $$
+ So $p= \epsilon$. 
  
- \item Case $e = x$.
- \item Case $e = \Let{x}{e_1}{e_2}$
- \item Case $e = \hcall\Tupk{x}$	
+ Immediately we have $\MP$ =
+ $\PT{\Axiom{\seval{\epsilon}{\sgm}{\vunit}{\sgm}}}$\\
+ So $\sgm' = \sgm$, which implies $\sgm  \ConEq{\s_0} \sgm$.\\
+ From the assumption we already have $\ValRep{v}{\tau}{\sgm(\st)}$,
+ and $\sids{\st} \.< \s_0$. \\
+ Finally it's clear that $\s_0 \le \s_0$, and we are done.
+ 
+ 
+% case let-binding 
+ \item \label{case-let} Case $e = \Let{x}{e_1}{e_2}$. \\[1ex]
+ We must have:
+ $$\PT{
+ 	\UCN{\MT_1}{\Type{\Gam}{e_1}{\tau_1}}
+ 	\UCN{\MT_2}{\Type{\Gam[\Map{x}{\tau_1}]}{e_2}{\tau}}
+ 	\LeLa{\MT =} 
+ 	\BC{\Type{\Gam}{\Let{x}{e_1}{e_2}}{\tau}}
+ }$$
+ 
+ $$\PT{	
+ 	\UCN{\ME_1}{\Eval{\rho}{e_1}{v_1}}
+ 	\UCN{\ME_2}{\Eval{\rho[\Map{x}{v_1}]}{e_2}{v}}
+ 	\LeLa{\ME =} 
+ 	\BC{\Eval{\rho}{\Let{x}{e_1}{e_2}}{v}}
+ }$$ 
+ $$\PT{\UCN{\MC_1}{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
+ 	\UCN{\MC_2}{\Trans{\del[x \|-> {\st_1}]}{e_2}{\s_0'}{\s_1}{\sfun {p_2} {\st}}}
+ 	\LeLa{\MC = }
+ 	\BC{\Trans{\del}{\Let{x}{e_1}{e_2}}{\s_0}{\s_1}{\sfun {p_1;p_2} {\st}}}
+ }$$\\[1ex]
+ 
+ So $p = p_1;p_2$. \\
+ 
+ By IH on $\MT_1$ with $\ME_1,\MC_1$, we get 
+ \begin{enumerate}[(a)]
+ 	\item $\MP_1$ of $\seval{p_1}{\sgm}{\vunit}{\sgm_1}$
+ 	\item $\MV_1$ of $\ValRep{v_1}{\tau_1}{\sgm_1(\st_1)}$
+ 	\item $\sgm_1 \ConEq{s_0} \sgm$ 
+ 	\item $\s_0 \le \s_0'$
+ 	\item $\sids{\st_1} \.< {s_0'}$
+ \end{enumerate}
+ 
+  From (b), we know $\rho[\Map{x}{v_1}](x) : \Gamma[\Map{x}{\tau_1}](x)$ and  $\ValRep{\rho[\Map{x}{v_1}](x)}{\Gamma[\Map{x}{\tau_1}](x)}{\sgm_1(\delta[\Map{x}{\st_1}](x))}$ must hold. 
+  From (e), we have $\sids{\delta[\Map{x}{\st_1}](x)} \.< s_0'$. 
+ 
+ Then by IH on  $\MT_2$ with $\ME_2,\MC_2$, we get
+ \begin{enumerate}	[(a)]
+ 	\setcounter{enumi}{5}
+ 	\item $\MP_2$ of $\seval{p_2}{\sgm_1}{\vunit}{\sgm_2}$ 
+ 	\item $\MV_2$ of $ \ValRep{\sgm_2}{\tau}{\sgm_2(\st)}$
+    \item $\sgm_2 \ConEq{\s_0'} \sgm_1$
+    \item $\s_0' \le \s_1$
+    \item $\sids{\st} \.< {s_1}$
+\end{enumerate}
+
+ So we can construct:  
+ $$\PT{
+ 	\UCN{\MP_1}{\seval{p_1}{\sgm}{\vunit}{\sgm_1}}
+ 	\UCN{\MP_2}{\seval{p_2}{\sgm_1}{\vunit}{\sgm_2}}
+ 	\LeLa{\MP = }	
+ 	\BC{\seval{p_1;p_2}{\sgm}{\vunit}{\sgm_2}}
+ }$$
+
+ From (c), (d) and (h), it is clear that $\sgm_2 \ConEq{s_0} \sgm_1 \ConEq{s_0} \sgm$.
+ From (d) and (i), $\s_0 \le \s_1$.
+ 
+ Take $\sgm' = \sgm_2$ (thus $\MV$ = $\MV_2$)  and we are done. 
+ 
+ 
+ \item Case $e = \hcall\Tupk{x}$ \\
+ We must have  
+ $$\PT{
+ 	\UCN{\MT_1}{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
+ 	\LeLa{\MT = }
+ 	\RiLa{((\Gam(x_i)= \tau_i)^k_{i=1})}
+ 	\UC{\Type{\Gam}{\hcall{\Tupk{x}}}{\tau}}
+ }$$
+ $$\PT{
+ 	\UCN{\ME_1}{\Eval{}{\EvalF{\Tupk{v}}}{v}}
+ 	\LeLa{\ME = }
+ 	\RiLa{((\rho(x_i)=v_i)^k_{i=1})}
+ 	\UC{\Eval{\rho}{\hcall{\Tupk{x}}}{v}}
+ }$$
+ $$\PT{
+ 	\UCN{\MC_1}{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
+    \LeLa{\MC =}
+ 	\RiLa{((\del(x_i)=\st_i)^k_{i=1})}
+ 	\UC{\Trans{\del}{\hcall \Tupk{x}}{\s_0}{\s_1}{\sfun{p}{\st}}}
+ }$$
+ 
+ From our assumption (\ref{mainthm-assum-env}), for all $i \in \{1,...,k\}$:
+ \begin{enumerate}[(a)]
+ 	\item $\Type{}{\rho(x_i)}{\Gam(x_i)}$, that is, $\Type{}{v_i}{\tau_i}$
+ 	\item $\sids{\del(x_i)} \.< \s_0$, that is, $\sids{\st_i} \.< \s_0$
+ 	\item $\ValRep{\rho(x_i)}{\Gam(x_i)}{\sgm(\st_i)}$, that is,
+ 	$\ValRep{v_i}{\tau_i}{\sgm(\st_i)}$
+ \end{enumerate}
+ 
+ So using Lemma \ref{function-correctness} on $\MT_1,\ME_1, \MC_1, (a),(b)$ and (c) gives us exactly what we shall show.
+ 	
 	\end{itemize}	
 \end{proof}
 
