@@ -1,7 +1,7 @@
 # Working Progress
 + Week 45 (4 ~ 10 Sep)
     + SNESL formalization [(level-0 version 0.0.5)](https://github.com/Ginko-X/Streaming_NESL/blob/master/Report/main.pdf)
-	+ (almost) finished the proof of main correctness theorem, but still some small problems (marked in pdf)
+        + (almost) finished the proof of main correctness theorem, but still some small problems (marked in pdf)
 + Week 44 (28 Aug ~ 3 Sep)
     + rewrite Xducers with `loopu`/`loopuv` 
         + fixed `Pack` within a WithCtrl
