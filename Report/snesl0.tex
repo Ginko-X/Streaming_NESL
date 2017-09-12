@@ -55,7 +55,11 @@
 \def\seval#1#2#3#4{\langle #1,#2 \rangle \Eva^{#3} #4} 
 \def\sevalf#1#2#3#4{{\lcall}(#1,...,#2) \Eva^{#3} #4}
 
+\def\sevalfg#1#2#3#4{#1(#2) \Eva^{#3} #4}
+
+
 \def\block#1#2#3{{\lcall}(#1,...,#2) \Downarrow #3}  
+\def\blockf#1#2#3{#1(#2) \da #3} 
 
 \def\da{\Downarrow}
 \def\dda{\downdownarrows}
@@ -257,8 +261,8 @@ We define some notations and operations related to $\sgm$:
 	
 	$\sgm_1 {\~{\st}} \sgm_2 $
 	 iff \\
-	\indent (1) $dom(\sgm_1) = dom(\sgm_2)$ \\
-	\indent (2) $\forall s \in (dom(\sgm_1) - \sids{st}).\sgm_1(s)= \sgm_2(s)$ \\
+	(1) $dom(\sgm_1) = dom(\sgm_2)$ \\
+	(2) $\forall s \in (dom(\sgm_1) - \sids{st}).\sgm_1(s)= \sgm_2(s)$ \\
 \end{defi}
 
 It is easy to show that this relation $\overset{st}{\sim}$ is commutative, transitive and associative.
@@ -276,11 +280,11 @@ It is easy to show that this relation $\overset{st}{\sim}$ is commutative, trans
 \end{defi}
 
 \begin{lem} \label{lem-join1}
-	If $\sgm_1 \~{\st} \sgm_2$, 
-	then $(\sgm_1 \x{\st} \sgm_3) \~{\st} \sgm_2.$
+	If $\sgm_1 \x{\st} \sgm_2 = \sgm$, 
+	then $\sgm_1 \~{\st} \sgm$ and $\sgm_2 \~{\st} \sgm.$
 \end{lem}
 
-\begin{lem}[??! wrong] \label{lem-join2}
+\begin{lem}\label{lem-join2}
 	If $\sgm_1 \~{\st_1} \sgm'_1$, $\sgm_2 \~{\st_2} \sgm'_2$, $\sgm_1 \ConEq{s} \sgm_2$,
 	 and $\sgm'_1 \ConEq{\s} \sgm_2'$  
 	then $\sgm_1 \x{\st_1} \sgm_1' \ConEq{s} \sgm_2 \x{\st_2} \sgm'_2$. 
@@ -403,7 +407,7 @@ $\a_c$ is the control stream.\\
 	then $\sgm' = \sgm''$.
 \end{thm}
 
-%TODO define \sgm \x \sgm'
+
 \begin{lem}[??] \label{lem-sgm-join}
 	If $\sgm_1 \~{\st} \sgm_2$, (!!should have: import(p) = st)
 	$\seval{p}{\sgm_1}{\a_1}{\sgm_1'}$, 
@@ -587,8 +591,11 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 	
 	\begin{itemize}
 		\item Case $e = \Comp{e_1}{x}{y}{\cdot}$. \\
-
-\def\sgmsz{\sgm[\s_0 \|-> \vrange{()_1}{()_k}]}
+   
+\def\kunit{\vrange{()_1}{()_k}} 
+\def\stwo{\< \F_1,..., \F_k, \T \'>}
+\def\sgmszs{\sgm[\s_0 \|-> \kunit, \st_2 \>-> \sgm''(\st_2)]}
+\def\sgmsz{\sgm[\s_0 \|-> \kunit]}
 
 		We must have: 
 		\begin{enumerate}[(i)]
@@ -640,32 +647,47 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
  	 \eq{comp-ass-valrep}{
  	 \PT{
 		\UCN{\MV_i}{(\ValRep{v_i}{\tau_1}{\v_i})^k_{i=1}}
-		\UC{\ValRep{\Seqk{v}}{\tseq{\tau_1}}{\sgm((\st_1,\s_2))}}
+		\RiLa{(w =  w_1 \ {\++} ... {\++} \ w_k)}
+		\UC{\ValRep{\Seqk{v}}{\tseq{\tau_1}}{(w,\stwo)}}
 	 }}
-    where 
+    therefore 
     \eq{comp-ass-sgmst1}
-    {\sgm(\st_1) = w =  w_1 \ {\++} \ w_2 \ {\++} ... {\++} \ w_k}
+    {\sgm(\st_1) = w}
 
     and \eq{comp-ass-sgms2}
     {\sgm(\s_2) = \< \F_1,..., \F_k, \T \'>.}
     
-   
-   
-\def\stwo{\< \F_1,..., \F_k, \T \'>}
-\def\sgmszs{\sgm[\s_0 \|-> \<()_1,...,()_k \'>, \st_2 \>-> \sgm''(\st_2)]}
+
 
 %% proof		
 	First we shall show: 
-	\item $\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\singl{()}}{\sgm'}$
-	\item $\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_2))}$ by $\MV$. \\
-	\item $\sgm' \ConEq{\s_0} \sgm$
+	\item \label{comp-5}$\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\singl{()}}{\sgm'}$
+	\item $\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_2))}$ by $\MV$
+	\item $\sgm' \ConEq{\s_0} \sgm$ \\
+
+\def\usumdef{\sdef{\s_0}{\usum(\s_2)}} 
+
+	TS (\ref{comp-5}), we first prove 
+	$\seval{\sdef{\s_0}{\usum(\s_2)}} {\sgm} {\singl{()}} {\sgmsz}$ by $\MP_0$. \\
+	$\MP_0$ must have the shape: 
 	
-	%TODO proof of MP0 
-	\textbf{??TODO: proof of MP0}
+	$$\PT{
+		\UCN{\MP_0'}{\blockf{\usum}{\b_1}{\a}}
+		\Axiom{\sevalfg{\usum}{\b_2}{\emptyv} \emptyv}
+		\RiLa{(\b_1 {\++} \b_2 = \stwo)}
+		\BC{\sevalfg{\usum}{\stwo}{\vunit}{\a}}
+		\RiLa{(\sgm(\s_2) = \stwo)}
+		\UC{\seval{\usumdef}{\sgm}{\vunit}{\sgm[\s_0 \|-> \a]}}
+	}$$
 	
-	Assume we already have 
+	From the rules $\PName{UsumF}$ and $\PName{UsumT}$ we know that $\b_1$ must end with $\T$ to be terminated. 
+	Therefore, in our case, $\b_1$ can only be $\stwo$, and $\b_2 = \emptyv$.
+	Then using $\PName{UsumF}$ $k$ times and $\PName{UsumT}$ once, we obtain
+	$\MP_0'$ of 
+		$$\PT{\AC{\blockf{\usum}{\b_1}{\kunit}}}$$ 
+	which gives us 
 	$\MP_0$ of $ \seval{\sdef{\s_0}{\usum(\s_2)}} {\sgm} {\singl{()}}
-	{\sgmsz}$
+	{\sgmsz}$.
 	
 	Then $\MP$ must have the shape:
 	$$ \PT{
@@ -677,7 +699,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 % IH --------	
 	Since we have 
 	$$\MT_1 = \PT{\AC{\Type{[x \|-> {\tau_1}]}{e_1}{\tau_2}}}$$
-	$$\ME_i = \PT{\AC{\Eval{[x \|-> {v_i}]}{e_1}{v_i'}}}$$ for $i = 1,...,k$, and 
+	$$(\ME_i = \PT{\AC{\Eval{[x \|-> {v_i}]}{e_1}{v_i'}}})^k_{i=1} $$
 	$$\MC_1 = \PT{\AC{\Trans{[x \|-> {\st_1}]}{e_1}{\s_0+1}{\s_1}{\sfun{p_1}{\st_2}}}}$$
 	
 	Let $\Gam_1 = [x \|-> \tau_1], \rho_i= [x \|-> v_i]$ and $\del_1 = [x \|-> \st_1]$. \\
@@ -703,7 +725,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 
 	Assume $\sids{\st_2} = \{\s'_1,...,\s'_j\}$.\\
 	
-	Then there are two possibilities:
+	There are two possibilities:
 	\begin{itemize}
 %subcase k= 0
 	\item 
@@ -721,9 +743,9 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 \def\sgmpempty{\sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_j' \|-> \emptyv]}
 
 % vi	
-	Since $k=0$, then $v = \{ \}$, $\sgm(\s_2) = \oT$ (from \eqref{comp-ass-sgms2}), and \\
+	Since $k=0$, then $v = \{ \}$, $\sgm(\s_2) = \oT$ (from \eqref{comp-ass-sgms2}), we have \\
 	{\color{red} $\sgm'(\s_2) = \sgm(\s_2) = \oT$ (?? not correct if $\s_2 \in \sids{\st_2}/\sids{\st_1}$)}, \\
-	$\sgm'(\st_2) = \sgmpempty(\st_2) = (...((\emptyv,\emptyv)_1,\emptyv)_2,...)_{j-1}.$ \\
+	and $\sgm'(\st_2) = (...((\emptyv,\emptyv)_1,\emptyv)_2,...)_{j-1}.$ \\
 	
 	Therefore $\sgm'((\st_2,\s_2)) = (\sgm'(\st_2), \sgm'(\s_2))$, with which we construct 
 	$$\MV = 
@@ -733,12 +755,11 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 %vii
     Since $k=0$, from \eqref{comp-ass-sgmst1} we know $\forall s' \in \sids{\st_1}. \sgm(s') = \emptyv$. 
     For any $\s' \in \sids{\st_2}$ and $s' < \s_0$, it must have $\s' \in \sids{\st_1}$ 
-    (because $codom(\del_1) = \{\st_1\}$), hence $\sgm(\s') = \emptyv = \sgm'(\s')$. 
+    (because $codom(\del_1) = \{\sids{\st_1}\}$), hence $\sgm(\s') = \emptyv = \sgm'(\s')$. 
     Therefore, $$\sgm' \ConEq{\s_0} \sgm.$$
     
 
 %subcase k > 0	
-\def\kunit{\vrange{()_1}{()_k}}
 \def\sgmp-nonempty{\sgm[\s_0 \|-> \kunit, \s_1' \|-> \sgm''(\s'_1),...,
 	\s'_j \|-> \sgm''(\s'_j)]}  
 
@@ -746,7 +767,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 	Subcase $k > 0$, that is $\sgmsz = \< ()|\a \'>$ for some $\a$. \\
 	Then $\MP_1 = $
 	$$\PT{
-		\AC{\seval{p_1}{\sgmsz}{\kunit}{\sgm''}}
+		\UCN{\MP_1'}{\seval{p_1}{\sgmsz}{\kunit}{\sgm''}}
 		\UC{\seval{\withctrl {s_0} {p_1} {\st_2} } 
 				  {\sgmsz} 
 				  {\vunit} 
@@ -756,24 +777,25 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 	So in this subcase $$\sgm' = \sgmp-nonempty.$$
 	
 	Using Lemma \ref{lem-sgm-join} (k-1) times on \eqref{compIH1} gives us
-	$$\seval{p_1}{(\x{\st_1} \sgm_i)^k_{i=1}}{\kunit}{(\x{\st_2} \sgm'_i)^k_{i=1}}$$
+	\eq{p1-sgms-sgms'}{
+		\seval{p_1}{(\x{\st_1} \sgm_i)^k_{i=1}}{\kunit}{(\x{\st_2} \sgm'_i)^k_{i=1}}
+	}
 	
-	%TODO add property lemma
-	By Lemma \ref{lem-join1} we can obtain
+	By Definition \ref{def-sgm-join} we have
 	\eq{sgms-join}{
 		(\x{\st_1} \sgm_i)^k_{i=1} = \sgmsz.}
 	
-	Then by Theorem \ref{thm-svcode-determ}, we get
+	Then by Theorem \ref{thm-svcode-determ} on $\MP_1'$ with \eqref{p1-sgms-sgms'}, we get
 	\eq{sgms'-join}{
-		(\x{\st_2} \sgm'_i)^k_{i=1}= \sgm''}
+		\sgm'' = (\x{\st_2} \sgm'_i)^k_{i=1}}
 	
 	Therefore, $\sgm''(\st_2) = \sgm'_1(\st_2) {\++} ... {\++} \sgm'_k(\st_2)$ by Definition \ref{def-sgm-join}.\\
 	Let $\sgm'_i(\st_2) = w'_i$ and  $\sgm''(\st_2) = w'$, then
 	$w' = w'_1 {\++} ... {\++} w'_k$. \\
 	
 	Since $\sgm'(\st_2) = \sgm''(\st_2) = w'$, and {\color{red} $\sgm'(\s_2) = \sgm(\s_2) = \stwo$,(same problem)}
-	we now have $\sgm'((\st_2,\s_2)) = (\sgm'(\st_2),\sgm'(\s_2)) = (w',\stwo)$, 
-	and we can construct
+	we now have $\sgm'((\st_2,\s_2)) = (\sgm'(\st_2),\sgm'(\s_2)) = (w',\stwo)$. 
+	With \eqref{compIH2}, we can construct
 	$$\MV = 
 	\PT{
 		\AC{(\ValRep{v'_i}{\tau_2}{w'_i})^k_{i=1}}
@@ -781,13 +803,12 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 	}$$ as required. \\
 
 %vii
-	From \eqref{sgms-join} we have $\sgm_i \~{\st_1} \sgmsz$, and  
-	from \eqref{sgms'-join} $\sgm'_i \~{\st_2} \sgm''.$ \\
-	\eqref{compIH3} implies $$(\sgm'_i \ConEq{\s_0} \sgm_i)^k_{i=1}$$.
+	By Lemma \ref{lem-join1} on \eqref{sgms-join} we get $\sgm_i \~{\st_1} \sgmsz$, and similarly $\sgm'_i \~{\st_2} \sgm''$ from \eqref{sgms'-join}. \\
 	
-	Using Lemma \ref{lem-join2} (k-1) times, we obtain 
+	Since \eqref{compIH3} implies $$(\sgm'_i \ConEq{\s_0} \sgm_i)^k_{i=1}$$
+	using Lemma \ref{lem-join2} (k-1) times, we obtain 
 	$$\sgm'' \ConEq{\s_0} \sgmsz.$$
-	Therefore, $\sgmszs \ConEq{\s_0} \sgmsz \ConEq{\s_0} \sgm$.\\
+	Therefore, $\sgm' \ConEq{\s_0} \sgmsz \ConEq{\s_0} \sgm$.\\
 
 	\end{itemize}
 
