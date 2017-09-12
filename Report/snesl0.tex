@@ -97,7 +97,8 @@
 
 \section{Level-0}
 
-Draft version \versionnumber: (almost) finished the proof of the main correctness theorem and the built-in function correctness theorem.
+Draft version \versionnumber: added the proof of the main correctness theorem and part of the proof of the built-in functions correctness theorem
+(page 6-12), and related definitions and lemmas.
 
 \subsection{Source language syntax}
 (Ignore empty sequence for now)\\
@@ -434,30 +435,23 @@ Or if we want to use $unary$ semantics maybe for later: \\
 \end{itemize}
 
 
-\begin{thm}[SVCODE determinism]
-	\label{thm-svcode-determ}
-	If $\seval{p}{\sgm}{\a_c}{\sgm'}$ and $\seval{p}{\sgm}{\a_c}{\sgm''}$, 
-	then $\sgm' = \sgm''$.
-\end{thm}
-
-
 \begin{lem} \label{lem-sgm-join}
 	If $\sgm_1 \~{\st} \sgm_2$, 
 	$\seval{p}{\sgm_1}{\a_1}{\sgm_1'}$, 
 	$\seval{p}{\sgm_2}{\a_2}{\sgm_2'}$,
-	
-	then $\seval{p}{\sgm_1 \x{\st} \sgm_2}{\a_1 \++ \a_2}{\sgm_1' \x{} \sgm_2'}$
+	then $\exists \st'.\seval{p}{\sgm_1 \x{\st} \sgm_2}{\a_1 \++ \a_2}{\sgm_1' \x{\st'} \sgm_2'}$
 \end{lem}
 
 \begin{defi}
-	$\a$ is a $prefix$ of $\a'$ if $\a \prefix \a'$.
+	$\a$ is a $prefix$ of $\a'$ if $\a \prefix \a'$: \\
+	\Jug{\a \prefix \a'}
+	\PT{\Axiom{\emptyv \prefix \a }}
+	\PT{
+		\AC{\a \prefix \a'}
+		\UC{\<a_0 | \a \'> \prefix \<a_0 | \a' \'>}
+	}
+
 \end{defi}
-\Jug{\a \prefix \a'}
-\PT{\Axiom{\emptyv \prefix \a }}
-\PT{
-	\AC{\a \prefix \a'}
-	\UC{\<a_0 | \a \'> \prefix \<a_0 | \a' \'>}
-}
 
 
 \begin{lem}
@@ -474,6 +468,10 @@ Or if we want to use $unary$ semantics maybe for later: \\
 \end{lem}
 
 
+\begin{thm}[\textbf{SVCODE determinism}] \label{thm-svcode-determ}
+	If $\seval{p}{\sgm}{\a_c}{\sgm'}$ and $\seval{p}{\sgm}{\a_c}{\sgm''}$, 
+	then $\sgm' = \sgm''$.
+\end{thm}
 
 \subsection{Translation}
 $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
@@ -889,8 +887,9 @@ First we shall show:
 	
 	Using Lemma \ref{lem-sgm-join} (k-1) times on \eqref{compIH1} gives us
 	\eq{p1-sgms-sgms'}{
-		\seval{p_1}{(\x{\st_1} \sgm_i)^k_{i=1}}{\kunit}{(\x{\st_2} \sgm'_i)^k_{i=1}}
+		\seval{p_1}{(\x{\st_1} \sgm_i)^k_{i=1}}{\kunit}{(\x{\st_2'} \sgm'_i)^k_{i=1}}
 	}
+	where $\st_2' = \sids{\st_1} \cup \sids{\st_2}$ (???) . 
 	
 	By Definition \ref{def-sgm-join} we have
 	\eq{sgms-join}{
@@ -898,7 +897,7 @@ First we shall show:
 	
 	Then by Theorem \ref{thm-svcode-determ} on $\MP_1'$ with \eqref{p1-sgms-sgms'}, we get
 	\eq{sgms'-join}{
-		\sgm'' = (\x{\st_2} \sgm'_i)^k_{i=1}}
+		\sgm'' = (\x{\st_2'} \sgm'_i)^k_{i=1}}
 	
 	Therefore, $\sgm''(\st_2) = \sgm'_1(\st_2) {\++} ... {\++} \sgm'_k(\st_2)$ by Definition \ref{def-sgm-join}.\\
 	Let $\sgm'_i(\st_2) = w'_i$ and  $\sgm''(\st_2) = w'$, then
@@ -914,7 +913,7 @@ First we shall show:
 	}$$ as required. \\
 
 %vii
-	By Lemma \ref{lem-join1} on \eqref{sgms-join} we get $\sgm_i \~{\st_1} \sgmsz$, and similarly $\sgm'_i \~{\st_2} \sgm''$ from \eqref{sgms'-join}. \\
+	By Lemma \ref{lem-join1} on \eqref{sgms-join} we get $\sgm_i \~{\st_1} \sgmsz$, and similarly $\sgm'_i \~{\st_2'} \sgm''$ from \eqref{sgms'-join}. \\
 	
 	Since \eqref{compIH3} implies $$(\sgm'_i \ConEq{\s_0} \sgm_i)^k_{i=1}$$
 	using Lemma \ref{lem-join2} (k-1) times, we obtain 
