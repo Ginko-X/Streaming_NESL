@@ -353,7 +353,7 @@ $\a_c$ is the control stream.\\
 
 \Jug{\block{\a_1}{\a_k}{\a}}
 
-\PT{\Axiom{ \consta{a} \da \singl{a}}}
+\PT{\Axiom{\constaf{a} \da \singl{a}}}
 \PT{\Axiom{\toflag(\singl{n}) \da \langle \F_1,...,\F_n,\T \rangle}}
 \PT{\AC{}
 	\RiLa{(n_3= n_1 \oplus n_2)}
@@ -400,8 +400,8 @@ Or if we want to use $unary$ semantics maybe for later: \\
 
 \Jug{\unary{\singl b}{\a_k}{\a}}
 
-\PT{ \Axiom{\usum(\oF) \da \singl\unit}}
-\PT{\Axiom{\usum(\oT) \da \emptyv }} \\[1ex]
+\PT{ \Axiom{\usum(\oF) \dda \singl\unit}}
+\PT{\Axiom{\usum(\oT) \dda \emptyv }} \\[1ex]
 
 
 %loopuv
@@ -505,7 +505,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 \item Auxiliary \Jug{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
 
 \PT{
-	\Axiom{\Transf{\constn{n}}{}{\s_0+1}{\s_0}
+	\Axiom{\Transf{\constn{n}}{}{\s_0}{\s_0+1}
 		\sfun{\sdef{\s_0}{\consta{n}()}}{\s_0}  }
 } \\ [6ex]
 
@@ -641,8 +641,8 @@ By inducntion on the syntax of $\hcall$.
 	 and $p = \pplus$. \\
 	 
 	 Assumption (iv) gives us
-	 $\ValRep{n_1}{\int}{\sgm(\s_1)}$ and 
-	 $\ValRep{n_2}{\int}{\sgm(\s_2)}$, which implies
+	 $\infer{\ValRep{n_1}{\int}{\sgm(\s_1)}}{}$ and 
+	 $\infer{\ValRep{n_2}{\int}{\sgm(\s_2)}}{}$, which implies
 	 $\sgm(\s_1) = \singl{n_1}$ and $\sgm(\s_2) = \singl{n_2}$. \\
 	 
 	 For (v) we have $\s_1 < \s_0$ and $\s_2 < \s_0$. \\
@@ -789,7 +789,7 @@ First we shall show:
 		\UC{\seval{\usumdef}{\sgm}{\vunit}{\sgm[\s_0 \|-> \a]}}
 	}$$
 	
-	From the rules $\PName{UsumF}$ and $\PName{UsumT}$ we know that $\b_1$ must end with (and include exactly) one $\T$ so that $\MP_0'$ can terminate. 
+	From the rules $\PName{UsumF}$ and $\PName{UsumT}$ we know that $\b_1$ must end with (and include exact) one $\T$ so that $\MP_0'$ can terminate. 
 	Therefore, in our case, $\b_1$ can only be $\stwo$, and $\b_2 = \emptyv$.
 	Then using $\PName{UsumF}$ $k$ times and $\PName{UsumT}$ once, we obtain
 	$\MP_0'$ of 
@@ -958,7 +958,7 @@ First we shall show:
  
  Immediately we have $\MP$ =
  $\PT{\Axiom{\seval{\epsilon}{\sgm}{\vunit}{\sgm}}}$\\
- So $\sgm' = \sgm$, which implies $\sgm  \ConEq{\s_0} \sgm$.\\
+ So $\sgm' = \sgm$, which implies $\sgm'  \ConEq{\s_0} \sgm$.\\
  From the assumption we already have $\ValRep{v}{\tau}{\sgm(\st)}$,
  and $\sids{\st} \.< \s_0$. \\
  Finally it's clear that $\s_0 \le \s_0$, and we are done.
