@@ -1,0 +1,163 @@
+\def\S{\mathbf{S}}
+\def\FV#1{\mathbf{FV}(#1)}
+
+\clearpage
+
+\section{Concatenation Lemma Proof}
+
+\begin{lem}
+	If $\sgm_1 \~{\S} \sgm_2, 
+	   \seval{p}{\sgm_1}{\c_1}{\sgm_1'}$ by some derivation $\MP_1$,
+	   $\seval{p}{\sgm_2} {\c_2} {\sgm_2'}$ by some derivation $\MP_2$,
+	 and $\FV{p} \cap \S = \emptyset $,
+	then $\seval{p}{\sgm_1 \x\S \sgm_2}{\c_1 {\++} \c_2}{ \sgm_1' \x\S \sgm_2' }$ by some derivation $\MP$.
+\end{lem}
+
+We need this lemma to prove that the results of single computations inside a comprehension body (i.e. $p$ in the lemma) can be concatenated to express a parallel computation. From the other direction, we can consider this process as distributing or splitting the compuation $p$ on even smaller degree of parallel computations, in which all the supplier streams, i.e., $\FV{p}$, are splitted to
+feed the transducers. The splitted parallel degrees are specified by the
+control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s in all $\sgm$s (i.e., $\S$) have no change throughout the process.
+
+
+\def\pwc{ \withctrl{s_0}{p_1}{\st}}
+The proof of this lemma is by induction on the syntax of $p$. Three of the proof cases including
+$p= \epsilon \ | \ \sdef{s}{\lcall\Tupk{s}} \ | \ p_1;p_2$, are relatively regular. The tricky one is the case where $p = \withctrl{s_0}{p_1}{\st}$:
+how should we $split$ a computation itself already being a
+ parallel compuation? 
+ 
+ 
+\subsection{Analysis of WithCtrl proof case}
+{\color{blue} 
+	This subsection is some of my analysis of this case, should be removed after been solved.
+}
+
+In this lemma, the condition $\FV{p} \cap \S = \emptyset$ is indispensable. 
+The free variable streams of $p$ are those we are going to split and distribute on
+smaller degree compuations. At the first sight, we may think $\FV{\pwc} = \FV{p_1}$, which are the supplier streams used in but defined before $p_1$.
+But there is another essential stream that should be splitted as well, that is the new control stream $\s_0$. We should keep in mind that \emph{in practice the control stream is used implicitly as the first 
+supplier channel for all transducers to decide how much data they should consume
+ and produce}.
+So we should fix $\FV{\pwc} = \FV{p_1} \cup \{s_0\}$, which means $\sgm_1(\s_0)$ can be different
+from $\sgm_2(\s_0)$.
+
+Now there are still three (or more precisely, four) subcases to discuss:
+\begin{enumerate}[(a)]
+	\item both $\sgm_1(s_0)$ and $\sgm_2(s_0)$ are empty
+	\item both $\sgm_1(s_0)$ and $\sgm_2(s_0)$ are non-empty
+	\item one of them is empty and the other non-empty.
+\end{enumerate}
+
+\def\nonc{\< () | \c_2' \'>}
+Again, the tricky one is the last subcase. Suppose $\sgm_1(s_0) = \emptyv, \sgm_2(\s_0) = \nonc$,
+then we may start the proof of this subcase as follows:
+\begin{proof}
+ Case $p = \withctrl{s_0}{p_1}{\st}$
+ \begin{itemize}
+	\item Subcase $\sgm_1(s_0) = \emptyv, \sgm_2(\s_0) = \nonc$ \\
+	Must have
+	$$\MP_1 = \PT{\Axiom{\seval{\pwc}{\sgm_1}{\c_1}{\sgm_1[\st \>-> \emptyv]}}} $$
+	
+	$$\MP_2 = 
+	\PT{\UCN{\MP_2'}{\seval{p_1}{\sgm_2}{\nonc}{\sgm_2''}}
+		\UC{\seval{\pwc}{\sgm_2}{\c_2}{\sgm_2[\st \>-> \sgm_2''(\st)]}}	
+	}
+	$$   	
+	
+	\def\sgmS{\sgm_1 \x{\S} \sgm_2 }
+	Since $\sgmS(\s_0) = \sgm_1(s_0) {\++} \sgm_2(\s_0) = \nonc$,
+	we should construct $\MP$ as follows:
+	
+	$$\PT{
+		\UCN{\MP'}{\seval{p_1}{\sgmS}{\nonc}{\sgm''}}
+		\UC{\seval{\pwc}{\sgm_1 \x{\S} \sgm_2 }{\c_1 {\++} \c_2}{\sgmS[\st \>-> \sgm''(\st)]}}
+	}$$
+	
+	Then the problem is that we can not obtain $\MP'$ just from $\MP_2$, becasue we know nothing
+	about how $p_1$ will behave with a start store $\sgm_1$:
+	 $$\seval{p_1}{\sgm_1}{\c_1}{???}$$ 
+		
+\end{itemize}
+\end{proof}
+
+One observation is that throughout the execution of any SVCODE program the control stream used in active/fired transducers is supposed
+non-empty in any cases for two reasons. First, at the beginning of the execution, we specify a stream $\vunit$ as the initial control
+stream. Second, during the execution, when we are going to switch to a new control stream, we always first detect
+whether it is empty or not.
+If not, we start running the subprogram with this new control stream as usual; otherwise we skip the execution. 
+So empty control stream will never have a chance to be used in
+the real execution of any programs. \\
+
+Q1: Then maybe we can modify the judgment of SVCODE evaluation from
+
+$$\boxed{\seval{p}{\sgm}{\c}{\sgm'}} \xRightarrow{to} \boxed{\seval{p}{\sgm}{\< ()| \c \'>}{\sgm'}} \ ?$$
+
+Also, as we can see from the semantics of transducers, if the control stream is not empty, then the parameter streams can not be empty either.\\
+
+Q2: Is it better to modify the judgment of transducer semantics from
+$$ \boxed{\sevalf{\a_1}{\a_k}{\c}{\a}} \xRightarrow{to} 
+\boxed{\lcall(\c,\a_1,...,\a_k) \downarrow \a} \ ? $$
+
+Now return back to the lemma, since $\c_1$ 
+and $\c_2$ are not possible to be empty, then $s_0$ in $p = \pwc$ is non-empty either. Therefore we will only need to prove one possible subcase, that is the (b) subcase above, 
+which should be provable.\\
+
+But there is still one exception (although it does not exist in SNESL-Level0), that is, the $\texttt{EmptyCtrl}$ instruction, which is used to generate empty sequences
+such as $\texttt{\{\}\{int\}}$. This instruction does not need any suppliers and only 
+generate an empty stream $\emptyv$, so I even didn't write a Xducer for it. (More details about this instruction can be found at $\texttt{Github: Issue 13}$ , item 2.)
+
+For example, consider $\texttt{\{\{\}int: y in \&3}\}$, in which $p$ is $\withctrl{\s_7}{[]}{\s_8}$ and $p_1$ = [].
+ 
+\begin{lstlisting}
+ > :c {{}int: y in &3}
+   S0 := Ctrl
+   S1 := Const 3
+   S2 := ToFlags 1
+   S3 := Usum 2
+   WithCtrl S3 (import []):
+       S4 := Const 1
+   	   Return: (IStr 4)
+   S5 := SegscanPlus 4 2
+   S6 := Usum 2
+   WithCtrl S6 (import []):  -- S6 is non-empty
+       S7 := EmptyCtrl       
+       WithCtrl S7 (import []):  -- but S7 is empty
+           Return: (IStr 8)
+       S9 := Const T
+       Return: (SStr (IStr 8), 9)
+   Return: (SStr (SStr (IStr 8), 9), 2)
+
+-- stream values after execution
+   (0,SBVal [False])
+   (1,SIVal [3])
+   (2,SBVal [False,False,False,True])
+   (3,SBVal [False,False,False])
+   (4,SIVal [1,1,1])
+   (5,SIVal [0,1,2])
+   (6,SBVal [False,False,False])
+   (7,SBVal [])
+   (8,SIVal [])
+   (9,SBVal [True,True,True])
+\end{lstlisting}
+
+
+\noindent 
+Q3 ?? I'm not sure what the best way to deal with it should be. As far as I can see, one fesible
+solution may be adding the following condition to the lemma to rule out this
+$\texttt{EmptyCtrl}$ case:
+  $$\exists \s \in \FV{p}. \sgm_1(\s) \neq \emptyv \ and \ \sgm_2(\s) \neq \emptyv$$
+It says that at least one free variable stream (then must be the new control stream)
+should be non-empty in both $\sgm_1$ and $\sgm_2$.
+
+
+%\begin{proof}
+%	By induction on the syntax of $p$.
+%	
+%	
+%	\begin{itemize}
+%\def\pwc{ \withctrl{s_0}{p_1}{\st}}
+%	\item \label{pro-concat-withctrl} Case $p= \pwc$ \\	
+%	Fist we have $\FV{p} \cap \S = \emptyset$, that is, 
+%	$\FV{\pwc} = \FV{p_1} \cap \S = \emptyset$. \\
+%
+%   
+%	\end{itemize}
+%\end{proof}

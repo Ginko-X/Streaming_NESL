@@ -14,9 +14,10 @@
 \def\v{w}
 \def\a{\vec a}
 \def\b{\vec b}
+\def\c{\vec c}
 
 \def\unit{()}
-\def\vunit{\langle () \rangle}
+\def\vunit{\langle \unit \rangle}
 
 \def\vrange#1#2{\langle #1,...,#2 \rangle}
 \def\lrange#1#2{\left[ #1,...,#2 \right]}
@@ -25,7 +26,7 @@
 
 \def\SVal{\mathbf{SVal}}
 
-\def\ctrl{\mathtt{Ctrl}}
+%\def\ctrl{\mathtt{Ctrl}}
 \def\consta#1{\mathtt{Const_{#1}}} 
 \def\toflag{\mathtt{ToFlags}}
 \def\usum{\mathtt{Usum}}
@@ -38,7 +39,7 @@
 \def\maptwof#1#2#3{\mathtt{MapTwo}_{#1}(#2,#3)}
 \def\scanf#1#2{\mathtt{ScanPlus}(#1,#2)}
 
-
+\def\:={:=}
 \def\sdef#1#2{#1 := #2}
 \def\withctrl#1#2#3{#3 := \mathtt{WithCtrl}(#1,#2)}
 
@@ -47,7 +48,6 @@
 \def\oT{\singl{\T}}
 \def\oF{\singl{\F}}
 
-\def\tail#1{\mathtt{tail}(#1)} 
 \def\sids#1{\mathtt{sids}(#1)}
 
 \def\++{+\!+}
@@ -81,28 +81,39 @@
 \def\singl#1{\langle #1 \rangle}
 \def\|->{\mapsto}   % map 
 \def\>->{\rightarrowtail} % map a bunch of variables
-\def\=>#1#2{\xRightarrow[#2]{#1}}
+\def\=>#1#2{\Rightarrow^{#1}_{#2}}
 
 
 %translation
 \def\sfun#1#2{(#1,#2)}
-\def\Transf#1#2#3#4#5{\Trans{}{#1(#2)}{#3}{#4}{#5}}
-% \def\tranf#1#2#3#4#5{\Env {\hcall}(#1,...,#2) \=>{#3}{#4} #5}  
+
+% compiling/translation
+\def\Trans#1#2#3#4#5{#1 \Env #2 \=>{#3}{#4} #5}
+\def\Transf#1#2#3#4#5{#1(#2) \=>{#3}{#4} #5}
+ 
+ 
+\def\S{\mathbf{S}}
+\def\FV#1{\mathbf{FV}(#1)}
+
 
 
 \newcommand{\eq}[2]{\begin{equation}\label{#1} #2\end{equation}}
 
-\providecommand{\versionnumber}{0.0.5}
+\providecommand{\versionnumber}{0.0.6}
 
 
 \section{Level-0}
 
-Draft version \versionnumber: added the proof of the main correctness theorem and part of the proof of the built-in functions correctness theorem
-(page 6-12), and related definitions and lemmas.
+Draft version \versionnumber: 
+\begin{itemize}
+	\item bug fix in the main correctness theroem (but not all fixed)
+	\item changed the definition of store similarity and related lemmas
+	\item some other trivial bug fixes, and adjustment of some subsection
+\end{itemize}
+
 
 \subsection{Source language syntax}
-(Ignore empty sequence for now)\\
-Expressions:
+SNESL Expressions:
 $$e ::= x \ | \ \Let{x}{e_1}{e_2} \ | \ \hcall{\Tupk{x}} \ | \ \Comp{e}{x}{y}{\cdot} $$
 $$\hcall = \*{const}_n \ | \ \*{iota} \ | \ \*{plus} $$ 
 
@@ -153,12 +164,12 @@ Type environment $\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$.
 % value types
 \item Value typing rules: \\
 
-\Jug{\Type{}{v}{\tau}}
+\Jug{\TypeV{v}{\tau}}
 
-\PT{\Axiom{\Type{}{n}{\int}}}
+\PT{\Axiom{\TypeV{n}{\int}}}
 \PT{
-	\AC{(\Type{}{v_i}{\tau})^k_{i=1}}
-	\UC{\Type{}{\Seqk{v}}{\tseq{\tau}}}
+	\AC{(\TypeV{v_i}{\tau})^k_{i=1}}
+	\UC{\TypeV{\Seqk{v}}{\tseq{\tau}}}
 }
 
 \end{itemize}
@@ -179,7 +190,7 @@ $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 }\\[1ex]
 
 \PT{
-	\AC{\Eval{}{\EvalF{\Tupk{v}}}{v}}
+	\AC{\EvalF\hcall{\replc{k}{v}}{v}}
 	\RiLa{((\rho(x_i)=v_i)^k_{i=1})}
 	\UC{\Eval{\rho}{\hcall{\Tupk{x}}}{v}}
 }\\[1ex]
@@ -190,16 +201,16 @@ $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 	\UC{\Eval{\rho}{\Comp{e}{x}{y}{\cdot}}{\Seqk{v'}}}
 }\\[1ex]
 
-\item Auxiliary \Jug{\Eval{}{\EvalF{\Tupk{v}}}{v}}
+\item Auxiliary \Jug{\EvalF\hcall{\replc{k}{v}}{v}}
 
-\PT{\Axiom{\Eval{}{\const{n}}{n}}}
+\PT{\Axiom{\EvalF{\constn{n}}{}{n}}}
 \PT{\AC{}
 	\RiLa{(n \ge 0)}
-	\UC{\Eval{}{\iota{n}}{\{0,1,...,n-1\}}}} \\[1ex]
+	\UC{\EvalF{\iotan}{n}{\{0,1,...,n-1\}}}} \\[1ex]
 
 \PT{\AC{} 
 	\RiLa{(n_3= n_1+n_2)} 
-	\UC{\Eval{}{\plus{n_1}{n_2}}{n_3}}}
+	\UC{\EvalF{\plusn}{n_1,n_2}{n_3}}}
 
 \end{itemize}
 
@@ -208,7 +219,7 @@ $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 \item Stream id: $$\s \in \SId = \*{N} = \{0,1,2...\}$$
 
 \item Stream tree: $$ \STree \ni \st ::= \s \ | \ (\st_1,\s) $$
-\item SVCODE operations: $$\psi ::= \ctrl \ | \ \consta{a} \ | \ \toflag
+\item SVCODE operations: $$\psi ::= \consta{a} \ | \ \toflag
 \ | \ \usum \ | \ \maptwo{\oplus} \ | \ \scan_{n_0} $$
 where $\oplus$ stands for some binary operation on $\int$. \\
 
@@ -234,7 +245,7 @@ $$\SVal \ni \v ::= \a \ | \ (\v,\b) $$
 	\item For some $a_0$ and $\a = \< a_1,...,a_i \'>$, let $\< a_0 | \a \'>  = \< a_0,a_1,...,a_i \'>. $ 
 
 	\item $\++: \SVal \->  \SVal \-> \SVal$ \\
-	  $\vapp{\vrange{a_1}{a_i}} {\vrange{a_1'}{a_i'}} = \langle a_1,...,a_i,a_1',...,a_i' \rangle $ \\
+	  $\vapp{\vrange{a_1}{a_i}} {\vrange{a_1'}{a_j'}} = \langle a_1,...,a_i,a_1',...,a_j' \rangle $ \\
 	  $\vapp{(\v_1,\b_1)}{(\v_2,\b_2)} = (\vapp{\v_1}{\v_2}, \vapp{\b_1}{\b_2})$
 
 	\item $\texttt{sids}$ is a function that converts a $\st \in \STree$ to a set of $\s \in \SId$: \\
@@ -242,7 +253,7 @@ $$\SVal \ni \v ::= \a \ | \ (\v,\b) $$
 	$\sids{(\st,\s)} = \sids{\st} \cup \{\s\}$ 
    
     \item 
-    For some set of $\SId$, $t$, and some $\s \in \SId$, let $t \SetLe \s$ denote $\forall \s' \in t. \s' < \s$.
+    For some set of $\SId$, $t$, and some $\s \in \SId$, let $t \.< \s$ denote $\forall \s' \in t. \s' < \s$.
 
 \end{itemize}
 
@@ -251,114 +262,69 @@ $$\SVal \ni \v ::= \a \ | \ (\v,\b) $$
 \subsection{SVCODE semantics}
 
 SVCODE runtime environment $\sgm = [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$.\\
-We define some notations and operations related to $\sgm$:
-\begin{enumerate}[(1)]
-\item Let $\sgm_1 \ConEq{\s} \sgm_2$ denote $\forall \s' < \s. \sgm_1(\s') = \sgm_2(\s')$. \\
 
-\item \Jug{\sgm(\st) = w}
-\PT{\Axiom{\sgm(\s) = \a}} 
-\PT{
-	\AC{\sgm(\st)=w} 
-	\Axiom{\sgm(\s) = \a}
-	\BC{\sgm((\st,\s)) = (w,\a)}
-}
-
-\end{enumerate}
-
-\begin{defi}
-	\label{def-sgm-sim}
-	
-	$\sgm_1 {\~{\st}} \sgm_2 $
-	 iff \\
-	(1) $dom(\sgm_1) = dom(\sgm_2)$ \\
-	(2) $\forall s \in (dom(\sgm_1) - \sids{st}).\sgm_1(s)= \sgm_2(s)$ \\
-\end{defi}
-
-It is easy to show that this relation $\overset{st}{\sim}$ is commutative, transitive and associative.
-
-
-\begin{defi}
-	\label{def-sgm-join}
-	$\sgm_1 \x{\st} \sgm_2 = \sgm$ iff \\
-	(1) $\sgm_1 \~{\st} \sgm_2$  \\
-	(2) $\sgm(s) =
-		\begin{cases}
-		\sgm_1(\s) {\++} \sgm_2(s), & s \in \sids{\st} \\
-		\sgm_1(s),&  otherwise
-		\end{cases} $
-\end{defi}
-
-\begin{lem} \label{lem-join1}
-	If $\sgm_1 \x{\st} \sgm_2 = \sgm$, 
-	then $\sgm_1 \~{\st} \sgm$ and $\sgm_2 \~{\st} \sgm.$
-\end{lem}
-
-\begin{lem}\label{lem-join2}
-	If $\sgm_1 \~{\st_1} \sgm'_1$, $\sgm_2 \~{\st_2} \sgm'_2$, $\sgm_1 \ConEq{s} \sgm_2$,
-	 and $\sgm'_1 \ConEq{\s} \sgm_2'$  
-	then $\sgm_1 \x{\st_1} \sgm_1' \ConEq{s} \sgm_2 \x{\st_2} \sgm'_2$. 
-\end{lem}
-
-SVCODE operational semantics: \\
 \begin{itemize}
 
-\item \Jug{\seval{p}{\sgm}{\a_c}{\sgm'}}
-$\a_c$ is the control stream.\\
+\item \Jug{\seval{p}{\sgm}{\c}{\sgm'}}
+$\c$ is the control stream.\\
 
-\PT{\Axiom{\seval{\epsilon}{\sgm}{\a_c}{\sgm}}}
-\PT{\AC{\sevalf{\a_1}{\a_k}{\a_c}{\a}}
+\PRule{Empty}{\PT{\Axiom{\seval{\epsilon}{\sgm}{\c}{\sgm}}}}
+
+\PRule{Xducer}{\PT{\AC{\sevalf{\a_1}{\a_k}{\c}{\a}}
 	\RiLa{((\sgm(\s_i) = \a_i)^k_{i=1})}
-	\UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm}{\a_c}{\sgm[\s \|-> \a]}}
-} \\[2ex]
+	\UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm}{\c}{\sgm[\s \|-> \a]}}
+}} \\[2ex]
 
-\PT{
+\PRule{Wc-Emp}{\PT{
 	\AC{}
 	\RiLa{(\sgm(\s)= \emptyv, \sids{\st} = \{s_1,...,\s_i\})}
-	\UC{\seval{\withctrl{\s}{p}{\st}}{\sgm}{\a_c}{\sgm[\s_1 \|-> \emptyv, ..., \s_i \|-> \emptyv]}}
-}\\[2ex]
+	\UC{\seval{\withctrl{\s}{p}{\st}}{\sgm}{\c}{\sgm[\s_1 \|-> \emptyv, ..., \s_i \|-> \emptyv]}}
+}}\\[2ex]
 
-\PT{
+\PRule{Wc-Nonemp}{\PT{
 	\AC{\seval{p}{\sgm}{\a_s}{\sgm''}}
 	\RiLa{\left(
 		\begin{aligned} 
 		&\sgm(\s)= \a_s = \< a_0 | \a \'> \\
 		&\sids{\st}=\{s_1,...,s_i\}
 		\end{aligned}\right)}
-	\UC{\seval{\withctrl s p \st } \sgm {\a_c} \sgm[\s_1 \|-> \sgm''(\s_1),...,\s_i \|-> \sgm''(\s_i)]}
-}\\[2ex]
+	\UC{\seval{\withctrl s p \st } \sgm {\c} \sgm[\s_1 \|-> \sgm''(\s_1),...,\s_i \|-> \sgm''(\s_i)]}
+}}\\[2ex]
 
-\PT{
-	\AC{\seval{p_1}{\sgm}{\a_c}{\sgm''}}
-    \AC{\seval{p_2}{\sgm''}{\a_c}{\sgm'}}	
-    \BC{\seval{p_1;p_2}{\sgm}{\a_c}{\sgm'}}
-}
+\PRule{Seq}{\PT{
+	\AC{\seval{p_1}{\sgm}{\c}{\sgm''}}
+    \AC{\seval{p_2}{\sgm''}{\c}{\sgm'}}	
+    \BC{\seval{p_1;p_2}{\sgm}{\c}{\sgm'}}
+}}
 
 
 \item $Transducer$ semantics: \\
 
-\Jug{\sevalf{\a_1}{\a_k}{\a_c}{\a}} 
+\Jug{\sevalf{\a_1}{\a_k}{\c}{\a}} 
 
 
-\PT{
+\PRule{X-Loop}{\PT{
 	\AC{\block{\a_{11}}{\a_{k1}}{\a_1}}
-	\AC{\sevalf{\a_{12}}{\a_{k2}}{\a_c}{\a_2}}
+	\AC{\sevalf{\a_{12}}{\a_{k2}}{\c}{\a_2}}
 	\RiLa{(\a = \vapp{\a_1}{\a_2})}
-	\BC{\sevalf{\vapp{\a_{11}}{\a_{12}}}{\vapp{\a_{k1}}{\a_{k2}}}{\< a_0 | \a_c \'>}{\a}}
-}\\[2ex]
-	
-\PT{\Axiom{\sevalf {\a_1} {\a_k} \emptyv \emptyv}}
+	\BC{\sevalf{\vapp{\a_{11}}{\a_{12}}}{\vapp{\a_{k1}}{\a_{k2}}}{\< a_0 | \c \'>}{\a}}
+}}\\[2ex]
+
+%TODO should fix??	
+\PRule{X-Termi}{\PT{\Axiom{\sevalf {\a_1} {\a_k} \emptyv \emptyv}}}
 	
 
 \item Transducer $block$ semantics: \\ 
 
 \Jug{\block{\a_1}{\a_k}{\a}}
 
-\PT{\Axiom{\constaf{a} \da \singl{a}}}
-\PT{\Axiom{\toflag(\singl{n}) \da \langle \F_1,...,\F_n,\T \rangle}}
-\PT{\AC{}
+\PRule{Const}{\PT{\Axiom{\constaf{a} \da \singl{a}}}}
+\PRule{ToFlags}{\PT{\Axiom{\toflag(\singl{n}) \da \langle \F_1,...,\F_n,\T \rangle}}} \\
+
+\PRule{MapTwo}{\PT{\AC{}
 	\RiLa{(n_3= n_1 \oplus n_2)}
 	\UC{\maptwo{\oplus}(\singl{n_1}, \singl{n_2}) \da \singl{n_3}}
-} 
+}} \\
 
 %--- UsumF
 \PRule{UsumF}{
@@ -400,7 +366,7 @@ Or if we want to use $unary$ semantics maybe for later: \\
 
 \Jug{\unary{\singl b}{\a_k}{\a}}
 
-\PT{ \Axiom{\usum(\oF) \dda \singl\unit}}
+\PT{ \Axiom{\usum(\oF) \dda \vunit}}
 \PT{\Axiom{\usum(\oT) \dda \emptyv }} \\[1ex]
 
 
@@ -435,12 +401,110 @@ Or if we want to use $unary$ semantics maybe for later: \\
 \end{itemize}
 
 
-\begin{lem} \label{lem-sgm-join}
-	If $\sgm_1 \~{\st} \sgm_2$, 
-	$\seval{p}{\sgm_1}{\a_1}{\sgm_1'}$, 
-	$\seval{p}{\sgm_2}{\a_2}{\sgm_2'}$,
-	then $\exists \st'.\seval{p}{\sgm_1 \x{\st} \sgm_2}{\a_1 \++ \a_2}{\sgm_1' \x{\st'} \sgm_2'}$
+
+
+
+\subsection{Definitions}
+
+We define some notations and operations related to $\sgm$:
+\begin{enumerate}[(1)]
+	\item Let $\sgm_1 \ConEq{\s} \sgm_2$ denote $\forall \s' < \s. \sgm_1(\s') = \sgm_2(\s')$. 
+
+%TODO replace with S	
+	\item ??? \Jug{\sgm(\st) = w}
+	%\PT{\Axiom{\sgm(\s) = \a}} 
+	%\PT{
+	%	\AC{\sgm(\st)=w} 
+	%	\Axiom{\sgm(\s) = \a}
+	%	\BC{\sgm((\st,\s)) = (w,\a)}
+	%}
+	
+	\item $\S$ denotes a set of $\SId$, can be $\emptyset$; $\S^+$ denotes a non-empty set of $\SId$.
+	 	
+	
+\end{enumerate}
+
+
+We define a binary relation $\~\S$ on stores to denote that two stores are $similar$: they have identical domains, and their bound values by $\S$ are the same. 
+We call this $\S$ an $overlap$ of these two stores.
+
+\begin{defi}[\textbf{Stores similarity}]
+	\label{def-sgm-sim}
+	
+	$\sgm_1 {\~{\S}} \sgm_2 $
+	iff \\
+	(1) $dom(\sgm_1) = dom(\sgm_2)$ \\
+	(2) $\forall s \in \S.\sgm_1(s)= \sgm_2(s)$ \\
+\end{defi}
+
+According to this definition, it is only meaningful to have $\S  \subseteq dom(\sgm_1)$ (or $dom(\sgm_2)$), and $\S$ can be empty. 
+When $\S = dom(\sgm_1) = dom(\sgm_2)$, $\sgm_1$ and $\sgm_2$ are identical. 
+It is easy to show that this relation $\overset{\S}{\sim}$ is transitive.
+\begin{itemize}
+	\item If $\sgm_1 \~\S \sgm_2$ and $\sgm_2 \~\S \sgm_3$, then $\sgm_1 \~\S \sgm_3$.
+	
+\end{itemize}
+
+
+We define another binary operation $\x\S$ on stores to denote a kind of specical concatenation of two similar stores: 
+the $concatenation$ of two similar stores is a new store, in which the bound values by $\S$ are from any of the parameter stores, and 
+the others are the concatenation of the values from the two stores. 
+In other words, a $concatenation$ of two similar stores is only a concatenation of the bound values that $maybe$ different in these stores.
+\begin{defi}
+	\label{def-sgm-join}
+	$\sgm_1 \x{\S} \sgm_2 = \sgm$ iff \\
+	(1) $\sgm_1 \~{\S} \sgm_2$  \\
+	(2) $\sgm(s) =
+	\begin{cases}
+	\sgm_i(s),& s \in \S, i \in \{1,2\}\\
+	\sgm_1(\s) {\++} \sgm_2(s), & otherwise \\
+	\end{cases} $
+\end{defi}
+
+\begin{lem} \label{lem-join1}
+	If $\sgm_1 \x{\S} \sgm_2 = \sgm$, 
+	then $\sgm_1 \~{\S} \sgm$ and $\sgm_2 \~{\S} \sgm.$
 \end{lem}
+This lemma says that the concatenation result of two similar stores is still similar to each of them.
+%\begin{proof}
+%	According to Definition \ref{def-sgm-join}, it is clear that $dom(\sgm) = dom(\sgm_1)$, and $\forall s \in \S. \sgm(s) = \sgm_1(s)$. Then by Definiton \ref{def-sgm-sim}, $\sgm \~\S \sgm_1$
+%\end{proof}
+
+
+\begin{lem}\label{lem-join2}
+	If $\sgm_1 \~{\S_1} \sgm'_1$, $\sgm_2 \~{\S_2} \sgm'_2$, $\sgm_1 \ConEq{s} \sgm_2$,
+	and $\sgm'_1 \ConEq{\s} \sgm_2'$  
+	then $\sgm_1 \x{\S_1} \sgm_1' \ConEq{s} \sgm_2 \x{\S_2} \sgm'_2$. 
+\end{lem}
+
+%
+%\begin{lem} 
+%	If $\sgm_1 \~{\st} \sgm_2$, 
+%	$\seval{p}{\sgm_1}{\a_1}{\sgm_1'}$, 
+%	$\seval{p}{\sgm_2}{\a_2}{\sgm_2'}$,
+%	then $\exists \st'.\seval{p}{\sgm_1 \x{\st} \sgm_2}{\a_1 \++ \a_2}{\sgm_1' \x{\st'} \sgm_2'}$
+%\end{lem}
+
+\begin{lem} \label{lem-psi-join}
+	If $\sevalfg{\lcall}{\a_{11},...,\a_{1k}}{\c_1}{\a_1}$,
+	and $\sevalfg{\lcall}{\a_{21},...,\a_{2k}}{\c_2}{\a_2}$,
+	then $\sevalfg{\lcall}{\a_{11} {\++} \a_{21},...,\a_{1k} {\++} \a_{2k}}{\c_1 {\++} \c_2}{\a_1 {\++} \a_2}$.
+\end{lem}
+
+\begin{lem} \label{lem-sgm-join}
+	If $\sgm_1 \~{\S} \sgm_2, 
+	\seval{p}{\sgm_1}{\c_1}{\sgm_1'}$ (by some derivation $\MP_1$),
+	$\seval{p}{\sgm_2} {\c_2} {\sgm_2'}$ (by $\MP_2$),
+	and $\FV{p} \cap \S = \emptyset $,
+	then $\seval{p}{\sgm_1 \x\S \sgm_2}{\c_1 {\++} \c_2}{ \sgm_1' \x\S \sgm_2' }$ (by $\MP$).
+\end{lem}
+
+We need this lemma to prove that the results of single computations inside a comprehension body (i.e. $p$ in the lemma) can be concatenated to express a parallel computation. From the other direction, we can consider this process as distributing or splitting the compuation $p$ on even smaller degree of parallel computations, in which all the supplier streams, i.e., $\FV{p}$, are splitted to
+feed the transducers. The splitted parallel degrees are specified by the
+control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s in all $\sgm$s (i.e., $\S$) have no change throughout the process.\\
+
+
+\subsection{SVCODE determinism theroem}
 
 \begin{defi}
 	$\a$ is a $prefix$ of $\a'$ if $\a \prefix \a'$: \\
@@ -450,7 +514,7 @@ Or if we want to use $unary$ semantics maybe for later: \\
 		\AC{\a \prefix \a'}
 		\UC{\<a_0 | \a \'> \prefix \<a_0 | \a' \'>}
 	}
-
+	
 \end{defi}
 
 
@@ -467,11 +531,17 @@ Or if we want to use $unary$ semantics maybe for later: \\
 	\end{enumerate}
 \end{lem}
 
+\begin{lem} \label{thm-lcall-determ}
+	If $\sevalfg{\lcall}{\replc{k}{\a}}{\c}{\a}$,
+	and $\sevalfg{\lcall}{\replc{k}{\a}}{\c}{\a'}$,
+	then $\a = \a'$.
+\end{lem}
 
 \begin{thm}[\textbf{SVCODE determinism}] \label{thm-svcode-determ}
-	If $\seval{p}{\sgm}{\a_c}{\sgm'}$ and $\seval{p}{\sgm}{\a_c}{\sgm''}$, 
+	If $\seval{p}{\sgm}{\c}{\sgm'}$ and $\seval{p}{\sgm}{\c}{\sgm''}$, 
 	then $\sgm' = \sgm''$.
 \end{thm}
+
 
 \subsection{Translation}
 $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
@@ -512,7 +582,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 \PT{
 	\AC{}
 	\RiLa{\left( \begin{aligned}
-		  \s_{i+1} & = \s_i + 1 \\
+		  \s_{i+1} & = \s_i + 1, \forall i \in \{0,...,3\} \\
 		  p= & \sdef{\s_0}{\toflag(\s)} ; \\ 
 		     & \sdef{\s_1}{\usum(s_0)} ; \\
 		     & \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{\s_2}; \\
@@ -564,7 +634,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 
 \end{itemize}
 
-\begin{lem}
+\begin{lem}[\textbf{Value translation backwards determinism}]
 	If $\ValRep{v}{\tau}{w}$, $\ValRep{v'}{\tau}{w}$,
 	then $v=v'$.
 \end{lem}
@@ -583,19 +653,19 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 	If 
 	\begin{enumerate}[(i)]
 	\item $\Typef{\hcall}{\replc{k}{\tau}}\tau$ (by some derivation $\MT$)
-	\item $\Eval{}{\EvalF{\Tupk{v}}}{v}$ (by $\ME$)
+	\item $\EvalF{\hcall}{\replc{k}{v}}{v}$ (by $\ME$)
 	\item $\Transf{\hcall}{\replc k {\st}} {\s_0} {\s_1} {\sfun{p}{\st}}$ (by $\MC$)
  	\item $(\ValRep{v_i}{\tau_i}{\sgm(\st_i)})^k_{i=1}$
- 	\item $\bigcup^k_{i=1}\sids{\st_i} \SetLe \s_0$
+ 	\item $\bigcup^k_{i=1}\sids{\st_i} \.< \s_0$
 	\end{enumerate}
  	then 
  	\begin{enumerate}[(i)]
  		\setcounter{enumi}{5}
  		\item $\seval{p}{\sgm}{\vunit}{\sgm'}$ (by $\MP$)
- 		\item $\ValRep{v}{\tau}{\sgm'(\st)}$ (by $\MV$)
+ 		\item $\ValRep{v}{\tau}{\sgm'(\st)}$ (by $\MR$)
  		\item $\sgm' \ConEq{s_0} \sgm $
  	    \item $\s_0 \le \s_1$
- 		\item $\sids{\st} \SetLe \s_1$
+ 		\item $\sids{\st} \.< \s_1$
 
  	\end{enumerate}
 \end{lem}
@@ -613,8 +683,7 @@ By inducntion on the syntax of $\hcall$.
 \def\pconst{\sdef{\s_0}{\constaf{n}}}
 	So $k=0,\tau = \int, v = n, p = \pconst$, $\s_1 = \s_0+1$, and $\st = \s_0$
 
-	Since $\constaf{n}$ takes no arguments, there is only one 
-	possibility for $\MP$:
+	By $\PName{Xducer}$, $\PName{X-Loop}$, $\PName{X-Termi}$ and $\PName{Const}$, we can construct $\MP$ as follows:
 	$$\PT{
 		\Axiom{\blockf{\consta{n}}{}{\singl{n}}}
 		\Axiom{\sevalfg{\consta{n}}{}{\emptyv}{\emptyv}}
@@ -624,7 +693,7 @@ By inducntion on the syntax of $\hcall$.
 	}$$
 	So $\sgm' = \sgm[\s_0 \|-> \singl{n}]$.
 	
-	Then we have $\MV$ = $\PT{\Axiom{\ValRep{n}{\int}{\sgm'(\s_0)}}}$. \\
+	Then we take $\MR$ = $\PT{\Axiom{\ValRep{n}{\int}{\sgm'(\s_0)}}}$. \\
 	Also clearly, $\sgm' \ConEq{\s_0} \sgm$, $\s_0 \le \s_0 +1$, 
 	$\sids{\s_0} \.< \s_0 +1$, and we are done.
 		
@@ -643,27 +712,24 @@ By inducntion on the syntax of $\hcall$.
 	 Assumption (iv) gives us
 	 $\infer{\ValRep{n_1}{\int}{\sgm(\s_1)}}{}$ and 
 	 $\infer{\ValRep{n_2}{\int}{\sgm(\s_2)}}{}$, which implies
-	 $\sgm(\s_1) = \singl{n_1}$ and $\sgm(\s_2) = \singl{n_2}$. \\
+	 $\sgm(\s_1) = \singl{n_1}$ and $\sgm(\s_2) = \singl{n_2}$ respectively. \\
 	 
 	 For (v) we have $\s_1 < \s_0$ and $\s_2 < \s_0$. \\
 	 
-	 $\MP$ must have the shape: 
+	 Then using $\PName{Xducer}$ with $\sgm(\s_1)= \singl{n_1}$ and $ \sgm(\s_2) = \singl{n_2}$, 
+	 and using $\PName{X-Loop}$ and $\PName{X-Termi}$, 
+	 we can build $\MP$ as follows: 
 	 $$\PT{
-		\UCN{\MP_1}{\blockf{\maptwo{+}}{\a_1,\a_2}{\a}}
-		\Axiom{\sevalfg{\maptwo{+}}{\a_1',\a_2'}{\emptyv}{\emptyv}}
-		\RiLa{(\a_1 {\++} \a_1' = \singl{n_1},\a_2 {\++} \a_2' = \singl{n_2})}
-		\BC{\sevalfg{\maptwo{+}}{\singl{n_1},\singl{n_2}}{\vunit}{\a}}
-		\RiLa{(\sgm(\s_1)= \singl{n_1}, \sgm(\s_2) = \singl{n_2})}
-		\UC{\seval{\pplus}{\sgm}{\vunit}{\sgm[\s_0 \|-> \a]}}
+		\Axiom{\blockf{\maptwo{+}}{\singl{n_1}, \singl{n_2}}{\singl{n_3}}}
+		\Axiom{\sevalfg{\maptwo{+}}{\emptyv,\emptyv}{\emptyv}{\emptyv}}
+		\BC{\sevalfg{\maptwo{+}}{\singl{n_1},\singl{n_2}}{\vunit}{\singl{n_3}}}
+		\UC{\seval{\pplus}{\sgm}{\vunit}{\sgm[\s_0 \|-> \singl{n_3}]}}
 	 }$$  
 	
-	Since there is only one rule for $\MP_1$, by which $\a_1$ must be
-	$\singl{n_1}$ and $\a_2$ must be $\singl{n_2}$ (, and $\a_1'$ = $\a_2' = \emptyv$), that is, 
-	$$\MP_1 = \PT{\Axiom{\blockf{\maptwo{+}}{\singl{n_1}, \singl{n_2}}{\singl{n_3}}}}$$
 	
 	Therefore, $\sgm' = \sgm[\s_0 \|-> \singl{n_3}]$.\\
-	Now it is clear that
-	$\MV = \infer{\ValRep{n_3}{\int}{\sgm'(\s_0)}}{}$,
+	Now we can take $\MR = \infer{\ValRep{n_3}{\int}{\sgm'(\s_0)}}{}$,
+	and it is clear that
 	 $\sgm' \ConEq{\s_0} \sgm$, $\s_0 \le \s_0 +1$ 
 	 and $\sids{\s_0} \.< \s_0+1$ as required. 
 	
@@ -679,15 +745,15 @@ By inducntion on the syntax of $\hcall$.
 	\textbf{If} 
 	\begin{enumerate}[(i)]
 		\item $\Type{\Gam}{e}{\tau}$ (by some derivation $\MT$)
-		\item $\Eval{\rho}{e}{v}$ (by $\ME$) 
-		\item $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$ (by $\MC$)
-		\item \label{mainthm-assum-env} $\forall x \in dom(\Gam). \Type{}{\rho(x)}{\Gam(x) } \wedge \sids{\del(x)} \SetLe \s_0  \wedge  \ValRep{\rho(x)}{\Gam(x)}{\sgm(\del(x))}$ \\
+		\item $\Eval{\rho}{e}{v}$ (by some $\ME$) 
+		\item $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$ (by some $\MC$)
+		\item \label{mainthm-assum-env} $\forall x \in dom(\Gam). \Type{}{\rho(x)}{\Gam(x) } \wedge \sids{\del(x)} \.< \s_0  \wedge  \ValRep{\rho(x)}{\Gam(x)}{\sgm(\del(x))}$ \\
 	\textbf{then} 
-		\item $\seval{p}{\sgm}{\singl{()}}{\sgm'}$ (by $\MP$)
-		\item  $\ValRep{v}{\tau}{\sgm'(\st)}$ (by $\MV$)
+		\item $\seval{p}{\sgm}{\singl{()}}{\sgm'}$ (by some derivation $\MP$)
+		\item  $\ValRep{v}{\tau}{\sgm'(\st)}$ (by some $\MR$)
 		\item $\sgm' \ConEq{s_0} \sgm $
 	    \item $\s_0 \le \s_1$
-		\item  $\sids{\st} \SetLe \s_1$
+		\item  $\sids{\st} \.< \s_1$
 	\end{enumerate} 
 \end{thm}
 
@@ -751,7 +817,7 @@ By inducntion on the syntax of $\hcall$.
  	 must have the derivation: 
  	 \eq{comp-ass-valrep}{
  	 \PT{
-		\UCN{\MV_i}{(\ValRep{v_i}{\tau_1}{\v_i})^k_{i=1}}
+		\UCN{\MR_i}{(\ValRep{v_i}{\tau_1}{\v_i})^k_{i=1}}
 		\RiLa{(w =  w_1 \ {\++} ... {\++} \ w_k)}
 		\UC{\ValRep{\Seqk{v}}{\tseq{\tau_1}}{(w,\stwo)}}
 	 }}
@@ -771,39 +837,52 @@ First we shall show:
 	\setcounter{enumi}{4}
 	
 	\item \label{comp-5}$\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\singl{()}}{\sgm'}$
-	\item $\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_2))}$ by $\MV$
+	by some $\MP$
+	\item $\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_2))}$ by some $\MR$
 	\item $\sgm' \ConEq{\s_0} \sgm$ \\
 
 \def\usumdef{\sdef{\s_0}{\usum(\s_2)}} 
 
-	TS (\ref{comp-5}), we first prove 
-	$\seval{\sdef{\s_0}{\usum(\s_2)}} {\sgm} {\singl{()}} {\sgmsz}$ by $\MP_0$. \\
-	$\MP_0$ must have the shape: 
-	
-	$$\PT{
-		\UCN{\MP_0'}{\blockf{\usum}{\b_1}{\a}}
+	By $\PName{Seq}$, we can build $\MP$ as follow:
+	$$ \PT{
+		\UCN{\MP_0}{\seval{\sdef{\s_0}{\usum(\s_2)}}{\sgm}{\singl{()}}{\sgm_0}}
+		\UCN{\MP_1}{\seval{\withctrl{\s_0}{p_1}{\st_2}}{\sgm_0}{\<()\'>}{\sgm'}}
+		\BC{\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\singl{()}}{\sgm'}}
+	} $$
+    
+    By $\PName{Xducer}$ with $\sgm(\s_2) = \stwo$, we can continue to build $\MP_0$ as follow:
+  
+    $$\PT{
+    	\UCN{\MP_0'}{\sevalfg{\usum}{\stwo}{\vunit}{\a}}
+    	\LeLa{\MP_0 = }
+    	\UC{\seval{\usumdef}{\sgm}{\vunit}{\sgm[\s_0 \|-> \a]}}
+    }$$
+    So $\sgm_0 = \sgm[\s_0 \|-> \a]$.\\
+	We split $\stwo$ into two parts: $\b_1 = \stwo$ and $\b_2 = \emptyv$. \\
+	By $\PName{X-loop}$ and $\PName{X-termi}$ with $\b_1$ and $\b_2$, we continue building $\MP_0'$ as follow:
+
+	 $$\PT{
+		\UCN{\MP_0''}{\blockf{\usum}{\b_1}{\a}}
 		\Axiom{\sevalfg{\usum}{\b_2}{\emptyv} \emptyv}
-		\RiLa{(\b_1 {\++} \b_2 = \stwo)}
+		\LeLa{\MP_0' = }
 		\BC{\sevalfg{\usum}{\stwo}{\vunit}{\a}}
-		\RiLa{(\sgm(\s_2) = \stwo)}
-		\UC{\seval{\usumdef}{\sgm}{\vunit}{\sgm[\s_0 \|-> \a]}}
 	}$$
 	
-	From the rules $\PName{UsumF}$ and $\PName{UsumT}$ we know that $\b_1$ must end with (and include exact) one $\T$ so that $\MP_0'$ can terminate. 
-	Therefore, in our case, $\b_1$ can only be $\stwo$, and $\b_2 = \emptyv$.
+
 	Then using $\PName{UsumF}$ $k$ times and $\PName{UsumT}$ once, we obtain
-	$\MP_0'$ of 
-		$$\PT{\AC{\blockf{\usum}{\b_1}{\kunit}}}$$ 
-	which gives us 
+	$$\MP_0'' = \vcenter{
+	    \infer{\blockf{\usum}{\stwo}{\kunit}} 
+	      {\infer*{\blockf{\usum}{\<\F_2,...,\F_k,\T\'>}{\< ()_2,...,()_k\'>}} 
+	    	{\infer {\blockf{\usum}{\singl{\T}}{\emptyv}}
+	    		{}
+	    	  }}	  
+     } $$ 
+ 
+ 	Thus so far we have constructed 
 	$\MP_0$ of $ \seval{\sdef{\s_0}{\usum(\s_2)}} {\sgm} {\singl{()}}
 	{\sgmsz}$.
 	
-	Then $\MP$ must have the shape:
-	$$ \PT{
-		\UCN{\MP_0}{\seval{\sdef{\s_0}{\usum(\s_2)}}{\sgm}{\singl{()}}{\sgm[\s_0 \|-> \vrange{()_1}{()_k}]}}
-		\UCN{\MP_1}{\seval{\withctrl{\s_0}{p_1}{\st_2}}{\sgm[\s_0 \|-> \vrange{()_1}{()_k}]}{\<()\'>}{\sgm'}}
-		\BC{\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\singl{()}}{\sgm'}}
-	} $$
+
 	
 % IH --------	
 	Since we have 
@@ -818,7 +897,7 @@ First we shall show:
 	
 	Let $i$ range from $1$ to $k$: we take $\sgm_i \~{\st_1} \sgm[\s_0 \|-> \<()_1,...,()_k \'>]$ 
 	such that $\sgm_i(\st_1)= w_i$. \\
-	From $\MV_i$ in \eqref{comp-ass-valrep} we know that  
+	From $\MR_i$ in \eqref{comp-ass-valrep} we know that  
 	$$\forall z \in dom(\Gam_1). \ValRep{\rho_i(z)}{\Gam_1(z)}{\sgm_i(\del_1(z))}.$$
 	
 	
@@ -839,14 +918,14 @@ First we shall show:
 %subcase k= 0
 	\item 
 	Subcase $k=0$, that is $\sgmsz(\s_0) = \emptyv$.\\
-	Then
+	By $\PName{Wc-Emp}$ We build
 	$$\PT{
 		\AC{}
 		\LeLa{\MP_1 = }
 		\UC{\seval{\withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\< () \'>}
 			{\sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_j' \|-> \emptyv]}}
-	  },$$ 
-    thus in this subcase 
+	  }$$ 
+    So in this subcase, 
     $$\sgm' = \sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_j' \|-> \emptyv].$$ 
 
 \def\sgmpempty{\sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_j' \|-> \emptyv]}
@@ -857,7 +936,7 @@ First we shall show:
 	and $\sgm'(\st_2) = (...((\emptyv,\emptyv)_1,\emptyv)_2,...)_{j-1}.$ \\
 	
 	Therefore $\sgm'((\st_2,\s_2)) = (\sgm'(\st_2), \sgm'(\s_2))$, with which we construct 
-	$$\MV = 
+	$$\MR = 
 	\PT{\Axiom{\ValRep{\{\}}{\tseq{\tau_2}}{((...(\emptyv,\emptyv)_1,...)_{j-1},\oT)}}}$$ 
 	as required.\\
     
@@ -874,7 +953,7 @@ First we shall show:
 
 	\item \label{subcase-2} 
 	Subcase $k > 0$, that is $\sgmsz = \< ()|\a \'>$ for some $\a$. \\
-	Then $\MP_1 = $
+	By $\PName{Wc-Nonemp}$, we take $\MP_1 = $
 	$$\PT{
 		\UCN{\MP_1'}{\seval{p_1}{\sgmsz}{\kunit}{\sgm''}}
 		\UC{\seval{\withctrl {s_0} {p_1} {\st_2} } 
@@ -906,7 +985,7 @@ First we shall show:
 	Since $\sgm'(\st_2) = \sgm''(\st_2) = w'$, and $\sgm'(\s_2) = \sgm(\s_2) = \stwo$,
 	we now have $\sgm'((\st_2,\s_2)) = (\sgm'(\st_2),\sgm'(\s_2)) = (w',\stwo)$. 
 	With \eqref{compIH2}, we can construct
-	$$\MV = 
+	$$\MR = 
 	\PT{
 		\AC{(\ValRep{v'_i}{\tau_2}{w'_i})^k_{i=1}}
 		\UC{\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{(w',\stwo)}}
@@ -991,7 +1070,7 @@ First we shall show:
  By IH on $\MT_1$ with $\ME_1,\MC_1$, we get 
  \begin{enumerate}[(a)]
  	\item $\MP_1$ of $\seval{p_1}{\sgm}{\vunit}{\sgm_1}$
- 	\item $\MV_1$ of $\ValRep{v_1}{\tau_1}{\sgm_1(\st_1)}$
+ 	\item $\MR_1$ of $\ValRep{v_1}{\tau_1}{\sgm_1(\st_1)}$
  	\item $\sgm_1 \ConEq{s_0} \sgm$ 
  	\item $\s_0 \le \s_0'$
  	\item $\sids{\st_1} \.< {s_0'}$
@@ -1004,7 +1083,7 @@ First we shall show:
  \begin{enumerate}	[(a)]
  	\setcounter{enumi}{5}
  	\item $\MP_2$ of $\seval{p_2}{\sgm_1}{\vunit}{\sgm_2}$ 
- 	\item $\MV_2$ of $ \ValRep{\sgm_2}{\tau}{\sgm_2(\st)}$
+ 	\item $\MR_2$ of $ \ValRep{\sgm_2}{\tau}{\sgm_2(\st)}$
     \item $\sgm_2 \ConEq{\s_0'} \sgm_1$
     \item $\s_0' \le \s_1$
     \item $\sids{\st} \.< {s_1}$
@@ -1021,7 +1100,7 @@ First we shall show:
  From (c), (d) and (h), it is clear that $\sgm_2 \ConEq{s_0} \sgm_1 \ConEq{s_0} \sgm$.
  From (d) and (i), $\s_0 \le \s_1$.
  
- Take $\sgm' = \sgm_2$ (thus $\MV$ = $\MV_2$)  and we are done. 
+ Take $\sgm' = \sgm_2$ (thus $\MR$ = $\MR_2$)  and we are done. 
  
  
  \item Case $e = \hcall\Tupk{x}$ \\

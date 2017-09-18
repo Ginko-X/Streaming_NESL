@@ -22,6 +22,35 @@
 \newtheorem{prop}{Proposition}[section]
 \newtheorem{cor}{Corollary}[section]
 
+\usepackage{listings}
+\definecolor{listinggray}{gray}{0.9}
+\definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
+\definecolor{Darkgreen}{rgb}{0.0, 0.2, 0.13}
+\definecolor{darkblue}{rgb}{0,0,1}
+\definecolor{daffodil}{rgb}{1.0, 1.0, 0.19}
+\definecolor{coolblack}{rgb}{0.0, 0.18, 0.39}
+\definecolor{carnelian}{rgb}{0.7, 0.11, 0.11}
+
+\lstset{
+	%backgroundcolor=\color{lbcolor},
+	tabsize=4,
+	language=haskell,
+	basicstyle=\footnotesize\ttfamily,
+	captionpos=b,
+	tabsize=3,
+	frame=single %single is for a box, or lines,
+	% numbers=left,
+	numberstyle=\tiny,
+	numbersep=5pt,
+	breaklines=true,
+	showstringspaces=false,
+	identifierstyle=\ttfamily,
+	%	keywordstyle=\color[rgb]{0,0,1}\textbf,
+	stringstyle=\color[rgb]{0.627,0.126,0.941},
+	commentstyle=\scriptsize \color{darkblue}\textbf,
+	numberstyle=\color[rgb]{0.205, 0.142, 0.73},
+}
+
 
 
 
@@ -68,7 +97,7 @@
 \def\ME{\mathcal{E}} 
 \def\MP{\mathcal{P}} 
 \def\MT{\mathcal{T}} 
-\def\MV{\mathcal{V}}
+\def\MR{\mathcal{R}}
 
 
 
@@ -80,20 +109,13 @@
 
 % Evaluation
 \def\Eval#1#2#3{#1 \Env #2 \Eva #3 } 
-\def\EvalF#1{\hcall#1}  % function evaluation
+\def\EvalF#1#2#3{#1(#2) \Env #3}  % function evaluation
 
 %typing
 \def\Type#1#2#3{#1 \Env #2 : #3 } 
-%\def\TypeF#1#2 {\Env \hcall : (#1) \ra #2 }
-\def\Typef#1#2#3{ \Env #1 : (#2) \rightarrow #3}
+\def\Typef#1#2#3{#1 : (#2) \rightarrow #3}
+\def\TypeV#1#2{#1 : #2}
 
-
-% target semantics 
-\def\TaSem#1#2#3{\langle #1,#2 \rangle \Eva #3}  
-\def\Talet#1#2{\mathtt{let} \ #1 \ \mathtt{in} \ #2}
-
-% compiling/translation
-\def\Trans#1#2#3#4#5{#1 \Env #2 \xRightarrow[#4]{#3} #5} 
 
 
 %value representation
@@ -129,9 +151,8 @@
 
 
 \def\ConEq#1{\xlongequal{<#1}}  % Sgm conditional equation
-
 \def\.<{\lessdot}
-\def\SetLe{\lessdot} % forall r in set . r < r0  
+
 
 
 
@@ -145,5 +166,7 @@
 \setcounter{section}{-1}
 
 \input{snesl0.tex}
+
+%\input{concatlemma.tex}
 
 \end{document}
