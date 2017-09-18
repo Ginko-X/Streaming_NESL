@@ -114,18 +114,18 @@ runTop b (TFile file) env =
 
 runTop _ (TDag e fname) env@(_,_,v0,_,_,_) = 
     case runCompileExp e v0  of
-         Right svcode -> geneDagFile svcode fname >> return env 
+         Right (svcode,_) -> geneDagFile svcode fname >> return env 
          Left err -> putStrLn err >> return env 
 
 
 runTop _ (TRr e count) env@(_,_,v0,f0,bs,_) = 
-    case (do code <- runCompileExp e v0; runSvcodePExp' code count bs f0) of
+    case (do (code,_) <- runCompileExp e v0; runSvcodePExp' code count bs f0) of
          Right ctx -> putStr ctx >> return env 
          Left err -> putStrLn err >> return env 
 
--- run `count` lines of SVCODE and show the Svctx
--- only for eager interpreter
--- SCall instruction is regarded as only one line
+ --run `count` lines of SVCODE and show the Svctx
+ --only for eager interpreter
+ --SCall instruction is regarded as only one line
 runTop _ (TDebug e count) env@(_,_,v0,f0,bs,_) = 
     case runDebug e count env of
          Right (instrs,ctx) -> 
@@ -162,9 +162,14 @@ runExp :: Bool -> Exp -> InterEnv -> Either String (Val,Type,(Int,Int),(Int,Int)
 runExp b e env@(e0,t0,v0,f0,bs,mflag) = 
     do sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0        
-       svcode <- runCompileExp e v0  
-       (svcodeRes,(w',s')) <- if b then runSvcodePExp svcode bs mflag f0 else runSvcodeExp svcode f0
-       --(svcodeRes,(w',s')) <- runSvcodeExp svcode f0
+       (svcode, st) <- runCompileExp e v0 
+       (svcodeRes, w',s') <- 
+         if b then do (svcodeResCtx,(w',s')) <- runSvcodePExp svcode bs mflag f0
+                      sv <- avs2sv st svcodeResCtx
+                      return (sv, w',s')
+          else do (svcodeResCtx,(w',s')) <- runSvcodeExp svcode f0
+                  sv <- sv2sv st svcodeResCtx
+                  return (sv,w',s')
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes' 
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
@@ -176,7 +181,7 @@ runExp b e env@(e0,t0,v0,f0,bs,mflag) =
 runDebug :: Exp -> Int -> InterEnv -> Either String ([SInstr],SvcodeInterp.Svctx)
 runDebug e count env@(e0,t0,v0,f0,bs,mflag) = 
     do sneslTy <- runTypingExp e t0   
-       svcode <- runCompileExp e v0
+       (svcode,_) <- runCompileExp e v0
        runSvcodeDebug svcode f0 count
 
 
@@ -201,9 +206,11 @@ testString str env@(e0,t0,v0,f0,bs,mflag) =
     do e <- runParseExp str
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
-       svcode <- runCompileExp e v0
-       --(svcodeRes, (w',s')) <- runSvcodeExp svcode f0  -- eager interp
-       (svcodeRes, (w',s')) <- runSvcodePExp svcode bs mflag f0 -- streaming interp       
+       (svcode, st) <- runCompileExp e v0
+       --(svcodeResCtx, (w',s')) <- runSvcodeExp svcode f0  -- eager interp
+       --svcodeRes <- sv2sv st svcodeResCtx
+       (svcodeResCtx, (w',s')) <- runSvcodePExp svcode bs mflag f0 -- streaming interp       
+       svcodeRes <- avs2sv st svcodeResCtx
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes'  
          then return (sneslRes, sneslTy,(w,s),(w',s')) 
@@ -217,7 +224,7 @@ geneExpCode :: String -> [SInstr]
 geneExpCode str = 
   case runParseExp str of 
     Right e -> case runCompileExp e compEnv0 of 
-                 Right (SFun _ _ code _) -> code 
+                 Right (SFun _ _ code _, _) -> code 
                  Left _ -> []
     Left _ -> []
 
@@ -225,8 +232,9 @@ geneExpCode str =
 geneExpSFun :: String -> VEnv -> Either String SFun
 geneExpSFun str ve = 
   do e <- runParseExp str 
-     runCompileExp e ve 
- 
+     (sf,_) <- runCompileExp e ve 
+     return sf 
+
 
 geneDefSFun :: String -> Either String (VEnv,FEnv)
 geneDefSFun str = 
@@ -270,6 +278,48 @@ compareVal (SVal vs1) (SVal vs2) =
     else False
 compareVal _ _ = False 
 
+
+
+sv2sv :: STree -> [(SId,SvVal)] -> Either String SvVal
+sv2sv (IStr t1) ctx = 
+  case lookup t1 ctx of 
+    Just v -> return v 
+    _ -> Left $ "Undefined SId:" ++ show t1 
+
+sv2sv (BStr t1) ctx = sv2sv (IStr t1) ctx 
+
+sv2sv (PStr t1 t2) ctx = 
+  do v1 <- sv2sv t1 ctx 
+     v2 <- sv2sv t2 ctx  
+     return $ SPVal v1 v2  
+
+sv2sv (SStr t1 t2) ctx = 
+  do v1 <- sv2sv t1 ctx 
+     SBVal v2 <- sv2sv (BStr t2) ctx 
+     return $ SSVal v1 v2  
+
+
+
+avs2sv :: STree -> [(SId,[AVal])] -> Either String SvVal
+avs2sv (IStr t1) ctx = 
+  case lookup t1 ctx of 
+    Just as ->  return $ SIVal [a | IVal a <- as]
+    _ -> Left $ "Undefined SId:" ++ show t1 
+
+avs2sv (BStr t1) ctx = 
+  case lookup t1 ctx of 
+    Just as ->  return $ SBVal [a | BVal a <- as]
+    _ -> Left $ "Undefined SId:" ++ show t1 
+
+avs2sv (PStr t1 t2) ctx = 
+  do v1 <- avs2sv t1 ctx
+     v2 <- avs2sv t2 ctx
+     return $ SPVal v1 v2
+
+avs2sv (SStr t1 t2) ctx = 
+  do v1 <- avs2sv t1 ctx 
+     SBVal v2 <- avs2sv (BStr t2) ctx 
+     return $ SSVal v1 v2
 
 
 -- some examples 

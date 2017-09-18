@@ -37,19 +37,16 @@ instance Applicative Svcode where
 
 
 -- run the svcode translated from an SNESL expression
-runSvcodeExp :: SFun -> FEnv -> Either String (SvVal, (Int,Int))
-runSvcodeExp (SFun [] st code _) fe = 
-  case rSvcode (mapM_ sInstrInterp code) [] 0 (0,0) fe of 
-    Right (_, (w,s), ctx) -> 
-        case lookupTreeCtx st ctx of                      
-            Nothing -> Left "SVCODE runtime error: undefined streams." 
-            Just vs -> Right (vs, (w,s))
+runSvcodeExp :: SFun -> FEnv -> Either String ([(SId, SvVal)], (Int,Int))
+runSvcodeExp (SFun [] retSids code _) fe = 
+  case rSvcode (mapM_ sInstrInterp code >> mapM lookupSid retSids) [] 0 (0,0) fe of 
+    Right (svs, (w,s), ctx) -> return (zip retSids svs, (w,s)) 
     Left err -> Left err  
 
 
 -------- for TDebug ----------
 runSvcodeDebug :: SFun -> FEnv -> Int -> Either String ([SInstr],Svctx)
-runSvcodeDebug (SFun [] st code _) fe count = 
+runSvcodeDebug (SFun [] _ code _) fe count = 
   case roundN [] 0 fe count code of 
     Right ctx -> Right (take count code, ctx)
     Left err -> Left err  
@@ -62,21 +59,6 @@ roundN ctx ctrl fe count code =
     Left err -> Left err
 -------------------
 
-
-lookupTreeCtx :: STree -> Svctx -> Maybe SvVal
-lookupTreeCtx (IStr t1) ctx = lookup t1 ctx
-lookupTreeCtx (BStr t1) ctx = lookup t1 ctx  
-lookupTreeCtx (PStr t1 t2) ctx = case lookupTreeCtx t1 ctx of 
-    Just v1 -> case lookupTreeCtx t2 ctx of 
-                   Just v2 -> Just $ SPVal v1 v2  
-                   Nothing -> Nothing
-    Nothing -> Nothing
-
-lookupTreeCtx (SStr t1 t2) ctx = case lookupTreeCtx t1 ctx of 
-    Just v1 -> case lookupTreeCtx (BStr t2) ctx of 
-                   Just (SBVal v2) -> Just $ SSVal v1 v2  
-                   Nothing -> Nothing
-    Nothing -> Nothing
 
 
 -- look up the stream value according to its SId 
@@ -193,13 +175,13 @@ sInstrInterp (WithCtrl c _ defs st) =
        else localCtrl c $ mapM_ sInstrInterp defs
 
 sInstrInterp (SCall fid sids retSids) = 
-  do (SFun sids' st code _) <- lookupFId fid 
+  do (SFun sids' frets code _) <- lookupFId fid 
      gloCtrl <- getCtrl
      oldCtx <- getCtx
-     c <- makeCtx (gloCtrl:sids) (0:sids')
+     c <- makeCtx (gloCtrl:sids) (0:sids')  -- may not need 0 any more??
      setCtx c
      localCtrl 0 $ mapM_ sInstrInterp code
-     retc <- makeCtx (tree2Sids st) retSids     
+     retc <- makeCtx frets retSids     
      setCtx $ oldCtx ++ retc
 
 

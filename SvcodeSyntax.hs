@@ -34,7 +34,7 @@ data SInstr = SDef SId SExp  -- deriving Show
             | WithCtrl SId [SId] [SInstr] STree
             | SCall FId [SId] [SId]
 
-data SFun = SFun [SId] STree [SInstr] Int -- deriving Show 
+data SFun = SFun [SId] [SId] [SInstr] Int -- deriving Show 
 
 
 data OP = Uminus | Not  -- unary 
@@ -87,14 +87,14 @@ data SvVal = SIVal [Int]
            | SBVal [Bool] 
            | SSVal SvVal [Bool]  -- Sequence
            | SPVal SvVal SvVal -- Pair
-           deriving Eq
+           deriving (Eq,Show)
 
 
-instance Show SvVal where
-    show (SIVal is) = "Ints <" ++ showseq "," is ++ ">"
-    show (SBVal bs) = "Bools <" ++ showseq "," bs ++ ">"    
-    show (SSVal v bs) = "Seq (" ++ show v ++ ","++ show bs ++")"    
-    show (SPVal v1 v2) = "Pair (" ++ show v1 ++"," ++ show v2 ++ ")"
+--instance Show SvVal where
+--    show (SIVal is) = "Ints <" ++ showseq "," is ++ ">"
+--    show (SBVal bs) = "Bools <" ++ showseq "," bs ++ ">"    
+--    show (SSVal v bs) = "Seq (" ++ show v ++ ","++ show bs ++")"    
+--    show (SPVal v1 v2) = "Pair (" ++ show v1 ++"," ++ show v2 ++ ")"
 
 
 showseq delim [] = ""

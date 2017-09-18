@@ -33,8 +33,6 @@ data Exp = Var Id
 
 
 data Def = FDef FId [(Id,Type)] Type Exp  -- function definition
-         -- | EDef Id Exp   -- expression definition
-         --deriving Show
 
 
 
@@ -62,7 +60,6 @@ instance Show Val where
 
 instance Show Def where
   show (FDef fname _ _ _) = "function: " ++ fname
-  --show (EDef i e) = i ++ ": " ++ show e 
 
 
 showelts :: Show a => [a] -> String -> String

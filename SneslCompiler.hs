@@ -23,16 +23,16 @@ runCompileDef (FDef fname args rtp e) (ve,fe) =
         newVe = (fname, FDStr sts st):ve  
         sids = concat $ map tree2Sids sts  
     in  case rSneslTrans (translate e) s1 (argSts++newVe) of 
-            Right (st',svs,count) -> Right $ (newVe,(fname,SFun sids st' svs count):fe) 
+            Right (st',svs,count) -> Right $ (newVe,(fname,SFun sids (tree2Sids st') svs count):fe) 
             Left err -> Left $ "Compiling error: " ++ fname ++ ":" ++ err
 
 
 
 -- compile an expression
-runCompileExp :: Exp -> VEnv -> Either String SFun 
+runCompileExp :: Exp -> VEnv -> Either String (SFun,STree) 
 runCompileExp e ve = 
     case rSneslTrans (translate e) 1 ve of 
-        Right (st, sv, count) -> Right $ SFun [] st (SDef 0 Ctrl : sv) count 
+        Right (st, sv, count) -> Right (SFun [] (tree2Sids st) (SDef 0 Ctrl : sv) count, st) 
         Left err -> Left err 
 
 -------------------------------
@@ -204,7 +204,7 @@ translate (GComp e0 ps) =
         newVarTrs  <- mapM (\x -> distr x s0) usingVarsTrs      
         usingVarbinds <- mapM (\(v,tr) -> bindM (PVar v) tr) 
                               (zip usingVars newVarTrs)
-
+  
         newCtrl <- emit (Usum s0) 
         -- translate the body
         (st,defs) <- ctrlTrans $ localVEnv (concat $ newEnvs ++ usingVarbinds) 

@@ -61,10 +61,9 @@ instance Applicative SvcodeP where
 
 
 
-runSvcodePExp :: SFun -> Int -> Bool -> FEnv -> Either String (SvVal, (Int,Int))
-runSvcodePExp (SFun [] st code fresh) bs _ fe = 
+runSvcodePExp :: SFun -> Int -> Bool -> FEnv -> Either String ([(SId,[AVal])], (Int,Int))
+runSvcodePExp (SFun [] retSids code fresh) bs _ fe = 
   do let (sup,d) = geneSupDag code 0
-         retSids = tree2Sids st 
          retRSids = [((0,head retSids,r),i) | (r,i) <- zip retSids [0..]]
          ctrl = (0,head retSids,0) 
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d 
@@ -72,7 +71,7 @@ runSvcodePExp (SFun [] st code fresh) bs _ fe =
      (_,_, ctx,re) <- rSvcodeP (sInit code (head retSids) d' sup) M.empty ctrl fe 0 M.empty
      (as,(w1,s1), _,_) <- rrobin (mapM_ (sInstrInterp bs (head retSids)) code) 
                            ctx retRSids (map (\_ -> []) retSids) (0,0) fe re
-     return (fst $ constrSv st as,(w1,s1))
+     return (zip retSids as,(w1,s1))
 
 
 addClient :: Dag -> SId -> (SId,Int) -> Dag
@@ -82,18 +81,6 @@ addClient d i c =
     Just cl -> updateByKey d i $ cl ++ [c] 
 
 
-constrSv :: STree -> [[AVal]] -> (SvVal, [[AVal]])
-constrSv (IStr t1) as = (SIVal [a | IVal a <- head as], tail as)
-constrSv (BStr t1) as = (SBVal [b | BVal b <- head as], tail as)
-constrSv (PStr t1 t2) as = 
-  let (v1,as') = constrSv t1 as
-      (v2,as'') = constrSv t2 as'
-   in (SPVal v1 v2, as'')
-
-constrSv (SStr t1 t2) as = 
-  let (v1,as') = constrSv t1 as 
-      (SBVal v2, as'') = constrSv (BStr t2) as'
-   in (SSVal v1 v2, as'') 
 
 
 -- scheduling  
@@ -325,9 +312,8 @@ sInstrInit (WithCtrl ctrl ins code st) r d sup =
 
 
 sInstrInit (SCall fid argSid retSids) r d sup = 
-  do (SFun fmArgs st code count) <- lookupFId fid
-     let fmRets = tree2Sids st      
-         (fmSup,fmDag) = geneSupDag code 0 
+  do (SFun fmArgs fmRets code count) <- lookupFId fid
+     let (fmSup,fmDag) = geneSupDag code 0 
 
      sf <- getSF
      let fmSf = sf +1 
@@ -602,9 +588,8 @@ checkKeyVal (p0@(k0,v0):ps) k v =
 ------- run the program and print out the Svctx of each round  -------------
 -- 
 runSvcodePExp' :: SFun -> Int -> Int -> FEnv -> Either String String 
-runSvcodePExp' (SFun [] st code fresh) count bs fe = 
+runSvcodePExp' (SFun [] retSids code fresh) count bs fe = 
   do let (sup,d) = geneSupDag code 0
-         retSids = tree2Sids st
          retRSids = zip (s2Rs retSids 0 (head retSids)) [0..] 
          ctrl = (0,head retSids,0)
          d' = foldl (\dag (sid,i) -> addClient dag sid (-1,i)) d $ zip retSids [0..]
@@ -700,7 +685,7 @@ geneDagFile (SFun _ ret code fresh) fname =
          lines = map (\(x,ys) -> if null ys then drawnode x else          
                   concat $ zipWith (\y c -> drawedge y x c) ys [0..]) ch3         
 
-         retSids = map (\sid -> fst $ ch2!!sid) $ tree2Sids ret 
+         retSids = map (\sid -> fst $ ch2!!sid) ret 
          retLines = map (\(c,s) -> drawedge s "S-1: Output" c) 
                           $ zip [0..] retSids
          content = concat $ lines ++ retLines  
