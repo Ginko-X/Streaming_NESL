@@ -24,7 +24,7 @@
 
 \def\emptyv{\langle \rangle}
 
-\def\SVal{\mathbf{SVal}}
+\def\SvVal{\mathbf{SvVal}}
 
 %\def\ctrl{\mathtt{Ctrl}}
 \def\consta#1{\mathtt{Const_{#1}}} 
@@ -41,7 +41,7 @@
 
 \def\:={:=}
 \def\sdef#1#2{#1 := #2}
-\def\withctrl#1#2#3{#3 := \mathtt{WithCtrl}(#1,#2)}
+\def\withctrl#1#2#3#4{#4 := \mathtt{WithCtrl}(#1,#3,#2)}
 
 \def\T{\mathtt{T}} 
 \def\F{\mathtt{F}} 
@@ -93,24 +93,28 @@
  
  
 \def\S{\mathbf{S}}
-\def\FV#1{\mathbf{FV}(#1)}
+\def\Sin{\mathbf{S}_{in}}
+\def\Sout{\mathbf{S}_{out}}
+\def\FV#1#2{\mathtt{fv}(#1,#2)}
 
 
 
 \newcommand{\eq}[2]{\begin{equation}\label{#1} #2\end{equation}}
 
-\providecommand{\versionnumber}{0.0.6}
+\providecommand{\versionnumber}{0.0.7}
 
 
 \section{Level-0}
 
 Draft version \versionnumber: 
 \begin{itemize}
-	\item bug fix in the main correctness theroem (but not all fixed)
-	\item changed the definition of store similarity and related lemmas
-	\item some other trivial bug fixes, and adjustment of some subsection
+	\item changed WithCtrl: added import and export list 
+	\item adjusted section structure
+    \item small changes of some function notations
+	\item Note: the symbols/functions used in the main correctness theroem has not updated yet
 \end{itemize}
 
+\section{Source Language}
 
 \subsection{Source language syntax}
 SNESL Expressions:
@@ -214,11 +218,15 @@ $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 
 \end{itemize}
 
+\section{Target language}
+
 \subsection{SVCODE syntax}
 \begin{enumerate}[(1)]
 \item Stream id: $$\s \in \SId = \*{N} = \{0,1,2...\}$$
 
-\item Stream tree: $$ \STree \ni \st ::= \s \ | \ (\st_1,\s) $$
+A list of $\SId$: 
+$$\S = [\s_1,..., \s_i] $$
+ 
 \item SVCODE operations: $$\psi ::= \consta{a} \ | \ \toflag
 \ | \ \usum \ | \ \maptwo{\oplus} \ | \ \scan_{n_0} $$
 where $\oplus$ stands for some binary operation on $\int$. \\
@@ -228,32 +236,27 @@ where $\oplus$ stands for some binary operation on $\int$. \\
 \begin{align*}
 	p :: & = \ \epsilon \\
 	     &\ \ | \ \sdef{\s}{\psi(s_1,...,s_i)} \\
-	     &\ \ | \ \withctrl{\s}{p}{\st} \\
+	     &\ \ | \ \withctrl{\s}{p_1}{\S_1}{\S_2} \\
 	     &\ \ | \ p_1;p_2 	 
 \end{align*}
 
 
-\item Target language values: 
+
+\item SVCODE streams: 
 $$b \in \{\T,\F \}$$
 $$ a ::= n \ | \ b \ | \ \unit$$
 $$\b = \vrange{b_1}{b_i}$$ 
 $$\a = \vrange{a_1}{a_i}  $$
-$$\SVal \ni \v ::= \a \ | \ (\v,\b) $$
 
-\item Some notations and operations:
+
+\item Notations and operations about streams:
 \begin{itemize}
 	\item For some $a_0$ and $\a = \< a_1,...,a_i \'>$, let $\< a_0 | \a \'>  = \< a_0,a_1,...,a_i \'>. $ 
 
-	\item $\++: \SVal \->  \SVal \-> \SVal$ \\
-	  $\vapp{\vrange{a_1}{a_i}} {\vrange{a_1'}{a_j'}} = \langle a_1,...,a_i,a_1',...,a_j' \rangle $ \\
-	  $\vapp{(\v_1,\b_1)}{(\v_2,\b_2)} = (\vapp{\v_1}{\v_2}, \vapp{\b_1}{\b_2})$
+	\item $\vapp{\vrange{a_1}{a_i}} {\vrange{a_1'}{a_j'}} = \langle a_1,...,a_i,a_1',...,a_j' \rangle $ \\
 
-	\item $\texttt{sids}$ is a function that converts a $\st \in \STree$ to a set of $\s \in \SId$: \\
-	$\sids{\s} = \{\s\}$ \\
-	$\sids{(\st,\s)} = \sids{\st} \cup \{\s\}$ 
-   
-    \item 
-    For some set of $\SId$, $t$, and some $\s \in \SId$, let $t \.< \s$ denote $\forall \s' \in t. \s' < \s$.
+%    \item 
+%    For some set of $\SId$, $t$, and some $\s \in \SId$, let $t \.< \s$ denote $\forall \s' \in t. \s' < \s$.
 
 \end{itemize}
 
@@ -261,7 +264,9 @@ $$\SVal \ni \v ::= \a \ | \ (\v,\b) $$
 
 \subsection{SVCODE semantics}
 
-SVCODE runtime environment $\sgm = [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$.\\
+SVCODE stores $\sgm = [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$.\\
+
+
 
 \begin{itemize}
 
@@ -277,19 +282,26 @@ $\c$ is the control stream.\\
 
 \PRule{Wc-Emp}{\PT{
 	\AC{}
-	\RiLa{(\sgm(\s)= \emptyv, \sids{\st} = \{s_1,...,\s_i\})}
-	\UC{\seval{\withctrl{\s}{p}{\st}}{\sgm}{\c}{\sgm[\s_1 \|-> \emptyv, ..., \s_i \|-> \emptyv]}}
+	\RiLa{
+		\left(
+			\begin{aligned}
+				&\sgm(\s_c)= \emptyv \\
+				&\forall s \in \Sin. \sgm(s) = \emptyv \\
+				&??? \forall j \in \{1,...,i\}. \s_j \in \Sout \wedge \s_j > \s_c
+			\end{aligned}
+		\right)}
+	\UC{\seval{\withctrl{\s_c}{p}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\s_1 \|-> \emptyv, ..., \s_i \|-> \emptyv]}}
 }}\\[2ex]
 
-\PRule{Wc-Nonemp}{\PT{
-	\AC{\seval{p}{\sgm}{\a_s}{\sgm''}}
+\makebox[1.0\textwidth][c] {\PRule{Wc-Nonemp}{\PT{
+	\AC{\seval{p}{\sgm}{\c_1}{\sgm''}}
 	\RiLa{\left(
 		\begin{aligned} 
-		&\sgm(\s)= \a_s = \< a_0 | \a \'> \\
-		&\sids{\st}=\{s_1,...,s_i\}
+		&\sgm(\s_c)= \c_1 = \< () | \c_2 \'> \\
+	    &??? \forall j \in \{1,...,i\}. \s_j \in \Sout \wedge \s_j > \s_c
 		\end{aligned}\right)}
-	\UC{\seval{\withctrl s p \st } \sgm {\c} \sgm[\s_1 \|-> \sgm''(\s_1),...,\s_i \|-> \sgm''(\s_i)]}
-}}\\[2ex]
+	\UC{\seval{\withctrl {s_c} p \Sin \Sout } \sgm {\c} \sgm[\s_1 \|-> \sgm''(\s_1),...,\s_i \|-> \sgm''(\s_i)]}
+}}}\\[2ex]
 
 \PRule{Seq}{\PT{
 	\AC{\seval{p_1}{\sgm}{\c}{\sgm''}}
@@ -310,9 +322,9 @@ $\c$ is the control stream.\\
 	\BC{\sevalf{\vapp{\a_{11}}{\a_{12}}}{\vapp{\a_{k1}}{\a_{k2}}}{\< a_0 | \c \'>}{\a}}
 }}\\[2ex]
 
-%TODO should fix??	
-\PRule{X-Termi}{\PT{\Axiom{\sevalf {\a_1} {\a_k} \emptyv \emptyv}}}
-	
+
+\PRule{X-Termi}{\infer{\sevalf {\emptyv_1} {\emptyv_k} \emptyv \emptyv}{}}
+\footnote{For convenience, in this thesis we add subscripts to a sequence of constants, such as $\emptyv, \F, 1$, to denote the total number of these constants.}
 
 \item Transducer $block$ semantics: \\ 
 
@@ -405,27 +417,7 @@ Or if we want to use $unary$ semantics maybe for later: \\
 
 
 \subsection{Definitions}
-
-We define some notations and operations related to $\sgm$:
-\begin{enumerate}[(1)]
-	\item Let $\sgm_1 \ConEq{\s} \sgm_2$ denote $\forall \s' < \s. \sgm_1(\s') = \sgm_2(\s')$. 
-
-%TODO replace with S	
-	\item ??? \Jug{\sgm(\st) = w}
-	%\PT{\Axiom{\sgm(\s) = \a}} 
-	%\PT{
-	%	\AC{\sgm(\st)=w} 
-	%	\Axiom{\sgm(\s) = \a}
-	%	\BC{\sgm((\st,\s)) = (w,\a)}
-	%}
-	
-	\item $\S$ denotes a set of $\SId$, can be $\emptyset$; $\S^+$ denotes a non-empty set of $\SId$.
-	 	
-	
-\end{enumerate}
-
-
-We define a binary relation $\~\S$ on stores to denote that two stores are $similar$: they have identical domains, and their bound values by $\S$ are the same. 
+We first define a binary relation $\~\S$ on stores to denote that two stores are $similar$: they have identical domains, and their bound values by $\S$ are the same. 
 We call this $\S$ an $overlap$ of these two stores.
 
 \begin{defi}[\textbf{Stores similarity}]
@@ -437,7 +429,7 @@ We call this $\S$ an $overlap$ of these two stores.
 	(2) $\forall s \in \S.\sgm_1(s)= \sgm_2(s)$ \\
 \end{defi}
 
-According to this definition, it is only meaningful to have $\S  \subseteq dom(\sgm_1)$ (or $dom(\sgm_2)$), and $\S$ can be empty. 
+According to this definition, it is only meaningful to have $\S  \subseteq dom(\sgm_1)$ (= $dom(\sgm_2)$).  
 When $\S = dom(\sgm_1) = dom(\sgm_2)$, $\sgm_1$ and $\sgm_2$ are identical. 
 It is easy to show that this relation $\overset{\S}{\sim}$ is transitive.
 \begin{itemize}
@@ -471,27 +463,13 @@ This lemma says that the concatenation result of two similar stores is still sim
 %\end{proof}
 
 
-\begin{lem}\label{lem-join2}
-	If $\sgm_1 \~{\S_1} \sgm'_1$, $\sgm_2 \~{\S_2} \sgm'_2$, $\sgm_1 \ConEq{s} \sgm_2$,
-	and $\sgm'_1 \ConEq{\s} \sgm_2'$  
-	then $\sgm_1 \x{\S_1} \sgm_1' \ConEq{s} \sgm_2 \x{\S_2} \sgm'_2$. 
-\end{lem}
-
-%
-%\begin{lem} 
-%	If $\sgm_1 \~{\st} \sgm_2$, 
-%	$\seval{p}{\sgm_1}{\a_1}{\sgm_1'}$, 
-%	$\seval{p}{\sgm_2}{\a_2}{\sgm_2'}$,
-%	then $\exists \st'.\seval{p}{\sgm_1 \x{\st} \sgm_2}{\a_1 \++ \a_2}{\sgm_1' \x{\st'} \sgm_2'}$
-%\end{lem}
-
 \begin{lem} \label{lem-psi-join}
 	If $\sevalfg{\lcall}{\a_{11},...,\a_{1k}}{\c_1}{\a_1}$,
 	and $\sevalfg{\lcall}{\a_{21},...,\a_{2k}}{\c_2}{\a_2}$,
 	then $\sevalfg{\lcall}{\a_{11} {\++} \a_{21},...,\a_{1k} {\++} \a_{2k}}{\c_1 {\++} \c_2}{\a_1 {\++} \a_2}$.
 \end{lem}
 
-\begin{lem} \label{lem-sgm-join}
+\begin{lem} [\textbf{Stores concatenation lemma}] \label{lem-sgm-join}
 	If $\sgm_1 \~{\S} \sgm_2, 
 	\seval{p}{\sgm_1}{\c_1}{\sgm_1'}$ (by some derivation $\MP_1$),
 	$\seval{p}{\sgm_2} {\c_2} {\sgm_2'}$ (by $\MP_2$),
@@ -503,6 +481,16 @@ We need this lemma to prove that the results of single computations inside a com
 feed the transducers. The splitted parallel degrees are specified by the
 control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s in all $\sgm$s (i.e., $\S$) have no change throughout the process.\\
 
+
+
+
+Let $\sgm_1 \ConEq{\s} \sgm_2$ denote $\forall \s' < \s. \sgm_1(\s') = \sgm_2(\s')$. 
+	
+\begin{lem}\label{lem-join2}
+	If $\sgm_1 \~{\S_1} \sgm'_1$, $\sgm_2 \~{\S_2} \sgm'_2$, $\sgm_1 \ConEq{s} \sgm_2$,
+	and $\sgm'_1 \ConEq{\s} \sgm_2'$  
+	then $\sgm_1 \x{\S_1} \sgm_1' \ConEq{s} \sgm_2 \x{\S_2} \sgm'_2$. 
+\end{lem}
 
 \subsection{SVCODE determinism theroem}
 
@@ -543,8 +531,32 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 \end{thm}
 
 
-\subsection{Translation}
-$\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
+\section{Translation}
+
+
+
+\subsection{Translation rules}
+\begin{enumerate}[(1)]
+	\item Stream tree: $$ \STree \ni \st ::= \s \ | \ (\st_1,\s) $$
+	\item Convert a stream tree to a list of  stream ids:
+	      \begin{align*}
+	      &\bar{}: \STree \-> \S \\
+	      &\overline{\s} = [s] \\
+	      &\overline{(\st,s)} = \overline{st} {\++} [s]
+	      \end{align*}
+	\item Function $\FV{p}{s_c}$ takes an SVCODE program and the control stream id as parameters,
+	returns a list of the free variables (i.e., stream ids)  of $p$:
+	\begin{align*}
+	&\FV{\epsilon}{\_} \ = [ \ ] \\
+	&\FV{\sdef{\s}{\psi(s_1,...,s_i)}} {\s_c}  = [\s_c,s_1,...,s_i] \\
+	&\FV{\withctrl{\s_c'}{p_1}{\Sin}{\Sout}} {\s_c}  = [s | s \in  \Sin, \s < \s_c] \\
+	&\FV{p_1;p_2}{\s_c} = \FV{p_1}{\s_c} {\++}  \FV{p_2}{\s_c}
+	\end{align*}
+	
+	\item Translation environment: $$\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $$ 
+	
+	
+\end{enumerate}
 
 \begin{itemize}	
 
@@ -567,8 +579,13 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 
 \PT{
 	\AC{\Trans{[x \|-> {\st_1}]}{e}{\s_0+1}{\s_1}{\sfun{p}{\st}}}
-	\RiLa{(\del(y)=(\st_1,\s_2))}
-	\UC{\Trans{\del}{\Comp{e}{x}{y}{\cdot}}{\s_0}{\s_1}{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p}{\st}}{(\st,\s_2)}}}
+	\RiLa{\left(
+		   \begin{aligned}
+		    &\del(y)=(\st_1,\s_2) \\
+		    &\Sin = \FV{p}{\s_0}
+		   \end{aligned}
+		 \right)}
+	\UC{\Trans{\del}{\Comp{e}{x}{y}{\cdot}}{\s_0}{\s_1}{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p}{\Sin}{\overline{\st}}}{(\st,\s_2)}}}
 }
 
 
@@ -585,7 +602,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 		  \s_{i+1} & = \s_i + 1, \forall i \in \{0,...,3\} \\
 		  p= & \sdef{\s_0}{\toflag(\s)} ; \\ 
 		     & \sdef{\s_1}{\usum(s_0)} ; \\
-		     & \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{\s_2}; \\
+		     & \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{[\s_1]}{\overline{\s_2}}; \\
 	         & \sdef{\s_3}{\scan_{0}(\s_0,s_2)}
 	    \end{aligned}\right)
     }
@@ -601,18 +618,40 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 
 
 \subsection{Value representation}
-\begin{itemize}
+\begin{enumerate}
+	\item SVCODE values: $$\SvVal \ni \v ::= \a \ | \ (\v,\b) $$
+	\item SVCODE values concatenation: \\ 
+	   \begin{align*}
+	   	 &\++: \SvVal \->  \SvVal \-> \SvVal \\
+	   	 &\vapp{\<\a_1,...,\a_i\'>}{\<\a_1',...,\a_j'\'>} = \<\a_1,...,\a_i,\a_1',...,\a_j'\'> \\
+	   	&\vapp{(\v_1,\b_1)}{(\v_2,\b_2)} = (\vapp{\v_1}{\v_2}, \vapp{\b_1}{\b_2})
+	   \end{align*}
+	   
+	\item SVCODE value construction from a stream tree: \\
+	\begin{align*}
+		&\sgm : \STree \-> \SvVal \\
+		&\sgm(\s) = \a \\
+		&\sgm((\st,\s)) = (\sgm(\st), \sgm(\s)) 
+	\end{align*}
+	
+	
+	\item Value representation rules
+	\begin{itemize}
+		
+		\item \Jug{\ValRep{v}{\tau}{\v}}
+		
+		\PT{
+			\Axiom{\ValRep{n}{\int}{\singl{n}}}
+		}
+		\PT{
+			\AC{(\ValRep{v_i}{\tau}{\v_i})^k_{i=1}}
+			\RiLa{(\v = \v_1 {\++} ... {\++} \v_k)}
+			\UC{\ValRep{\Seqk{v}}{\tseq{\tau}}{(\v,\langle \F_1,..., \F_k, \T \rangle)}}
+		}
+	\end{itemize}
+\end{enumerate}
 
-\item \Jug{\ValRep{v}{\tau}{\v}}
 
-\PT{
-	\Axiom{\ValRep{n}{\int}{\singl{n}}}
-}
-\PT{
-	\AC{(\ValRep{v_i}{\tau}{\v_i})^k_{i=1}}
-	\RiLa{(\v = \v_1 {\++} ... {\++} \v_k)}
-	\UC{\ValRep{\Seqk{v}}{\tseq{\tau}}{(\v,\langle \F_1,..., \F_k, \T \rangle)}}
-}
 
 
 \begin{comment}
@@ -632,7 +671,7 @@ $\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $
 
 \end{comment}
 
-\end{itemize}
+
 
 \begin{lem}[\textbf{Value translation backwards determinism}]
 	If $\ValRep{v}{\tau}{w}$, $\ValRep{v'}{\tau}{w}$,
@@ -792,10 +831,10 @@ By inducntion on the syntax of $\hcall$.
 			\LeLa{\MC = }
 			\RiLa{(\del(y)=(\st_1,\s_2))}
 			\UC{\Trans{\del}{\Comp{e_1}{x}{y}{\cdot}}{\s_0}{\s_1}
-				{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}}{(\st_2,\s_2)}}}
+				{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\Sin}{\overline{\st_2}}}{(\st_2,\s_2)}}}
 		}
 	
-	 So $p= (\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}),
+	 So $p= (\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\Sin}{\overline{\st_2}}),
 	\tau = \tseq{\tau_2}, v = \Seqk{v'}, \st = (\st_2,\s_2). $ \\
 
 	\item $\Type{}{\rho(y)}{\Gam(y)}$ gives us $\Type{}{\Seqk{v}}{\tseq{\tau_1}}$, 
@@ -836,7 +875,7 @@ First we shall show:
 	\begin{enumerate}[(i)]
 	\setcounter{enumi}{4}
 	
-	\item \label{comp-5}$\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\singl{()}}{\sgm'}$
+	\item \label{comp-5}$\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\Sin}{\overline{\st_2}}}{\sgm}{\singl{()}}{\sgm'}$
 	by some $\MP$
 	\item $\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_2))}$ by some $\MR$
 	\item $\sgm' \ConEq{\s_0} \sgm$ \\
@@ -846,8 +885,8 @@ First we shall show:
 	By $\PName{Seq}$, we can build $\MP$ as follow:
 	$$ \PT{
 		\UCN{\MP_0}{\seval{\sdef{\s_0}{\usum(\s_2)}}{\sgm}{\singl{()}}{\sgm_0}}
-		\UCN{\MP_1}{\seval{\withctrl{\s_0}{p_1}{\st_2}}{\sgm_0}{\<()\'>}{\sgm'}}
-		\BC{\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\singl{()}}{\sgm'}}
+		\UCN{\MP_1}{\seval{\withctrl{\s_0}{p_1}{\Sin}{\overline{\st_2}}}{\sgm_0}{\<()\'>}{\sgm'}}
+		\BC{\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\Sin}{\overline{\st_2}}}{\sgm}{\singl{()}}{\sgm'}}
 	} $$
     
     By $\PName{Xducer}$ with $\sgm(\s_2) = \stwo$, we can continue to build $\MP_0$ as follow:
@@ -922,7 +961,7 @@ First we shall show:
 	$$\PT{
 		\AC{}
 		\LeLa{\MP_1 = }
-		\UC{\seval{\withctrl{\s_0}{p_1}{\st_2}}{\sgm}{\< () \'>}
+		\UC{\seval{\withctrl{\s_0}{p_1}{\Sin}{\overline{\st_2}}}{\sgm}{\< () \'>}
 			{\sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_j' \|-> \emptyv]}}
 	  }$$ 
     So in this subcase, 
@@ -956,7 +995,7 @@ First we shall show:
 	By $\PName{Wc-Nonemp}$, we take $\MP_1 = $
 	$$\PT{
 		\UCN{\MP_1'}{\seval{p_1}{\sgmsz}{\kunit}{\sgm''}}
-		\UC{\seval{\withctrl {s_0} {p_1} {\st_2} } 
+		\UC{\seval{\withctrl {s_0} {p_1} {\Sin}{\overline{\st_2}} } 
 				  {\sgmsz} 
 				  {\vunit} 
 				  {\sgmp-nonempty}}
