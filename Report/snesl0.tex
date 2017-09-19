@@ -473,7 +473,7 @@ This lemma says that the concatenation result of two similar stores is still sim
 	If $\sgm_1 \~{\S} \sgm_2, 
 	\seval{p}{\sgm_1}{\c_1}{\sgm_1'}$ (by some derivation $\MP_1$),
 	$\seval{p}{\sgm_2} {\c_2} {\sgm_2'}$ (by $\MP_2$),
-	and $\FV{p} \cap \S = \emptyset $,
+	and $\FV{p}{\c_1} \cap \S = \emptyset $, $\FV{p}{\c_2} \cap \S = \emptyset $
 	then $\seval{p}{\sgm_1 \x\S \sgm_2}{\c_1 {\++} \c_2}{ \sgm_1' \x\S \sgm_2' }$ (by $\MP$).
 \end{lem}
 
