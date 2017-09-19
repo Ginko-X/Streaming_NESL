@@ -6,7 +6,6 @@ module SvcodeSXInterp where
 import SvcodeSyntax
 import SneslSyntax
 import SvcodeXducer
-import SneslCompiler (tree2Sids)
 
 import Control.Monad
 import Data.Set (fromList, toList)

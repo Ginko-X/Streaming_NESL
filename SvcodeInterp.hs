@@ -4,7 +4,6 @@ module SvcodeInterp where
 
 import SvcodeSyntax
 import SneslSyntax
-import SneslCompiler (tree2Sids)
 import SneslInterp (wrapWork)
 import SvcodeXducer
 

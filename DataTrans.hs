@@ -5,7 +5,6 @@ module DataTrans where
 
 import SneslSyntax
 import SvcodeSyntax
-import SvcodeInterp(flagPartPrim)
 import SneslTyping
 
 
@@ -38,24 +37,26 @@ concatSsval (TTup t1 t2) vs = SPVal s1' s2'
 ---- transformation from SVCODE to SNESL ------
 
 dataTransBack :: Type -> SvVal -> Either String Val
-dataTransBack TInt (SIVal [i]) = return $ AVal $ IVal i 
-dataTransBack TBool (SBVal [b]) = return $ AVal $ BVal b
+dataTransBack t v = 
+  do vs <- seqTransBack t v 
+     case vs of 
+       [v] -> return v 
+       _ -> return $ SVal vs
 
-dataTransBack (TSeq t) (SSVal vs fs) = 
-    do vs' <- seqTransBack t vs
-       return $ SVal vs'
+--dataTransBack TInt (SIVal [i]) = return $ AVal $ IVal i 
+--dataTransBack TBool (SBVal [b]) = return $ AVal $ BVal b
 
-dataTransBack (TTup t1 t2) (SPVal v1 v2) = 
-    do v1' <- dataTransBack t1 v1 
-       v2' <- dataTransBack t2 v2 
-       return $ TVal v1' v2'
+--dataTransBack (TSeq t) (SSVal vs fs) = 
+--    do vs' <- seqTransBack t vs
+--       return $ SVal vs'
 
-dataTransBack t v = Left $ "dataTransBack: type and value does not match:" 
-                           ++ show t ++ "," ++ show v 
+--dataTransBack (TTup t1 t2) (SPVal v1 v2) = 
+--    do v1' <- dataTransBack t1 v1 
+--       v2' <- dataTransBack t2 v2 
+--       return $ TVal v1' v2'
 
-
---partseg :: SvVal -> [Bool] -> [SvVal]
---partseg (SIVal is) bs = [SIVal seg | seg <- flagPartPrim is bs] 
+--dataTransBack t v = Left $ "dataTransBack: type and value does not match:" 
+--                           ++ show t ++ "," ++ show v 
 
 
 seqTransBack :: Type -> SvVal -> Either String [Val]
