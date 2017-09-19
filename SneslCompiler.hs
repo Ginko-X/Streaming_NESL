@@ -68,6 +68,12 @@ tree2Sids (SStr s1 s2) = (tree2Sids s1) ++ [s2]
 tree2Sids (PStr s1 s2) = (tree2Sids s1) ++ (tree2Sids s2)
 
 
+tree2TSids :: STree -> [(PType,SId)]
+tree2TSids (IStr s1) = [(PInt,s1)]
+tree2TSids (BStr s1) = [(PBool,s1)]
+tree2TSids (SStr s1 s2) = (tree2TSids s1) ++ [(PBool,s2)]  
+tree2TSids (PStr s1 s2) = (tree2TSids s1) ++ (tree2TSids s2)
+
 
 askVEnv :: SneslTrans VEnv
 askVEnv = SneslTrans $ \ sid e0 -> Right (e0, [], sid)
@@ -151,8 +157,8 @@ translate (Var x) = lookupSTree x
 
 translate (Lit l) =
     case l of 
-      IVal i -> emitIs (Const l)
-      BVal b -> emitBs (Const l)
+      IVal i -> emitIs (Const l PInt)
+      BVal b -> emitBs (Const l PBool)
 
 translate (Tup e1 e2) = 
     do t1 <- translate e1   
@@ -161,15 +167,15 @@ translate (Tup e1 e2) =
 
 translate (SeqNil tp) = 
     do emptyCtrl <- emit EmptyCtrl
-       (st,defs) <- ctrlTrans $ emptySeq tp       
-       emitInstr (WithCtrl emptyCtrl [] defs st)
-       f <- emit (Const (BVal True))
+       (st,defs) <- ctrlTrans $ emptySeq tp 
+       emitInstr (WithCtrl emptyCtrl [] defs $ tree2TSids st)
+       f <- emit (Const (BVal True) PBool)
        return (SStr st f)
 
 
 translate e@(Seq es) = 
     do sts <- mapM translate es
-       s0 <- emit (Const (IVal 1)) 
+       s0 <- emit (Const (IVal 1) PInt) 
        fs <- mapM (\ _ -> emit (ToFlags s0)) sts 
        mergeSeq $ zipWith (\st f -> SStr st f) sts fs 
 
@@ -210,7 +216,7 @@ translate (GComp e0 ps) =
         (st,defs) <- ctrlTrans $ localVEnv (concat $ newEnvs ++ usingVarbinds) 
                                   $ translate e0 
         let imps = getImportSids newCtrl defs 
-        emitInstr (WithCtrl newCtrl imps defs st)
+        emitInstr (WithCtrl newCtrl imps defs $ tree2TSids st)
         return (SStr st s0)
         
 
@@ -225,7 +231,7 @@ translate (RComp e0 e1) =
        newCtrl <- emit (Usum s2)
        (s3,defs) <- ctrlTrans $ localVEnv (concat binds) $ translate e0 
        let imps = getImportSids newCtrl defs
-       emitInstr (WithCtrl newCtrl imps defs s3)
+       emitInstr (WithCtrl newCtrl imps defs $ tree2TSids s3)
        return (SStr s3 s2) 
 
 
@@ -235,7 +241,7 @@ getImportSids ctrl ins =
 
 getImportSid :: SId -> SInstr -> [SId]
 getImportSid ctrl (SDef sid e) =
-  let (sups,_) = getSupExp e ctrl
+  let (sups,_, _) = getSupExp e ctrl
   in filter (\sup -> sup < ctrl) sups 
 getImportSid ctrl (WithCtrl _ imps _ _) = filter (\i -> i < ctrl) imps  
 getImportSid ctrl (SCall _ args _) =  filter (\i -> i < ctrl) args
@@ -259,8 +265,8 @@ emptySeq (TTup t1 t2) =
 
 
 distr :: STree -> SId -> SneslTrans STree
-distr (IStr s1) s = emitIs (Distr s1 s)
-distr (BStr s1) s = emitBs (Distr s1 s)
+distr (IStr s1) s = emitIs (Distr s1 s PInt)
+distr (BStr s1) s = emitBs (Distr s1 s PBool)
 distr (PStr t1 t2) s = 
     do st1 <- distr t1 s
        st2 <- distr t2 s
@@ -279,8 +285,8 @@ distrSeg t@(SStr s0 s1) s =
 
 
 distrSegRecur :: STree -> SId -> SneslTrans STree       
-distrSegRecur (SStr (IStr s0) s1) s = emitIs (PrimSegFlagDistr s0 s1 s)
-distrSegRecur (SStr (BStr s0) s1) s = emitBs (PrimSegFlagDistr s0 s1 s)
+distrSegRecur (SStr (IStr s0) s1) s = emitIs (PrimSegFlagDistr s0 s1 s PInt)
+distrSegRecur (SStr (BStr s0) s1) s = emitBs (PrimSegFlagDistr s0 s1 s PBool)
 
 distrSegRecur (SStr (PStr s1 s2) s3) s =     
     do st1 <- distrSegRecur (SStr s1 s3) s
@@ -295,8 +301,8 @@ distrSegRecur (SStr (SStr s0 s1) s2) s =
 
 
 pack :: STree -> SId -> SneslTrans STree
-pack (IStr s) b = emitIs (Pack s b)
-pack (BStr s) b = emitBs (Pack s b) 
+pack (IStr s) b = emitIs (Pack s b PInt)
+pack (BStr s) b = emitBs (Pack s b PBool) 
 
 pack (PStr t1 t2) b = 
   do st1 <- pack t1 b
@@ -304,13 +310,13 @@ pack (PStr t1 t2) b =
      return (PStr st1 st2)  
 
 pack (SStr t s) b = 
-    do st1 <- emit (Distr b s)
+    do st1 <- emit (Distr b s PBool)
 --       st2 <- pack t st1
 
        ctrl <- emit (Usum s)
        (st2, code) <- ctrlTrans (pack t st1)
        let imps = getImportSids ctrl code
-       emitInstr (WithCtrl ctrl imps code st2)
+       emitInstr (WithCtrl ctrl imps code $ tree2TSids st2)
 
        st3 <- emit (UPack s b)
        return (SStr st2 st3)
@@ -318,17 +324,17 @@ pack (SStr t s) b =
 
 --- translation of built-in functions ---
 compEnv0 = [ 
-             ("_uminus", FStr (\[IStr s1] -> emitIs (MapOne Uminus s1))),
-             ("not", FStr (\[BStr s1] -> emitBs (MapOne Not s1))),
+             ("_uminus", FStr (\[IStr s1] -> emitIs (MapOne Uminus s1 PInt))),
+             ("not", FStr (\[BStr s1] -> emitBs (MapOne Not s1 PBool))),
 
-             ("_plus", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Add s1 s2))),
-             ("_minus", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Minus s1 s2))),
-             ("_times", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Times s1 s2))),
-             ("_div", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Div s1 s2))),
-             ("_mod", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Mod s1 s2))),
+             ("_plus", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Add s1 s2 PInt))),
+             ("_minus", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Minus s1 s2 PInt))),
+             ("_times", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Times s1 s2 PInt))),
+             ("_div", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Div s1 s2 PInt))),
+             ("_mod", FStr (\[IStr s1, IStr s2] -> emitIs (MapTwo Mod s1 s2 PInt))),
 
-             ("_eq",FStr (\[IStr s1, IStr s2] -> emitBs (MapTwo Equal s1 s2))),
-             ("_leq",FStr (\[IStr s1, IStr s2] -> emitBs (MapTwo Leq s1 s2))),
+             ("_eq",FStr (\[IStr s1, IStr s2] -> emitBs (MapTwo Equal s1 s2 PBool))),
+             ("_leq",FStr (\[IStr s1, IStr s2] -> emitBs (MapTwo Leq s1 s2 PBool))),
               
              ("index", FStr (\[IStr s] -> iotas s)),                
              ("scanExPlus", FStr (\[SStr (IStr t) s] -> scanExPlus t s)),
@@ -358,7 +364,7 @@ empty (SStr _ f) = emitBs (IsEmpty f)
 
 the :: STree -> SneslTrans STree
 the (SStr t f) = -- return t 
-    do s1 <- emit (Const (IVal 1))
+    do s1 <- emit (Const (IVal 1)  PInt)
        s2 <- emit (ToFlags s1)
        s3 <- emit (Check f s2)
        return t 
@@ -369,9 +375,9 @@ iotas s =
     do s1 <- emit (ToFlags s)
        s2 <- emit (Usum s1)
        (st@(IStr s3'), code) <- ctrlTrans 
-                                 (do s3 <- emit (Const (IVal 1)); 
+                                 (do s3 <- emit (Const (IVal 1) PInt);    
                                      return $ IStr s3) 
-       emitInstr (WithCtrl s2 [] code st)
+       emitInstr (WithCtrl s2 [] code $ tree2TSids st)
        s4 <- emit (SegscanPlus s3' s1)
        return (SStr (IStr s4) s1) 
 
@@ -401,11 +407,10 @@ mergeSeq trs =
 
 mergeRecur :: [STree] -> SneslTrans STree 
 mergeRecur trs@((SStr (IStr t) s):_) = 
-    emitIs (PriSegInterS $ map (\(SStr (IStr t) s) -> (t,s)) trs)
+    emitIs (PriSegInterS (map (\(SStr (IStr t) s) -> (t,s)) trs) PInt)
 
 mergeRecur trs@((SStr (BStr t) s):_) = 
-
-    emitBs (PriSegInterS $ map (\(SStr (BStr t) s) -> (t,s)) trs)   
+    emitBs (PriSegInterS (map (\(SStr (BStr t) s) -> (t,s)) trs) PBool)   
 
 mergeRecur trs@((SStr (PStr t1 t2) s):_) = 
     do let fsts = [(SStr t1 s) | (SStr (PStr t1 _) s) <- trs]

@@ -293,15 +293,15 @@ sInstrInit (SDef sid e) r d sup =
          updateCtx (sf,r,sid) (buf, sup0 ++ supR, cl0 ++ (curStart clR), p)
 
 
-sInstrInit (WithCtrl ctrl ins code st) r d sup =
+sInstrInit (WithCtrl ctrl ins code tRet) r d sup =
   do sf <- getSF
      let ctrlR = (sf,r,ctrl)
+         retSids = snd $ unzip tRet 
      (buf,s,cl,p) <- lookupRSid ctrlR
      updateCtx ctrlR (buf,s,(((sf,r,-2),0),0):cl,p) -- add a first-chunk flag
      
      -- initial the return sids
-     let retSids = tree2Sids st 
-         retRSids = s2Rs retSids sf r
+     let retRSids = s2Rs retSids sf r
      retClsR <- mapM (getClientR d sf r) retSids 
      --retRSids' <- mapM rsidMapM retRSids    
      zipWithM_ (\s cl -> addCtxChk s (Filling [], [], curStart cl, Done ()))
@@ -345,24 +345,24 @@ sInstrInit (SCall fid argSid retSids) r d sup =
 sExpXducerInit :: SExp -> SvcodeP (Xducer ())
 sExpXducerInit Ctrl = return $ rout (BVal False)
 sExpXducerInit EmptyCtrl = return $ Done () 
-sExpXducerInit (Const a) = return (constXducerN a)
+sExpXducerInit (Const a _) = return (constXducerN a)
 sExpXducerInit (Usum _) = return usumXducerN
 sExpXducerInit (ToFlags _) = return toFlagsN 
 
-sExpXducerInit (MapTwo op _ _) = 
+sExpXducerInit (MapTwo op _ _ _) = 
   do fop <- lookupOpA op opAEnv0
      return (mapTwoN fop)
 
-sExpXducerInit (MapOne op _) = 
+sExpXducerInit (MapOne op _ _) = 
   do fop <- lookupOpA op opAEnv0
      return (mapOneN fop)
 
-sExpXducerInit (Pack _ _) = return packXducerN
+sExpXducerInit (Pack _ _ _) = return packXducerN
 sExpXducerInit (UPack _ _) = return upackXducerN
-sExpXducerInit (Distr _ _) = return pdistXducerN
+sExpXducerInit (Distr _ _ _) = return pdistXducerN
 sExpXducerInit (SegDistr _ _ ) = return segDistrXducerN
 sExpXducerInit (SegFlagDistr _ _ _) = return segFlagDistrXducerN
-sExpXducerInit (PrimSegFlagDistr _ _ _) = return primSegFlagDistrXducerN
+sExpXducerInit (PrimSegFlagDistr _ _ _ _) = return primSegFlagDistrXducerN
 sExpXducerInit (B2u _) = return b2uXducerN
 sExpXducerInit (SegscanPlus _ _) = return segScanPlusXducerN 
 sExpXducerInit (ReducePlus _ _) = return segReducePlusXducerN
@@ -375,7 +375,7 @@ sExpXducerInit (SegInterS ss) =
       chs' = [(x+1,y+1)| (x,y) <- chs]
   in return $ segInterXducerN chs' 
 
-sExpXducerInit (PriSegInterS ss) = 
+sExpXducerInit (PriSegInterS ss _) = 
   let chs = zipWith (\_ x -> (x*2,x*2+1)) ss [0..] 
       chs' = [(x+1,y+1)| (x,y) <- chs]
   in return $ priSegInterXducerN chs' 
@@ -460,10 +460,10 @@ sInstrInterp bufSize r def@(SDef sid _) =
      sSIdInterp bufSize (sf,r,sid) 
 
 
-sInstrInterp bufSize r (WithCtrl ctrl ins code st) = 
+sInstrInterp bufSize r (WithCtrl ctrl ins code tRet) = 
   do sf <- getSF
      let ctrlR = (sf,r,ctrl)
-         retSids = tree2Sids st 
+         retSids = snd $ unzip tRet
      (buf,c,curs,p) <- lookupRSid ctrlR
 
      case lookup ((sf,r,-2),0) curs of
@@ -658,7 +658,7 @@ geneSup code ctrl =
 instrGeneSup :: [SInstr] -> SId -> [(SId, String,[SId])]
 instrGeneSup [] _ = []
 instrGeneSup ((SDef sid sexp):ss') c = (sid,i,cl0) : instrGeneSup ss' c
-    where (cl0, i) = getSupExp sexp c
+    where (cl0, i, _) = getSupExp sexp c
 
 instrGeneSup ((WithCtrl newc _ ss _):ss') c = instrGeneSup ss' c
 

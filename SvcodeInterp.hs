@@ -139,19 +139,16 @@ localCtrl ctrl m = Svcode $ \ ctx _ cost fe -> rSvcode m ctx ctrl cost fe
 getCtx :: Svcode Svctx
 getCtx = Svcode $ \ ctx ctrl cost _ -> Right (ctx, cost, ctx)
 
-
 setCtx :: Svctx -> Svcode ()
 setCtx c = Svcode $ \ _ ctrl cost _ -> Right ((), cost, c)
 
 
+emptyStream :: [(PType,SId)] -> Svcode ()
+emptyStream ps = mapM f ps >> return ()
+  where f (PInt,s) = addCtx s $ SIVal []
+        f (PBool,s) = addCtx s $ SBVal [] 
 
--- set empty streams for the SIds in the STree 
-emptyStream :: STree -> Svcode ()
-emptyStream (IStr s) = addCtx s $ SIVal [] 
-emptyStream (BStr s) = addCtx s $ SBVal []
-emptyStream (PStr st1 st2)  = emptyStream st1 >> emptyStream st2
-emptyStream (SStr st1 st2) = emptyStream st1 >> (addCtx st2 $ SBVal [])
- 
+
 -- value copy
 makeCtx :: [SId] -> [SId] -> Svcode Svctx
 makeCtx s1s s2s =　
@@ -169,11 +166,11 @@ sInstrInterp (SDef sid i) =
   sExpInterpXducer i >>= addCtx sid -- transducer interpreter
 
 
-sInstrInterp (WithCtrl c _ defs st) =
+sInstrInterp (WithCtrl c _ code retSids) =
   do ctrl@(SBVal bs) <- lookupSid c 
      if null bs  
-       then emptyStream st    
-       else localCtrl ctrl $ mapM_ sInstrInterp defs
+       then emptyStream $ filter (\(_,s) -> s > c) retSids
+       else localCtrl ctrl $ mapM_ sInstrInterp code
 
 sInstrInterp (SCall fid sids retSids) = 
   do (SFun sids' frets code _) <- lookupFId fid 
@@ -194,7 +191,7 @@ sExpInterp :: SExp -> Svcode SvVal
 
 sExpInterp EmptyCtrl = returnInstrC [] (SBVal [])     
 
-sExpInterp (Const a) = 
+sExpInterp (Const a t) = 
     do ctrl <- getCtrl
        l <- streamLenM ctrl
        let as = case a of 
@@ -215,12 +212,12 @@ sExpInterp (Usum sid) =
     do vs'@(SBVal vs) <- lookupSid sid
        returnInstrC [vs'] $ SBVal $ usum vs 
 
-sExpInterp (MapOne op s1) = 
+sExpInterp (MapOne op s1 t) = 
     do v1 <- lookupSid s1
        fop <- lookupOP op opEnv0
        returnInstrC [v1] $ fop [v1]
       
-sExpInterp (MapTwo op s1 s2) = 
+sExpInterp (MapTwo op s1 s2 t) = 
     do v1 <- lookupSid s1
        v2 <- lookupSid s2
        primLenChk v1 v2 "MapTwo"
@@ -228,13 +225,13 @@ sExpInterp (MapTwo op s1 s2) =
        returnInstrC [v1,v2] $ fop [v1,v2]
 
 
-sExpInterp (Pack s1 s2) = 
+sExpInterp (Pack s1 s2 t) = 
     do v1 <- lookupSid s1
        v2'@(SBVal v2) <- lookupSid s2
        primLenChk v1 v2' "Pack"
        let v1' = case v1 of               
-                     (SIVal is) -> SIVal $ ppack is v2 
-                     (SBVal bs) -> SBVal $ ppack bs v2
+                   SIVal is -> SIVal $ ppack is v2 
+                   SBVal bs -> SBVal $ ppack bs v2
        returnInstrC [v1,v2'] v1'
 
 sExpInterp (UPack s1 s2) = 
@@ -245,15 +242,15 @@ sExpInterp (UPack s1 s2) =
          else fail "UPack: segments mismatch"
 
 
-sExpInterp (Distr s1 s2) =
+sExpInterp (Distr s1 s2 t) =
     do v1 <- lookupSid s1  
        l1 <- streamLenM v1
        v2'@(SBVal v2) <- lookupSid s2  
        if not $ l1 == (length [v | v <- v2, v])
          then fail $ "Distr: segments mismatch: " ++ show v1 ++ ", " ++ show v2'
          else let v1' = case v1 of
-                         (SIVal is) -> SIVal $ pdist is v2 
-                         (SBVal bs) -> SBVal $ pdist bs v2
+                         SIVal is -> SIVal $ pdist is v2 
+                         SBVal bs -> SBVal $ pdist bs v2
               in returnInstrC [v1,v2'] v1'
 
 sExpInterp (SegDistr s1 s2) =
@@ -271,15 +268,15 @@ sExpInterp (SegFlagDistr s1 s2 s3) =
      segDescpChk v1 v2 "SegFlagDistr"
      returnInstrC [v1',v2',v3'] $ SBVal $ segFlagDistr v1 v2 v3 
 
-sExpInterp (PrimSegFlagDistr s1 s2 s3) = 
+sExpInterp (PrimSegFlagDistr s1 s2 s3 t) = 
   do v1 <- lookupSid s1
      v2'@(SBVal v2) <- lookupSid s2
      v3'@(SBVal v3) <- lookupSid s3
      segCountChk v2 v3 "PrimSegFlagDistr"
      --elemDescpChk v1 v2 "SegFlagDistr" 
      case v1 of 
-        (SIVal is) -> returnInstrC [v1,v2',v3'] $ SIVal $ primSegFlagDistr is v2 v3 
-        (SBVal bs) -> returnInstrC [v1,v2',v3'] $ SBVal $ primSegFlagDistr bs v2 v3 
+       SIVal is -> returnInstrC [v1,v2',v3'] $ SIVal $ primSegFlagDistr is v2 v3 
+       SBVal bs -> returnInstrC [v1,v2',v3'] $ SBVal $ primSegFlagDistr bs v2 v3 
 
 
 sExpInterp (B2u sid) = 
@@ -334,7 +331,7 @@ sExpInterp (SegInterS ss) =
      returnInstrC (concat vs2) $ SBVal $ segInterS vs1
 
 
-sExpInterp (PriSegInterS ss) = 
+sExpInterp (PriSegInterS ss _) = 
   do vs <- mapM (\(s1,s2) -> 
                      do v1 <- lookupSid s1
                         v2'@(SBVal v2) <- lookupSid s2
@@ -363,71 +360,41 @@ sExpInterpXducer :: SExp -> Svcode SvVal
 --sExpInterpXducer Ctrl = returnXducerC [] (SBVal [False])
 
 sExpInterpXducer EmptyCtrl = returnXducerC [] (SBVal [])
-
-sExpInterpXducer (Const a) = 
-  do let v0 = case a of 
-                IVal _ -> SIVal []
-                BVal _ -> SBVal []
-     svXducer [] (constXducerN a) v0 
-
-
-sExpInterpXducer (ToFlags sid) = svXducer [sid] toFlagsN (SBVal []) 
-
-sExpInterpXducer (Usum sid) = svXducer [sid] usumXducerN  (SBVal []) 
+sExpInterpXducer (Const a t) = svXducer [] (constXducerN a) t 
+sExpInterpXducer (ToFlags sid) = svXducer [sid] toFlagsN PBool 
+sExpInterpXducer (Usum sid) = svXducer [sid] usumXducerN PBool 
  
+sExpInterpXducer (MapTwo op s1 s2 t) = 
+  do (fop, _) <- lookupOpA op opAEnv0
+     svXducer [s1,s2] (mapTwoN fop) t
 
-sExpInterpXducer (MapTwo op s1 s2) = 
-  do (fop, tp) <- lookupOpA op opAEnv0
-     let v0 = case tp of 
-                TInt -> SIVal []
-                TBool -> SBVal []
-     svXducer [s1,s2] (mapTwoN fop) v0
-
-
-sExpInterpXducer (MapOne op s1) = 
-  do (fop,tp) <- lookupOpA op opAEnv0
-     let v0 = case tp of 
-                TInt -> SIVal []
-                TBool -> SBVal []
-     svXducer [s1] (mapOneN fop) v0 
+sExpInterpXducer (MapOne op s1 t) = 
+  do (fop,_) <- lookupOpA op opAEnv0
+     svXducer [s1] (mapOneN fop) t
 
 
-sExpInterpXducer (Pack s1 s2) = svXducer' [s2,s1] packXducerN 1
-
-sExpInterpXducer (UPack s1 s2) = svXducer [s2,s1] upackXducerN (SBVal [])
-
-
-sExpInterpXducer (Distr s1 s2) = svXducer' [s1,s2] pdistXducerN 0 
- 
-
-sExpInterpXducer (SegDistr s1 s2) = svXducer [s1,s2] segDistrXducerN (SBVal []) 
-
+sExpInterpXducer (Pack s1 s2 t) = svXducer [s2,s1] packXducerN t
+sExpInterpXducer (UPack s1 s2) = svXducer [s2,s1] upackXducerN PBool
+sExpInterpXducer (Distr s1 s2 t) = svXducer [s1,s2] pdistXducerN t
+sExpInterpXducer (SegDistr s1 s2) = svXducer [s1,s2] segDistrXducerN PBool 
 
 sExpInterpXducer (SegFlagDistr s1 s2 s3) =   -- 2.
-  svXducer [s2,s1,s3] segFlagDistrXducerN (SBVal []) 
+  svXducer [s2,s1,s3] segFlagDistrXducerN PBool 
  
 
-sExpInterpXducer (PrimSegFlagDistr s1 s2 s3) =  -- 3.
-  svXducer' [s2,s1,s3] primSegFlagDistrXducerN 1
+sExpInterpXducer (PrimSegFlagDistr s1 s2 s3 t) =  -- 3.
+  svXducer [s2,s1,s3] primSegFlagDistrXducerN t
 
 
-sExpInterpXducer (B2u sid) = svXducer [sid] b2uXducerN (SBVal [])
-
-
-sExpInterpXducer (SegscanPlus s1 s2) = svXducer [s2,s1] segScanPlusXducerN (SIVal []) 
- 
-
-sExpInterpXducer (ReducePlus s1 s2) = svXducer [s2,s1] segReducePlusXducerN (SIVal [])
-  
-
-sExpInterpXducer (SegConcat s1 s2) = svXducer [s2,s1] segConcatXducerN (SBVal [])
- 
-
-sExpInterpXducer (USegCount s1 s2) = svXducer [s2,s1] uSegCountXducerN (SBVal [])
+sExpInterpXducer (B2u sid) = svXducer [sid] b2uXducerN PBool
+sExpInterpXducer (SegscanPlus s1 s2) = svXducer [s2,s1] segScanPlusXducerN PInt
+sExpInterpXducer (ReducePlus s1 s2) = svXducer [s2,s1] segReducePlusXducerN PInt
+sExpInterpXducer (SegConcat s1 s2) = svXducer [s2,s1] segConcatXducerN PBool
+sExpInterpXducer (USegCount s1 s2) = svXducer [s2,s1] uSegCountXducerN PBool
  
 -- 4.
 sExpInterpXducer (InterMergeS ss) = 
-  svXducer ss (interMergeXducerN $ length ss + 1) (SBVal [])  -- add a ctrl stream so length grows 1
+  svXducer ss (interMergeXducerN $ length ss + 1) PBool  -- add a ctrl stream so length grows 1
 
 --  !
 sExpInterpXducer (SegInterS ss) = 
@@ -443,7 +410,7 @@ sExpInterpXducer (SegInterS ss) =
      returnXducerC (vctrl:vss) $ evalXducer (segInterXducerN cs') (vctrl:vss) (SBVal [])
 
 -- !
-sExpInterpXducer (PriSegInterS ss) = 
+sExpInterpXducer (PriSegInterS ss t) = 
   do vs <- mapM (\(s1,s2) -> 
                      do v1 <- lookupSid s1
                         v2 <- lookupSid s2
@@ -452,41 +419,34 @@ sExpInterpXducer (PriSegInterS ss) =
      let vss = concat vs 
          cs = [(i*2,i*2+1) | i <- [0..length vss `div` 2 -1]]
          cs' = [(x+1,y+1) | (x,y) <- cs]  -- add a ctrl stream          
-         v0 = sv0 (head vss)
+         v0 = sv0 t
      vctrl <- getCtrl
      returnXducerC (vctrl:vss) $ evalXducer (priSegInterXducerN cs') (vctrl:vss) v0
 
  
-sExpInterpXducer (Check s1 s2) = svXducer [s1,s2] checkXducerN (SBVal []) 
-
-sExpInterpXducer (IsEmpty s1) = svXducer [s1] isEmptyXducerN (SBVal [])
+sExpInterpXducer (Check s1 s2) = svXducer [s1,s2] checkXducerN PBool  -- check type ??
+sExpInterpXducer (IsEmpty s1) = svXducer [s1] isEmptyXducerN PBool
 
 
 lookupOpA :: OP -> OpAEnv -> Svcode ([AVal] -> AVal, Type) 
 lookupOpA op r = 
   do case lookup op r of
        Just v -> return v 
-       Nothing -> fail $ "SVCODE: can't find " ++ show op 
+       Nothing -> fail $ "undefined operation:" ++ show op 
 
 
-sv0 :: SvVal -> SvVal
-sv0 v = case v of 
-    SIVal _ -> SIVal []
-    SBVal _ -> SBVal []
+sv0 :: PType -> SvVal
+sv0 t = case t of 
+    PInt -> SIVal []
+    PBool -> SBVal []
 
 
-svXducer :: [SId] -> Xducer () -> SvVal -> Svcode SvVal 
-svXducer sids proc v0 = 
+svXducer :: [SId] -> Xducer () -> PType -> Svcode SvVal 
+svXducer sids proc t = 
   do ctrl <- getCtrl
-     vs <- mapM lookupSid sids      
+     vs <- mapM lookupSid sids
+     let v0 = sv0 t  
      returnXducerC vs $ evalXducer proc (ctrl:vs) v0
-
-
-svXducer' :: [SId] -> Xducer () -> Int -> Svcode SvVal 
-svXducer' sids proc i = 
-  do ctrl <- getCtrl
-     vs <- mapM lookupSid sids      
-     returnXducerC vs $ evalXducer proc (ctrl:vs) $ sv0 $ (ctrl:vs) !! (i+1) 
 
 
 --------------------------------------------------

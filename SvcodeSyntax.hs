@@ -4,38 +4,54 @@ import SneslSyntax
 
 type SId = Int  -- stream id
 
+data PType = PInt | PBool deriving Show
+
 data SExp = Ctrl 
            | EmptyCtrl  
            | ToFlags SId
            | Usum SId
-           | Const AVal
-           | MapOne OP SId
-           | MapTwo OP SId SId
+           | Const AVal PType
+           | MapOne OP SId PType
+           | MapTwo OP SId SId PType
            | SegscanPlus SId SId 
            | ReducePlus SId SId
-           | Pack SId SId
+           | Pack SId SId PType
            | UPack SId SId
-           | Distr SId SId
+           | Distr SId SId PType
            | SegDistr SId SId
            | SegFlagDistr SId SId SId
-           | PrimSegFlagDistr SId SId SId 
+           | PrimSegFlagDistr SId SId SId PType
            | B2u SId
            | SegConcat SId SId
            | USegCount SId SId
            | InterMergeS [SId]  
            | SegInterS [(SId,SId)] 
-           | PriSegInterS [(SId,SId)] 
+           | PriSegInterS [(SId,SId)] PType
            | Check SId SId
            | IsEmpty SId        
            deriving Show
          
 
 data SInstr = SDef SId SExp  -- deriving Show 
-            | WithCtrl SId [SId] [SInstr] STree
+            | WithCtrl SId [SId] [SInstr] [(PType,SId)]
             | SCall FId [SId] [SId]
 
 data SFun = SFun [SId] [SId] [SInstr] Int -- deriving Show 
 
+
+instance Show SInstr where
+  show (SDef sid i) = "S" ++ show sid ++ " := " ++ show i 
+  show (WithCtrl sid ss instrs st) = "WithCtrl S" ++ show sid ++ " (import " 
+        ++ show ss ++ "):"   ++ concat (map (("\n\t"++).show) instrs) 
+        ++ "\n\tReturn: " ++ show st 
+  show (SCall f s1 s2) = "SCall " ++ f ++ " " ++ show s1 ++ " " ++ show s2
+         
+
+instance Show SFun where
+  show (SFun args ret code count) = "\nParameters: " ++ show args ++ "\n" 
+    ++ showseq "; \n" code ++ "\nReturn: " ++ show ret 
+    ++ "\nSid count: " ++ show count  ++ "\n"
+                             
 
 data OP = Uminus | Not  -- unary 
         | Add | Minus | Times | Div | Equal | Leq | Mod   -- binary
@@ -66,21 +82,6 @@ opAEnv0 = [(Uminus, (\[IVal a] -> IVal (-a), TInt)),
           (Equal, (\[IVal a, IVal b] -> BVal $ a == b, TBool) ),
           (Leq, (\[IVal a, IVal b] -> BVal $ a <= b, TBool))]
 
-
-
-instance Show SInstr where
-  show (SDef sid i) = "S" ++ show sid ++ " := " ++ show i 
-  show (WithCtrl sid ss instrs st) = "WithCtrl S" ++ show sid ++ " (import " 
-        ++ show ss ++ "):"   ++ concat (map (("\n\t"++).show) instrs) 
-        ++ "\n\tReturn: " ++ show st 
-  show (SCall f s1 s2) = "SCall " ++ f ++ " " ++ show s1 ++ " " ++ show s2
-         
-
-instance Show SFun where
-  show (SFun args ret code count) = "\nParameters: " ++ show args ++ "\n" 
-    ++ showseq "; \n" code ++ "\nReturn: " ++ show ret 
-    ++ "\nSid count: " ++ show count  ++ "\n"
-                             
 
 -- svcode values
 data SvVal = SIVal [Int]
@@ -150,33 +151,38 @@ instance Applicative SneslTrans where
   tf <*> ta = tf >>= \f -> fmap f ta
 
 
-getSupExp :: SExp -> SId -> ([SId],String)
-getSupExp Ctrl _ = ([],"Ctrl")
-getSupExp EmptyCtrl _ = ([],"EmptyCtrl")
-getSupExp (Const a) c = ([c],"Const " ++ show a)
 
-getSupExp (MapOne op s1) c = ([c,s1],"MapOne " ++ show op)
-getSupExp (MapTwo op s1 s2) c = ([c,s1,s2],"MapTwo " ++ show op)
+getSupExp :: SExp -> SId -> ([SId],String, PType)
 
-getSupExp (InterMergeS ss) c = (c:ss,"InterMergeS")
-getSupExp (SegInterS ss) c = (c : (concat $ map (\(x,y) -> [x,y]) ss), "SegInterS")
-getSupExp (PriSegInterS ss) c = (c : (concat $ map (\(x,y) -> [x,y]) ss), "PriSegInterS") 
+getSupExp Ctrl _ = ([],"Ctrl", PBool)
+getSupExp EmptyCtrl _ = ([],"EmptyCtrl", PBool)
+getSupExp (InterMergeS ss) c = (c:ss,"InterMergeS", PBool)
+getSupExp (SegInterS ss) c = 
+  (c : (concat $ map (\(x,y) -> [x,y]) ss), "SegInterS", PBool)
+getSupExp (SegDistr s1 s2) c = ([c,s1,s2],"SegDistr", PBool)
+getSupExp (SegFlagDistr s1 s2 s3) c = ([c,s2,s1,s3],"SegFlagDistr", PBool)
+getSupExp (ToFlags s1) c = ([c,s1], "ToFlags", PBool)
+getSupExp (Usum s1) c = ([c,s1],"Usum", PBool)
+getSupExp (B2u s1) c = ([c,s1],"B2u", PBool)
+getSupExp (IsEmpty s1) c = ([c,s1],"IsEmpty", PBool)
+getSupExp (SegscanPlus s1 s2) c = ([c,s2,s1],"SegscanPlus", PInt)
+getSupExp (ReducePlus s1 s2) c = ([c,s2,s1],"ReducePlus", PInt)
+getSupExp (UPack s1 s2) c = ([c,s2,s1],"UPack", PBool)
+getSupExp (SegConcat s1 s2) c = ([c,s2,s1],"SegConcat", PBool)
+getSupExp (USegCount s1 s2) c = ([c,s2,s1],"USegCount", PBool)
+getSupExp (Check s1 s2) c = ([c,s1,s2],"Check", PBool)  -- ?? Check type?
 
-getSupExp (Distr s1 s2) c = ([c,s1,s2], "Distr")
-getSupExp (SegDistr s1 s2) c = ([c,s1,s2],"SegDistr")
-getSupExp (SegFlagDistr s1 s2 s3) c = ([c,s2,s1,s3],"SegFlagDistr")
-getSupExp (PrimSegFlagDistr s1 s2 s3) c = ([c,s2,s1,s3],"PrimSegFlagDistr")
 
-getSupExp (ToFlags s1) c = ([c,s1], "ToFlags")
-getSupExp (Usum s1) c = ([c,s1],"Usum")
-getSupExp (B2u s1) c = ([c,s1],"B2u")
-getSupExp (IsEmpty s1) c = ([c,s1],"IsEmpty")
+getSupExp (Const a t) c = ([c],"Const " ++ show a, t)
+getSupExp (MapOne op s1 t) c = ([c,s1],"MapOne " ++ show op, t)
+getSupExp (MapTwo op s1 s2 t) c = ([c,s1,s2],"MapTwo " ++ show op, t)
+getSupExp (PriSegInterS ss t) c = 
+  (c : (concat $ map (\(x,y) -> [x,y]) ss), "PriSegInterS" ,t)
+getSupExp (Distr s1 s2 t) c = ([c,s1,s2], "Distr", t)
+getSupExp (PrimSegFlagDistr s1 s2 s3 t) c = ([c,s2,s1,s3],"PrimSegFlagDistr", t)
+getSupExp (Pack s1 s2 t) c = ([c,s2,s1],"Pack", t)
 
-getSupExp (SegscanPlus s1 s2) c = ([c,s2,s1],"SegscanPlus")
-getSupExp (ReducePlus s1 s2) c = ([c,s2,s1],"ReducePlus")
-getSupExp (Pack s1 s2) c = ([c,s2,s1],"Pack")
-getSupExp (UPack s1 s2) c = ([c,s2,s1],"UPack")
-getSupExp (SegConcat s1 s2) c = ([c,s2,s1],"SegConcat")
-getSupExp (USegCount s1 s2) c = ([c,s2,s1],"USegCount")
-getSupExp (Check s1 s2) c = ([c,s1,s2],"Check")
+  
+
+
 
