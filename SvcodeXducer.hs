@@ -53,6 +53,8 @@ rout a = Pout a (Done ())
 
 routF = rout (BVal False)
 routT = rout (BVal True)
+routU = rout (UVal ())
+
 
 done = Done ()
 
@@ -93,7 +95,7 @@ toFlagsN = loop0 p
 
 
 -- usumXducer.
-usumXducerN = loop0 $ loopu 1 (routF) done  
+usumXducerN = loop0 $ loopu 1 (routU) done  
 
 
 -- mapTwoN :: ([AVal] -> AVal) -> Xducer ()
@@ -251,15 +253,18 @@ pread s@(SIVal []) = (Nothing,s)
 pread (SIVal (i:is)) = (Just $ IVal i, SIVal is)
 pread s@(SBVal []) = (Nothing,s)
 pread (SBVal (b:bs)) = (Just $ BVal b, SBVal bs)
-
+pread s@(SUVal []) = (Nothing,s)
+pread (SUVal (u:us)) = (Just $ UVal u, SUVal us)
 
 
 pwrite :: AVal -> SvVal -> SvVal
 pwrite (IVal i) (SIVal is) = SIVal (i:is) 
 pwrite (BVal b) (SBVal bs) = SBVal (b:bs)
+pwrite (UVal u) (SUVal us) = SUVal (u:us)
 
 
 reverseSv :: SvVal -> SvVal 
 reverseSv (SIVal is) = SIVal $ reverse is
 reverseSv (SBVal bs) = SBVal $ reverse bs  
+reverseSv (SUVal us) = SUVal $ reverse us
 

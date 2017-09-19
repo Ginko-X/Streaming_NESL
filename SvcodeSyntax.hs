@@ -4,7 +4,7 @@ import SneslSyntax
 
 type SId = Int  -- stream id
 
-data PType = PInt | PBool deriving Show
+data PType = PInt | PBool | PUnit deriving Show
 
 data SExp = Ctrl 
            | EmptyCtrl  
@@ -86,6 +86,7 @@ opAEnv0 = [(Uminus, (\[IVal a] -> IVal (-a), TInt)),
 -- svcode values
 data SvVal = SIVal [Int]
            | SBVal [Bool] 
+           | SUVal [()]
            | SSVal SvVal [Bool]  -- Sequence
            | SPVal SvVal SvVal -- Pair
            deriving (Eq,Show)
@@ -154,7 +155,7 @@ instance Applicative SneslTrans where
 
 getSupExp :: SExp -> SId -> ([SId],String, PType)
 
-getSupExp Ctrl _ = ([],"Ctrl", PBool)
+getSupExp Ctrl _ = ([],"Ctrl", PUnit)
 getSupExp EmptyCtrl _ = ([],"EmptyCtrl", PBool)
 getSupExp (InterMergeS ss) c = (c:ss,"InterMergeS", PBool)
 getSupExp (SegInterS ss) c = 
@@ -162,7 +163,7 @@ getSupExp (SegInterS ss) c =
 getSupExp (SegDistr s1 s2) c = ([c,s1,s2],"SegDistr", PBool)
 getSupExp (SegFlagDistr s1 s2 s3) c = ([c,s2,s1,s3],"SegFlagDistr", PBool)
 getSupExp (ToFlags s1) c = ([c,s1], "ToFlags", PBool)
-getSupExp (Usum s1) c = ([c,s1],"Usum", PBool)
+getSupExp (Usum s1) c = ([c,s1],"Usum", PUnit)
 getSupExp (B2u s1) c = ([c,s1],"B2u", PBool)
 getSupExp (IsEmpty s1) c = ([c,s1],"IsEmpty", PBool)
 getSupExp (SegscanPlus s1 s2) c = ([c,s2,s1],"SegscanPlus", PInt)

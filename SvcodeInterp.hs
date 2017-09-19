@@ -40,7 +40,7 @@ instance Applicative Svcode where
 runSvcodeExp :: SFun -> FEnv -> Either String ([(SId, SvVal)], (Int,Int))
 runSvcodeExp (SFun [] retSids code _) fe = 
   case rSvcode (mapM_ sInstrInterp (tail code) >> mapM lookupSid retSids) 
-                 [] (SBVal [False]) (0,0) fe of 
+                 [] (SUVal [()]) (0,0) fe of 
     Right (svs, (w,s), ctx) -> return (zip retSids svs, (w,s)) 
     Left err -> Left err  
 
@@ -48,7 +48,7 @@ runSvcodeExp (SFun [] retSids code _) fe =
 -------- for TDebug ----------
 runSvcodeDebug :: SFun -> FEnv -> Int -> Either String ([SInstr],Svctx)
 runSvcodeDebug (SFun [] _ code _) fe count = 
-  case roundN [] (SBVal [False]) fe count code of 
+  case roundN [] (SUVal [()]) fe count code of 
     Right ctx -> Right (take count code, ctx)
     Left err -> Left err  
  
@@ -88,6 +88,7 @@ streamLenM s  = return $ streamLen s
 streamLen :: SvVal -> Int 
 streamLen (SIVal s) = length s 
 streamLen (SBVal s) = length s 
+streamLen (SUVal s) = length s 
 streamLen (SPVal s1 s2) = s1l + s2l 
     where s1l = streamLen s1 
           s2l = streamLen s2
@@ -147,6 +148,7 @@ emptyStream :: [(PType,SId)] -> Svcode ()
 emptyStream ps = mapM f ps >> return ()
   where f (PInt,s) = addCtx s $ SIVal []
         f (PBool,s) = addCtx s $ SBVal [] 
+        f (PUnit,s) = addCtx s $ SUVal []
 
 
 -- value copy
@@ -167,7 +169,7 @@ sInstrInterp (SDef sid i) =
 
 
 sInstrInterp (WithCtrl c _ code retSids) =
-  do ctrl@(SBVal bs) <- lookupSid c 
+  do ctrl@(SUVal bs) <- lookupSid c 
      if null bs  
        then emptyStream $ filter (\(_,s) -> s > c) retSids
        else localCtrl ctrl $ mapM_ sInstrInterp code
@@ -187,9 +189,9 @@ sInstrInterp (SCall fid sids retSids) =
 
 sExpInterp :: SExp -> Svcode SvVal
 
---sExpInterp Ctrl = returnInstrC [] (SBVal [False]) 
+--sExpInterp Ctrl = returnInstrC [] (SUVal [()]) 
 
-sExpInterp EmptyCtrl = returnInstrC [] (SBVal [])     
+sExpInterp EmptyCtrl = returnInstrC [] (SUVal [])     
 
 sExpInterp (Const a t) = 
     do ctrl <- getCtrl
@@ -210,7 +212,7 @@ sExpInterp (ToFlags sid) =
 -- count the number of 'False'
 sExpInterp (Usum sid) = 
     do vs'@(SBVal vs) <- lookupSid sid
-       returnInstrC [vs'] $ SBVal $ usum vs 
+       returnInstrC [vs'] $ SUVal $ usum vs 
 
 sExpInterp (MapOne op s1 t) = 
     do v1 <- lookupSid s1
@@ -357,12 +359,12 @@ sExpInterp (IsEmpty s1) =
 
 sExpInterpXducer :: SExp -> Svcode SvVal
 
---sExpInterpXducer Ctrl = returnXducerC [] (SBVal [False])
+sExpInterpXducer Ctrl = returnXducerC [] (SUVal [()])
 
-sExpInterpXducer EmptyCtrl = returnXducerC [] (SBVal [])
+sExpInterpXducer EmptyCtrl = returnXducerC [] (SUVal [])
 sExpInterpXducer (Const a t) = svXducer [] (constXducerN a) t 
 sExpInterpXducer (ToFlags sid) = svXducer [sid] toFlagsN PBool 
-sExpInterpXducer (Usum sid) = svXducer [sid] usumXducerN PBool 
+sExpInterpXducer (Usum sid) = svXducer [sid] usumXducerN PUnit 
  
 sExpInterpXducer (MapTwo op s1 s2 t) = 
   do (fop, _) <- lookupOpA op opAEnv0
@@ -439,6 +441,7 @@ sv0 :: PType -> SvVal
 sv0 t = case t of 
     PInt -> SIVal []
     PBool -> SBVal []
+    PUnit -> SUVal []
 
 
 svXducer :: [SId] -> Xducer () -> PType -> Svcode SvVal 
@@ -571,10 +574,10 @@ upack b1 b2 = concat $ fst $ unzip $ filter (\(s,f) -> f) (zip segs b2)
 
 -- unary sum of the number of Fs 
 -- e.g. <F,F,T,F,T> => <F,F,F> representing <*,*,*> 
-usum :: [Bool] -> [Bool]
+usum :: [Bool] -> [()]
 usum [] = []
 usum (True:s) = usum s
-usum (False:s) = False : usum s     
+usum (False:s) = () : usum s     
 
 
 -- <F> -> <T>

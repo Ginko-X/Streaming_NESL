@@ -7,6 +7,7 @@ import Data.List (union)
 
 data AVal = IVal Int 
           | BVal Bool 
+          | UVal ()
           deriving Eq --,Show) 
 
 

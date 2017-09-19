@@ -343,7 +343,7 @@ sInstrInit (SCall fid argSid retSids) r d sup =
 
 ---- SExpression init
 sExpXducerInit :: SExp -> SvcodeP (Xducer ())
-sExpXducerInit Ctrl = return $ rout (BVal False)
+sExpXducerInit Ctrl = return $ rout (UVal ())
 sExpXducerInit EmptyCtrl = return $ Done () 
 sExpXducerInit (Const a _) = return (constXducerN a)
 sExpXducerInit (Usum _) = return usumXducerN
