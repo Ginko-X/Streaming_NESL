@@ -4,8 +4,8 @@
     + Formalization: version 0.0.7
         + main correctness theorem proof (section 3.3): fixed some bugs discussed in last meeting
         + before Section 3.3
-	    + added WithCtrl import and export lists, changed related evaluation/translation rules
-	    + got stuck in/some question about concatenation lemma proof[#26](https://github.com/Ginko-X/Streaming_NESL/issues/26)
+            + added WithCtrl import and export lists, changed related evaluation/translation rules
+            + got stuck in/some question about concatenation lemma proof[#26](https://github.com/Ginko-X/Streaming_NESL/issues/26)
 	
     
 + Week 45 (4 ~ 10 Sep)
