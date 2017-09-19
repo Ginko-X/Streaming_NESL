@@ -13,7 +13,7 @@ import Data.List (transpose)
 
 type Svctx = [(SId, SvVal)]
 
-newtype Svcode a = Svcode {rSvcode :: Svctx -> SId -> (Int, Int) -> FEnv -> 
+newtype Svcode a = Svcode {rSvcode :: Svctx -> SvVal -> (Int, Int) -> FEnv -> 
                                   Either String (a,(Int,Int), Svctx)}
 
 instance Monad Svcode where
@@ -39,7 +39,8 @@ instance Applicative Svcode where
 -- run the svcode translated from an SNESL expression
 runSvcodeExp :: SFun -> FEnv -> Either String ([(SId, SvVal)], (Int,Int))
 runSvcodeExp (SFun [] retSids code _) fe = 
-  case rSvcode (mapM_ sInstrInterp code >> mapM lookupSid retSids) [] 0 (0,0) fe of 
+  case rSvcode (mapM_ sInstrInterp (tail code) >> mapM lookupSid retSids) 
+                 [] (SBVal [False]) (0,0) fe of 
     Right (svs, (w,s), ctx) -> return (zip retSids svs, (w,s)) 
     Left err -> Left err  
 
@@ -47,7 +48,7 @@ runSvcodeExp (SFun [] retSids code _) fe =
 -------- for TDebug ----------
 runSvcodeDebug :: SFun -> FEnv -> Int -> Either String ([SInstr],Svctx)
 runSvcodeDebug (SFun [] _ code _) fe count = 
-  case roundN [] 0 fe count code of 
+  case roundN [] (SBVal [False]) fe count code of 
     Right ctx -> Right (take count code, ctx)
     Left err -> Left err  
  
@@ -128,10 +129,10 @@ returnXducerC inVs outV =
        else returnsvc (work,1) outV
 
 
-getCtrl :: Svcode SId 
+getCtrl :: Svcode SvVal 
 getCtrl = Svcode $ \ ctx ctrl cost _ -> Right (ctrl, cost, ctx)
 
-localCtrl :: SId -> Svcode a -> Svcode a 
+localCtrl :: SvVal -> Svcode a -> Svcode a 
 localCtrl ctrl m = Svcode $ \ ctx _ cost fe -> rSvcode m ctx ctrl cost fe
 
 
@@ -172,15 +173,14 @@ sInstrInterp (WithCtrl c _ defs st) =
   do ctrl@(SBVal bs) <- lookupSid c 
      if null bs  
        then emptyStream st    
-       else localCtrl c $ mapM_ sInstrInterp defs
+       else localCtrl ctrl $ mapM_ sInstrInterp defs
 
 sInstrInterp (SCall fid sids retSids) = 
   do (SFun sids' frets code _) <- lookupFId fid 
-     gloCtrl <- getCtrl
      oldCtx <- getCtx
-     c <- makeCtx (gloCtrl:sids) (0:sids')  -- may not need 0 any more??
+     c <- makeCtx sids sids'
      setCtx c
-     localCtrl 0 $ mapM_ sInstrInterp code
+     mapM_ sInstrInterp code
      retc <- makeCtx frets retSids     
      setCtx $ oldCtx ++ retc
 
@@ -190,19 +190,17 @@ sInstrInterp (SCall fid sids retSids) =
 
 sExpInterp :: SExp -> Svcode SvVal
 
-sExpInterp Ctrl = returnInstrC [] (SBVal [False]) 
+--sExpInterp Ctrl = returnInstrC [] (SBVal [False]) 
 
 sExpInterp EmptyCtrl = returnInstrC [] (SBVal [])     
 
 sExpInterp (Const a) = 
     do ctrl <- getCtrl
-       v <- lookupSid ctrl
-       l <- streamLenM v
+       l <- streamLenM ctrl
        let as = case a of 
                  IVal i -> SIVal $ replicate l i 
                  BVal b -> SBVal $ replicate l b
-       returnInstrC [v] as
-       --sExpInterp (MapConst ctrl a)
+       returnInstrC [ctrl] as
     
 
 -- toflags: generate flag segments for a stream of integers
@@ -362,7 +360,7 @@ sExpInterp (IsEmpty s1) =
 
 sExpInterpXducer :: SExp -> Svcode SvVal
 
-sExpInterpXducer Ctrl = returnXducerC [] (SBVal [False])
+--sExpInterpXducer Ctrl = returnXducerC [] (SBVal [False])
 
 sExpInterpXducer EmptyCtrl = returnXducerC [] (SBVal [])
 
@@ -441,8 +439,7 @@ sExpInterpXducer (SegInterS ss) =
      let vss = concat vs
          cs = [(i*2,i*2+1) | i <- [0..length vss `div` 2 -1]] -- channel numbers
          cs' = [(x+1,y+1) | (x,y) <- cs]  -- add a ctrl stream 
-     ctrl <- getCtrl
-     vctrl <- lookupSid ctrl
+     vctrl <- getCtrl
      returnXducerC (vctrl:vss) $ evalXducer (segInterXducerN cs') (vctrl:vss) (SBVal [])
 
 -- !
@@ -456,8 +453,7 @@ sExpInterpXducer (PriSegInterS ss) =
          cs = [(i*2,i*2+1) | i <- [0..length vss `div` 2 -1]]
          cs' = [(x+1,y+1) | (x,y) <- cs]  -- add a ctrl stream          
          v0 = sv0 (head vss)
-     ctrl <- getCtrl
-     vctrl <- lookupSid ctrl
+     vctrl <- getCtrl
      returnXducerC (vctrl:vss) $ evalXducer (priSegInterXducerN cs') (vctrl:vss) v0
 
  
@@ -482,15 +478,15 @@ sv0 v = case v of
 svXducer :: [SId] -> Xducer () -> SvVal -> Svcode SvVal 
 svXducer sids proc v0 = 
   do ctrl <- getCtrl
-     vs <- mapM lookupSid $ ctrl:sids      
-     returnXducerC vs $ evalXducer proc vs v0
+     vs <- mapM lookupSid sids      
+     returnXducerC vs $ evalXducer proc (ctrl:vs) v0
 
 
 svXducer' :: [SId] -> Xducer () -> Int -> Svcode SvVal 
 svXducer' sids proc i = 
   do ctrl <- getCtrl
-     vs <- mapM lookupSid $ ctrl:sids      
-     returnXducerC vs $ evalXducer proc vs $ sv0 $ vs !! (i+1) 
+     vs <- mapM lookupSid sids      
+     returnXducerC vs $ evalXducer proc (ctrl:vs) $ sv0 $ (ctrl:vs) !! (i+1) 
 
 
 --------------------------------------------------
