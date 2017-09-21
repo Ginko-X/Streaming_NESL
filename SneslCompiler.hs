@@ -235,16 +235,48 @@ translate (RComp e0 e1) =
        return (SStr s3 s2) 
 
 
-getImportSids :: SId -> [SInstr] -> [SId]
-getImportSids ctrl ins = 
-  toList $ fromList $ concat $ map (getImportSid ctrl) ins
 
-getImportSid :: SId -> SInstr -> [SId]
-getImportSid ctrl (SDef sid e) =
-  let (sups,_, _) = getSupExp e ctrl
-  in filter (\sup -> sup < ctrl) sups 
-getImportSid ctrl (WithCtrl _ imps _ _) = filter (\i -> i < ctrl) imps  
-getImportSid ctrl (SCall _ args _) =  filter (\i -> i < ctrl) args
+---- fv: only for eager interpreter formalization varification
+--getImportSids :: SId -> [SInstr] -> [SId]
+--getImportSids _ [] = []
+--getImportSids c ((SDef sid e):ss) = 
+--  let (sups,_,_) = getSupExp e c 
+--  in filter (\=sid) $ sups ++ (getImportSids c ss)  
+
+--getImportSids c ((WithCtrl sid sin _ rets): ss) = 
+--  let rets' = snd $ unzip rets 
+--  in filter (\x -> not $ x `elem` rets') $ sin ++ getImportSids c ss 
+
+--getImportSids c ((SCall _ args rets):ss) =  
+--  filter (\x -> not $ x `elem` rets) $ args ++ getImportSids c ss 
+
+
+getImportSids :: SId -> [SInstr] -> [SId]
+getImportSids _ [] = []
+getImportSids c ((SDef sid e):ss) = 
+  let (sups,_,_) = getSupExp e c 
+  in unique $ filter (\x -> not $ x `elem` [c,sid]) $ sups ++ (getImportSids c ss)  
+
+getImportSids c ((WithCtrl sid sin _ rets): ss) = 
+  let rets' = snd $ unzip rets 
+  in unique $ filter (\x -> not $ x `elem` (c:rets')) $ sin ++ getImportSids c ss 
+
+getImportSids c ((SCall _ args rets):ss) =  
+  unique $ filter (\x -> not $ x `elem` (c:rets)) $ args ++ getImportSids c ss 
+
+
+unique = toList.fromList
+
+--getImportSids :: SId -> [SInstr] -> [SId]
+--getImportSids ctrl ins = 
+--  toList $ fromList $ concat $ map (getImportSid ctrl) ins
+
+--getImportSid :: SId -> SInstr -> [SId]
+--getImportSid ctrl (SDef sid e) =
+--  let (sups,_, _) = getSupExp e ctrl
+--  in filter (\sup -> sup < ctrl) sups 
+--getImportSid ctrl (WithCtrl _ imps _ _) = filter (\i -> i < ctrl) imps  
+--getImportSid ctrl (SCall _ args _) =  filter (\i -> i < ctrl) args
 
 
 

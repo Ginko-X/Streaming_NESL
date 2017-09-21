@@ -17,7 +17,7 @@
 \def\c{\vec c}
 
 \def\unit{()}
-\def\vunit{\langle \unit \rangle}
+\def\vunit{\langle \unit \rangle}  
 
 \def\vrange#1#2{\langle #1,...,#2 \rangle}
 \def\lrange#1#2{\left[ #1,...,#2 \right]}
@@ -95,8 +95,8 @@
 \def\S{\mathbf{S}}
 \def\Sin{\mathbf{S}_{in}}
 \def\Sout{\mathbf{S}_{out}}
-\def\FV#1#2{\mathtt{fv}(#1,#2)}
-
+\def\FV#1{\mathtt{fv}(#1)}
+\def\dv#1{\mathtt{dv}(#1)}
 
 
 \newcommand{\eq}[2]{\begin{equation}\label{#1} #2\end{equation}}
@@ -111,7 +111,8 @@ Draft version \versionnumber:
 	\item changed WithCtrl: added import and export list 
 	\item adjusted section structure
     \item small changes of some function notations
-	\item Note: the symbols/functions used in the main correctness theroem has not updated yet
+	\item Note: the symbols/functions used in the main correctness theroem have
+    not been updated yet
 \end{itemize}
 
 \section{Source Language}
@@ -226,7 +227,10 @@ $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 
 A list of $\SId$: 
 $$\S = [\s_1,..., \s_i] $$
- 
+
+Note: for simplicity, in some cases where duplicate of some elements does not affect the correctness
+we will also use $\S$ to stand for a set of $\SId$s which keeps only one copy of each element in $\S$.
+
 \item SVCODE operations: $$\psi ::= \consta{a} \ | \ \toflag
 \ | \ \usum \ | \ \maptwo{\oplus} \ | \ \scan_{n_0} $$
 where $\oplus$ stands for some binary operation on $\int$. \\
@@ -234,12 +238,43 @@ where $\oplus$ stands for some binary operation on $\int$. \\
 
 \item SVCODE program: 
 \begin{align*}
-	p :: & = \ \epsilon \\
-	     &\ \ | \ \sdef{\s}{\psi(s_1,...,s_i)} \\
-	     &\ \ | \ \withctrl{\s}{p_1}{\S_1}{\S_2} \\
-	     &\ \ | \ p_1;p_2 	 
+	p :: & = \ \epsilon \\ 
+         &\ \ | \ \sdef{\s}{\psi(s_1,...,s_i)}; p_1  \\
+         &\ \ | \ \withctrl{\s}{p_1}{\Sin}{\Sout}; p_2   \tag{$\Sin  = \{s\} \cup \FV{p_1}, \Sout \subseteq \dv{p_1} $ }\\
+\end{align*}
+Note: here this $\Sin$ is actually slightly different from the import list used in our streaming interpreter which does not contain the new control stream id. 
+So it may cause some confusion later when we introduce the streaming language.
+We may want to remove this $\Sin$ from WithCtrl instruction if it turns out it is not necessary to make it an explicit component here.
+
+\item Differentce of sets: \\
+For two sets $A$ and $B$, 
+\[ A -B = \{s | s \in A, s \notin B\} \]
+
+It is easy to prove the following properties: 
+ \begin{itemize}
+ 	\item For any three sets $A,B$ and $C$: 
+ 			\[ (A - B) \cap C = (A \cap C) - B  =  A \cap (C - B)\]
+ 	\item For two sets $A$ and $B$,
+ 	      \[ A \cap B = \emptyset  \Leftrightarrow A - B = A \]
+ 	
+ \end{itemize}
+
+\item Free variables: a set (or list) of stream ids that are not defined but referred to by a SVCODE program
+\begin{align*}
+	&\FV{\epsilon} \ = \{\}\\
+	&\FV{\sdef{\s}{\psi(s_1,...,s_i)};p_1} = \{s_1,...,s_i\} \cup \FV{p_1} - \{\s\}\\
+	&\FV{\withctrl{\s_c}{p_1}{\Sin}{\Sout};p_2}  = \Sin \cup \FV{p_2} - \Sout
 \end{align*}
 
+
+
+
+\item Defined variables: a set (or list) of stream ids that are defined by a SVCODE progrom and accessible to the outside environment of the program
+\begin{align*}
+	&\dv{\epsilon} \ = \{\}\\
+	&\dv{\sdef{\s}{\psi(s_1,...,s_i)};p_1} = \{s\} \cup \dv{p_1}\\
+	&\dv{\withctrl{\s_c}{p_1}{\Sin}{\Sout};p_2}  = \Sout \cup \dv{p_2}
+\end{align*}
 
 
 \item SVCODE streams: 
@@ -247,6 +282,9 @@ $$b \in \{\T,\F \}$$
 $$ a ::= n \ | \ b \ | \ \unit$$
 $$\b = \vrange{b_1}{b_i}$$ 
 $$\a = \vrange{a_1}{a_i}  $$
+
+\item
+
 
 
 \item Notations and operations about streams:
@@ -273,34 +311,35 @@ SVCODE stores $\sgm = [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$.\\
 \item \Jug{\seval{p}{\sgm}{\c}{\sgm'}}
 $\c$ is the control stream.\\
 
-\PRule{Empty}{\PT{\Axiom{\seval{\epsilon}{\sgm}{\c}{\sgm}}}}
+\PRule{Empty}{ \infer{\seval{\epsilon}{\sgm}{\c}{\sgm}}{} }
 
 \PRule{Xducer}{\PT{\AC{\sevalf{\a_1}{\a_k}{\c}{\a}}
+		\AC{\seval{p_1}{\sgm[\s \|-> \a]}{\c}{\sgm'}}
 	\RiLa{((\sgm(\s_i) = \a_i)^k_{i=1})}
-	\UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm}{\c}{\sgm[\s \|-> \a]}}
+	\BC{\seval{\sdef{\s}{\lcall\Tupk\s};p_1}{\sgm}{\c}{\sgm'}}
 }} \\[2ex]
 
 \PRule{Wc-Emp}{\PT{
-	\AC{}
+	\AC{\seval{p_2}{\sgm[\s_1 \|-> \emptyv, ..., \s_i \|-> \emptyv]}{\c}{\sgm'}}
 	\RiLa{
 		\left(
 			\begin{aligned}
-				&\sgm(\s_c)= \emptyv \\
 				&\forall s \in \Sin. \sgm(s) = \emptyv \\
-				&??? \forall j \in \{1,...,i\}. \s_j \in \Sout \wedge \s_j > \s_c
+				&\Sout = [s_1,...,s_i]
 			\end{aligned}
 		\right)}
-	\UC{\seval{\withctrl{\s_c}{p}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\s_1 \|-> \emptyv, ..., \s_i \|-> \emptyv]}}
+	\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout};p_2}{\sgm}{\c}{\sgm'}}
 }}\\[2ex]
 
 \makebox[1.0\textwidth][c] {\PRule{Wc-Nonemp}{\PT{
-	\AC{\seval{p}{\sgm}{\c_1}{\sgm''}}
+	\AC{\seval{p_1}{\sgm}{\c_1}{\sgm''}}
+	\AC{\seval{p_2}{\sgm[\s_1 \|-> \sgm''(\s_1),...,\s_i \|-> \sgm''(\s_i)]}{\c}{\sgm'}}
 	\RiLa{\left(
 		\begin{aligned} 
-		&\sgm(\s_c)= \c_1 = \< () | \c_2 \'> \\
-	    &??? \forall j \in \{1,...,i\}. \s_j \in \Sout \wedge \s_j > \s_c
+		&\sgm(\s_c)= \c_1 = \< () | ...\'> \\
+	    &\Sout = [s_1,...,s_i]
 		\end{aligned}\right)}
-	\UC{\seval{\withctrl {s_c} p \Sin \Sout } \sgm {\c} \sgm[\s_1 \|-> \sgm''(\s_1),...,\s_i \|-> \sgm''(\s_i)]}
+	\BC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout};p_2}{\sgm}{\c}{\sgm'}}
 }}}\\[2ex]
 
 \PRule{Seq}{\PT{
@@ -469,11 +508,31 @@ This lemma says that the concatenation result of two similar stores is still sim
 	then $\sevalfg{\lcall}{\a_{11} {\++} \a_{21},...,\a_{1k} {\++} \a_{2k}}{\c_1 {\++} \c_2}{\a_1 {\++} \a_2}$.
 \end{lem}
 
+
+\begin{lem} \label{lem-emp-join}
+	If 
+	\begin{enumerate} [(i)]
+		\item $\sgm_1 \~{S} \sgm_2$
+		\item $\seval{p}{\sgm_1}{\c}{\sgm}$
+		\item $\FV{p} \cap \S = \emptyset$
+		\item $\forall s \in \FV{p}. \sgm_2(s) = \emptyv$
+	\end{enumerate}
+	then 
+	\begin{enumerate}[(i)]
+		\setcounter{enumi}{4}
+		\item $\seval{p}{\sgm_1 \x{\S} \sgm_2}{\c}{\sgm'}$
+		\item $\forall s' \in \dv{p}. \sgm(s') = \sgm'(s')$
+	\end{enumerate}
+\end{lem}
+
 \begin{lem} [\textbf{Stores concatenation lemma}] \label{lem-sgm-join}
-	If $\sgm_1 \~{\S} \sgm_2, 
-	\seval{p}{\sgm_1}{\c_1}{\sgm_1'}$ (by some derivation $\MP_1$),
-	$\seval{p}{\sgm_2} {\c_2} {\sgm_2'}$ (by $\MP_2$),
-	and $\FV{p}{\c_1} \cap \S = \emptyset $, $\FV{p}{\c_2} \cap \S = \emptyset $
+	If 
+	\begin{enumerate}[(i)]
+		\item $\sgm_1 \~{\S} \sgm_2$
+		\item $\seval{p}{\sgm_1}{\c_1}{\sgm_1'}$ (by some derivation $\MP_1$)
+		\item $	\seval{p}{\sgm_2} {\c_2} {\sgm_2'}$ (by some derivation $\MP_2$)
+		\item $\FV{p} \cap \S = \emptyset $
+	\end{enumerate}
 	then $\seval{p}{\sgm_1 \x\S \sgm_2}{\c_1 {\++} \c_2}{ \sgm_1' \x\S \sgm_2' }$ (by $\MP$).
 \end{lem}
 
@@ -544,14 +603,7 @@ Let $\sgm_1 \ConEq{\s} \sgm_2$ denote $\forall \s' < \s. \sgm_1(\s') = \sgm_2(\s
 	      &\overline{\s} = [s] \\
 	      &\overline{(\st,s)} = \overline{st} {\++} [s]
 	      \end{align*}
-	\item Function $\FV{p}{s_c}$ takes an SVCODE program and the control stream id as parameters,
-	returns a list of the free variables (i.e., stream ids)  of $p$:
-	\begin{align*}
-	&\FV{\epsilon}{\_} \ = [ \ ] \\
-	&\FV{\sdef{\s}{\psi(s_1,...,s_i)}} {\s_c}  = [\s_c,s_1,...,s_i] \\
-	&\FV{\withctrl{\s_c'}{p_1}{\Sin}{\Sout}} {\s_c}  = [s | s \in  \Sin, \s < \s_c] \\
-	&\FV{p_1;p_2}{\s_c} = \FV{p_1}{\s_c} {\++}  \FV{p_2}{\s_c}
-	\end{align*}
+
 	
 	\item Translation environment: $$\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $$ 
 	
@@ -578,14 +630,15 @@ Let $\sgm_1 \ConEq{\s} \sgm_2$ denote $\forall \s' < \s. \sgm_1(\s') = \sgm_2(\s
 }
 
 \PT{
-	\AC{\Trans{[x \|-> {\st_1}]}{e}{\s_0+1}{\s_1}{\sfun{p}{\st}}}
+	\AC{\Trans{[x \|-> {\st_1}]}{e}{\s_0+1}{\s_1}{\sfun{p_1}{\st}}}
 	\RiLa{\left(
 		   \begin{aligned}
 		    &\del(y)=(\st_1,\s_2) \\
-		    &\Sin = \FV{p}{\s_0}
+		    &\Sin = \{\s_0\} \cup \FV{p_1} \\
+		    &\Sout = \overline{\st} \cap \dv{p_1}
 		   \end{aligned}
 		 \right)}
-	\UC{\Trans{\del}{\Comp{e}{x}{y}{\cdot}}{\s_0}{\s_1}{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p}{\Sin}{\overline{\st}}}{(\st,\s_2)}}}
+	\UC{\Trans{\del}{\Comp{e}{x}{y}{\cdot}}{\s_0}{\s_1}{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\Sin}{\Sout}}{(\st,\s_2)}}}
 }
 
 
