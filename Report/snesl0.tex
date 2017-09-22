@@ -102,18 +102,14 @@
 
 \newcommand{\eq}[2]{\begin{equation}\label{#1} #2\end{equation}}
 
-\providecommand{\versionnumber}{0.0.7}
+\providecommand{\versionnumber}{0.0.8}
 
 
 \section{Level-0}
 
 Draft version \versionnumber: 
 \begin{itemize}
-	\item changed WithCtrl: added import and export list 
-	\item adjusted section structure
-    \item small changes of some function notations
-	\item Note: the symbols/functions used in the main correctness theroem have
-    not been updated yet
+	\item added proof of concatenation lemma
 \end{itemize}
 
 \section{Source Language}
@@ -623,7 +619,7 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
  \eq{eq-lem24-c3-1}{\Sin  = \{s_c\} \cup \FV{p_0}} and
  \eq {eq-lem24-c3-2}{\Sout \subseteq \dv{p_0}}
 
-\def\casethree{p = \withctrl{\s_c}{p_0}{\Sin}{\Sout}; p'}
+\def\casethree{\withctrl{\s_c}{p_0}{\Sin}{\Sout}; p'}
 
 	From the assumption ($iv$), we have 
 	\begin{align*}
@@ -634,12 +630,12 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 	(\Sin \cap \S) \cup (\FV{p'}) \cap \S ) & = \emptyset 
 	\end{align*}
 	thus 
-	\eq{eq-lem24-c3-as3}{\Sin \cap \S = \emptyset}
+	\eq{eq-lem24-c3-3}{\Sin \cap \S = \emptyset}
 	\eq{eq-lem24-c3-4}{\FV{p'} \cap \S = \emptyset}
 	
     Since \ref{eq-lem24-c3-1} with \ref{eq-lem24-c3-as3}, we also have 
-    	\eq{eq-lem24-c3-as5}{\{s_c\} \cap \S = \emptyset}
-    	\eq{eq-lem24-c3-as6}{\FV{p_0} \cap \S = \emptyset}
+    	\eq{eq-lem24-c3-5}{\{s_c\} \cap \S = \emptyset}
+    	\eq{eq-lem24-c3-6}{\FV{p_0} \cap \S = \emptyset}
     
     Assume $\Sout = [s_1,...,s_j]$. \\	
     There are four possibilities: 
@@ -764,8 +760,59 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 	This subcase is analogous to the second one. \\
  		
 	\item Subcase both $\MP_1$ and $\MP_2$ use $\PName{Wc-Nonemp}$. \\
- 		
+ 	$\MP_1$ must look like
+ 	$$\PT{
+ 		\UCN{\MP_1'}{\seval{p_0}{\sgm_1}{\c_1'}{\sgm_1''}}
+ 		\UCN{\MP_1''}{\seval{p'}{\sgm_1[\s_1 \|-> \sgm_1''(\s_1),...,\s_j \|-> \sgm''(\s_j)]}{\c_1}{\sgm_1'}}
+ 		\BC{\seval{\casethree}{\sgm_1}{\c_1}{\sgm_1'}}
+ 	}$$
+ 	and 
+ 	\eq{\eqnumthree{30}}{\sgm_1(\s_c)= \c_1' = \< () | ...\'>}
+ 	
+ 	Similarly, $\MP_2$ must look like
+ 	$$\PT{
+ 		\UCN{\MP_2'}{\seval{p_0}{\sgm_2}{\c_2'}{\sgm_2''}}
+ 		\UCN{\MP_2''}{\seval{p'}{\sgm_2[\s_1 \|-> \sgm_1''(\s_1),...,\s_j \|-> \sgm''(\s_j)]}{\c_2}{\sgm_2'}}
+ 		\BC{\seval{\casethree}{\sgm_2}{\c_2}{\sgm_2'}}
+ 	}$$
+ 	and 
+ 	\eq{\eqnumthree{31}}{\sgm_2(\s_c)= \c_2' = \< () | ...\'>}
+    
+    By IH on $\MP_1'$, $\MP_2'$ with \ref{eq-lem24-c3-6}, we get a derivation $\MP_0$ of 
+    $$\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}$$
+    
+    Since (from $\S \cap \Sout = \emptyset$) $ \forall i \in \{1,...,j\}. s_i \notin \S$ ,
+      then 	\eq{\eqnumthree{32}}{\sgm_1'' \x{\S} \sgm_2''(\s_i) = \sgm_1''(\s_i) {\++} \sgm_2''(\s_i)}
+    
+    Also it is easy to show 
+      \eq{\eqnumthree{33}}
+    	{\sgmbpp{1} \~{\S} \sgmbpp{2}}
+    and
+ 
+   \eq{\eqnumthree{34}}
+   	{\begin{split}
+    	 \sgmbpp{1} \x{\S} \sgmbpp{2} = \\ 
+    	 \sgmx[\s_1 \|-> \sgm_1''(\s_1) {\++} \sgm_2''(\s_1),...,\s_j \|-> \sgm_1''(\s_j) {\++} \sgm_2''(\s_j)]
+    \end{split}}   
    	
+   	By IH on \ref{\eqnumthree{33}} with $\MP_1''$, $\MP_2''$, \ref{eq-lem24-c3-4}, we obtain 
+   	a derivation of 
+   	$$\seval{p'}{\sgmbpp{1} \x{\S} \sgmbpp{2}}{\cc}{\sgmpx},$$
+   	
+   	and replacing the start store with the right-hand side of \ref{\eqnumthree{34}} gives us a derivation $\MP'$ of 
+   	  $$\seval{p'}{\sgmx[\s_1 \|-> \sgm_1''(\s_1) {\++} \sgm_2''(\s_1),...,\s_j \|-> \sgm_1''(\s_j) {\++} \sgm_2''(\s_j)]} \cc \sgmpx $$
+   	
+    With \ref{\eqnumthree{32}}, we can replace all the new bound values  $\sgm_1''\x{\S} \sgm_2''(s_i)$ in $\MP'$ with $\sgm_1''(\s_i) {\++} \sgm_2''(\s_i)$ for all $i \in \{1,...,j\}$, giving us another derivation $\MP''$ of 
+    
+    $$\seval{p'}{\sgmx[\s_1 \|-> \sgm_1''\x{\S} \sgm_2''(s_1),...,\s_j \|-> \sgm_1''\x{\S} \sgm_2''(s_j)]} \cc \sgmpx $$
+   	
+   	Since $\ref{\eqnumthree{30}}$ and $\ref{\eqnumthree{31}}$, we know $\sgmx(\s_c)$ = $\c_1' {\++}  \c_2' = \<()|...\'>$,
+   	therefore we can use the rule $\PName{Wc-Nonemp}$ to build $\MP$ as follows:
+   	$$\PT{
+   		\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}}
+   		\UCN{\MP''}{\seval{p'}{\sgmx[\s_1 \|-> \sgm_1''\x{\S} \sgm_2''(s_1),...,\s_j \|-> \sgm_1''\x{\S} \sgm_2''(s_j)]} \cc \sgmpx} 
+   		\BC{\seval{\casethree}{\sgmx}{\cc}{\sgmpx}}
+   	}$$ and we are done.
     \end{itemize}	
 	\end{itemize}
 \end{proof}
