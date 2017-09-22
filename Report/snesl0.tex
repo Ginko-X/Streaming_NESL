@@ -109,6 +109,7 @@
 
 Draft version \versionnumber: 
 \begin{itemize}
+	\item changed the structure/syntax of $p$ to a list of instructions
 	\item added proof of concatenation lemma
 \end{itemize}
 
@@ -554,7 +555,7 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 	
 \item Case $p = \sdef{\s_l}{\lcall(s_1,...,s_i)}; p'.$ \\
 \def\casetwo{\sdef{\s_l}{\lcall\Tupk\s};p'}	
-
+\def\eqnumtwo#1{eq-lem24-c2-{#1}}
 	$\MP_1$ must look like 
 	$$\PT{\UCN{\MP_{10}}{\sevalf{\a_1}{\a_k}{\c_1}{\a}}
 		  \UCN{\MP_{11}}{\seval{p'}{\sgm_1[\s_l \|-> \a]}{\c_1}{\sgm_1'}}
@@ -562,7 +563,7 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 	} $$
 
 	and we have 
-	    \eq{eq-lem24-c2-as1}{(\sgm_1(\s_i) = \a_i)^k_{i=1}}
+	    \eq{eq-lem24-c2-1}{(\sgm_1(\s_i) = \a_i)^k_{i=1}}
 	
 	
     Similarly, $\MP_2$ must look like 
@@ -572,21 +573,21 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 	} $$
 	
 	and we have
-	\eq{eq-lem24-c2-as2}{(\sgm_2(\s_i) = \a_i')^k_{i=1}}
+	\eq{eq-lem24-c2-2}{(\sgm_2(\s_i) = \a_i')^k_{i=1}}
 	
 	From assumption $(iv)$ we have
 	\begin{align*}
 		\FV{\casetwo} \cap \S & = \emptyset \\
-		(\{s_1,...,s_i\} \cup \FV{p'} - \{\s_l\}) \cap \S & = \emptyset \tag{by definition of $\FV{}$} \\
-		(\{s_1,...,s_i\} \cup \FV{p'}) \cap (\S-\{\s_l\}) & = \emptyset \tag{by \ref{set-p1}} \\
-		(\{s_1,...,s_i\} \cup \FV{p'}) \cap \S & = \emptyset \tag{by \ref{set-p2} with ??? $\S \cap \{\s_l\} = \emptyset$} \\
-		(\{s_1,...,s_i\} \cap \S) \cup (\FV{p'}) \cap \S ) & = \emptyset 
+		(\{s_1,...,s_k\} \cup \FV{p'} - \{\s_l\}) \cap \S & = \emptyset \tag{by definition of $\FV{}$} \\
+		(\{s_1,...,s_k\} \cup \FV{p'}) \cap (\S-\{\s_l\}) & = \emptyset \tag{by \eqref{set-p1}} \\
+		(\{s_1,...,s_k\} \cup \FV{p'}) \cap \S & = \emptyset \tag{by \eqref{set-p2} with ??? $\S \cap \{\s_l\} = \emptyset$} \\
+		(\{s_1,...,s_k\} \cap \S) \cup (\FV{p'} \cap \S ) & = \emptyset 
 	\end{align*}
     thus 
-	\eq{eq-lem24-c2-as3}{\{s_1,...,s_i\} \cap \S = \emptyset}
-	\eq{eq-lem24-c2-as4}{\FV{p'} \cap \S = \emptyset}
+	\eq{eq-lem24-c2-3}{\{s_1,...,s_k\} \cap \S = \emptyset}
+	\eq{eq-lem24-c2-4}{\FV{p'} \cap \S = \emptyset}
     
-    By \ref{lem-psi-join} on $\MP_{10}$, $\MP_{20}$, we get a derivation $\MP'$ of 
+    By Lemma \ref{lem-psi-join} on $\MP_{10}$, $\MP_{20}$, we get a derivation $\MP'$ of 
     \[ \sevalfg{\lcall}{\a_1  {\++} \a_1',...,\a_k {\++} \a_k' } 
              {\c_1 {\++} \c_2} {\a {\++} \a'} \]
     
@@ -599,14 +600,18 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
     
 
     
-    Then by IH on \ref{eq-lem24-c2-7}, $\MP_{11}$, $\MP_{21}$, \ref{eq-lem24-c2-as4}, we obtain
+    Then by IH on \eqref{eq-lem24-c2-7}, $\MP_{11}$, $\MP_{21}$, \eqref{eq-lem24-c2-4}, we obtain
     a derivation $\MP''$ of 
     \[\seval{p'}{\sgmxp}{\c_1 {\++} \c_2}{\sgm_1' \x{\S} \sgm_2'} \]
     
-    By replacing the start store in $\MP''$ with  the right-hand side of \ref{eq-lem24-c2-8}, we get $\MP'''$ of 
+    By replacing the start store in $\MP''$ with  the right-hand side of \eqref{eq-lem24-c2-8}, we get $\MP'''$ of 
     \[\seval{p'}{\sgmx[\s_l \|-> \a {\++} \a']}{\c_1 {\++} \c_2}{\sgm_1' \x{\S} \sgm_2'} \]
     
-    Using the rule $\PName{Xducer}$, we can build $\MP$ as follows
+    With \eqref{eq-lem24-c2-1},\eqref{eq-lem24-c2-2} and \eqref{eq-lem24-c2-3}, 
+    by the definition of store concatenation,
+    $$\forall i \in \{1,...,k\}.\sgmx(\s_i) = \sgm_1(\s_i) {\++} \sgm_2(\s_i) = \a_i {\++} \a_i',$$
+    
+    Therefore using the rule $\PName{Xducer}$, we can build $\MP$ as follows
    	$$\PT{\UCN{\MP'}{\sevalfg{\lcall}{\a_1  {\++} \a_1',...,\a_k {\++} \a_k' } 
    			{\c_1 {\++} \c_2} {\a {\++} \a'}}
     	\UCN{\MP'''}{\seval{p'}{\sgmx[\s_l \|-> \a {\++} \a']}{\c_1 {\++} \c_2}{\sgm_1' \x{\S} \sgm_2'}}
@@ -625,15 +630,15 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 	\begin{align*}
 	\FV{\casethree} \cap \S & = \emptyset \\
 	(\Sin \cup \FV{p'} - \Sout) \cap \S & = \emptyset \tag{by definition of $\FV{}$} \\
-	(\Sin \cup \FV{p'}) \cap (\S-\Sout) & = \emptyset \tag{by \ref{set-p1}} \\
-	(\Sin \cup \FV{p'}) \cap \S & = \emptyset \tag{by \ref{set-p2} with ??? $\S \cap \Sout = \emptyset$} \\
-	(\Sin \cap \S) \cup (\FV{p'}) \cap \S ) & = \emptyset 
+	(\Sin \cup \FV{p'}) \cap (\S-\Sout) & = \emptyset \tag{by \eqref{set-p1}} \\
+	(\Sin \cup \FV{p'}) \cap \S & = \emptyset \tag{by \eqref{set-p2} with ??? $\S \cap \Sout = \emptyset$} \\
+	(\Sin \cap \S) \cup (\FV{p'} \cap \S ) & = \emptyset 
 	\end{align*}
 	thus 
 	\eq{eq-lem24-c3-3}{\Sin \cap \S = \emptyset}
 	\eq{eq-lem24-c3-4}{\FV{p'} \cap \S = \emptyset}
 	
-    Since \ref{eq-lem24-c3-1} with \ref{eq-lem24-c3-as3}, we also have 
+    Since \eqref{eq-lem24-c3-1} with \eqref{eq-lem24-c3-3}, we also have 
     	\eq{eq-lem24-c3-5}{\{s_c\} \cap \S = \emptyset}
     	\eq{eq-lem24-c3-6}{\FV{p_0} \cap \S = \emptyset}
     
@@ -679,16 +684,19 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
     	and \eq{\eqnumthree{12}}
     		{\sgmbe{1} \x{\S} \sgmbe{2} = (\sgmx) [\s_1 \|-> \emptyv,..., \s_j \|-> \emptyv]}
     	
-    	By IH on \ref{\eqnumthree{11}} with $\MP_1'$, $\MP_2'$, \ref{eq-lem24-c3-4}, we get a derivation 
-    	\[ \seval{p'}{\sgmbe{1} \x{\S} \sgmbe{2}}{\cc }{\sgmpx} \] 
+    	By IH on \eqref{\eqnumthree{11}} with $\MP_1'$, $\MP_2'$, \eqref{eq-lem24-c3-4}, we get a derivation 
+    	\[ \seval{p'}{\sgmbe{1} \x{\S} \sgmbe{2}}{\cc }{\sgmpx}, \] 
     	
-        Replacing the start store with the right-hand side of \ref{\eqnumthree{12}} gives us a derivation $\MP'$ of
+        and replacing the start store with the right-hand side of \eqref{\eqnumthree{12}} gives us a derivation $\MP'$ of
    		
    		\[\seval{p'}{(\sgmx) [\s_1 \|-> \emptyv,..., \s_j \|-> \emptyv]}{\cc }{\sgmpx} \] 
    		
-   		Since \ref{eq-lem24-c3-as5} with \ref{eq-lem24-c3-7} and \ref{eq-lem24-c3-9}, we have 
+   		Since \eqref{eq-lem24-c3-5}, by the definition of store concatenation with \eqref{eq-lem24-c3-7}, \eqref{eq-lem24-c3-9}, we have    		
+   		$$\sgmx(\s_c) = \sgm_1(s_c) {\++} \sgm_2(s_c) =  \emptyv$$
    		
-   		$$(\sgmx) [\s_1 \|-> \emptyv,..., \s_j \|-> \emptyv](\s_c) = \emptyv$$
+   		Also, with $\eqref{\eqnumthree{8}}$ and $\eqref{\eqnumthree{10}}$, we must have
+   		$$\forall s \in \FV{p_0}. \sgmx(s) = \emptyv $$
+   		Thus, $\forall s \in \Sin. \sgmx(s) = \emptyv$. 
    		
    		Therefore, using $\PName{Wc-Emp}$ we can build $\MP$ as follows
    		$$\PT{
@@ -696,7 +704,7 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
    			\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmpx}}
    		}$$
    		
-   		as required. \\
+   		and we are done. \\
    
    	\item Subcase $\MP_1$ uses  $\PName{Wc-Nomemp}$, $\MP_2$ uses $\PName{Wc-Emp}$. \\
    	
@@ -722,11 +730,11 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
  \def\sgmbpp#1{\sgm_{#1}[\s_1 \|-> \sgm_{#1}''(\s_1),...,\s_j \|-> \sgm_{#1}''(\s_j)]} 
 
 
-    By Lemma \ref{lem-emp-join} on $\sgm_1 \~{\S} \sgm_2$ with $\MP_1'$, \ref{\eqnumthree{22}}, \ref{eq-lem24-c3-as6}, we obtain a derivation $\MP_0$
+    By Lemma \ref{lem-emp-join} on $\sgm_1 \~{\S} \sgm_2$ with $\MP_1'$, \eqref{\eqnumthree{22}}, \eqref{eq-lem24-c3-6}, we obtain a derivation $\MP_0$
     of 
     $$\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}$$ for some $\sgm_0$, and 
     $$\forall s \in dv(p_0). \sgm_0(s) = \sgm_1''(s), $$
-    thus,  with \ref{eq-lem24-c3-2}, we have
+    thus,  with \eqref{eq-lem24-c3-2}, we have
     \eq{\eqnumthree{25}} {(\sgm_0(s_i) = \sgm_1''(s_i))^j_{i=1}}
     
 
@@ -737,27 +745,30 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 	   	and \eq{\eqnumthree{24}}
 	   	{\sgmbpp{1} \x{\S} \sgmbe{2} = (\sgmx) [\s_1 \|-> \sgm_1''(\s_1),..., \s_j \|-> \sgm_1''(\s_j)]}
 	   	
-	   	By IH on \ref{\eqnumthree{23}} with $\MP_1''$, $\MP_2'$, \ref{eq-lem24-c3-4}, we get a derivation 
-	   	\[ \seval{p'}{\sgmbpp{1} \x{\S} \sgmbe{2}}{\cc }{\sgmpx} \] 
+	   	By IH on \eqref{\eqnumthree{23}} with $\MP_1''$, $\MP_2'$, \eqref{eq-lem24-c3-4}, we get a derivation 
+	   	\[ \seval{p'}{\sgmbpp{1} \x{\S} \sgmbe{2}}{\cc }{\sgmpx}, \] 
 	   	
-	   	Replacing the start store with the right-hand side of \ref{\eqnumthree{24}} gives us a derivation $\MP'$ of
+	   	and replacing the start store with the right-hand side of \eqref{\eqnumthree{24}} gives us a derivation $\MP'$ of
 	   	
 	   	\[\seval{p'}{(\sgmx) [\s_1 \|-> \sgm_1''(\s_1),..., \s_j \|-> \sgm_1''(\s_j)]}{\cc }{\sgmpx} \] 
 	   	
-	   	Since $\ref{\eqnumthree{25}}$, we replcace $\sgm_1''(i)$ with $\sgm_0(i)$ for all $i \in {1,...,j}$, then we obtain  $\MP''$ of
+	   	With $\eqref{\eqnumthree{25}}$, we replcace $\sgm_1''(i)$ with $\sgm_0(i)$ for all $i \in \{1,...,j\}$, then we obtain  $\MP''$ of
 	   	
    		\[\seval{p'}{(\sgmx) [\s_1 \|-> \sgm_0(\s_1),..., \s_j \|-> \sgm_0(\s_j)]}{\cc }{\sgmpx} \] 
    		
-   		Using the rule $\PName{Wc-Nonemp}$ we can build $\MP$ as follows
+   		By the definition of store concatenation with $\eqref{\eqnumthree{20}}$, $\eqref{\eqnumthree{21}}$, we have
+   		$$\sgmx(s_c) = \sgm_1(s_c) {\++} \sgm_2(s_c) = \c_1' =  \<()| ...\'>$$
+   		
+   		Therefore, we use the rule $\PName{Wc-Nonemp}$ to build $\MP$ as follows
    	
    		$$\PT{
    			\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}}
    			\UCN{\MP''}{\seval{p'}{(\sgmx) [\s_1 \|-> \sgm_0(\s_1),..., \s_j \|-> \sgm_0(\s_j)]}{\cc }{\sgmpx}}
    			\BC{\seval{\casethree}{\sgmx}{\cc}{\sgmpx}}
-   		}$$\\
+   		}$$ and we are done. \\
    	
 	\item Subcase $\MP_1$ uses  $\PName{Wc-Emp}$ and $\MP_2$ uses $\PName{Wc-Nonemp}$. \\	
-	This subcase is analogous to the second one. \\
+	This subcase is symmetric to the second one. \\
  		
 	\item Subcase both $\MP_1$ and $\MP_2$ use $\PName{Wc-Nonemp}$. \\
  	$\MP_1$ must look like
@@ -778,7 +789,7 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
  	and 
  	\eq{\eqnumthree{31}}{\sgm_2(\s_c)= \c_2' = \< () | ...\'>}
     
-    By IH on $\MP_1'$, $\MP_2'$ with \ref{eq-lem24-c3-6}, we get a derivation $\MP_0$ of 
+    By IH on $\MP_1'$, $\MP_2'$ with \eqref{eq-lem24-c3-6}, we get a derivation $\MP_0$ of 
     $$\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}$$
     
     Since (from $\S \cap \Sout = \emptyset$) $ \forall i \in \{1,...,j\}. s_i \notin \S$ ,
@@ -795,18 +806,18 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
     	 \sgmx[\s_1 \|-> \sgm_1''(\s_1) {\++} \sgm_2''(\s_1),...,\s_j \|-> \sgm_1''(\s_j) {\++} \sgm_2''(\s_j)]
     \end{split}}   
    	
-   	By IH on \ref{\eqnumthree{33}} with $\MP_1''$, $\MP_2''$, \ref{eq-lem24-c3-4}, we obtain 
+   	By IH on \eqref{\eqnumthree{33}} with $\MP_1''$, $\MP_2''$, \eqref{eq-lem24-c3-4}, we obtain 
    	a derivation of 
    	$$\seval{p'}{\sgmbpp{1} \x{\S} \sgmbpp{2}}{\cc}{\sgmpx},$$
    	
-   	and replacing the start store with the right-hand side of \ref{\eqnumthree{34}} gives us a derivation $\MP'$ of 
+   	and replacing the start store with the right-hand side of \eqref{\eqnumthree{34}} gives us a derivation $\MP'$ of 
    	  $$\seval{p'}{\sgmx[\s_1 \|-> \sgm_1''(\s_1) {\++} \sgm_2''(\s_1),...,\s_j \|-> \sgm_1''(\s_j) {\++} \sgm_2''(\s_j)]} \cc \sgmpx $$
    	
-    With \ref{\eqnumthree{32}}, we can replace all the new bound values  $\sgm_1''\x{\S} \sgm_2''(s_i)$ in $\MP'$ with $\sgm_1''(\s_i) {\++} \sgm_2''(\s_i)$ for all $i \in \{1,...,j\}$, giving us another derivation $\MP''$ of 
+    With \eqref{\eqnumthree{32}}, we can replace all the new bound values  $\sgm_1''\x{\S} \sgm_2''(s_i)$ in $\MP'$ with $\sgm_1''(\s_i) {\++} \sgm_2''(\s_i)$ for all $i \in \{1,...,j\}$, giving us another derivation $\MP''$ of 
     
     $$\seval{p'}{\sgmx[\s_1 \|-> \sgm_1''\x{\S} \sgm_2''(s_1),...,\s_j \|-> \sgm_1''\x{\S} \sgm_2''(s_j)]} \cc \sgmpx $$
    	
-   	Since $\ref{\eqnumthree{30}}$ and $\ref{\eqnumthree{31}}$, we know $\sgmx(\s_c)$ = $\c_1' {\++}  \c_2' = \<()|...\'>$,
+   	Since $\eqref{\eqnumthree{30}}$ and $\eqref{\eqnumthree{31}}$, we know $\sgmx(\s_c)$ = $\c_1' {\++}  \c_2' = \<()|...\'>$,
    	therefore we can use the rule $\PName{Wc-Nonemp}$ to build $\MP$ as follows:
    	$$\PT{
    		\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}}
