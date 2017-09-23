@@ -32,12 +32,14 @@
 \def\usum{\mathtt{Usum}}
 \def\maptwo#1{\mathtt{MapTwo}_{#1}}
 \def\scan{\mathtt{ScanPlus}}
+\def\distr{\mathtt{Distr}}
 
 \def\constaf#1{\mathtt{Const_{#1}()}} 
 \def\toflagf#1{\mathtt{ToFlags}(#1)}
 \def\usumf#1{\mathtt{Usum}(#1)}
 \def\maptwof#1#2#3{\mathtt{MapTwo}_{#1}(#2,#3)}
 \def\scanf#1#2{\mathtt{ScanPlus}(#1,#2)}
+\def\distrf#1#2{\mathtt{Distr(#1,#2)}}
 
 \def\:={:=}
 \def\sdef#1#2{#1 := #2}
@@ -102,25 +104,30 @@
 
 \newcommand{\eq}[2]{\begin{equation}\label{#1} #2\end{equation}}
 
-\providecommand{\versionnumber}{0.0.8}
+\providecommand{\versionnumber}{0.1.0}
 
 
-\section{Level-0}
+\section{Level-1}
+
+\def\usevars{x_1,...,x_j}
+\def\j#1{(#1)^j_{i=1}}
+\def\k#1{(#1)^k_{i=1}}
+\def\l#1{(#1)^l_{i=1}}
+
 
 Draft version \versionnumber: 
 \begin{itemize}
-	\item changed the structure/syntax of $p$ to a list of instructions
-	\item added proof of concatenation lemma
+    \item added using variables in comprehensions (grammar and rules updated, proof not yet) 
 \end{itemize}
 
 \section{Source Language}
 
 \subsection{Source language syntax}
 SNESL Expressions:
-$$e ::= x \ | \ \Let{x}{e_1}{e_2} \ | \ \hcall{\Tupk{x}} \ | \ \Comp{e}{x}{y}{\cdot} $$
+$$e ::= x \ | \ \Let{x}{e_1}{e_2} \ | \ \hcall{\Tupk{x}} \ | \ \Comp{e}{x}{y}{\usevars} $$
 $$\hcall = \*{const}_n \ | \ \*{iota} \ | \ \*{plus} $$ 
 
-Values: \\
+SNESL values: \\
 $$ n \in \*{Z} $$
 $$ v::= n \ | \ \Seqk{v}$$
 
@@ -150,11 +157,12 @@ Type environment $\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$.
 	\AC{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
 	\RiLa{((\Gam(x_i)= \tau_i)^k_{i=1})}
 	\UC{\Type{\Gam}{\hcall{\Tupk{x}}}{\tau}}
-}
+}\\[1ex]
+
 \PT{
-	\AC{\Type{[x \|-> {\tau_1}]}{e}{\tau}}
-	\RiLa{(\Gam(y)=\tseq{\tau_1})}
-	\UC{\Type{\Gam}{\Comp{e}{x}{y}{\cdot}}{\tseq{\tau}}}
+	\AC{\Type{[x \|-> {\tau_1}, \j{x_i \|-> \int}]}{e}{\tau}}
+	\RiLa{(\Gam(y)=\tseq{\tau_1}, \j{\Gam(x_i) = \int})}
+	\UC{\Type{\Gam}{\Comp{e}{x}{y}{\usevars}}{\tseq{\tau}}}
 }\\[2ex]
 
 
@@ -199,9 +207,9 @@ $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 }\\[1ex]
 
 \PT{
-	\AC{(\Eval{[x \|-> {v_i}]}{e}{v_i'})^k_{i=1}}
-	\RiLa{(\rho(y)=\Seqk{v})}
-	\UC{\Eval{\rho}{\Comp{e}{x}{y}{\cdot}}{\Seqk{v'}}}
+	\AC{(\Eval{[x \|-> {v_i}, \j{x_i \|-> n_i}]}{e}{v_i'})^k_{i=1}}
+	\RiLa{(\rho(y)=\Seqk{v}, \j{\rho(x_i) = n_i})}
+	\UC{\Eval{\rho}{\Comp{e}{x}{y}{\usevars}}{\Seqk{v'}}}
 }\\[1ex]
 
 \item Auxiliary \Jug{\EvalF\hcall{\replc{k}{v}}{v}}
@@ -224,21 +232,22 @@ $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 \item Stream id: $$\s \in \SId = \*{N} = \{0,1,2...\}$$
 
 A list of $\SId$: 
-$$\S = [\s_1,..., \s_i] $$
+$$\S = [\s_1,..., \s_i] 
+\footnote{For simplicity, in some cases where duplicate of some elements does not affect the correctness
+we will also use $\S$ to stand for a set of $\SId$s which keeps only one copy of each element in $\S$.} $$
 
-Note: for simplicity, in some cases where duplicate of some elements does not affect the correctness
-we will also use $\S$ to stand for a set of $\SId$s which keeps only one copy of each element in $\S$.
 
 \item SVCODE operations: $$\psi ::= \consta{a} \ | \ \toflag
-\ | \ \usum \ | \ \maptwo{\oplus} \ | \ \scan_{n_0} $$
+\ | \ \usum \ | \ \maptwo{\oplus} \ | \ \scan_{n_0} \ | \ \distr $$
 where $\oplus$ stands for some binary operation on $\int$. \\
 
 
 \item SVCODE program: 
 \begin{align*}
 	p :: & = \ \epsilon \\ 
-         &\ \ | \ \sdef{\s}{\psi(s_1,...,s_i)}; p_1  \\
-         &\ \ | \ \withctrl{\s}{p_1}{\Sin}{\Sout}; p_2   \tag{$\Sin  = \{s\} \cup \FV{p_1}, \Sout \subseteq \dv{p_1} $ }\\
+         &\ \ | \ \sdef{\s}{\psi(s_1,...,s_i)} \\
+         &\ \ | \ \withctrl{\s}{p_1}{\Sin}{\Sout}  \tag{$ \FV{p_1} \subseteq \Sin, \Sout \subseteq \dv{p_1} $} \\
+         &\ \ | \ p_1;p_2\\
 \end{align*}
 Note: here this $\Sin$ is actually slightly different from the import list used in our streaming interpreter which does not contain the new control stream id. 
 So it may cause some confusion later when we introduce the streaming language.
@@ -257,21 +266,23 @@ It is easy to prove the following properties:
  	
  \end{itemize}
 
-\item Free variables: a set (or list) of stream ids that are not defined but referred to by a SVCODE program
-\begin{align*}
-	&\FV{\epsilon} \ = \{\}\\
-	&\FV{\sdef{\s}{\psi(s_1,...,s_i)};p_1} = \{s_1,...,s_i\} \cup \FV{p_1} - \{\s\}\\
-	&\FV{\withctrl{\s_c}{p_1}{\Sin}{\Sout};p_2}  = \Sin \cup \FV{p_2} - \Sout
-\end{align*}
-
-
 
 
 \item Defined variables: a set (or list) of stream ids that are defined by a SVCODE progrom and accessible to the outside environment of the program
 \begin{align*}
 	&\dv{\epsilon} \ = \{\}\\
-	&\dv{\sdef{\s}{\psi(s_1,...,s_i)};p_1} = \{s\} \cup \dv{p_1}\\
-	&\dv{\withctrl{\s_c}{p_1}{\Sin}{\Sout};p_2}  = \Sout \cup \dv{p_2}
+	&\dv{\sdef{\s}{\psi(s_1,...,s_i)}} = \{s\}\\
+	&\dv{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}  = \Sout \\
+	&\dv{p_1;p_2} = \dv{p_1} \cup \dv{p_2}
+\end{align*}
+
+
+\item Free variables: a set (or list) of stream ids that are not defined but referred to by a SVCODE program
+\begin{align*}
+	&\FV{\epsilon} \ = \{\}\\
+	&\FV{\sdef{\s}{\psi(s_1,...,s_i)}} = \{s_1,...,s_i\}\\
+	&\FV{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}  = \{s_c\} \cup \Sin \\
+	&\FV{p_1;p_2} = \FV{p_1} \cup \FV{p_2} - \dv{p_1} 
 \end{align*}
 
 
@@ -287,12 +298,9 @@ $$\a = \vrange{a_1}{a_i}  $$
 
 \item Notations and operations about streams:
 \begin{itemize}
-	\item For some $a_0$ and $\a = \< a_1,...,a_i \'>$, let $\< a_0 | \a \'>  = \< a_0,a_1,...,a_i \'>. $ 
+	\item  Let $\< a_0 | ... \'>$ denote a non-empty stream with the first element $a_0$, and $\< a_0 | \a \'>$ also a non-empty stream $\< a_0,a_1,...,a_i \'>$ for some $\a = \< a_1,...,a_i \'>$. 
 
 	\item $\vapp{\vrange{a_1}{a_i}} {\vrange{a_1'}{a_j'}} = \langle a_1,...,a_i,a_1',...,a_j' \rangle $ \\
-
-%    \item 
-%    For some set of $\SId$, $t$, and some $\s \in \SId$, let $t \.< \s$ denote $\forall \s' \in t. \s' < \s$.
 
 \end{itemize}
 
@@ -312,32 +320,30 @@ $\c$ is the control stream.\\
 \PRule{Empty}{ \infer{\seval{\epsilon}{\sgm}{\c}{\sgm}}{} }
 
 \PRule{Xducer}{\PT{\AC{\sevalf{\a_1}{\a_k}{\c}{\a}}
-		\AC{\seval{p_1}{\sgm[\s \|-> \a]}{\c}{\sgm'}}
 	\RiLa{((\sgm(\s_i) = \a_i)^k_{i=1})}
-	\BC{\seval{\sdef{\s}{\lcall\Tupk\s};p_1}{\sgm}{\c}{\sgm'}}
+	\UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm}{\c}{\sgm'}}
 }} \\[2ex]
 
-\PRule{Wc-Emp}{\PT{
-	\AC{\seval{p_2}{\sgm[\s_1 \|-> \emptyv, ..., \s_i \|-> \emptyv]}{\c}{\sgm'}}
+\makebox[1.0\textwidth][c] {\PRule{Wc-Emp}{\PT{
+	\AC{}
 	\RiLa{
 		\left(
 			\begin{aligned}
-				&\forall s \in \Sin. \sgm(s) = \emptyv \\
-				&\Sout = [s_1,...,s_i]
+				&\forall s \in \{s_c\} \cup \Sin. \sgm(s) = \emptyv \\
+				&\Sout = [s_1,...,s_l]
 			\end{aligned}
 		\right)}
-	\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout};p_2}{\sgm}{\c}{\sgm'}}
-}}\\[2ex]
+	\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout};p_2}{\sgm}{\c}{\sgm[\l{\s_i \|-> \emptyv}]}}
+}}}\\[2ex]
 
-\makebox[1.0\textwidth][c] {\PRule{Wc-Nonemp}{\PT{
+\makebox[1.05\textwidth][c] {\PRule{Wc-Nonemp}{\PT{
 	\AC{\seval{p_1}{\sgm}{\c_1}{\sgm''}}
-	\AC{\seval{p_2}{\sgm[\s_1 \|-> \sgm''(\s_1),...,\s_i \|-> \sgm''(\s_i)]}{\c}{\sgm'}}
 	\RiLa{\left(
 		\begin{aligned} 
 		&\sgm(\s_c)= \c_1 = \< () | ...\'> \\
-	    &\Sout = [s_1,...,s_i]
+	    &\Sout = [s_1,...,s_l]
 		\end{aligned}\right)}
-	\BC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout};p_2}{\sgm}{\c}{\sgm'}}
+	\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\l{\s_i \|-> \sgm''(\s_i)}]}}
 }}}\\[2ex]
 
 \PRule{Seq}{\PT{
@@ -373,7 +379,7 @@ $\c$ is the control stream.\\
 \PRule{MapTwo}{\PT{\AC{}
 	\RiLa{(n_3= n_1 \oplus n_2)}
 	\UC{\maptwo{\oplus}(\singl{n_1}, \singl{n_2}) \da \singl{n_3}}
-}} \\
+}} \\[1ex]
 
 %--- UsumF
 \PRule{UsumF}{
@@ -383,7 +389,7 @@ $\c$ is the control stream.\\
 }
 \PRule{UsumT}{
 	\PT{\Axiom{\blockf{\usum}{\oT}{\emptyv}}}
-}\\
+}\\[1ex]
 
 \PRule{ScanF}{
 	\PT{\AC{\blockf{\scan_{n_0+n}}{\b,\a}{\a'}}
@@ -393,8 +399,17 @@ $\c$ is the control stream.\\
 \PRule{ScanT}{
 	\PT{\Axiom{\blockf{\scan_{n_0}}{\oT, \emptyv}{\emptyv}}}	
 }
-\\
+\\[1ex]
 
+
+\PRule{DistrF}{
+	\PT{\AC{\blockf{\distr}{\b, \<n\'>}{\a}}
+		\UC{\blockf{\distr}{\<\F|\b \'>, \<n\'>}{\<n|\a \'>}}
+	}
+}
+\PRule{DistrT}{
+	\PT{\Axiom{\blockf{\distr}{\oT,\<n\'>}{\emptyv}}}
+}\\[1ex]
 
 Or if we want to use $unary$ semantics maybe for later: \\
 \begin{mdframed}
@@ -912,18 +927,27 @@ Let $\sgm_1 \ConEq{\s} \sgm_2$ denote $\forall \s' < \s. \sgm_1(\s') = \sgm_2(\s
 	\AC{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
 	\RiLa{((\del(x_i)=\st_i)^k_{i=1})}
 	\UC{\Trans{\del}{\hcall \Tupk{x}}{\s_0}{\s_1}{\sfun{p}{\st}}}
-}
+}\\[5ex]
 
 \PT{
-	\AC{\Trans{[x \|-> {\st_1}]}{e}{\s_0+1}{\s_1}{\sfun{p_1}{\st}}}
+	\AC{\Trans{[x \|-> {\st_1}, \j{x_i \|-> s_i}]}{e}{\s_0+1}{\s_1}{\sfun{p_1}{\st}}}
 	\RiLa{\left(
 		   \begin{aligned}
-		    &\del(y)=(\st_1,\s_2) \\
-		    &\Sin = \{\s_0\} \cup \FV{p_1} \\
-		    &\Sout = \overline{\st} \cap \dv{p_1}
+		    & \del(y) =  (\st_1,\s_b) \\
+		    & \j{\del(x_i) =  \s_i'} \\
+		    & p = 
+		    \begin{aligned}
+		    	&\sdef{\s_0}{\usum(\s_b)}; \\
+		    	& \j{\sdef{\s_i}{\distrf{\s_b}{\s_i'}};} \\
+		    	& \withctrl{\s_0}{p_1}{\Sin}{\Sout}
+		    \end{aligned} \\
+	    	& \Sin =  \FV{p_1} \\
+	   		& \Sout =  \overline{\st} \cap \dv{p_1} \\
+	    	& \s_{i+1} = \s_i + 1, \forall i \in \{0,...,j-1\} \\
 		   \end{aligned}
 		 \right)}
-	\UC{\Trans{\del}{\Comp{e}{x}{y}{\cdot}}{\s_0}{\s_1}{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\Sin}{\Sout}}{(\st,\s_2)}}}
+	\UC{\Trans{\del}{\Comp{e}{x}{y}{\usevars}}{\s_0}{\s_1}
+		{ \sfun{p} {(\st,\s_b)}}}
 }
 
 
@@ -1018,12 +1042,6 @@ Let $\sgm_1 \ConEq{\s} \sgm_2$ denote $\forall \s' < \s. \sgm_1(\s') = \sgm_2(\s
 
 
 \subsection{Correctness proof}
-
-\begin{lem}[???] \label{lem-seqs-sids}
-	If $\Type{\Gam}{e}{\tseq{\tau}}$,  $\Eval{\rho}{e}{\Seqk{v}}$,
-	and $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{(\st,\s)}}$,
-	then $\s \notin \sids{\st}.$
-\end{lem}
 
 \begin{lem}
 	\label{function-correctness}

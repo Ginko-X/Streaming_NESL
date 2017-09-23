@@ -14,13 +14,14 @@
 %\usepackage{tcolorbox}
 
 
-\geometry{left=2.5cm,right=2.5cm,top=3cm,bottom=3cm}
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=3cm}
+
 
 \newtheorem{thm}{Theorem}[section]
-\newtheorem{lem}{Lemma}[section]
-\newtheorem{defi}{Definition}[section]
-\newtheorem{prop}{Proposition}[section]
-\newtheorem{cor}{Corollary}[section]
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{defi}[thm]{Definition}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{cor}[thm]{Corollary}
 
 \usepackage{listings}
 \definecolor{listinggray}{gray}{0.9}
@@ -123,9 +124,9 @@
 
 
 % rule with a name
-\def\ERule#1#2{$\textsc{E-#1} : \vcenter{#2}$}
-\def\PRule#1#2{$\textsc{P-#1} : \vcenter{#2}$}
-\def\CRule#1#2{$\textsc{C-#1} : \vcenter{#2}$}
+\def\ERule#1#2{$\textsc{E-#1} : {#2}$}
+\def\PRule#1#2{$\textsc{P-#1} : {#2}$}
+\def\CRule#1#2{$\textsc{C-#1} : {#2}$}
 
 % only rule name
 \def\EName#1{\textsc{E-#1}}
@@ -156,10 +157,10 @@
 
 
 
-\title{SNESL formalization Level-0}
+\title{SNESL formalization Level-1}
 \author{Dandan Xue}
 
-\begin{document}
+\begin{document}\large
 \maketitle
 
 
