@@ -51,6 +51,7 @@
 \def\oF{\singl{\F}}
 
 \def\sids#1{\mathtt{sids}(#1)}
+\def\ol#1{\overline{#1}}
 
 \def\++{+\!+}
 \def\vapp#1#2{#1 {\++} #2}
@@ -62,7 +63,7 @@
 
 
 \def\lcall{\psi} 
-\def\seval#1#2#3#4{\langle #1,#2 \rangle \Eva^{#3} #4} 
+\def\seval#1#2#3#4{\left\langle#1,#2 \right\rangle \Eva^{#3} #4} 
 \def\sevalf#1#2#3#4{{\lcall}(#1,...,#2) \Eva^{#3} #4}
 
 \def\sevalfg#1#2#3#4{#1(#2) \Eva^{#3} #4}
@@ -292,9 +293,6 @@ $$ a ::= n \ | \ b \ | \ \unit$$
 $$\b = \vrange{b_1}{b_i}$$ 
 $$\a = \vrange{a_1}{a_i}  $$
 
-\item
-
-
 
 \item Notations and operations about streams:
 \begin{itemize}
@@ -321,7 +319,7 @@ $\c$ is the control stream.\\
 
 \PRule{Xducer}{\PT{\AC{\sevalf{\a_1}{\a_k}{\c}{\a}}
 	\RiLa{((\sgm(\s_i) = \a_i)^k_{i=1})}
-	\UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm}{\c}{\sgm'}}
+	\UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm}{\c}{\sgm[\s \|-> \a]}}
 }} \\[2ex]
 
 \makebox[1.0\textwidth][c] {\PRule{Wc-Emp}{\PT{
@@ -333,7 +331,7 @@ $\c$ is the control stream.\\
 				&\Sout = [s_1,...,s_l]
 			\end{aligned}
 		\right)}
-	\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout};p_2}{\sgm}{\c}{\sgm[\l{\s_i \|-> \emptyv}]}}
+	\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\l{\s_i \|-> \emptyv}]}}
 }}}\\[2ex]
 
 \makebox[1.05\textwidth][c] {\PRule{Wc-Nonemp}{\PT{
@@ -483,10 +481,10 @@ We call this $\S$ an $overlap$ of these two stores.
 
 According to this definition, it is only meaningful to have $\S  \subseteq dom(\sgm_1)$ (= $dom(\sgm_2)$).  
 When $\S = dom(\sgm_1) = dom(\sgm_2)$, $\sgm_1$ and $\sgm_2$ are identical. 
-It is easy to show that this relation $\overset{\S}{\sim}$ is transitive.
+It is easy to show that this relation $\overset{\S}{\sim}$ is symmetric and transitive.
 \begin{itemize}
+	\item If $\sgm_1 \~\S \sgm_2$, then $\sgm_2 \~\S \sgm_1$.
 	\item If $\sgm_1 \~\S \sgm_2$ and $\sgm_2 \~\S \sgm_3$, then $\sgm_1 \~\S \sgm_3$.
-	
 \end{itemize}
 
 
@@ -930,20 +928,17 @@ Let $\sgm_1 \ConEq{\s} \sgm_2$ denote $\forall \s' < \s. \sgm_1(\s') = \sgm_2(\s
 }\\[5ex]
 
 \PT{
-	\AC{\Trans{[x \|-> {\st_1}, \j{x_i \|-> s_i}]}{e}{\s_0+1}{\s_1}{\sfun{p_1}{\st}}}
+	\AC{\Trans{[x \|-> {\st_1}, \j{x_i \|-> s_i}]}{e}{\s_0+1+j}{\s_1}{\sfun{p_1}{\st}}}
 	\RiLa{\left(
 		   \begin{aligned}
-		    & \del(y) =  (\st_1,\s_b) \\
-		    & \j{\del(x_i) =  \s_i'} \\
-		    & p = 
-		    \begin{aligned}
-		    	&\sdef{\s_0}{\usum(\s_b)}; \\
-		    	& \j{\sdef{\s_i}{\distrf{\s_b}{\s_i'}};} \\
-		    	& \withctrl{\s_0}{p_1}{\Sin}{\Sout}
-		    \end{aligned} \\
-	    	& \Sin =  \FV{p_1} \\
-	   		& \Sout =  \overline{\st} \cap \dv{p_1} \\
-	    	& \s_{i+1} = \s_i + 1, \forall i \in \{0,...,j-1\} \\
+		     \del(y) = &  \ (\st_1,\s_b) \\
+		     \j{\del(x_i) = & \ \s_i'} \\
+		     p = & \ \sdef{\s_0}{\usum(\s_b)}; \\
+		         & \ \j{\sdef{\s_i}{\distrf{\s_b}{\s_i'}};} \\
+		        & \ \withctrl{\s_0}{p_1}{\Sin}{\Sout} \\
+	    	 \Sin = &  \ \FV{p_1} \\
+	   		 \Sout = & \ \overline{\st} \cap \dv{p_1} \\
+	        \s_{i+1} = & \ \s_i + 1, \forall i \in \{0,...,j-1\} \\
 		   \end{aligned}
 		 \right)}
 	\UC{\Trans{\del}{\Comp{e}{x}{y}{\usevars}}{\s_0}{\s_1}
@@ -1156,8 +1151,9 @@ By inducntion on the syntax of $\hcall$.
 	By induction on the syntax of $e$.
 	
 	\begin{itemize}
-		\item Case $e = \Comp{e_1}{x}{y}{\cdot}$. \\
-   
+		\item Case $e = \Comp{e_1}{x}{y}{\usevars}$. \\
+\def\eqnum#1{eq-mainproof-#1}  
+
 \def\kunit{\vrange{()_1}{()_k}} 
 \def\stwo{\< \F_1,..., \F_k, \T \'>}
 \def\sgmszs{\sgm[\s_0 \|-> \kunit, \st_2 \>-> \sgm''(\st_2)]}
@@ -1166,50 +1162,65 @@ By inducntion on the syntax of $\hcall$.
 		We must have: 
 		\begin{enumerate}[(i)]
 		\item 
-		\PT{
-			\UCN{\MT_1}{\Type{[x \|-> {\tau_1}]}{e_1}{\tau_2}}
+		$$\PT{
+			\UCN{\MT_1}{\Type{[x \|-> {\tau_1}, \j{x_i \|-> \int}]}{e_1}{\tau_2}}
 			\LeLa{\MT = }
-			\RiLa{(\Gam(y)=\tseq{\tau_1})}
-			\UC{\Type{\Gam}{\Comp{e_1}{x}{y}{\cdot}}{\tseq{\tau_2}}}
-		}
+			\UC{\Type{\Gam}{\Comp{e_1}{x}{y}{\usevars}}{\tseq{\tau_2}}}
+		} $$
+	    and $$\Gam(y)=\tseq{\tau_1}$$
+	        $$\j{\Gam(x_i) = \int}$$
 		
 		\item
-		\PT{
-			\UCN{\ME_i}{(\Eval{[x \|-> {v_i}]}{e_1}{v_i'})^k_{i=1}}
+		\[\PT{
+			\UCN{\ME_i}{\k{\Eval{[x \|-> {v_i}, \j{x_i \|-> n_i}]}{e_1}{v_i'}}}
 			\LeLa{\ME = }
-			\RiLa{(\rho(y)=\Seqk{v})}
-			\UC{\Eval{\rho}{\Comp{e_1}{x}{y}{\cdot}}{\Seqk{v'}}}
-		} 
+			\UC{\Eval{\rho}{\Comp{e_1}{x}{y}{\usevars}}{\Seqk{v'}}}
+		}\]
+	    and $$\rho(y)=\Seqk{v} $$
+	    \[\j{\rho(x_i) = n_i}\]
 		
 		\item 
-		\PT{
-			\UCN{\MC_1}{\Trans{[x \|-> {\st_1}]}{e_1}{\s_0+1}{\s_1}{\sfun{p_1}{\st_2}}}
+		\[\PT{
+			\UCN{\MC_1}{\Trans{[x \|-> {\st_1}, \j{x_i \|-> s_i}]}{e_1}{\s_0+1+j}{\s_1}{\sfun{p_1}{\st_2}}}
 			\LeLa{\MC = }
-			\RiLa{(\del(y)=(\st_1,\s_2))}
-			\UC{\Trans{\del}{\Comp{e_1}{x}{y}{\cdot}}{\s_0}{\s_1}
-				{\sfun{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\Sin}{\overline{\st_2}}}{(\st_2,\s_2)}}}
-		}
+			\UC{\Trans{\del}{\Comp{e_1}{x}{y}{\usevars}}{\s_0}{\s_1}
+				{\sfun{p}{(\st_2,\s_b)}}}
+		}\]
+	    and
+	    	\begin{align*}
+	    		\del(y) = &  \ (\st_1,\s_b) \\
+	    		\j{\del(x_i) = & \ \s_i'} \\
+	    		p = & \ \sdef{\s_0}{\usum(\s_b)}; \\
+	    		& \ \j{\sdef{\s_i}{\distrf{\s_b}{\s_i'}};} \\
+	    		& \ \withctrl{\s_0}{p_1}{\Sin}{\Sout} \\
+	    		\Sin = &  \ \FV{p_1} \\
+	    		\Sout = & \ \overline{\st_2} \cap \dv{p_1} \\
+	    		\s_{i+1} = & \ \s_i + 1, \forall i \in \{0,...,j-1\} \\
+	    	\end{align*}
+
+
 	
-	 So $p= (\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\Sin}{\overline{\st_2}}),
-	\tau = \tseq{\tau_2}, v = \Seqk{v'}, \st = (\st_2,\s_2). $ \\
+	 So $\tau = \tseq{\tau_2}, v = \Seqk{v'}, \st = (\st_2,\s_b). $ \\
 
 	\item $\Type{}{\rho(y)}{\Gam(y)}$ gives us $\Type{}{\Seqk{v}}{\tseq{\tau_1}}$, 
 	which must have the derivation:
-	\begin{equation}\label{comp-ass-vi}	
-	\PT{
-		\AC{(\Type{}{v_i}{\tau_1})^k_{i=1}}
-		\UC{\Type{}{\Seqk{v}}{\tseq{\tau_1}}}}
-	\end{equation}
+	\eq{\eqnum{20}}{
+		\PT{
+			\AC{(\Type{}{v_i}{\tau_1})^k_{i=1}}
+			\UC{\Type{}{\Seqk{v}}{\tseq{\tau_1}}}}
+	}
 	
-	$\sids{\del(y)} \.< \s_0$ gives us
-	\begin{equation} \label{comp-ass-st1-s2}
-	    \sids{\del(y)} = \sids{(\st_1,\s_2)} 
-	    = \sids{\st_1} \cup \{s_2\} \.< \s_0
+	$\ol{\del(y)} \.< \s_0$ gives us
+	\begin{equation} \label{\eqnum{21}}
+	    \ol{\del(y)} = \ol{(\st_1,\s_b)} 
+	    = \ol{\st_1} {\++} [\s_b] \.< \s_0
  	\end{equation}
+ 	and $\j{\del(x_i) = \s_i'} \.< \s_0$ implies 
+	and \eq{\eqnum{22}}{[\s_1',...,\s_j'] \.< \s_0}
 	
-	$\ValRep{\rho(y)}{\Gam(y)}{\sgm(\del(y))} =
- 	 \ValRep{\Seqk{v}}{\tseq{\tau_1}}{\sgm((\st_1,\s_2))}$ 
- 	 must have the derivation: 
+	Since $\ValRep{\rho(y)}{\Gam(y)}{\sgm(\del(y))} =
+ 	 \ValRep{\Seqk{v}}{\tseq{\tau_1}}{\sgm((\st_1,\s_b))}$, 
+ 	 which must have the derivation: 
  	 \eq{comp-ass-valrep}{
  	 \PT{
 		\UCN{\MR_i}{(\ValRep{v_i}{\tau_1}{\v_i})^k_{i=1}}
@@ -1221,65 +1232,110 @@ By inducntion on the syntax of $\hcall$.
     {\sgm(\st_1) = w}
 
     and \eq{comp-ass-sgms2}
-    {\sgm(\s_2) = \< \F_1,..., \F_k, \T \'>.}
+    {\sgm(\s_b) = \< \F_1,..., \F_k, \T \'>.}
     
 	\end{enumerate}
 
 
-%% proof		
+%%%% local shothands
+\def\compp{\begin{aligned} 
+		&\sdef{\s_0}{\usum(\s_b)}; \\
+		&\j{\sdef{\s_i}{\distrf{\s_b}{\s_i'}};} \\
+		&\withctrl{\s_0}{p_1}{\Sin}{\Sout} 
+	\end{aligned}}
+
+\def\comppp{\begin{aligned} 
+		&\j{\sdef{\s_i}{\distrf{\s_b}{\s_i'}};} \\
+		&\withctrl{\s_0}{p_1}{\Sin}{\Sout} 
+\end{aligned}}
+
+\def\compppp{\begin{aligned} 
+		&\sdef{\s_j}{\distrf{\s_b}{\s_j'}}; \\
+		&\withctrl{\s_0}{p_1}{\Sin}{\Sout} 
+\end{aligned}}
+
+\def\usumdef{\sdef{\s_0}{\usum(\s_b)}} 
+\def\distrdef{\sdef{\s_i}{\distrf{\s_b}{\s_i'}}} 
+\def\wcdef{\withctrl{\s_0}{p_1}{\Sin}{\Sout}}
+\def\kn#1{\<\overbrace{n_#1,...,n_#1}^{k}\'>} 
+ 
+ 
+%%%% proof		
 First we shall show: 
 	\begin{enumerate}[(i)]
 	\setcounter{enumi}{4}
-	
-	\item \label{comp-5}$\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\Sin}{\overline{\st_2}}}{\sgm}{\singl{()}}{\sgm'}$
+	\item \label{comp-5} $\seval{\compp}{\sgm}{\singl{()}}{\sgm'}$
 	by some $\MP$
-	\item $\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_2))}$ by some $\MR$
+	\item $\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_b))}$ by some $\MR$
 	\item $\sgm' \ConEq{\s_0} \sgm$ \\
 
-\def\usumdef{\sdef{\s_0}{\usum(\s_2)}} 
 
-	By $\PName{Seq}$, we can build $\MP$ as follows:
-	$$ \PT{
-		\UCN{\MP_0}{\seval{\sdef{\s_0}{\usum(\s_2)}}{\sgm}{\singl{()}}{\sgm_0}}
-		\UCN{\MP_1}{\seval{\withctrl{\s_0}{p_1}{\Sin}{\overline{\st_2}}}{\sgm_0}{\<()\'>}{\sgm'}}
-		\BC{\seval{\sdef{\s_0}{\usum(\s_2)}; \withctrl{\s_0}{p_1}{\Sin}{\overline{\st_2}}}{\sgm}{\singl{()}}{\sgm'}}
-	} $$
-    
-    By $\PName{Xducer}$ with $\sgm(\s_2) = \stwo$, we can continue to build $\MP_0$ as follows:
+
+
+Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
+
+{\normalsize
+\makebox[0.9\textwidth][c]{ \PT{
+	\UCN{\MP_0}{\seval{\sdef{\s_0}{\usumf{\s_b}}}{\sgm}{\singl{()}}{\sgm_0}}
+	\UCN{\MP_1}{\seval{\sdef{\s_1}{\distrf{\s_b}{\s_1'}}}{\sgm_0}{\singl{()}}{\sgm_1}}
+	\UCN{\MP_{j+1}}{\infer*{}{
+	      \infer{}
+	      	{\MP_j &  \seval{\withctrl{\s_0}{p_1}{\Sin}{\Sout}}{\sgm_j}{\singl{()}}{\sgm'}}}}
+	\UC{\seval{\comppp}{\sgm_1}{\singl{()}}{\sgm'}}
+	\BC{\seval{\comppp}{\sgm_1}{\singl{()}}{\sgm'}}
+	\BC{\seval{\compp}{\sgm}{\singl{()}}{\sgm'}}}
+}}\\
+
+ in which for $\forall i \in \{1,...,j\}$, $\MP_i$ is derivation of  $\seval{\distrdef}{\sgm_{i-1}}{\vunit}{\sgm_{i}}$.
+ 
+
+ 
+  For $\MP_0$, with $\sgm(\s_b) = \stwo$, we can build it as follows:
   
     $$\PT{
-    	\UCN{\MP_0'}{\sevalfg{\usum}{\stwo}{\vunit}{\a}}
-    	\LeLa{\MP_0 = }
-    	\UC{\seval{\usumdef}{\sgm}{\vunit}{\sgm[\s_0 \|-> \a]}}
+    	\AC{ \infer*{\blockf{\usum}{\<\F_2,...,\F_k,\T\'>}{\< ()_2,...,()_k\'>}} 
+    				{by \ \PName{UsumT} \  \vcenter{\infer {\blockf{\usum}{\singl{\T}}{\emptyv}}{}}}
+    		}
+    	\LeftLabel{by \PName{UsumF}}
+    	\UC{\blockf{\usum}{\stwo}{\kunit}}
+    	\AC{}
+    	\LeftLabel{by \PName{X-Termi}}
+    	\UC{\sevalfg{\usum}{\emptyv}{\emptyv} \emptyv}
+    	\LeftLabel{by \PName{X-Loop}}
+    	\BC{\sevalfg{\usum}{\stwo}{\vunit}{\a_0}}
+    	\LeftLabel{by \PName{Xducer}}
+    	\UC{\seval{\usumdef}{\sgm}{\vunit}{\sgm[\s_0 \|-> \a_0]}}
     }$$
-    So $\sgm_0 = \sgm[\s_0 \|-> \a]$.\\
-	We split $\stwo$ into two parts: $\b_1 = \stwo$ and $\b_2 = \emptyv$. \\
-	By $\PName{X-loop}$ and $\PName{X-termi}$ with $\b_1$ and $\b_2$, we continue building $\MP_0'$ as follows:
 
-	 $$\PT{
-		\UCN{\MP_0''}{\blockf{\usum}{\b_1}{\a}}
-		\Axiom{\sevalfg{\usum}{\b_2}{\emptyv} \emptyv}
-		\LeLa{\MP_0' = }
-		\BC{\sevalfg{\usum}{\stwo}{\vunit}{\a}}
-	}$$
-	
 
-	Then using $\PName{UsumF}$ $k$ times and $\PName{UsumT}$ once, we obtain
-	$$\MP_0'' = \vcenter{
-	    \infer{\blockf{\usum}{\stwo}{\kunit}} 
-	      {\infer*{\blockf{\usum}{\<\F_2,...,\F_k,\T\'>}{\< ()_2,...,()_k\'>}} 
-	    	{\infer {\blockf{\usum}{\singl{\T}}{\emptyv}}
-	    		{}
-	    	  }}	  
-     } $$ 
- 
- 	Thus so far we have constructed 
-	$\MP_0$ of $ \seval{\sdef{\s_0}{\usum(\s_2)}} {\sgm} {\singl{()}}
-	{\sgmsz}$.
-	
+    So $\sgm_0 = \sgm[\s_0 \|-> \a]$, and $\a_0 = \kunit$.\\
 
+	Similarly, with  $\sgm(\s_b) = \stwo$ and $\sgm(\s_i') = \singl{n_i}$, we can build each $\MP_i$ for 
+	$\forall i \in \{1,...,j\}$ as follows:\\
 	
+	\makebox[0.9\textwidth][c]{  
+	  \PT{
+	  	\AC{ \infer*{\blockf{\distr}{\<\F_2,...,\F_k,\T\'>, \singl{n_i}}{\<\overbrace{ n_i,...,n_i}}^{k-1}\'> } 
+	  		{by \ \PName{DistrT} \  \vcenter{\infer {\blockf{\distr}{\singl{\T},\singl{n_i}}{\emptyv}}{}}}
+	  	}
+	  	\LeftLabel{by \PName{DistrF}}
+	  	\UC{\blockf{\distr}{\stwo,\singl{n_i}}{\< \overbrace{n_i,...,n_i}^{k}\'>}}
+	  	\AC{}
+	  	\LeftLabel{by \PName{X-Termi}}
+	  	\UC{\sevalfg{\distr}{\emptyv,\emptyv}{\emptyv} \emptyv}
+	  	\LeftLabel{by \PName{X-Loop}}
+	  	\BC{\sevalfg{\distr}{\stwo, \singl{n_i}}{\vunit}{\a_i}}
+	  	\LeftLabel{by \PName{Xducer}}
+	  	\UC{\seval{\distrdef}{\sgm_{i-1}}{\vunit}{\sgm_{i-1}[\s_i \|-> \a_i]}}
+	  }
+  }
+  
+  So $\forall i \in \{1,...,j\}. \sgm_i= \sgm_{i-1}[\s_i \|-> \a_i]$ and $\a_i = \< \overbrace{ n_i,...,n_i}^{k}\'>$.
+  
+  Thus $\sgm_j = \sgm[\s_0 \|-> \kunit, \s_1 \|-> \kn{1},..., \s_j \|-> \kn{j}]$.\\
+	  
 % IH --------	
+  Now it remains to build $\MP_{j+1}$. \\
 	Since we have 
 	$$\MT_1 = \PT{\AC{\Type{[x \|-> {\tau_1}]}{e_1}{\tau_2}}}$$
 	$$(\ME_i = \PT{\AC{\Eval{[x \|-> {v_i}]}{e_1}{v_i'}}})^k_{i=1} $$
@@ -1326,7 +1382,7 @@ First we shall show:
 \def\sgmpempty{\sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_j' \|-> \emptyv]}
 
 % vi	
-	Since $k=0$, then $v = \{ \}$, $\sgm(\s_2) = \oT$ (from \eqref{comp-ass-sgms2}), we have \\
+	Since $k=0$, then $v = \{ \}$, $\sgm(\s_b) = \oT$ (from \eqref{comp-ass-sgms2}), we have \\
 	{\color{red} $\sgm'(\s_2) = \sgm(\s_2) = \oT$ (?? not correct if $\s_2 \in \sids{\st_2}/\sids{\st_1}$)}, \\
 	and $\sgm'(\st_2) = (...((\emptyv,\emptyv)_1,\emptyv)_2,...)_{j-1}.$ \\
 	
