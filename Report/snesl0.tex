@@ -1336,66 +1336,79 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	  
 % IH --------	
   Now it remains to build $\MP_{j+1}$. \\
+  
 	Since we have 
-	$$\MT_1 = \PT{\AC{\Type{[x \|-> {\tau_1}]}{e_1}{\tau_2}}}$$
-	$$(\ME_i = \PT{\AC{\Eval{[x \|-> {v_i}]}{e_1}{v_i'}}})^k_{i=1} $$
-	$$\MC_1 = \PT{\AC{\Trans{[x \|-> {\st_1}]}{e_1}{\s_0+1}{\s_1}{\sfun{p_1}{\st_2}}}}$$
+	$$\MT_1 = \PT{\AC{\Type{[x \|-> {\tau_1}, \j{x_i \|-> \int}]}{e_1}{\tau_2}}}$$
+	$$(\ME_i = \PT{\AC{\Eval{[x \|-> {v_i}, \j{x_i \|-> n_i}]}{e_1}{v_i'}}})^k_{i=1} $$
+	$$\MC_1 = \PT{\AC{\Trans{[x \|-> {\st_1}, \j{x_i \|-> s_i}]}{e_1}{\s_0+1+j}{\s_1}{\sfun{p_1}{\st_2}}}}$$
 	
-	Let $\Gam_1 = [x \|-> \tau_1], \rho_i= [x \|-> v_i]$ and $\del_1 = [x \|-> \st_1]$. \\
+	Let $\Gam_1 = [x \|-> {\tau_1}, \j{x_i \|-> \int}], \rho_i= [x \|-> {v_i}, \j{x_i \|-> n_i}]$ and $\del_1 = [x \|-> {\st_1}, \j{x_i \|-> s_i}]$. \\
+	
 	From \eqref{comp-ass-vi} and \eqref{comp-ass-st1-s2} it is clear that 
 	$$\forall z \in dom(\Gam_1). \Type{}{\rho_i(z)}{\Gam_1(z)} \wedge 
-	\sids{\del_1(z)} \.< \s_0 .$$
+	\ol{\del_1(z)} \.< \s_0 + 1 + j .$$
 	
-	Let $i$ range from $1$ to $k$: we take $\sgm_i \~{\st_1} \sgm[\s_0 \|-> \<()_1,...,()_k \'>]$ 
-	such that $\sgm_i(\st_1)= w_i$. \\
+	Let $i$ range from $1$ to $k$: we take $\sgm_i' \~\S \sgm_j$
+	where $\S = dom(\sgm_j) - \ol{\st_1} - \{\s_1,...,\s_j\}$,  
+	such that 
+		\eq{\eqnum{30}}{\sgm_i'(\st_1)= w_i}
+		\eq{\eqnum{31}}{\j{\sgm_i'(\s_i)= \singl{n_i}}}
+	
+	Notice that we now have 
+		\eq{\eqnum{32}}{\Sin = \FV{p_1} \subseteq ({\st_1} \cup \{\s_1,...,\s_j\}) \cap \S = \emptyset} 
+	
 	From $\MR_i$ in \eqref{comp-ass-valrep} we know that  
-	$$\forall z \in dom(\Gam_1). \ValRep{\rho_i(z)}{\Gam_1(z)}{\sgm_i(\del_1(z))}.$$
+	$$\forall z \in dom(\Gam_1). \ValRep{\rho_i(z)}{\Gam_1(z)}{\sgm_i'(\del_1(z))}.$$
 	
 	
 	Then  by IH ($k$ times) on $\MT_1$ with $\ME_i$, 
 	$\MC_1$ we obtain the following result:
-	\eq{compIH1}{(\seval{p_1}{\sgm_i}{\<()\'>}{\sgm_i'})^k_{i=1}}
-	\eq{compIH2}{(\ValRep{v'_i}{\tau_2}{\sgm_i'(\st_2)})^k_{i=1}}
-	\eq{compIH3}{(\sgm_i' \ConEq{\s_0 +1} \sgm_i)^k_{i=1}}
-	\eq{compIH4}{\s_0+1 \le \s_1}
-	\eq{compIH5}{\sids{\st_2} {\.<} \s_1}
+	\eq{compIH1}{(\seval{p_1}{\sgm_i'}{\<()\'>}{\sgm_i''})^k_{i=1}}
+	\eq{compIH2}{(\ValRep{v'_i}{\tau_2}{\sgm_i''(\st_2)})^k_{i=1}}
+	\eq{compIH3}{(\sgm_i'' \ConEq{\s_0 +j+1} \sgm_i')^k_{i=1}}
+	\eq{compIH4}{\s_0+1+j \le \s_1}
+	\eq{compIH5}{\ol{\st_2} {\.<} \s_1}
 % ----------- 	
 
 
-	Assume $\sids{\st_2} = \{\s'_1,...,\s'_j\}$.\\
+	Assume $\Sout = \{\s_{j+1},...,\s_{j+l}\}$.\\
 	
-	There are two possibilities:
+	There are two possibilities for $\MP_{j+1}$:
 	\begin{itemize}
 %subcase k= 0
 	\item 
-	Subcase $k=0$, that is $\sgmsz(\s_0) = \emptyv$.\\
-	By $\PName{Wc-Emp}$ We build
+	Subcase $\sgm_j(\s_0) = \emptyv$, i.e., $k = 0$.\\
+	Then $\j{\sgm_j(\s_i) = \emptyv}$. Also, with (3.4) and (3.5), we have 
+	$\forall s \in \ol{\st_1}. \sgm_j(\s) = \emptyv$; 
+	with (3.6), $\sgm_j(\s_b) = \oT $.
+	Thus $$\forall s \in (\{\s_0\} \cup \Sin). \sgm_j(\s) = \emptyv$$ 
+	
+	Then we can use the rule $\PName{Wc-Emp}$ to build $\MP$ as follows:
 	$$\PT{
-		\AC{}
-		\LeLa{\MP_1 = }
-		\UC{\seval{\withctrl{\s_0}{p_1}{\Sin}{\overline{\st_2}}}{\sgm}{\< () \'>}
-			{\sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_j' \|-> \emptyv]}}
+		\Axiom{\seval{\wcdef}{\sgm_j}{\< () \'>}
+			   {\sgm_j[\l{\s_{j+i} \|-> \emptyv}]}}
 	  }$$ 
     So in this subcase, 
-    $$\sgm' = \sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_j' \|-> \emptyv].$$ 
-
-\def\sgmpempty{\sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_j' \|-> \emptyv]}
+    $$\sgm' = \sgm_j[\l{\s_{j+i} \|-> \emptyv}] = \sgm[\s_0 \|-> \emptyv, \s_1 \|-> \emptyv, ..., \s_{j+l} \|-> \emptyv].$$ 
+	
+	TS: (vi)
+	\def\sgmpempty{\sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_j' \|-> \emptyv]}
 
 % vi	
-	Since $k=0$, then $v = \{ \}$, $\sgm(\s_b) = \oT$ (from \eqref{comp-ass-sgms2}), we have \\
-	{\color{red} $\sgm'(\s_2) = \sgm(\s_2) = \oT$ (?? not correct if $\s_2 \in \sids{\st_2}/\sids{\st_1}$)}, \\
-	and $\sgm'(\st_2) = (...((\emptyv,\emptyv)_1,\emptyv)_2,...)_{j-1}.$ \\
+	Since $k=0$, then $v = \{ \}$. Also, we have 
+	$$\sgm'(\s_b) = \sgm(\s_b) = \oT$$
+	$$\forall s \in \ol{\st_2}. \sgm'(s) = \emptyv$$ 
 	
-	Therefore $\sgm'((\st_2,\s_2)) = (\sgm'(\st_2), \sgm'(\s_2))$, with which we construct 
+	Therefore, $\sgm'((\st_2,\s_b)) = (\sgm'(\st_2), \sgm'(\s_b))$, with which we construct 
 	$$\MR = 
-	\PT{\Axiom{\ValRep{\{\}}{\tseq{\tau_2}}{((...(\emptyv,\emptyv)_1,...)_{j-1},\oT)}}}$$ 
+	\PT{\Axiom{\ValRep{\{\}}{\tseq{\tau_2}}{((...(\emptyv,(\emptyv)),...),\oT)}}}$$ 
 	as required.\\
     
 %vii
-    Since $k=0$, from \eqref{comp-ass-sgmst1} we know $\forall s' \in \sids{\st_1}. \sgm(s') = \emptyv$. 
-    For any $\s' \in \sids{\st_2}$ and $s' < \s_0$, it must have $\s' \in \sids{\st_1}$ 
-    (because $codom(\del_1) = \{\st_1\}$), hence $\sgm(\s') = \emptyv = \sgm'(\s')$. 
-    Therefore, $$\sgm' \ConEq{\s_0} \sgm.$$
+    TS: (vii) \\
+%    Since $\forall s \in \ol{\st_1}. \sgm(s) = \emptyv$, then for
+%     $\forall \s' \in \ol{\st_1} \wedge s' < \s_0$, it must have $\sgm(\s') = \emptyv = \sgm'(\s')$. 
+%    Therefore, $$\sgm' \ConEq{\s_0} \sgm.$$
     
 
 %subcase k > 0	
@@ -1419,7 +1432,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	\eq{p1-sgms-sgms'}{
 		\seval{p_1}{(\x{\st_1} \sgm_i)^k_{i=1}}{\kunit}{(\x{\st_2'} \sgm'_i)^k_{i=1}}
 	}
-	where $\st_2' = \sids{\st_1} \cup \sids{\st_2}$ (???) . 
+	where $\st_2' = \ol{\st_1} \cup \ol{\st_2}$ (???) . 
 	
 	By Definition \ref{def-sgm-join} we have
 	\eq{sgms-join}{
@@ -1433,8 +1446,8 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	Let $\sgm'_i(\st_2) = w'_i$ and  $\sgm''(\st_2) = w'$, then
 	$w' = w'_1 {\++} ... {\++} w'_k$. \\
 	
-	Since $\sgm'(\st_2) = \sgm''(\st_2) = w'$, and $\sgm'(\s_2) = \sgm(\s_2) = \stwo$,
-	we now have $\sgm'((\st_2,\s_2)) = (\sgm'(\st_2),\sgm'(\s_2)) = (w',\stwo)$. 
+	Since $\sgm'(\st_2) = \sgm''(\st_2) = w'$, and $\sgm'(\s_b) = \sgm(\s_b) = \stwo$,
+	we now have $\sgm'((\st_2,\s_b)) = (\sgm'(\st_2),\sgm'(\s_b)) = (w',\stwo)$. 
 	With \eqref{compIH2}, we can construct
 	$$\MR = 
 	\PT{
@@ -1457,10 +1470,10 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	From \eqref{compIH4} we immediately get $\s_0 \le \s_1 -1 < \s_1$.\\
 	
 %ix
-	\item TS: $\sids{(\st_2,\s_2)} {\.<} \s_1$  \\
-	From \eqref{comp-ass-st1-s2} we know $\s_2 < \s_0$, thus $ \s_2 < \s_0 \le \s_1$. 
+	\item TS: $\ol{(\st_2,\s_b)} {\.<} \s_1$  \\
+	From \eqref{comp-ass-st1-s2} we know $\s_b < \s_0$, thus $ \s_b < \s_0 \le \s_1$. 
 	And we already have \eqref{compIH5}. Therefore,
-	$$\sids{(\st_2,\s_2)} = \sids{\st_2} \cup \{s_2\} \.< \s_1.$$
+	$$\ol{(\st_2,\s_b)} = \ol{\st_2} \cup \{s_2\} \.< \s_1.$$
 	
 	\end{enumerate}
 
