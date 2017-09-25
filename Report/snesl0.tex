@@ -1137,13 +1137,18 @@ By inducntion on the syntax of $\hcall$.
 		\item $\Type{\Gam}{e}{\tau}$ (by some derivation $\MT$)
 		\item $\Eval{\rho}{e}{v}$ (by some $\ME$) 
 		\item $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$ (by some $\MC$)
-		\item \label{mainthm-assum-env} $\forall x \in dom(\Gam). \Type{}{\rho(x)}{\Gam(x) } \wedge \sids{\del(x)} \.< \s_0  \wedge  \ValRep{\rho(x)}{\Gam(x)}{\sgm(\del(x))}$ \\
-	\textbf{then} 
+		\item \label{mainthm-assum-env} $\forall x \in dom(\Gam). \Type{}{\rho(x)}{\Gam(x)$ } 
+		\item $\forall x \in dom(\Gam). \ol{\del(x)} \.< \s_0  $
+		\item $\forall x \in dom(\Gam). \ValRep{\rho(x)}{\Gam(x)}{\sgm(\del(x))}$
+	\end{enumerate}
+	then
+	\begin{enumerate}[(i)]
+		\setcounter{enumi} {6}
 		\item $\seval{p}{\sgm}{\singl{()}}{\sgm'}$ (by some derivation $\MP$)
 		\item  $\ValRep{v}{\tau}{\sgm'(\st)}$ (by some $\MR$)
 		\item $\sgm' \ConEq{s_0} \sgm $
 	    \item $\s_0 \le \s_1$
-		\item  $\sids{\st} \.< \s_1$
+		\item  $\ol{\st} \.< \s_1$
 	\end{enumerate} 
 \end{thm}
 
@@ -1163,30 +1168,34 @@ By inducntion on the syntax of $\hcall$.
 		\begin{enumerate}[(i)]
 		\item 
 		$$\PT{
-			\UCN{\MT_1}{\Type{[x \|-> {\tau_1}, \j{x_i \|-> \int}]}{e_1}{\tau_2}}
+			\UCN{\MT_1}{\Type{ [x \|-> {\tau_1}, x_1 \|-> \int,...,x_j \|-> \int ]}{e_1}{\tau_2}}
 			\LeLa{\MT = }
 			\UC{\Type{\Gam}{\Comp{e_1}{x}{y}{\usevars}}{\tseq{\tau_2}}}
 		} $$
-	    and $$\Gam(y)=\tseq{\tau_1}$$
+	    with $$\Gam(y)=\tseq{\tau_1}$$
 	        $$\j{\Gam(x_i) = \int}$$
 		
 		\item
 		\[\PT{
-			\UCN{\ME_i}{\k{\Eval{[x \|-> {v_i}, \j{x_i \|-> n_i}]}{e_1}{v_i'}}}
+			\AC{\left(
+				\begin{aligned}
+					&\ME_i \\
+					\Eval{[x \|-> {v_i}, x_1 \|-> n_1,...& , x_j \|-> n_j]}{e_1}{v_i'}
+				\end{aligned}\right)^k_{i=1}}
 			\LeLa{\ME = }
 			\UC{\Eval{\rho}{\Comp{e_1}{x}{y}{\usevars}}{\Seqk{v'}}}
 		}\]
-	    and $$\rho(y)=\Seqk{v} $$
+	    with $$\rho(y)=\Seqk{v} $$
 	    \[\j{\rho(x_i) = n_i}\]
 		
 		\item 
 		\[\PT{
-			\UCN{\MC_1}{\Trans{[x \|-> {\st_1}, \j{x_i \|-> s_i}]}{e_1}{\s_0+1+j}{\s_1}{\sfun{p_1}{\st_2}}}
+			\UCN{\MC_1}{\Trans{[x \|-> {\st_1}, x_1 \|-> s_1,...,x_j \|-> s_j]}{e_1}{\s_0+1+j}{\s_1}{\sfun{p_1}{\st_2}}}
 			\LeLa{\MC = }
 			\UC{\Trans{\del}{\Comp{e_1}{x}{y}{\usevars}}{\s_0}{\s_1}
 				{\sfun{p}{(\st_2,\s_b)}}}
 		}\]
-	    and
+	    with
 	    	\begin{align*}
 	    		\del(y) = &  \ (\st_1,\s_b) \\
 	    		\j{\del(x_i) = & \ \s_i'} \\
@@ -1194,10 +1203,9 @@ By inducntion on the syntax of $\hcall$.
 	    		& \ \j{\sdef{\s_i}{\distrf{\s_b}{\s_i'}};} \\
 	    		& \ \withctrl{\s_0}{p_1}{\Sin}{\Sout} \\
 	    		\Sin = &  \ \FV{p_1} \\
-	    		\Sout = & \ \overline{\st_2} \cap \dv{p_1} \\
-	    		\s_{i+1} = & \ \s_i + 1, \forall i \in \{0,...,j-1\} \\
+	    		\Sout = & \ \overline{\st_2} \cap \dv{p_1} 
 	    	\end{align*}
-
+		    \eq{\eqnum{1}}{\s_{i+1} =  \ \s_i + 1, \forall i \in \{0,...,j-1\}}  \\
 
 	
 	 So $\tau = \tseq{\tau_2}, v = \Seqk{v'}, \st = (\st_2,\s_b). $ \\
@@ -1209,31 +1217,39 @@ By inducntion on the syntax of $\hcall$.
 			\AC{(\Type{}{v_i}{\tau_1})^k_{i=1}}
 			\UC{\Type{}{\Seqk{v}}{\tseq{\tau_1}}}}
 	}
+	and clearly for $\forall i \in \{1,...,j\}, \Type{}{\rho(x_i)}{\Gam(x_i)}$, that is 
+	   \eq{\eqnum{2}}{\j{\ol{\Type{}{n_i}{\int}}}}.  
 	
+	\item 
 	$\ol{\del(y)} \.< \s_0$ gives us
 	\begin{equation} \label{\eqnum{21}}
 	    \ol{\del(y)} = \ol{(\st_1,\s_b)} 
 	    = \ol{\st_1} {\++} [\s_b] \.< \s_0
  	\end{equation}
- 	and $\j{\del(x_i) = \s_i'} \.< \s_0$ implies 
-	and \eq{\eqnum{22}}{[\s_1',...,\s_j'] \.< \s_0}
+ 	and $\j{\ol{\del(x_i)}} \.< \s_0$ implies $[\s_1',...,\s_j'] \.< \s_0$.
 	
+	
+	\item 
 	Since $\ValRep{\rho(y)}{\Gam(y)}{\sgm(\del(y))} =
  	 \ValRep{\Seqk{v}}{\tseq{\tau_1}}{\sgm((\st_1,\s_b))}$, 
  	 which must have the derivation: 
  	 \eq{comp-ass-valrep}{
  	 \PT{
-		\UCN{\MR_i}{(\ValRep{v_i}{\tau_1}{\v_i})^k_{i=1}}
-		\RiLa{(w =  w_1 \ {\++} ... {\++} \ w_k)}
+		\AC{\left(
+			\begin{aligned}
+				& \quad \MR_i \\
+				& \ValRep{v_i}{\tau_1}{\v_i}
+			\end{aligned}
+			\right)^k_{i=1}}
 		\UC{\ValRep{\Seqk{v}}{\tseq{\tau_1}}{(w,\stwo)}}
 	 }}
-    therefore 
-    \eq{comp-ass-sgmst1}
-    {\sgm(\st_1) = w}
-
-    and \eq{comp-ass-sgms2}
-    {\sgm(\s_b) = \< \F_1,..., \F_k, \T \'>.}
+    where $w =  w_1 \ {\++} ... {\++} \ w_k$,
+    therefore we have
+    \eq{comp-ass-sgmst1} {\sgm(\st_1) = w}
+    \eq{comp-ass-sgms2}	{\sgm(\s_b) = \< \F_1,..., \F_k, \T \'>.}
     
+    Also,  for $\forall i \in \{1,...,j\}$, $\ValRep{\rho(x_i)}{\Gam(x_i)}{\sgm(\del(x_i))} = \ValRep{n_i}{\int}{\sgm(\s_i')}$, which implies 
+    \eq{\eqnum{3}}{\j{\sgm(\s_i') = \singl{n_i}}}  
 	\end{enumerate}
 
 
@@ -1250,7 +1266,7 @@ By inducntion on the syntax of $\hcall$.
 \end{aligned}}
 
 \def\compppp{\begin{aligned} 
-		&\sdef{\s_j}{\distrf{\s_b}{\s_j'}}; \\
+		&(\sdef{\s_i}{\distrf{\s_b}{\s_i'}})^j_{i=2}; \\
 		&\withctrl{\s_0}{p_1}{\Sin}{\Sout} 
 \end{aligned}}
 
@@ -1263,14 +1279,10 @@ By inducntion on the syntax of $\hcall$.
 %%%% proof		
 First we shall show: 
 	\begin{enumerate}[(i)]
-	\setcounter{enumi}{4}
+	\setcounter{enumi}{6}
 	\item \label{comp-5} $\seval{\compp}{\sgm}{\singl{()}}{\sgm'}$
 	by some $\MP$
-	\item $\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_b))}$ by some $\MR$
-	\item $\sgm' \ConEq{\s_0} \sgm$ \\
-
-
-
+	\item $\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_b))}$ by some $\MR$ \\
 
 Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 
@@ -1281,12 +1293,12 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	\UCN{\MP_{j+1}}{\infer*{}{
 	      \infer{}
 	      	{\MP_j &  \seval{\withctrl{\s_0}{p_1}{\Sin}{\Sout}}{\sgm_j}{\singl{()}}{\sgm'}}}}
-	\UC{\seval{\comppp}{\sgm_1}{\singl{()}}{\sgm'}}
-	\BC{\seval{\comppp}{\sgm_1}{\singl{()}}{\sgm'}}
+	\UC{\seval{\compppp}{\sgm_1}{\singl{()}}{\sgm'}}
+	\BC{\seval{\comppp}{\sgm_0}{\singl{()}}{\sgm'}}
 	\BC{\seval{\compp}{\sgm}{\singl{()}}{\sgm'}}}
 }}\\
 
- in which for $\forall i \in \{1,...,j\}$, $\MP_i$ is derivation of  $\seval{\distrdef}{\sgm_{i-1}}{\vunit}{\sgm_{i}}$.
+ in which for $\forall i \in \{1,...,j\}$, $\MP_i$ is a derivation of  $\seval{\distrdef}{\sgm_{i-1}}{\vunit}{\sgm_{i}}$.
  
 
  
@@ -1302,15 +1314,15 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
     	\LeftLabel{by \PName{X-Termi}}
     	\UC{\sevalfg{\usum}{\emptyv}{\emptyv} \emptyv}
     	\LeftLabel{by \PName{X-Loop}}
-    	\BC{\sevalfg{\usum}{\stwo}{\vunit}{\a_0}}
+    	\BC{\sevalfg{\usum}{\stwo}{\vunit}{\kunit}}
     	\LeftLabel{by \PName{Xducer}}
-    	\UC{\seval{\usumdef}{\sgm}{\vunit}{\sgm[\s_0 \|-> \a_0]}}
+    	\UC{\seval{\usumdef}{\sgm}{\vunit}{\sgm[\s_0 \|-> \kunit]}}
     }$$
 
 
-    So $\sgm_0 = \sgm[\s_0 \|-> \a]$, and $\a_0 = \kunit$.\\
+    So $\sgm_0 = \sgm[\s_0 \|-> \kunit]$.\\
 
-	Similarly, with  $\sgm(\s_b) = \stwo$ and $\sgm(\s_i') = \singl{n_i}$, we can build each $\MP_i$ for 
+	Similarly, with  $\sgm(\s_b) = \stwo$ and $\j{\sgm(\s_i') = \singl{n_i}}$ from $\eqref{\eqnum{3}}$, we can build each $\MP_i$ for 
 	$\forall i \in \{1,...,j\}$ as follows:\\
 	
 	\makebox[0.9\textwidth][c]{  
@@ -1324,13 +1336,13 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	  	\LeftLabel{by \PName{X-Termi}}
 	  	\UC{\sevalfg{\distr}{\emptyv,\emptyv}{\emptyv} \emptyv}
 	  	\LeftLabel{by \PName{X-Loop}}
-	  	\BC{\sevalfg{\distr}{\stwo, \singl{n_i}}{\vunit}{\a_i}}
+	  	\BC{\sevalfg{\distr}{\stwo, \singl{n_i}}{\vunit}{\< \overbrace{ n_i,...,n_i}^{k}\'>}}
 	  	\LeftLabel{by \PName{Xducer}}
-	  	\UC{\seval{\distrdef}{\sgm_{i-1}}{\vunit}{\sgm_{i-1}[\s_i \|-> \a_i]}}
+	  	\UC{\seval{\distrdef}{\sgm_{i-1}}{\vunit}{\sgm_{i-1}[\s_i \|-> \< \overbrace{ n_i,...,n_i}^{k}\'>]}}
 	  }
   }
   
-  So $\forall i \in \{1,...,j\}. \sgm_i= \sgm_{i-1}[\s_i \|-> \a_i]$ and $\a_i = \< \overbrace{ n_i,...,n_i}^{k}\'>$.
+  So $\forall i \in \{1,...,j\}. \sgm_i= \sgm_{i-1}[\s_i \|-> \< \overbrace{ n_i,...,n_i}^{k}\'>]$.
   
   Thus $\sgm_j = \sgm[\s_0 \|-> \kunit, \s_1 \|-> \kn{1},..., \s_j \|-> \kn{j}]$.\\
 	  
@@ -1338,38 +1350,68 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
   Now it remains to build $\MP_{j+1}$. \\
   
 	Since we have 
-	$$\MT_1 = \PT{\AC{\Type{[x \|-> {\tau_1}, \j{x_i \|-> \int}]}{e_1}{\tau_2}}}$$
-	$$(\ME_i = \PT{\AC{\Eval{[x \|-> {v_i}, \j{x_i \|-> n_i}]}{e_1}{v_i'}}})^k_{i=1} $$
-	$$\MC_1 = \PT{\AC{\Trans{[x \|-> {\st_1}, \j{x_i \|-> s_i}]}{e_1}{\s_0+1+j}{\s_1}{\sfun{p_1}{\st_2}}}}$$
+	$$\MT_1 = \PT{\AC{\Type{[x \|-> {\tau_1}, x_1 \|-> \int,...,x_j \|-> \int ]}{e_1}{\tau_2}}}$$
+	$$(\ME_i = \PT{\AC{\Eval{[x \|-> {v_i}, x_1 \|-> n_1,..., x_j \|-> n_j]}{e_1}{v_i'}}})^k_{i=1} $$
+	$$\MC_1 = \PT{\AC{\Trans{[x \|-> {\st_1}, x_1 \|-> s_1,...,x_j \|-> s_j]}{e_1}{\s_0+1+j}{\s_1}{\sfun{p_1}{\st_2}}}}$$
 	
-	Let $\Gam_1 = [x \|-> {\tau_1}, \j{x_i \|-> \int}], \rho_i= [x \|-> {v_i}, \j{x_i \|-> n_i}]$ and $\del_1 = [x \|-> {\st_1}, \j{x_i \|-> s_i}]$. \\
+	Let $\Gam_1 = [x \|-> {\tau_1}, x_1 \|-> \int,...,x_j \|-> \int ], 
+	\rho_i= [x \|-> {v_i}, x_1 \|-> n_1,..., x_j \|-> n_j]$ 
+	and $\del_1 = [x \|-> {\st_1}, x_1 \|-> s_1,...,x_j \|-> s_j]$. 
 	
-	From \eqref{comp-ass-vi} and \eqref{comp-ass-st1-s2} it is clear that 
-	$$\forall z \in dom(\Gam_1). \Type{}{\rho_i(z)}{\Gam_1(z)} \wedge 
-	\ol{\del_1(z)} \.< \s_0 + 1 + j .$$
+   For $\forall i \in \{1,...,k\}$, we show the following three conditions, which allows us to use IH with $\MT_1$, $\ME_i$, $\MC_1$ later. 
+	\begin{enumerate}[(a)]
+		\item $\forall x \in dom(\Gam_1). \Type{}{\rho_i(x)}{\Gam_1(x)$ } 
+		\item $\forall x \in dom(\Gam_1). \ol{\del_1(x)} \.< \s_0 +1 +j  $
+		\item $\forall x \in dom(\Gam_1). \ValRep{\rho_i(x)}{\Gam_1(x)}{\sgm_{ji}(\del_1(x))}$\\
+	\end{enumerate}
 	
-	Let $i$ range from $1$ to $k$: we take $\sgm_i' \~\S \sgm_j$
-	where $\S = dom(\sgm_j) - \ol{\st_1} - \{\s_1,...,\s_j\}$,  
-	such that 
-		\eq{\eqnum{30}}{\sgm_i'(\st_1)= w_i}
-		\eq{\eqnum{31}}{\j{\sgm_i'(\s_i)= \singl{n_i}}}
-	It is easy to show that 
-	\eq{\eqnum{34}} {\sgm_1' \~\S \sgm_2' \~\S ... \~\S \sgm_k' \~\S \sgm_j}
-	\eq{\eqnum{32}}
-		{\k{\x{\S}\sgm_i'} = \sgm_j}
-	
-	Also note that we now have 
-		\eq{\eqnum{33}}{\Sin = \FV{p_1} \subseteq ({\st_1} \cup \{\s_1,...,\s_j\}) \cap \S = \emptyset} 
-	
-	From $\MR_i$ in \eqref{comp-ass-valrep} we know that  
-	$$\forall z \in dom(\Gam_1). \ValRep{\rho_i(z)}{\Gam_1(z)}{\sgm_i'(\del_1(z))}.$$
-	
-	
-	Then  by IH ($k$ times) on $\MT_1$ with $\ME_i$, 
+	TS: (a) \\
+		From $\eqref{\eqnum{20}}$ and $\eqref{\eqnum{2}}$ it is clear that 
+		$$\forall x \in dom(\Gam_1). \Type{}{\rho_i(x)}{\Gam_1(x)}$$ 
+		
+	TS: (b) \\ 
+	    From $\eqref{\eqnum{21}}$, it is clear that 
+		$\ol{\del_1(x)} = \ol{\st_1}\.< \s_0 + 1 + j$.
+		From $\eqref{\eqnum{1}}$, for $\forall i \in \{1,..,j\}.\del_1(x_i) = \s_0 +i < \s_0 +1 +j$.
+		Therefore, $$\forall x \in dom(\Gam_1).  \ol{\del_1(x)} \.< \s_0 +1 +j$$ 
+		
+	TS: (c) \\	
+		For $\forall i \in \{1,..,k\}$, we take $\sgm_{ji} \~\S \sgm_j$
+		where $\S = dom(\sgm_j) - (\ol{\st_1} \cup \{\s_1,...,\s_j\})$,  
+		such that 
+		\begin{align*}
+			\sgm_{ji}(\st_1) & = w_i \\
+			\sgm_{ji}(\s_1) & = \singl{n_1} \\
+			& \vdots \\
+			\sgm_{ji}(\s_j) & = \singl{n_j} 
+		\end{align*}
+		
+		It is easy to show that 
+		\eq{\eqnum{34}} {\sgm_{j1} \~\S \sgm_{j2} \~\S ... \~\S \sgm_{jk} \~\S \sgm_j}
+		\eq{\eqnum{32}}
+		{\sgm_{j1} \x\S \sgm_{j2} \x\S ... \x\S \sgm_{jk}= \sgm_j}
+		
+		Also note that
+		\eq{\eqnum{33}}{\Sin = \FV{p_1} \subseteq (\ol{\st_1} \cup \{\s_1,...,\s_j\}) \cap \S = \emptyset} 
+		\eq{\eqnum{4}}{\ol{\st_2} \subseteq (\ol{\st_1} \cup \{\s_1,...\s_j\} \cup \dv{p_1}) \cap \S = \emptyset}
+				
+		From $\MR_i$ in \eqref{comp-ass-valrep} we have
+		$\ValRep{\rho_i(x)}{\Gam_1(x)}{\sgm_{ji}(\del_1(x))}$
+		
+		 and it is clear that 
+		 \begin{align*}
+		 	\ValRep{\rho_i(x_1)}{\Gam_1(x_1)}{& \sgm_{ji}(\del_1(x_j))} \\
+		 	& \vdots \\
+		 	\ValRep{\rho_i(x_j)}{\Gam_1(x_j)}{& \sgm_{ji}(\del_1(x_j))}
+		 \end{align*}
+		Therefore, 
+		$\forall x \in dom(\Gam_1). \ValRep{\rho_i(x)}{\Gam_1(x)}{\sgm_{ji}(\del_1(x))}.$
+
+	Then by IH ($k$ times) on $\MT_1$ with $\ME_i$, 
 	$\MC_1$ we obtain the following result:
-	\eq{compIH1}{(\seval{p_1}{\sgm_i'}{\<()\'>}{\sgm_i''})^k_{i=1}}
-	\eq{compIH2}{(\ValRep{v'_i}{\tau_2}{\sgm_i''(\st_2)})^k_{i=1}}
-	\eq{compIH3}{(\sgm_i'' \ConEq{\s_0 +j+1} \sgm_i')^k_{i=1}}
+	\eq{compIH1}{(\seval{p_1}{\sgm_{ji}}{\<()\'>}{\sgm_{ji}'})^k_{i=1}}
+	\eq{compIH2}{(\ValRep{v'_i}{\tau_2}{\sgm_{ji}'(\st_2)})^k_{i=1}}
+	\eq{compIH3}{(\sgm_{ji}' \ConEq{\s_0 +j+1} \sgm_{ji})^k_{i=1}}
 	\eq{compIH4}{\s_0+1+j \le \s_1}
 	\eq{compIH5}{\ol{\st_2} {\.<} \s_1}
 % ----------- 	
@@ -1392,10 +1434,10 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 		\Axiom{\seval{\wcdef}{\sgm_j}{\< () \'>}
 			   {\sgm_j[\l{\s_{j+i} \|-> \emptyv}]}}
 	  }$$ 
-    So in this subcase, 
-    $$\sgm' = \sgm_j[\l{\s_{j+i} \|-> \emptyv}] = \sgm[\s_0 \|-> \emptyv, \s_1 \|-> \emptyv, ..., \s_{j+l} \|-> \emptyv].$$ 
+    So in this subcase, we take \eq{\eqnum{5}}{
+    \sgm' = \sgm_j[\l{\s_{j+i} \|-> \emptyv}] = \sgm[\s_0 \|-> \emptyv, \s_1 \|-> \emptyv, ..., \s_{j+l} \|-> \emptyv]}
 	
-	TS: (vi)
+	TS: (viii)
 	\def\sgmpempty{\sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_j' \|-> \emptyv]}
 
 % vi	
@@ -1405,15 +1447,9 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	
 	Therefore, $\sgm'((\st_2,\s_b)) = (\sgm'(\st_2), \sgm'(\s_b))$, with which we construct 
 	$$\MR = 
-	\PT{\Axiom{\ValRep{\{\}}{\tseq{\tau_2}}{((...(\emptyv,(\emptyv)),...),\oT)}}}$$ 
+	\PT{\Axiom{\ValRep{\{\}}{\tseq{\tau_2}}{((...(\emptyv),...),\oT)}}}$$ 
 	as required.\\
     
-%vii
-%    Since $\forall s \in \ol{\st_1}. \sgm(s) = \emptyv$, then for
-%     $\forall \s' \in \ol{\st_1} \wedge s' < \s_0$, it must have $\sgm(\s') = \emptyv = \sgm'(\s')$. 
-%    Therefore, $$\sgm' \ConEq{\s_0} \sgm.$$
-%    
-
 %subcase k > 0	
 \def\sgmp-nonempty{\sgm[\s_0 \|-> \kunit, \s_1' \|-> \sgm''(\s'_1),...,
 	\s'_j \|-> \sgm''(\s'_j)]}  
@@ -1421,33 +1457,37 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	\item \label{subcase-2} 
 	Subcase $\sgm_j(\s_0) = \<()|...\'>$, i.e., $k > 0$.
 	
-    Since we have $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and  $fv(p_1) \cap \S = \emptyset$ from $\eqref{\eqnum{33}}$,
+    Since we have $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and  $\FV(p_1) \cap \S = \emptyset$ from $\eqref{\eqnum{33}}$,
 	it is easy to show that using Lemma \ref{lem-sgm-join} at most (k-1) times we can obtain
 	\eq{p1-sgms-sgms'}{
-		\seval{p_1}{(\x{\S} \sgm_i')^k_{i=1}}{\kunit}{(\x{\S} \sgm''_i)^k_{i=1}}
+		\seval{p_1}{(\x{\S} \sgm_{ji})^k_{i=1}}{\kunit}{(\x{\S} \sgm_{ji}')^k_{i=1}}
 	}
 
-    Let $\sgm'' = (\x{\S} \sgm''_i)^k_{i=1}$. Also with $\eqref{\eqnum{32}}$, we replace both the start and ending stores in $\eqref{p1-sgms-sgms'}$, giving us 
-    a derivation $\MP_{j+1}'$
+    Let $\sgm'' = (\x{\S} \sgm_{ji}')^k_{i=1}$. Also with $\eqref{\eqnum{32}}$, we replace both the start and ending stores in $\eqref{p1-sgms-sgms'}$, giving us 
+    a derivation $\MP_{j+1}'$ of
     $$\seval{p_1}{\sgm_j}{\kunit}{\sgm''}$$
-    
-    And for $\forall i \in \{1,...,l\}$, by Definition \ref{def-sgm-join} we have
-    $$\sgm''(\s_{j+i}) = \sgm''_1(\s_{j+i}) {\++} ... {\++} \sgm''_k(\s_{j+i})$$
 	
-    
-	
-    Now we can build $\MP_{j+1}$ using the rule $\PName{Wc-Nonemp}$ as follows:
+    Now we build $\MP_{j+1}$ using the rule $\PName{Wc-Nonemp}$ as follows:
 	$$\PT{
 		\UCN{\MP_{j+1}'}{\seval{p_1}{\sgm_j}{\kunit}{\sgm''}}
 		\UC{\seval{\wcdef} {\sgm_j}{\vunit} 
 			{\sgm_j[\l{\s_{j+i}\|-> \sgm''(\s_{j+i})}]}}
 	}$$
    
-    So in this subcase $\sgm' = \sgm_j[\l{\s_{j+i}\|-> \sgm''(\s_{j+i})}]$.\\
+    So in this subcase we take 
+   \eq{\eqnum{6}}
+   	{\begin{aligned}
+	 \sgm' & = \sgm_j[\l{\s_{j+i}\|-> \sgm''(\s_{j+i})}] \\
+          & = \sgm[\s_0 \|-> \kunit,  \s_1 \|-> \kn{1},..., \s_j \|-> \kn{j},\\ 
+          & \qquad \s_{j+1} \|-> \sgm''(\s_{j+1}),..., \s_{j+l} \|-> \sgm''(\s_{j+l})]
+   		\end{aligned}
+   		}\\
     
-	TS : (vi)  \\
-	Let $\sgm'(\st_2) = w'$, and $\sgm''_i(\st_2) = w'_i$ then it is easy to show that 
-	$w' = \sgm''(\st_2) = w'_1 {\++} ... {\++} w'_k$. \\
+	TS : (viii)  \\
+	Let $\sgm'(\st_2) = w'$, and $\sgm_{ji}'(\st_2) = w'_i$. 
+	 
+	For $\forall i \in \{1,...,k\}$, by Definition \ref{def-sgm-join} with $\eqref{\eqnum{4}}$, we get
+	$$w' = \sgm''(\st_2) = w'_1 {\++} ... {\++} w'_k$$
 	Also, $\sgm'(\s_b) = \sgm(\s_b) = \stwo$,
 	we now have $\sgm'((\st_2,\s_b)) = (\sgm'(\st_2),\sgm'(\s_b)) = (w',\stwo)$. 
 	With \eqref{compIH2}, we can construct $\MR$ as follows:
@@ -1456,21 +1496,14 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 		\UC{\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{(w',\stwo)}}
 	}$$ as required. \\
 
-
-%	By Lemma \ref{lem-join1} on \eqref{sgms-join} we get $\sgm_i \~{\st_1} \sgmsz$, and similarly $\sgm'_i \~{\st_2'} \sgm''$ from \eqref{sgms'-join}. \\
-%	
-%	Since \eqref{compIH3} implies $$(\sgm'_i \ConEq{\s_0} \sgm_i)^k_{i=1}$$
-%	using Lemma \ref{lem-join2} (k-1) times, we obtain 
-%	$$\sgm'' \ConEq{\s_0} \sgmsz.$$
-%	Therefore, $\sgm' \ConEq{\s_0} \sgmsz \ConEq{\s_0} \sgm$.\\
-
 	\end{itemize}
 
 %vii
-\item TS: (vii) \\
-It is clear that in both subcase we have $$dom(\sgm') = dom(\sgm) \cup \{\s_0\} \cup \{\s_1,...,\s_j\} \cup \{\s_{j+1},...,\s_{j+l}\}$$
-Since $\forall \s \in \{\s_0\} \cup \{\s_1,...,\s_j\} \cup \{\s_{j+1},...,\s_{j+l}\}. \s_0 \le \s$, 
-therefore $\sgm' \ConEq{\s_0} \sgm$.
+\item TS:  $\sgm' \ConEq{\s_0} \sgm$ \\ \\
+	Since $\forall \s \in \{\s_0\} \cup \{\s_1,...,\s_j\} \cup \{\s_{j+1},...,\s_{j+l}\}. \s \ge \s_0$,
+	with $\eqref{\eqnum{5}}$ and $\eqref{\eqnum{6}}$, it is clear
+	$\forall s < s_0. \sgm'(s) = \sgm(s)$,
+	i.e., $\sgm' \ConEq{\s_0} \sgm$ as required.
 
 % viii
 	\item TS: $\s_0 \le \s_1$ \\
@@ -1478,9 +1511,9 @@ therefore $\sgm' \ConEq{\s_0} \sgm$.
 	
 %ix
 	\item TS: $\ol{(\st_2,\s_b)} {\.<} \s_1$  \\
-	From \eqref{comp-ass-st1-s2} we know $\s_b < \s_0$, thus $ \s_b < \s_0 \le \s_1$. 
+	From $\eqref{\eqnum{21}}$ we know $\s_b < \s_0$, thus $ \s_b < \s_0 \le \s_1$. 
 	And we already have \eqref{compIH5}. Therefore,
-	$$\ol{(\st_2,\s_b)} = \ol{\st_2} {\++} \{s_b\} \.< \s_1.$$
+	$$\ol{(\st_2,\s_b)} = \ol{\st_2} {\++} [s_b] \.< \s_1.$$
 	
 	\end{enumerate}
 
@@ -1509,7 +1542,7 @@ therefore $\sgm' \ConEq{\s_0} \sgm$.
  Immediately we have $\MP$ =
  $\PT{\Axiom{\seval{\epsilon}{\sgm}{\vunit}{\sgm}}}$\\
  So $\sgm' = \sgm$, which implies $\sgm'  \ConEq{\s_0} \sgm$.\\
- From the assumption we already have $\ValRep{v}{\tau}{\sgm(\st)}$,
+ From the assumptions (iv),(v) and(vi) we already have $\ValRep{v}{\tau}{\sgm(\st)}$,
  and $\ol{\st} \.< \s_0$. \\
  Finally it's clear that $\s_0 \le \s_0$, and we are done.
  
@@ -1595,8 +1628,9 @@ therefore $\sgm' \ConEq{\s_0} \sgm$.
  	\UC{\Trans{\del}{\hcall \Tupk{x}}{\s_0}{\s_1}{\sfun{p}{\st}}}
  }$$
  
- From our assumption (\ref{mainthm-assum-env}), for all $i \in \{1,...,k\}$:
- \begin{enumerate}[(a)]
+ From the assumptions (iv),(v) and (vi), for all $i \in \{1,...,k\}$:
+ \begin{enumerate}[(i)]
+ 	\setcounter{enumi}{3}
  	\item $\Type{}{\rho(x_i)}{\Gam(x_i)}$, that is, $\Type{}{v_i}{\tau_i}$
  	\item $\ol{\del(x_i)} \.< \s_0$, that is, $\ol{\st_i} \.< \s_0$
  	\item $\ValRep{\rho(x_i)}{\Gam(x_i)}{\sgm(\st_i)}$, that is,
