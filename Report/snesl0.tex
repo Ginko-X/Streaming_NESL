@@ -1353,9 +1353,13 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	such that 
 		\eq{\eqnum{30}}{\sgm_i'(\st_1)= w_i}
 		\eq{\eqnum{31}}{\j{\sgm_i'(\s_i)= \singl{n_i}}}
+	It is easy to show that 
+	\eq{\eqnum{34}} {\sgm_1' \~\S \sgm_2' \~\S ... \~\S \sgm_k' \~\S \sgm_j}
+	\eq{\eqnum{32}}
+		{\k{\x{\S}\sgm_i'} = \sgm_j}
 	
-	Notice that we now have 
-		\eq{\eqnum{32}}{\Sin = \FV{p_1} \subseteq ({\st_1} \cup \{\s_1,...,\s_j\}) \cap \S = \emptyset} 
+	Also note that we now have 
+		\eq{\eqnum{33}}{\Sin = \FV{p_1} \subseteq ({\st_1} \cup \{\s_1,...,\s_j\}) \cap \S = \emptyset} 
 	
 	From $\MR_i$ in \eqref{comp-ass-valrep} we know that  
 	$$\forall z \in dom(\Gam_1). \ValRep{\rho_i(z)}{\Gam_1(z)}{\sgm_i'(\del_1(z))}.$$
@@ -1371,7 +1375,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 % ----------- 	
 
 
-	Assume $\Sout = \{\s_{j+1},...,\s_{j+l}\}$.\\
+	Assume $\Sout = \{\s_{j+1},...,\s_{j+l}\}$.(Note here $\s_{j+i}$ is not necessary equal to $\s_j + i$, but must be $\ge \s_j$). \\
 	
 	There are two possibilities for $\MP_{j+1}$:
 	\begin{itemize}
@@ -1405,75 +1409,78 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	as required.\\
     
 %vii
-    TS: (vii) \\
 %    Since $\forall s \in \ol{\st_1}. \sgm(s) = \emptyv$, then for
 %     $\forall \s' \in \ol{\st_1} \wedge s' < \s_0$, it must have $\sgm(\s') = \emptyv = \sgm'(\s')$. 
 %    Therefore, $$\sgm' \ConEq{\s_0} \sgm.$$
-    
+%    
 
 %subcase k > 0	
 \def\sgmp-nonempty{\sgm[\s_0 \|-> \kunit, \s_1' \|-> \sgm''(\s'_1),...,
 	\s'_j \|-> \sgm''(\s'_j)]}  
 
 	\item \label{subcase-2} 
-	Subcase $k > 0$, that is $\sgmsz = \< ()|\a \'>$ for some $\a$. \\
-	By $\PName{Wc-Nonemp}$, we take $\MP_1 = $
-	$$\PT{
-		\UCN{\MP_1'}{\seval{p_1}{\sgmsz}{\kunit}{\sgm''}}
-		\UC{\seval{\withctrl {s_0} {p_1} {\Sin}{\overline{\st_2}} } 
-				  {\sgmsz} 
-				  {\vunit} 
-				  {\sgmp-nonempty}}
-	}.$$
+	Subcase $\sgm_j(\s_0) = \<()|...\'>$, i.e., $k > 0$.
 	
-	So in this subcase $$\sgm' = \sgmp-nonempty.$$
-	
-	Using Lemma \ref{lem-sgm-join} (k-1) times on \eqref{compIH1} gives us
+    Since we have $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and  $fv(p_1) \cap \S = \emptyset$ from $\eqref{\eqnum{33}}$,
+	it is easy to show that using Lemma \ref{lem-sgm-join} at most (k-1) times we can obtain
 	\eq{p1-sgms-sgms'}{
-		\seval{p_1}{(\x{\st_1} \sgm_i)^k_{i=1}}{\kunit}{(\x{\st_2'} \sgm'_i)^k_{i=1}}
+		\seval{p_1}{(\x{\S} \sgm_i')^k_{i=1}}{\kunit}{(\x{\S} \sgm''_i)^k_{i=1}}
 	}
-	where $\st_2' = \ol{\st_1} \cup \ol{\st_2}$ (???) . 
+
+    Let $\sgm'' = (\x{\S} \sgm''_i)^k_{i=1}$. Also with $\eqref{\eqnum{32}}$, we replace both the start and ending stores in $\eqref{p1-sgms-sgms'}$, giving us 
+    a derivation $\MP_{j+1}'$
+    $$\seval{p_1}{\sgm_j}{\kunit}{\sgm''}$$
+    
+    And for $\forall i \in \{1,...,l\}$, by Definition \ref{def-sgm-join} we have
+    $$\sgm''(\s_{j+i}) = \sgm''_1(\s_{j+i}) {\++} ... {\++} \sgm''_k(\s_{j+i})$$
 	
-	By Definition \ref{def-sgm-join} we have
-	\eq{sgms-join}{
-		(\x{\st_1} \sgm_i)^k_{i=1} = \sgmsz.}
+    
 	
-	Then by Theorem \ref{thm-svcode-determ} on $\MP_1'$ with \eqref{p1-sgms-sgms'}, we get
-	\eq{sgms'-join}{
-		\sgm'' = (\x{\st_2'} \sgm'_i)^k_{i=1}}
-	
-	Therefore, $\sgm''(\st_2) = \sgm'_1(\st_2) {\++} ... {\++} \sgm'_k(\st_2)$ by Definition \ref{def-sgm-join}.\\
-	Let $\sgm'_i(\st_2) = w'_i$ and  $\sgm''(\st_2) = w'$, then
-	$w' = w'_1 {\++} ... {\++} w'_k$. \\
-	
-	Since $\sgm'(\st_2) = \sgm''(\st_2) = w'$, and $\sgm'(\s_b) = \sgm(\s_b) = \stwo$,
+    Now we can build $\MP_{j+1}$ using the rule $\PName{Wc-Nonemp}$ as follows:
+	$$\PT{
+		\UCN{\MP_{j+1}'}{\seval{p_1}{\sgm_j}{\kunit}{\sgm''}}
+		\UC{\seval{\wcdef} {\sgm_j}{\vunit} 
+			{\sgm_j[\l{\s_{j+i}\|-> \sgm''(\s_{j+i})}]}}
+	}$$
+   
+    So in this subcase $\sgm' = \sgm_j[\l{\s_{j+i}\|-> \sgm''(\s_{j+i})}]$.\\
+    
+	TS : (vi)  \\
+	Let $\sgm'(\st_2) = w'$, and $\sgm''_i(\st_2) = w'_i$ then it is easy to show that 
+	$w' = \sgm''(\st_2) = w'_1 {\++} ... {\++} w'_k$. \\
+	Also, $\sgm'(\s_b) = \sgm(\s_b) = \stwo$,
 	we now have $\sgm'((\st_2,\s_b)) = (\sgm'(\st_2),\sgm'(\s_b)) = (w',\stwo)$. 
-	With \eqref{compIH2}, we can construct
-	$$\MR = 
-	\PT{
+	With \eqref{compIH2}, we can construct $\MR$ as follows:
+	$$\PT{
 		\AC{(\ValRep{v'_i}{\tau_2}{w'_i})^k_{i=1}}
 		\UC{\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{(w',\stwo)}}
 	}$$ as required. \\
 
-%vii
-	By Lemma \ref{lem-join1} on \eqref{sgms-join} we get $\sgm_i \~{\st_1} \sgmsz$, and similarly $\sgm'_i \~{\st_2'} \sgm''$ from \eqref{sgms'-join}. \\
-	
-	Since \eqref{compIH3} implies $$(\sgm'_i \ConEq{\s_0} \sgm_i)^k_{i=1}$$
-	using Lemma \ref{lem-join2} (k-1) times, we obtain 
-	$$\sgm'' \ConEq{\s_0} \sgmsz.$$
-	Therefore, $\sgm' \ConEq{\s_0} \sgmsz \ConEq{\s_0} \sgm$.\\
+
+%	By Lemma \ref{lem-join1} on \eqref{sgms-join} we get $\sgm_i \~{\st_1} \sgmsz$, and similarly $\sgm'_i \~{\st_2'} \sgm''$ from \eqref{sgms'-join}. \\
+%	
+%	Since \eqref{compIH3} implies $$(\sgm'_i \ConEq{\s_0} \sgm_i)^k_{i=1}$$
+%	using Lemma \ref{lem-join2} (k-1) times, we obtain 
+%	$$\sgm'' \ConEq{\s_0} \sgmsz.$$
+%	Therefore, $\sgm' \ConEq{\s_0} \sgmsz \ConEq{\s_0} \sgm$.\\
 
 	\end{itemize}
 
+%vii
+\item TS: (vii) \\
+It is clear that in both subcase we have $$dom(\sgm') = dom(\sgm) \cup \{\s_0\} \cup \{\s_1,...,\s_j\} \cup \{\s_{j+1},...,\s_{j+l}\}$$
+Since $\forall \s \in \{\s_0\} \cup \{\s_1,...,\s_j\} \cup \{\s_{j+1},...,\s_{j+l}\}. \s_0 \le \s$, 
+therefore $\sgm' \ConEq{\s_0} \sgm$.
+
 % viii
 	\item TS: $\s_0 \le \s_1$ \\
-	From \eqref{compIH4} we immediately get $\s_0 \le \s_1 -1 < \s_1$.\\
+	From \eqref{compIH4} we immediately get $\s_0 \le \s_1 -1 -j < \s_1$.\\
 	
 %ix
 	\item TS: $\ol{(\st_2,\s_b)} {\.<} \s_1$  \\
 	From \eqref{comp-ass-st1-s2} we know $\s_b < \s_0$, thus $ \s_b < \s_0 \le \s_1$. 
 	And we already have \eqref{compIH5}. Therefore,
-	$$\ol{(\st_2,\s_b)} = \ol{\st_2} \cup \{s_2\} \.< \s_1.$$
+	$$\ol{(\st_2,\s_b)} = \ol{\st_2} {\++} \{s_b\} \.< \s_1.$$
 	
 	\end{enumerate}
 
@@ -1503,7 +1510,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
  $\PT{\Axiom{\seval{\epsilon}{\sgm}{\vunit}{\sgm}}}$\\
  So $\sgm' = \sgm$, which implies $\sgm'  \ConEq{\s_0} \sgm$.\\
  From the assumption we already have $\ValRep{v}{\tau}{\sgm(\st)}$,
- and $\sids{\st} \.< \s_0$. \\
+ and $\ol{\st} \.< \s_0$. \\
  Finally it's clear that $\s_0 \le \s_0$, and we are done.
  
  
@@ -1537,11 +1544,11 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
  	\item $\MR_1$ of $\ValRep{v_1}{\tau_1}{\sgm_1(\st_1)}$
  	\item $\sgm_1 \ConEq{s_0} \sgm$ 
  	\item $\s_0 \le \s_0'$
- 	\item $\sids{\st_1} \.< {s_0'}$
+ 	\item $\ol{\st_1} \.< {s_0'}$
  \end{enumerate}
  
   From (b), we know $\rho[\Map{x}{v_1}](x) : \Gamma[\Map{x}{\tau_1}](x)$ and  $\ValRep{\rho[\Map{x}{v_1}](x)}{\Gamma[\Map{x}{\tau_1}](x)}{\sgm_1(\delta[\Map{x}{\st_1}](x))}$ must hold. 
-  From (e), we have $\sids{\delta[\Map{x}{\st_1}](x)} \.< s_0'$. 
+  From (e), we have $\ol{\delta[\Map{x}{\st_1}](x)} \.< s_0'$. 
  
  Then by IH on  $\MT_2$ with $\ME_2,\MC_2$, we get
  \begin{enumerate}	[(a)]
@@ -1550,7 +1557,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
  	\item $\MR_2$ of $ \ValRep{\sgm_2}{\tau}{\sgm_2(\st)}$
     \item $\sgm_2 \ConEq{\s_0'} \sgm_1$
     \item $\s_0' \le \s_1$
-    \item $\sids{\st} \.< {s_1}$
+    \item $\ol{\st} \.< {s_1}$
 \end{enumerate}
 
  So we can construct:  
@@ -1591,7 +1598,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
  From our assumption (\ref{mainthm-assum-env}), for all $i \in \{1,...,k\}$:
  \begin{enumerate}[(a)]
  	\item $\Type{}{\rho(x_i)}{\Gam(x_i)}$, that is, $\Type{}{v_i}{\tau_i}$
- 	\item $\sids{\del(x_i)} \.< \s_0$, that is, $\sids{\st_i} \.< \s_0$
+ 	\item $\ol{\del(x_i)} \.< \s_0$, that is, $\ol{\st_i} \.< \s_0$
  	\item $\ValRep{\rho(x_i)}{\Gam(x_i)}{\sgm(\st_i)}$, that is,
  	$\ValRep{v_i}{\tau_i}{\sgm(\st_i)}$
  \end{enumerate}
