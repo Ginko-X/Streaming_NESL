@@ -1,4 +1,9 @@
 # Working Progress
++ Week 47 (18 ~ 25 Sep)
+    + Formalization:
+        + fixed WithCtrl structure and added proof of concatenation lemma
+        + updated to SNESL Level-1: add using variables for SNESL comprehension exps (related changes of grammar, judgment rules and correctness proof)
+	
 + Week 46 (11 ~ 17 Sep)
     + Code: changed SFun and WithCtrl structure: removed their dependency on STree
     + Formalization: version 0.0.7
