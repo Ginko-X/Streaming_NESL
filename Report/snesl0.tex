@@ -358,9 +358,9 @@ $\c$ is the control stream.\\
 
 \PRule{X-Loop}{\PT{
 	\AC{\block{\a_{11}}{\a_{k1}}{\a_1}}
-	\AC{\sevalf{\a_{12}}{\a_{k2}}{\c}{\a_2}}
+	\AC{\sevalf{\a_{12}}{\a_{k2}}{\c'}{\a_2}}
 	\RiLa{(\a = \vapp{\a_1}{\a_2})}
-	\BC{\sevalf{\vapp{\a_{11}}{\a_{12}}}{\vapp{\a_{k1}}{\a_{k2}}}{\< a_0 | \c \'>}{\a}}
+	\BC{\sevalf{\vapp{\a_{11}}{\a_{12}}}{\vapp{\a_{k1}}{\a_{k2}}}{\< () | \c' \'>}{\a}}
 }}\\[2ex]
 
 
@@ -514,11 +514,57 @@ This lemma says that the concatenation result of two similar stores is still sim
 
 
 \begin{lem} \label{lem-psi-join}
-	If $\sevalfg{\lcall}{\a_{11},...,\a_{1k}}{\c_1}{\a_1}$,
-	and $\sevalfg{\lcall}{\a_{21},...,\a_{2k}}{\c_2}{\a_2}$,
-	then $\sevalfg{\lcall}{\a_{11} {\++} \a_{21},...,\a_{1k} {\++} \a_{2k}}{\c_1 {\++} \c_2}{\a_1 {\++} \a_2}$.
+	If \begin{enumerate}[(i)]
+	 \item $\sevalfg{\lcall}{\a_{1},...,\a_{k}}{\c_1}{\a_0}$ by some derivation $\MP_1$
+	 \item $\sevalfg{\lcall}{\a'_{1},...,\a'_{k}}{\c_2}{\a_0'}$ by some $\MP_2$,
+	\end{enumerate}
+	then $\sevalfg{\lcall}{\a_{1} {\++} \a'_{1},...,\a_{k} {\++} \a'_{k}}{\c {\++} \c'}{\a {\++} \a'}$ by some $\MP_3$.
 \end{lem}
 
+\begin{proof}
+\def\cc{\c_1 {\++} \c_2}
+\def\aap#1{\a_{#1} {\++} \a_{#1}'}
+\def\zk#1{(#1)^k_{i=0}}
+
+	There are two possibilities: 
+	\begin{itemize}
+		\item Case $\MP_1$ uses $\PName{X-Termi}$.\\
+		We must have $\zk{\a_i=\emptyv}$ and $\c_1 = \emptyv$.
+		Then $\zk{\aap{i} = \a_i'}$, and $\cc = \c_2 $. Take $\MP_3
+		= \MP_2$ and we are done. \\
+		
+		\item Case $\MP_1$ uses $\PName{X-Loop}$. \\
+	   Assume $\c_1 = \<() | \c_1' \'>$, then we have 
+		$$
+		\PT{
+			\UCN{\MP_{11}}{\block{\a_{11}}{\a_{k1}}{\a_{01}}}
+			\UCN{\MP_{12}}{\sevalf{\a_{12}}{\a_{k2}}{\c_1'}{\a_{02}}}
+ 			\LeLa{\MP_1 = }
+			\BC{\sevalf{\a_1}{\a_k}{\< c_0 | \c_1' \'>}{\a_0}}
+		}$$
+	    with $\zk{\a_i = \vapp{\a_{i1}}{\a_{i2}}}$.\\
+	    
+	    By IH on $\MP_{12}$ with $\MP_2$, we get a derivation $\MP_4$ of 
+	    $$\sevalfg{\lcall}{\a_{12} {\++} \a_1',...,\a_{k2} {\++} \a_k'}{\c_1' {\++} \c_2 }{\a_{02} {\++} \a_0'}$$
+	    
+	    Then using the rule $\PName{X-Loop}$ we can build a derivation $\MP_5$ as follows:
+	    	$$
+	    \PT{
+	    	\UCN{\MP_{11}}{\block{\a_{11}}{\a_{k1}}{\a_{01}}}
+	    	\UCN{\MP_{4}}{\sevalfg{\lcall}{\a_{12} {\++} \a_1',...,\a_{k2} {\++} \a_k'}{\c_1' {\++} \c_2 }{\a_{02} {\++} \a_0'}}
+	    	\BC{\sevalf{\a_{11} {\++} {(\a_{12} {\++} \a_1')}}
+	    		        {\a_{k1} {\++} {(\a_{k2} {\++} \a_k')}}
+	    		        {\< () | \c_1' {\++} \c_2 \'>}
+	    		        {\a_{01} {\++} {(\a_{02} {\++} \a_0')}}}
+	    }$$
+	    Since it is clear that 
+	    $$\forall i \in \{0,...,k\}. \ \a_{i1} {\++} (\a_{i2} {\++} \a_i') = (\a_{i1} {\++} \a_{i2}) {\++} \a_i' = \a_i {\++} \a_i' $$
+	    $$ \< () | \c_1' {\++} \c_2 \'> = \< () | \c_1' \'> {\++} \c_2 = \c_1 {\++} \c_2 $$
+	    so take $\MP_3 = \MP_5$ and we are done. 
+	    
+	\end{itemize}
+	
+\end{proof}
 
 \begin{lem} \label{lem-emp-join}
 	If 
@@ -527,6 +573,22 @@ This lemma says that the concatenation result of two similar stores is still sim
 		\item $\seval{p}{\sgm_1}{\c}{\sgm}$
 		\item $\FV{p} \cap \S = \emptyset$
 		\item $\forall s \in \FV{p}. \sgm_2(s) = \emptyv$
+	\end{enumerate}
+	then 
+	\begin{enumerate}[(i)]
+		\setcounter{enumi}{4}
+		\item $\seval{p}{\sgm_1 \x{\S} \sgm_2}{\c}{\sgm'}$
+		\item $\forall s' \in \dv{p}. \sgm(s') = \sgm'(s')$
+	\end{enumerate}
+\end{lem}
+
+\begin{lem} \label{lem-emp-join-sym}
+	If 
+	\begin{enumerate} [(i)]
+		\item $\sgm_1 \~{S} \sgm_2$
+		\item $\seval{p}{\sgm_2}{\c}{\sgm}$
+		\item $\FV{p} \cap \S = \emptyset$
+		\item $\forall s \in \FV{p}. \sgm_1(s) = \emptyv$
 	\end{enumerate}
 	then 
 	\begin{enumerate}[(i)]
@@ -755,7 +817,7 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
     as required. \\
   
 	\item Subcase $\MP_1$ uses  $\PName{Wc-Emp}$ and $\MP_2$ uses $\PName{Wc-Nonemp}$. \\	
-	This subcase is symmetric to the second one. \\
+	This subcase is symmetric to the second one, so the proof is analogous except that this subcase uses Lemma $\ref{lem-emp-join-sym}$ rather than  Lemma $\ref{lem-emp-join}$.\\
  		
 	\item Subcase both $\MP_1$ and $\MP_2$ use $\PName{Wc-Nonemp}$. \\
  	$\MP_1$ must look like
