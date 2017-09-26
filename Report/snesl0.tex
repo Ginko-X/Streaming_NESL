@@ -566,13 +566,12 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 	
 	By $\PName{Empty}$, we take $\MP$ = $\overline{\seval{\epsilon}{\sgmx}{\c_1 {\++} \c_2}{\sgmx}}$ and we are done. 
 	
-\item Case $p = \sdef{\s_l}{\lcall(s_1,...,s_i)}; p'.$ \\
-\def\casetwo{\sdef{\s_l}{\lcall\Tupk\s};p'}	
+\item Case $p = \sdef{\s_l}{\lcall(s_1,...,s_k)}.$ \\
+\def\casetwo{\sdef{\s_l}{\lcall\Tupk\s}}	
 \def\eqnumtwo#1{eq-lem24-c2-{#1}}
 	$\MP_1$ must look like 
-	$$\PT{\UCN{\MP_{10}}{\sevalf{\a_1}{\a_k}{\c_1}{\a}}
-		  \UCN{\MP_{11}}{\seval{p'}{\sgm_1[\s_l \|-> \a]}{\c_1}{\sgm_1'}}
-			\BC{\seval{\sdef{\s_l}{\lcall\Tupk\s};p'}{\sgm_1}{\c_1}{\sgm_1'}}
+	$$\PT{\UCN{\MP'_{1}}{\sevalf{\a_1}{\a_k}{\c_1}{\a}}
+			\UC{\seval{\sdef{\s_l}{\lcall\Tupk\s}}{\sgm_1}{\c_1}{\sgm_1[\s_l \|-> \a]}}
 	} $$
 
 	and we have 
@@ -580,168 +579,144 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 	
 	
     Similarly, $\MP_2$ must look like 
-	$$\PT{\UCN{\MP_{20}}{\sevalf{\a_1'}{\a_k'}{\c_2}{\a'}}
-		\UCN{\MP_{21}}{\seval{p'}{\sgm_2[\s_l \|-> \a']}{\c_2}{\sgm_2'}}
-		\BC{\seval{\sdef{\s_l}{\lcall\Tupk\s};p'}{\sgm_2}{\c_2}{\sgm_2'}}
+	$$\PT{\UCN{\MP'_{2}}{\sevalf{\a_1'}{\a_k'}{\c_2}{\a'}}
+		\UC{\seval{\sdef{\s_l}{\lcall\Tupk\s}}{\sgm_2}{\c_2}{\sgm_2[\s_l \|-> \a']}}
 	} $$
 	
 	and we have
 	\eq{eq-lem24-c2-2}{(\sgm_2(\s_i) = \a_i')^k_{i=1}}
 	
-	From assumption $(iv)$ we have
-	\begin{align*}
-		\FV{\casetwo} \cap \S & = \emptyset \\
-		(\{s_1,...,s_k\} \cup \FV{p'} - \{\s_l\}) \cap \S & = \emptyset \tag{by definition of $\FV{}$} \\
-		(\{s_1,...,s_k\} \cup \FV{p'}) \cap (\S-\{\s_l\}) & = \emptyset \tag{by \eqref{set-p1}} \\
-		(\{s_1,...,s_k\} \cup \FV{p'}) \cap \S & = \emptyset \tag{by \eqref{set-p2} with ??? $\S \cap \{\s_l\} = \emptyset$} \\
-		(\{s_1,...,s_k\} \cap \S) \cup (\FV{p'} \cap \S ) & = \emptyset 
-	\end{align*}
-    thus 
+	So  $\sgm_1' = \sgm_1[\s_l \|-> \a], \sgm_2' = \sgm_2[\s_l \|-> \a']$. \\
+	
+	From assumption $(iv)$ we have $\FV{\casetwo} \cap \S = \emptyset$,
+    that is, 
 	\eq{eq-lem24-c2-3}{\{s_1,...,s_k\} \cap \S = \emptyset}
-	\eq{eq-lem24-c2-4}{\FV{p'} \cap \S = \emptyset}
+
     
-    By Lemma \ref{lem-psi-join} on $\MP_{10}$, $\MP_{20}$, we get a derivation $\MP'$ of 
+    By Lemma \ref{lem-psi-join} on $\MP'_{1}$, $\MP'_{2}$, we get a derivation $\MP'$ of 
     \[ \sevalfg{\lcall}{\a_1  {\++} \a_1',...,\a_k {\++} \a_k' } 
              {\c_1 {\++} \c_2} {\a {\++} \a'} \]
     
-    Since $\sgm_1 \~{\S} \sgm_2$, by the definitons of store similarity and concatenation, it is easy to show that 
-    \eq{eq-lem24-c2-7}{ \sgm_1[\s_l \|-> \a ] \~{\S} \sgm_2[\s_l \|-> \a']}
-   
- \def\sgmxp{\sgm_1[\s_l \|-> \a ] \x{\S} \sgm_2[\s_l \|-> \a']}
-    and 
-    \eq{eq-lem24-c2-8}{\sgmxp = \sgmx[\s_l \|-> \a {\++} \a'] }
-    
-
-    
-    Then by IH on \eqref{eq-lem24-c2-7}, $\MP_{11}$, $\MP_{21}$, \eqref{eq-lem24-c2-4}, we obtain
-    a derivation $\MP''$ of 
-    \[\seval{p'}{\sgmxp}{\c_1 {\++} \c_2}{\sgm_1' \x{\S} \sgm_2'} \]
-    
-    By replacing the start store in $\MP''$ with  the right-hand side of \eqref{eq-lem24-c2-8}, we get $\MP'''$ of 
-    \[\seval{p'}{\sgmx[\s_l \|-> \a {\++} \a']}{\c_1 {\++} \c_2}{\sgm_1' \x{\S} \sgm_2'} \]
-    
-    With \eqref{eq-lem24-c2-1},\eqref{eq-lem24-c2-2} and \eqref{eq-lem24-c2-3}, 
-    by the definition of store concatenation,
-    $$\forall i \in \{1,...,k\}.\sgmx(\s_i) = \sgm_1(\s_i) {\++} \sgm_2(\s_i) = \a_i {\++} \a_i',$$
-    
-    Therefore using the rule $\PName{Xducer}$, we can build $\MP$ as follows
+    Since $\sgm_1 \~{\S} \sgm_2$, 
+    with \eqref{eq-lem24-c2-1},\eqref{eq-lem24-c2-2} and \eqref{eq-lem24-c2-3}, 
+    by Definition $\ref{def-sgm-join}$ we have
+    \eq{\eqnumtwo{5}}{
+	    \forall i \in \{1,...,k\}.\sgmx(\s_i) = \sgm_1(\s_i) {\++} \sgm_2(\s_i) = \a_i {\++} \a_i'}
+ 	Also, it is easy to prove that $\sgm_1[\s_l \|-> \a] \x{\S} \sgm_2[\s_l \|-> \a'] \~\S \sgmx[\s_l \|-> \a {\++} \a'] $ and \eq{\eqnumtwo{4}}{
+ 		\sgm_1[\s_l \|-> \a] \x{\S} \sgm_2[\s_l \|-> \a'] = 
+ 		\sgmx[\s_l \|-> \a {\++} \a']
+ 	}
+ 
+    Using the rule $\PName{Xducer}$ with $\eqref{\eqnumtwo{5}}$, we can build $\MP''$ as follows
    	$$\PT{\UCN{\MP'}{\sevalfg{\lcall}{\a_1  {\++} \a_1',...,\a_k {\++} \a_k' } 
    			{\c_1 {\++} \c_2} {\a {\++} \a'}}
-    	\UCN{\MP'''}{\seval{p'}{\sgmx[\s_l \|-> \a {\++} \a']}{\c_1 {\++} \c_2}{\sgm_1' \x{\S} \sgm_2'}}
-    	\BC{\seval{\casetwo}{\sgmx}{\c_1 {\++} \c_2}{\sgm_1' \x{\S} \sgm_2'}}
+    	\UC{\seval{\casetwo}{\sgmx}{\c_1 {\++} \c_2}{\sgmx[\s_l \|-> \a {\++} \a']}}
     } $$
-    as required.
+   
+   
+    Replacing $\sgmx[\s_l \|-> \a {\++} \a']$ in $\MP''$ with the left-hand side of $\eqref{\eqnumtwo{4}}$ gives us $\MP$ 
+   	$$\PT{\UCN{\MP'}{\sevalfg{\lcall}{\a_1  {\++} \a_1',...,\a_k {\++} \a_k' } 
+   			{\c_1 {\++} \c_2} {\a {\++} \a'}}
+   		\UC{\seval{\casetwo}{\sgmx}{\c_1 {\++} \c_2}{\sgm_1[\s_l \|-> \a] \x{\S} \sgm_2[\s_l \|-> \a']}}
+   	} $$ as required.
+   	
 
+\item Case $p = \withctrl{\s_c}{p_0}{\Sin}{\Sout}$ where  
+\def\eqnumthree#1{eq-lem24-c3-{#1}}
 
-\item Case $p = \withctrl{\s_c}{p_0}{\Sin}{\Sout}; p'$ where  
- \eq{eq-lem24-c3-1}{\Sin  = \{s_c\} \cup \FV{p_0}} and
+ \eq{eq-lem24-c3-1}{\FV{p_0} \subseteq \Sin}
  \eq {eq-lem24-c3-2}{\Sout \subseteq \dv{p_0}}
 
-\def\casethree{\withctrl{\s_c}{p_0}{\Sin}{\Sout}; p'}
+\def\casethree{\withctrl{\s_c}{p_0}{\Sin}{\Sout}}
 
 	From the assumption ($iv$), we have 
 	\begin{align*}
 	\FV{\casethree} \cap \S & = \emptyset \\
-	(\Sin \cup \FV{p'} - \Sout) \cap \S & = \emptyset \tag{by definition of $\FV{}$} \\
-	(\Sin \cup \FV{p'}) \cap (\S-\Sout) & = \emptyset \tag{by \eqref{set-p1}} \\
-	(\Sin \cup \FV{p'}) \cap \S & = \emptyset \tag{by \eqref{set-p2} with ??? $\S \cap \Sout = \emptyset$} \\
-	(\Sin \cap \S) \cup (\FV{p'} \cap \S ) & = \emptyset 
+	(\{\s_c\} \cup \Sin) \cap \S & = \emptyset \tag{by definition of $\FV{}$} 
 	\end{align*}
 	thus 
-	\eq{eq-lem24-c3-3}{\Sin \cap \S = \emptyset}
-	\eq{eq-lem24-c3-4}{\FV{p'} \cap \S = \emptyset}
+	\eq{eq-lem24-c3-3}{\{\s_c\} \cap \S = \emptyset}
+	\eq{eq-lem24-c3-4}{\Sin \cap \S = \emptyset}
 	
-    Since \eqref{eq-lem24-c3-1} with \eqref{eq-lem24-c3-3}, we also have 
-    	\eq{eq-lem24-c3-5}{\{s_c\} \cap \S = \emptyset}
+    Since \eqref{eq-lem24-c3-1} with \eqref{eq-lem24-c3-4}, we also have 
     	\eq{eq-lem24-c3-6}{\FV{p_0} \cap \S = \emptyset}
     
     Assume $\Sout = [s_1,...,s_j]$. \\	
     There are four possibilities: 
    
     \begin{itemize}
-\def\eqnumthree#1{eq-lem24-c3-{#1}}
+
 
     	\item Subcase both $\MP_1$ and $\MP_2$ use $\PName{Wc-Emp}$. \\
     	
     	So $\MP_1$ must look like 
     	
     	$$\PT{
-    		\UCN{\MP_1'}{\seval{p'}{\sgm_1[\s_1 \|-> \emptyv, ..., \s_j \|-> \emptyv]}{\c_1}{\sgm_1'}}
-    		\UC{\seval{\casethree}{\sgm_1}{\c_1}{\sgm_1'}}
+    		\Axiom{\seval{\casethree}{\sgm_1}{\c_1}{\sgm_1[\s_1 \|-> \emptyv, ..., \s_j \|-> \emptyv]}}
     	}$$
-    	and we have     	
-    		\[\forall s \in \Sin. \sgm_1(s) = \emptyv \]
-        that is, 
+    	and we have   \eq{eq-lem24-c3-5}{  	
+    		\forall s \in \{\s_c\} \cup \Sin. \sgm_1(s) = \emptyv}
+        thus
     		\eq{eq-lem24-c3-7}{\sgm_1(s_c) = \emptyv}
-    	and 
     	  	\eq{\eqnumthree{8}}{\forall s \in \FV{p_0}. \sgm_1(s) = \emptyv}
     	
-    	Similarly,$\MP_2$ must look like 
-    	
+    	Similarly,$\MP_2$ must look like  	
     	$$\PT{
-    		\UCN{\MP_2'}{\seval{p'}{\sgm_2[\s_1 \|-> \emptyv, ..., \s_j \|-> \emptyv]}{\c_2}{\sgm_2'}}
-    		\UC{\seval{\casethree}{\sgm_2}{\c_2}{\sgm_2'}}
+    		\Axiom{\seval{\casethree}{\sgm_2}{\c_2}{\sgm_2[\s_1 \|-> \emptyv, ..., \s_j \|-> \emptyv]}}
     	}$$
-    	and we have     	
-    	\[\forall s \in \Sin. \sgm_2(s) = \emptyv \]
-    	that is, 
-    	\eq{eq-lem24-c3-9}{\sgm_2(s_c) = \emptyv}
-    	and 
-    	\eq{\eqnumthree{10}}{\forall s \in \FV{p_0}. \sgm_2(s) = \emptyv}
- 
- \def\sgmbe#1{\sgm_#1[\s_1 \|-> \emptyv, ..., \s_j \|-> \emptyv]}
- 	  	
-    	Since $\sgm_1 \~{\S} \sgm_2$, it is easy to show that
-    	\eq{\eqnumthree{11}}
-    		{\sgmbe{1} \~{\S} \sgmbe{2}}
-    	and \eq{\eqnumthree{12}}
-    		{\sgmbe{1} \x{\S} \sgmbe{2} = (\sgmx) [\s_1 \|-> \emptyv,..., \s_j \|-> \emptyv]}
+    	and we have   \eq{eq-lem24-c3-9}{  	
+    		\forall s \in \{\s_c\} \cup \Sin. \sgm_2(s) = \emptyv}
+    	thus
+    	\eq{eq-lem24-c3-10}{\sgm_2(s_c) = \emptyv}
+    	\eq{\eqnumthree{11}}{\forall s \in \FV{p_0}. \sgm_2(s) = \emptyv}
+
+ \def\sgmbe#1{\sgm_#1[\j{\s_i \|-> \emptyv}]}
     	
-    	By IH on \eqref{\eqnumthree{11}} with $\MP_1'$, $\MP_2'$, \eqref{eq-lem24-c3-4}, we get a derivation 
-    	\[ \seval{p'}{\sgmbe{1} \x{\S} \sgmbe{2}}{\cc }{\sgmpx}, \] 
+    	So $\sgm_1' = \sgmbe{1}$, $\sgm_2' = \sgmbe{2}$. \\
     	
-        and replacing the start store with the right-hand side of \eqref{\eqnumthree{12}} gives us a derivation $\MP'$ of
+ 	Since $\sgm_1 \~{\S} \sgm_2$, by Definition $\ref{def-sgm-join}$ with \eqref{eq-lem24-c3-3}, \eqref{eq-lem24-c3-4}, and  \eqref{eq-lem24-c3-5}, \eqref{eq-lem24-c3-9}, we have    		
+   		\eq{\eqnumthree{8}}{\forall s \in \{\s_c\} \cup \Sin. \sgmx(\s) = \sgm_1(\s) {\++} \sgm_2(s) =  \emptyv}
    		
-   		\[\seval{p'}{(\sgmx) [\s_1 \|-> \emptyv,..., \s_j \|-> \emptyv]}{\cc }{\sgmpx} \] 
-   		
-   		Since \eqref{eq-lem24-c3-5}, by the definition of store concatenation with \eqref{eq-lem24-c3-7}, \eqref{eq-lem24-c3-9}, we have    		
-   		$$\sgmx(\s_c) = \sgm_1(s_c) {\++} \sgm_2(s_c) =  \emptyv$$
-   		
-   		Also, with $\eqref{\eqnumthree{8}}$ and $\eqref{\eqnumthree{10}}$, we must have
-   		$$\forall s \in \FV{p_0}. \sgmx(s) = \emptyv $$
-   		Thus, $\forall s \in \Sin. \sgmx(s) = \emptyv$. 
-   		
-   		Therefore, using $\PName{Wc-Emp}$ we can build $\MP$ as follows
+   		Also, it is easy to show that $\sgmbe1 \~{\S} \sgmbe2$ and 
+   		\eq{\eqnumthree{7}}{
+   			\sgmbe1 \x{\S} \sgmbe2 = \sgmx[\j{\s_i \|-> \emptyv}]
+   		}
+   	
+    Using $\PName{Wc-Emp}$ with $\eqref{\eqnumthree{8}}$, we build $\MP'$ as follows
    		$$\PT{
-   			\UCN{\MP'}{\seval{p'}{(\sgmx) [\s_1 \|-> \emptyv,..., \s_j \|-> \emptyv]}{\cc }{\sgmpx} }
-   			\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmpx}}
+   			\Axiom{\seval{\casethree}{\sgmx}{\cc}{(\sgmx)[\j{\s_i \|-> \emptyv}]}}
    		}$$
-   		
-   		and we are done. \\
+   	
+   	Then replcaing $\sgmx[\j{\s_i \|-> \emptyv}]$ in $\MP'$ with the left-hand side of $\eqref{\eqnumthree{7}}$ gives us $\MP$ of \\
+   \makebox[0.9\textwidth][c]{		$$\PT{
+   			\Axiom{\seval{\casethree}{\sgmx}{\cc}{\sgmbe1 \x{\S} \sgmbe2}}
+   		}$$}
+   		as required. \\
    
    	\item Subcase $\MP_1$ uses  $\PName{Wc-Nomemp}$, $\MP_2$ uses $\PName{Wc-Emp}$. \\
-   	
+  \def\sgmbpp#1{\sgm_{#1}[\j{\s_i \|-> \sgm_{#1}''(\s_i)}]}   	
    	$\MP_1$ must look like
    	$$\PT{
    			\UCN{\MP_1'}{\seval{p_0}{\sgm_1}{\c_1'}{\sgm_1''}}
-   			\UCN{\MP_1''}{\seval{p'}{\sgm_1[\s_1 \|-> \sgm_1''(\s_1),...,\s_j \|-> \sgm''(\s_j)]}{\c_1}{\sgm_1'}}
-   			\BC{\seval{\casethree}{\sgm_1}{\c_1}{\sgm_1'}}
+   			\UC{\seval{\casethree}{\sgm_1}{\c_1}{\sgmbpp1}}
    	}$$
     and we have 
     \eq{\eqnumthree{20}}{\sgm_1(\s_c)= \c_1' = \< () | ...\'>}
    	
    	$\MP_2$ must look like	
    	$$\PT{
-   		\UCN{\MP_2'}{\seval{p'}{\sgm_2[\s_1 \|-> \emptyv, ..., \s_j \|-> \emptyv]}{\c_2}{\sgm_2'}}
-   		\UC{\seval{\casethree}{\sgm_2}{\c_2}{\sgm_2'}}
+   		\Axiom{\seval{\casethree}{\sgm_2}{\c_2}{\sgmbe{2}}}
    	}$$
-   	and we have     	
-   	\eq{\eqnumthree{21}}{\sgm_2(s_c) = \emptyv}
-   	and 
-   	\eq{\eqnumthree{22}}{\forall s \in \FV{p_0}. \sgm_2(s) = \emptyv}
+   	and we have  
+   	$\forall s \in \{\s_c\} \cup \Sin. \sgm_2(s) = \emptyv$
+   thus
+	\eq{\eqnumthree{21}}{\sgm_2(s_c) = \emptyv}
+	\eq{\eqnumthree{22}}{\forall s \in \FV{p_0}. \sgm_2(s) = \emptyv}   	
  
- \def\sgmbpp#1{\sgm_{#1}[\s_1 \|-> \sgm_{#1}''(\s_1),...,\s_j \|-> \sgm_{#1}''(\s_j)]} 
 
+
+	
+	So $\sgm_1' = \sgmbpp{1}$, $\sgm_2' = \sgmbe{2}$.
 
     By Lemma \ref{lem-emp-join} on $\sgm_1 \~{\S} \sgm_2$ with $\MP_1'$, \eqref{\eqnumthree{22}}, \eqref{eq-lem24-c3-6}, we obtain a derivation $\MP_0$
     of 
@@ -751,35 +726,34 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
     \eq{\eqnumthree{25}} {(\sgm_0(s_i) = \sgm_1''(s_i))^j_{i=1}}
     
 
-
-   		Since $\sgm_1 \~{\S} \sgm_2$, it is easy to show that
-	   	\eq{\eqnumthree{23}}
-	   	{\sgmbpp{1} \~{\S} \sgmbe{2}}
-	   	and \eq{\eqnumthree{24}}
-	   	{\sgmbpp{1} \x{\S} \sgmbe{2} = (\sgmx) [\s_1 \|-> \sgm_1''(\s_1),..., \s_j \|-> \sgm_1''(\s_j)]}
-	   	
-	   	By IH on \eqref{\eqnumthree{23}} with $\MP_1''$, $\MP_2'$, \eqref{eq-lem24-c3-4}, we get a derivation 
-	   	\[ \seval{p'}{\sgmbpp{1} \x{\S} \sgmbe{2}}{\cc }{\sgmpx}, \] 
-	   	
-	   	and replacing the start store with the right-hand side of \eqref{\eqnumthree{24}} gives us a derivation $\MP'$ of
-	   	
-	   	\[\seval{p'}{(\sgmx) [\s_1 \|-> \sgm_1''(\s_1),..., \s_j \|-> \sgm_1''(\s_j)]}{\cc }{\sgmpx} \] 
-	   	
-	   	With $\eqref{\eqnumthree{25}}$, we replcace $\sgm_1''(i)$ with $\sgm_0(i)$ for all $i \in \{1,...,j\}$, then we obtain  $\MP''$ of
-	   	
-   		\[\seval{p'}{(\sgmx) [\s_1 \|-> \sgm_0(\s_1),..., \s_j \|-> \sgm_0(\s_j)]}{\cc }{\sgmpx} \] 
-   		
-   		By the definition of store concatenation with $\eqref{\eqnumthree{20}}$, $\eqref{\eqnumthree{21}}$, we have
-   		$$\sgmx(s_c) = \sgm_1(s_c) {\++} \sgm_2(s_c) = \c_1' =  \<()| ...\'>$$
-   		
-   		Therefore, we use the rule $\PName{Wc-Nonemp}$ to build $\MP$ as follows
+%   		
+   	Since $\sgm_1 \~\S \sgm_2$,	by Definition \ref{def-sgm-join} with $\eqref{\eqnumthree{20}}$, $\eqref{\eqnumthree{21}}$, we have \eq{\eqnumthree{27}}{
+   		\sgmx(s_c) = \sgm_1(s_c) {\++} \sgm_2(s_c) = \c_1' =  \<()| ...\'>}
    	
-   		$$\PT{
-   			\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}}
-   			\UCN{\MP''}{\seval{p'}{(\sgmx) [\s_1 \|-> \sgm_0(\s_1),..., \s_j \|-> \sgm_0(\s_j)]}{\cc }{\sgmpx}}
-   			\BC{\seval{\casethree}{\sgmx}{\cc}{\sgmpx}}
-   		}$$ and we are done. \\
-   	
+   	and it is also easy to prove $\sgmbpp{1} \~\S \sgmbe{2}$ and \eq{\eqnumthree{26}}{
+   		\sgmbpp{1} \x{\S} \sgmbe{2} =  
+   		 \sgmx[\j{\s_i \|-> \sgm_{1}''(\s_1)}]
+   	}	
+   
+     Using the rule $\PName{Wc-Nonemp}$ with $\eqref{\eqnumthree{27}}$ we can build a derivation $\MP'$ as follows 	
+  		$$\PT{
+  			\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}}
+  			\UC{\seval{\casethree}{\sgmx}{\cc}{(\sgmx) [\j{\s_i \|-> \sgm_0(\s_i)}]}}
+  		}$$ 
+  	
+  	With $\eqref{\eqnumthree{25}}$, we replace $\sgm_0(s_i)$ with $\sgm_1''(s_i)$ for $ \forall i \in \{1,...,j\}$ in $\MP'$, obtaining  
+  		$$\PT{
+  		\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}}
+  		\UC{\seval{\casethree}{\sgmx}{\cc}{(\sgmx) [\j{\s_i \|-> \sgm_1''(\s_i)}]}}
+  	}$$ 
+  		
+  	Then replacing $(\sgmx) [\j{\s_i \|-> \sgm_1''(\s_i)}]$ in $\MP'$ with the left-hand side of $\eqref{\eqnumthree{26}}$, we get $\MP$ of \\
+  	 \makebox[0.9\textwidth][c]{\PT{
+  	 	\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}}
+  	 	\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmbpp{1} \x{\S} \sgmbe{2}}}
+  	 }}
+    as required. \\
+  
 	\item Subcase $\MP_1$ uses  $\PName{Wc-Emp}$ and $\MP_2$ uses $\PName{Wc-Nonemp}$. \\	
 	This subcase is symmetric to the second one. \\
  		
@@ -787,8 +761,7 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
  	$\MP_1$ must look like
  	$$\PT{
  		\UCN{\MP_1'}{\seval{p_0}{\sgm_1}{\c_1'}{\sgm_1''}}
- 		\UCN{\MP_1''}{\seval{p'}{\sgm_1[\s_1 \|-> \sgm_1''(\s_1),...,\s_j \|-> \sgm''(\s_j)]}{\c_1}{\sgm_1'}}
- 		\BC{\seval{\casethree}{\sgm_1}{\c_1}{\sgm_1'}}
+ 		\UC{\seval{\casethree}{\sgm_1}{\c_1}{\sgmbpp1}}
  	}$$
  	and 
  	\eq{\eqnumthree{30}}{\sgm_1(\s_c)= \c_1' = \< () | ...\'>}
@@ -796,48 +769,88 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
  	Similarly, $\MP_2$ must look like
  	$$\PT{
  		\UCN{\MP_2'}{\seval{p_0}{\sgm_2}{\c_2'}{\sgm_2''}}
- 		\UCN{\MP_2''}{\seval{p'}{\sgm_2[\s_1 \|-> \sgm_1''(\s_1),...,\s_j \|-> \sgm''(\s_j)]}{\c_2}{\sgm_2'}}
- 		\BC{\seval{\casethree}{\sgm_2}{\c_2}{\sgm_2'}}
+ 		\UC{\seval{\casethree}{\sgm_2}{\c_2}{\sgmbpp2}}
  	}$$
  	and 
  	\eq{\eqnumthree{31}}{\sgm_2(\s_c)= \c_2' = \< () | ...\'>}
     
+    So $\sgm_1' = \sgmbpp{1}, \sgm_2' = \sgmbpp{2}.$
+    
     By IH on $\MP_1'$, $\MP_2'$ with \eqref{eq-lem24-c3-6}, we get a derivation $\MP_0$ of 
     $$\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}$$
     
-    Since (from $\S \cap \Sout = \emptyset$) $ \forall i \in \{1,...,j\}. s_i \notin \S$ ,
-      then 	\eq{\eqnumthree{32}}{\sgm_1'' \x{\S} \sgm_2''(\s_i) = \sgm_1''(\s_i) {\++} \sgm_2''(\s_i)}
+    Since $ \forall i \in \{1,...,j\}. s_i \notin \S$ ,
+    then by Definition $\ref{def-sgm-join}$, we know
+    \eq{\eqnumthree{32}}{\sgm_1'' \x{\S} \sgm_2''(\s_i) = \sgm_1''(\s_i) {\++} \sgm_2''(\s_i)}
     
-    Also it is easy to show 
-      \eq{\eqnumthree{33}}
-    	{\sgmbpp{1} \~{\S} \sgmbpp{2}}
+    Also, it is easy to show that $\sgmbpp{1} \~{\S} \sgmbpp{2}$,
     and
- 
    \eq{\eqnumthree{34}}
    	{\begin{split}
-    	 \sgmbpp{1} \x{\S} \sgmbpp{2} = \\ 
-    	 \sgmx[\s_1 \|-> \sgm_1''(\s_1) {\++} \sgm_2''(\s_1),...,\s_j \|-> \sgm_1''(\s_j) {\++} \sgm_2''(\s_j)]
-    \end{split}}   
-   	
-   	By IH on \eqref{\eqnumthree{33}} with $\MP_1''$, $\MP_2''$, \eqref{eq-lem24-c3-4}, we obtain 
-   	a derivation of 
-   	$$\seval{p'}{\sgmbpp{1} \x{\S} \sgmbpp{2}}{\cc}{\sgmpx},$$
-   	
-   	and replacing the start store with the right-hand side of \eqref{\eqnumthree{34}} gives us a derivation $\MP'$ of 
-   	  $$\seval{p'}{\sgmx[\s_1 \|-> \sgm_1''(\s_1) {\++} \sgm_2''(\s_1),...,\s_j \|-> \sgm_1''(\s_j) {\++} \sgm_2''(\s_j)]} \cc \sgmpx $$
-   	
-    With \eqref{\eqnumthree{32}}, we can replace all the new bound values  $\sgm_1''\x{\S} \sgm_2''(s_i)$ in $\MP'$ with $\sgm_1''(\s_i) {\++} \sgm_2''(\s_i)$ for all $i \in \{1,...,j\}$, giving us another derivation $\MP''$ of 
-    
-    $$\seval{p'}{\sgmx[\s_1 \|-> \sgm_1''\x{\S} \sgm_2''(s_1),...,\s_j \|-> \sgm_1''\x{\S} \sgm_2''(s_j)]} \cc \sgmpx $$
-   	
-   	Since $\eqref{\eqnumthree{30}}$ and $\eqref{\eqnumthree{31}}$, we know $\sgmx(\s_c)$ = $\c_1' {\++}  \c_2' = \<()|...\'>$,
-   	therefore we can use the rule $\PName{Wc-Nonemp}$ to build $\MP$ as follows:
+    	 \sgmbpp{1} \x{\S} \sgmbpp{2}  \\ 
+    	 = \sgmx[\j{\s_i \|-> \sgm_1''(\s_i) {\++} \sgm_2''(\s_i)}] 
+    \end{split}}  
+    thus, with  \eqref{\eqnumthree{32}},  
+    \eq{\eqnumthree{35}}{
+    	\begin{split}
+    	 \sgmbpp{1} \x{\S} \sgmbpp{2} \\
+    		= \sgmx[\j{\s_i \|-> \sgm_1'' \x{\S} \sgm_2''(\s_i)}] 
+    	\end{split}
+   }  	
+
+   	Since $\eqref{eq-lem24-c3-3}$ with $\eqref{\eqnumthree{30}}$,  $\eqref{\eqnumthree{31}}$, we know $\sgmx(\s_c)$ = $\c_1' {\++}  \c_2' = \<()|...\'>$,
+   	therefore we can use the rule $\PName{Wc-Nonemp}$ to build a derivation $\MP'$ as follows:
    	$$\PT{
    		\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}}
-   		\UCN{\MP''}{\seval{p'}{\sgmx[\s_1 \|-> \sgm_1''\x{\S} \sgm_2''(s_1),...,\s_j \|-> \sgm_1''\x{\S} \sgm_2''(s_j)]} \cc \sgmpx} 
-   		\BC{\seval{\casethree}{\sgmx}{\cc}{\sgmpx}}
-   	}$$ and we are done.
-    \end{itemize}	
+   		\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmx[\j{\s_i \|-> \sgm_1'' \x{\S} \sgm_2''(\s_i)}]}}
+   	}$$.
+   
+    Then replacing $\sgmx[\j{\s_i \|-> \sgm_1''\x{\S} \sgm_2''(s_j)}]$ with the left-hand side of $\eqref{\eqnumthree{35}}$, we obtain $\MP$ of
+   	 	$$\PT{
+   		\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}}
+   		\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmbpp{1} \x{\S} \sgmbpp{2}}}
+   	}$$ as required.
+   
+    \end{itemize}
+
+	\item Case $p = p_1;p_2$ \\
+\def\eqnumfour#1{eq-lem24-c4-{#1}}
+
+	 We must have 
+	$$	\PT{
+				\UCN{\MP_1'}{\seval{p_1}{\sgm_1}{\c_1}{\sgm_1''}}
+				\UCN{\MP_1''}{\seval{p_2}{\sgm_1''}{\c_1}{\sgm_1'}}	
+				\LeLa{\MP_1 = }
+				\BC{\seval{p_1;p_2}{\sgm_1}{\c_1}{\sgm_1'}}
+		}$$	
+	and
+	 $$ \PT{
+	  		\UCN{\MP_2'}{\seval{p_1}{\sgm_2}{\c_2}{\sgm_2''}}
+	  		\UCN{\MP_2''}{\seval{p_2}{\sgm_2''}{\c_2}{\sgm_2'}}	
+	  		\LeLa{\MP_2 = }
+	  		\BC{\seval{p_1;p_2}{\sgm_2}{\c_1}{\sgm_2'}}
+	  }	$$
+	
+	Since $\FV{p_1;p_2} \cap \S = \emptyset$, we have $(\FV{p_1} \cup \FV{p_2} - \dv{p_1}) \cap \S = \emptyset$, thus 
+	\eq{\eqnumfour{1}}{\FV{p_1} \cap \S = \emptyset}
+    \eq{\eqnumfour{2}}{\FV{p_2} \cap \S = \emptyset}
+
+\def\sgmxpp{\sgm_1'' \x{\S} \sgm_2''}    
+
+    By IH on $\MP_1'$, $\MP_2'$, \eqref{\eqnumfour{1}}, we get $\MP'$ of
+    $$\seval{p_1}{\sgmx}{\cc}{\sgmxpp}$$
+    
+    By Definition \ref{def-sgm-join}, we must have $\sgm_1'' \~\S \sgm_2''$.
+    
+    Then by IH on $\MP_1''$, $\MP_2''$ with \eqref{\eqnumfour{2}}, we get $\MP''$ of $$\seval{p_2}{\sgmxpp}{\cc}{\sgmpx}$$
+    
+    Therefore, we use the rule $\PName{Seq}$ to build $\MP$ as follows:
+    	 $$ \PT{
+    		\UCN{\MP'}{\seval{p_1}{\sgmx}{\cc}{\sgmxpp}}
+    		\UCN{\MP''}{\seval{p_2}{\sgmxpp}{\cc}{\sgmpx}}	
+    		\BC{\seval{p_1;p_2}{\sgmx}{\cc}{\sgmpx}}
+    	}	$$
+     and we are done.
 	\end{itemize}
 \end{proof}
 
