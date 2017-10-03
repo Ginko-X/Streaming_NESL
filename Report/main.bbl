@@ -1,0 +1,15 @@
+\begin{thebibliography}{Mad16}
+
+\bibitem[Mad13]{Fmaster}
+Frederik~M. Madsen.
+\newblock A streaming model for nested data parallelism.
+\newblock Master's thesis, Department of Computer Science (DIKU), University of
+  Copenhagen, March 2013.
+
+\bibitem[Mad16]{Fphd}
+Frederik~M. Madsen.
+\newblock {\em Streaming for Functional Data-Parallel Languages}.
+\newblock PhD thesis, Department of Computer Science (DIKU), University of
+  Copenhagen, September 2016.
+
+\end{thebibliography}
