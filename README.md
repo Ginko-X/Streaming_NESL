@@ -1,4 +1,7 @@
 # Working Progress
++ Week 48 (26 Sep ~ 2 Oct)
+    + mainly worked on thesis Chapeter 2: Implementation [(Page 4~13)](https://github.com/Ginko-X/Streaming_NESL/blob/master/Report/main.pdf) (for other parts just adjusted the thesis structure, almost no update) 
+    
 + Week 47 (18 ~ 25 Sep)
     + Formalization:
         + fixed WithCtrl structure and added proof of concatenation lemma
