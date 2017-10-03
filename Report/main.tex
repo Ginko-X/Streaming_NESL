@@ -1,8 +1,9 @@
 \documentclass[a4paper]{article}
 
-\usepackage{proof}
+
 \usepackage{amsmath, amssymb, amsthm}
 \usepackage{mathtools}
+\usepackage{proof}
 \usepackage{bussproofs}
 \usepackage{color}
 \usepackage{geometry}
@@ -12,46 +13,53 @@
 \usepackage[ampersand]{easylist}
 \usepackage[linewidth=1pt]{mdframed}
 %\usepackage{tcolorbox}
+\usepackage[font=large,labelfont=bf]{caption}
 
 
 \geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=3cm}
 
+\renewcommand\qedsymbol{$\blacksquare$}
 
 \newtheorem{thm}{Theorem}[section]
 \newtheorem{lem}[thm]{Lemma}
 \newtheorem{defi}[thm]{Definition}
+\newtheorem{nota}[thm]{Notation}
 \newtheorem{prop}[thm]{Proposition}
 \newtheorem{cor}[thm]{Corollary}
 
+\newtheorem{example}{Example}[section]
+
+
 \usepackage{listings}
-\definecolor{listinggray}{gray}{0.9}
 \definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
-\definecolor{Darkgreen}{rgb}{0.0, 0.2, 0.13}
+\definecolor{darkgreen}{rgb}{0.0, 0.2, 0.13}
 \definecolor{darkblue}{rgb}{0,0,1}
 \definecolor{daffodil}{rgb}{1.0, 1.0, 0.19}
 \definecolor{coolblack}{rgb}{0.0, 0.18, 0.39}
 \definecolor{carnelian}{rgb}{0.7, 0.11, 0.11}
+\definecolor{gray}{rgb}{0.3,0.3,0.3}
+
+\input{lang-style.tex}
 
 \lstset{
-	%backgroundcolor=\color{lbcolor},
-	tabsize=4,
-	language=haskell,
-	basicstyle=\footnotesize\ttfamily,
-	captionpos=b,
-	tabsize=3,
-	frame=single %single is for a box, or lines,
-	% numbers=left,
-	numberstyle=\tiny,
-	numbersep=5pt,
+	basicstyle=\normalsize\ttfamily,
+	breakatwhitespace=true,
 	breaklines=true,
+	captionpos=t,
+	columns=fixed,
+	extendedchars=true,
+	commentstyle=\color{darkgreen},
+	frame=single,
+	frameround=tttt,
+	framesep=4pt,
+	keywordstyle=\bfseries\color{carnelian},
+	numbers=left,
+	numberstyle=\scriptsize\color{gray},
+	rulecolor=\color{black},
 	showstringspaces=false,
-	identifierstyle=\ttfamily,
-	%	keywordstyle=\color[rgb]{0,0,1}\textbf,
-	stringstyle=\color[rgb]{0.627,0.126,0.941},
-	commentstyle=\scriptsize \color{darkblue}\textbf,
-	numberstyle=\color[rgb]{0.205, 0.142, 0.73},
+	showtabs=false,
+	stepnumber=1
 }
-
 
 
 
@@ -63,6 +71,10 @@
 
 \def\hcall{\phi} 
 
+\def\usevars{x_1,...,x_j}
+\def\j#1{(#1)^j_{i=1}}
+\def\k#1{(#1)^k_{i=1}}
+\def\l#1{(#1)^l_{i=1}}
 
 \def\const#1{\*{const}_{#1} ()}
 \def\iota#1{\*{iota} (#1)} 
@@ -71,6 +83,7 @@
 \def\constn#1{\*{const}_{#1}}
 \def\iotan{\*{iota}} 
 \def\plusn{\*{plus}}
+
 
 %types
 \def\int{\*{int}}
@@ -101,23 +114,20 @@
 \def\MR{\mathcal{R}}
 
 
-
 % Judgment
-\def\Jug#1{Judgment \boxed{#1} \\[1ex]}
+\def\Jug#1{\textbf{Judgment} \boxed{#1} \\[1ex]}
 
 \def\Map#1#2{#1 \mapsto #2}
  
 
 % Evaluation
 \def\Eval#1#2#3{#1 \Env #2 \Eva #3 } 
-\def\EvalF#1#2#3{#1(#2) \Env #3}  % function evaluation
+\def\EvalF#1#2#3{#1(#2) \Eva #3}  % function evaluation
 
 %typing
 \def\Type#1#2#3{#1 \Env #2 : #3 } 
 \def\Typef#1#2#3{#1 : (#2) \rightarrow #3}
 \def\TypeV#1#2{#1 : #2}
-
-
 
 %value representation
 \def\ValRep#1#2#3{ #1 \triangleright_{#2} #3}
@@ -125,8 +135,8 @@
 
 % rule with a name
 \def\ERule#1#2{$\textsc{E-#1} : {#2}$}
-\def\PRule#1#2{$\textsc{P-#1} : {#2}$}
 \def\CRule#1#2{$\textsc{C-#1} : {#2}$}
+\def\PRule#1#2{$\textsc{P-#1} : {#2}$}
 
 % only rule name
 \def\EName#1{\textsc{E-#1}}
@@ -147,27 +157,152 @@
 \def\UCN#1#2{\AxiomC{$#1$} \noLine \UC{#2}}
 
 
-%color
-\def\Blue{\color{blue}}
-
+%shorhands notations
+\def\<{\langle} 
+\def\'>{\rangle}
+\def\->{\rightarrow}
+\def\=>{\Rightarrow}
 
 \def\ConEq#1{\xlongequal{<#1}}  % Sgm conditional equation
 \def\.<{\lessdot}
+\def\bs{ \ \backslash \ } 
 
 
+\def\unit{()}
+\def\vunit{\langle \unit \rangle}  
+
+\def\vrange#1#2{\langle #1,...,#2 \rangle}
+\def\lrange#1#2{\left[ #1,...,#2 \right]}
+
+\def\emptyv{\langle \rangle}
+
+\def\prefix{\sqsubseteq}
+
+
+\def\s{\mathit{s}}  
+\def\st{\mathit{st}} 
+\def\SId{\mathbf{SId}}
+\def\STree{\mathbf{STree}}
+
+\def\sset{\mathbb{S}}
+\def\S{S}
+\def\Sin{S_{in}}
+\def\Sout{S_{out}}
+
+\def\FV#1{\mathtt{fv}(#1)}
+\def\dv#1{\mathtt{dv}(#1)}
+
+
+\def\v{w}
+\def\a{\vec a}
+\def\b{\vec b}
+\def\c{\vec c}
+
+\def\SvVal{\mathbf{SvVal}}
+
+%\def\ctrl{\mathtt{Ctrl}}
+\def\consta#1{\mathtt{Const_{#1}}} 
+\def\toflag{\mathtt{ToFlags}}
+\def\usum{\mathtt{Usum}}
+\def\maptwo#1{\mathtt{MapTwo}_{#1}}
+\def\scan{\mathtt{ScanPlus}}
+\def\distr{\mathtt{Distr}}
+
+\def\constaf#1{\mathtt{Const_{#1}()}} 
+\def\toflagf#1{\mathtt{ToFlags}(#1)}
+\def\usumf#1{\mathtt{Usum}(#1)}
+\def\maptwof#1#2#3{\mathtt{MapTwo}_{#1}(#2,#3)}
+\def\scanf#1#2{\mathtt{ScanPlus}(#1,#2)}
+\def\distrf#1#2{\mathtt{Distr(#1,#2)}}
+
+\def\:={:=}
+\def\sdef#1#2{#1 := #2}
+\def\withctrl#1#2#3#4{#4 := \mathtt{WithCtrl}(#1,#3,#2)}
+\def\wc{$\mathtt{WithCtrl}$ }
+
+\def\T{\mathtt{T}} 
+\def\F{\mathtt{F}} 
+\def\oT{\singl{\T}}
+\def\oF{\singl{\F}}
+
+\def\sids#1{\mathtt{sids}(#1)}
+\def\ol#1{\overline{#1}}
+
+\def\++{+\!+}
+\def\vapp#1#2{#1 {\++} #2}
+
+
+\def\~#1{\stackrel{#1}{\sim}}
+\def\x#1{\stackrel{#1}{\bowtie}} % sgm append
+
+\def\Da{\Downarrow}
+\def\dda{\downdownarrows}
+
+\def\lcall{\psi} 
+\def\seval#1#2#3#4{\left\langle#1,#2 \right\rangle \Da^{#3} #4} 
+\def\sevalf#1#2#3#4{{\lcall}(#1,...,#2) \Da^{#3} #4}
+\def\sevalfg#1#2#3#4{#1(#2) \Da^{#3} #4}
+
+\def\block#1#2#3{{\lcall}(#1,...,#2) \Eva #3}  
+\def\blockf#1#2#3{#1(#2) \Eva #3} 
+\def\unary#1#2#3{{\lcall}(#1,...,#2) \dda #3}
+
+\def\blockv#1#2#3#4{\lcall_{#1}(#2,...,#3) \Eva #4}  
+\def\unaryv#1#2#3#4#5{\lcall_{#1}(#2,...,#3) \dda^{#4} #5}
+
+\def\singl#1{\langle #1 \rangle}
+\def\|->{\mapsto}   % map 
+\def\>->{\rightarrowtail} % map a bunch of variables
+\def\=>#1#2{\Rightarrow^{#1}_{#2}}
+
+
+%translation
+\def\sfun#1#2{(#1,#2)}
+
+% compiling/translation
+\def\Trans#1#2#3#4#5{#1 \Env #2 \=>{#3}{#4} #5}
+\def\Transf#1#2#3#4#5{#1(#2) \=>{#3}{#4} #5}
+
+
+
+\numberwithin{equation}{section}
+\numberwithin{figure}{section}
+
+
+\newcommand{\eq}[2]{\begin{equation}\label{#1} #2\end{equation}}
+
+\newcommand{\fig}[2]{\begin{figure}[!h]\large #1 \caption{#2}\end{figure}}
+
+
+\providecommand{\versionnumber}{0.2.1}
 
 
 \title{SNESL formalization Level-1}
 \author{Dandan Xue}
 
+
 \begin{document}\large
 \maketitle
 
+\begin{abstract}
+	TBD
+\end{abstract}
 
-\setcounter{section}{-1}
 
-\input{snesl0.tex}
+\tableofcontents
+\newpage
 
-%\input{concatlemma.tex}
+
+\input{intro.tex}
+\input{imple.tex}
+%\input{trans.tex}
+%\input{snesl1-proof.tex}
+%\input{concl.tex}
+
+\newpage
+\bibliography{thesis}
+\bibliographystyle{alpha}
+
+
 
 \end{document}

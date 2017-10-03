@@ -1,0 +1,43 @@
+\lstdefinelanguage{snesl}
+{ morekeywords={
+  	def,
+    else,
+    function,
+    if,
+    in,
+    let,
+    then,
+    T,
+    F
+  },
+  sensitive=true, % keywords case-sensitive
+  morecomment=[l]{--}, % l-line comment
+  morecomment=[s]{\{-}{-\}}, % s-start and end
+  otherkeywords={:,\&,\#,\%,++},
+  morestring=[b]" % strings are enclosed in double quotes
+}
+
+\lstdefinestyle{snesl-style}{
+	language={snesl},
+	emph=[1] {concat,index,	lshift, not, ord, part,
+		_plus, rshift, scatter,
+	},
+	emphstyle=[1]{\color{blue}}
+}
+
+
+\lstdefinelanguage{svcode}
+{  morekeywords={
+		WithCtrl,
+		SCall,
+	},
+	sensitive=true, 
+	morecomment=[l]{--}, 
+	otherkeywords={:=},
+}
+
+\lstdefinestyle{svcode-style}{
+	language={svcode},
+	emph=[1] {:= },
+	emphstyle=[1]{\color{blue}}
+}

@@ -1,0 +1,146 @@
+\section{Translation}
+
+\subsection{Translation rules}
+\begin{enumerate}[(1)]
+	\item Stream tree: $$ \STree \ni \st ::= \s \ | \ (\st_1,\s) $$
+	\item Convert a stream tree to a list of  stream ids:
+	\begin{align*}
+	&\bar{}: \STree \-> \S \\
+	&\overline{\s} = [s] \\
+	&\overline{(\st,s)} = \overline{st} {\++} [s]
+	\end{align*}
+	
+	
+	\item Translation environment: $$\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $$ 
+	
+	
+\end{enumerate}
+
+\begin{itemize}	
+	
+	\item \Jug{\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}}
+	
+	\PT{\AC{}
+		\RiLa{(\del(x)= \st)}
+		\UC{\Trans{\del}{x}{\s_0}{\s_0}{\sfun{\epsilon}{\st}}}
+	}
+	\PT{\AC{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
+		\AC{\Trans{\del[x \|-> {\st_1}]}{e_2}{\s_0'}{\s_1}{\sfun {p_2} {\st}}}
+		\BC{\Trans{\del}{\Let{x}{e_1}{e_2}}{\s_0}{\s_1}{\sfun {p_1;p_2} {\st}}}
+	}
+	
+	\PT{
+		\AC{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
+		\RiLa{((\del(x_i)=\st_i)^k_{i=1})}
+		\UC{\Trans{\del}{\hcall \Tupk{x}}{\s_0}{\s_1}{\sfun{p}{\st}}}
+	}\\[5ex]
+	
+	\PT{
+		\AC{\Trans{[x \|-> {\st_1}, \j{x_i \|-> s_i}]}{e}{\s_0+1+j}{\s_1}{\sfun{p_1}{\st}}}
+		\RiLa{\left(
+			\begin{aligned}
+				\del(y) = &  \ (\st_1,\s_b) \\
+				\j{\del(x_i) = & \ \s_i'} \\
+				p = & \ \sdef{\s_0}{\usum(\s_b)}; \\
+				& \ \j{\sdef{\s_i}{\distrf{\s_b}{\s_i'}};} \\
+				& \ \withctrl{\s_0}{p_1}{\Sin}{\Sout} \\
+				\Sin = &  \ \FV{p_1} \\
+				\Sout = & \ \overline{\st} \cap \dv{p_1} \\
+				\s_{i+1} = & \ \s_i + 1, \forall i \in \{0,...,j-1\} \\
+			\end{aligned}
+			\right)}
+		\UC{\Trans{\del}{\Comp{e}{x}{y}{\usevars}}{\s_0}{\s_1}
+			{ \sfun{p} {(\st,\s_b)}}}
+	}
+	
+	\vspace{2cm}
+	
+	\item Auxiliary \Jug{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
+	
+	\PT{
+		\Axiom{\Transf{\constn{n}}{}{\s_0}{\s_0+1}
+			\sfun{\sdef{\s_0}{\consta{n}()}}{\s_0}  }
+	} \\ [6ex]
+	
+	\PT{
+		\AC{}
+		\RiLa{\left( \begin{aligned}
+				\s_{i+1} & = \s_i + 1, \forall i \in \{0,...,3\} \\
+				p= & \sdef{\s_0}{\toflag(\s)} ; \\ 
+				& \sdef{\s_1}{\usum(s_0)} ; \\
+				& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{[\s_1]}{\overline{\s_2}}; \\
+				& \sdef{\s_3}{\scan_{0}(\s_0,s_2)}
+			\end{aligned}\right)
+		}
+		\UC{\Transf{\iotan}{\s}{\s_0}{\s_4}{\sfun{p} {(\s_3,\s_0)}}}
+	}\\[4ex]
+	
+	\PT{
+		\Axiom{\Transf{\plusn}{\s_1,\s_2}{\s_0}{\s_0+1}
+			\sfun{\sdef{\s_0}{\maptwo{+}(\s_1,\s_2)}}{\s_0}}
+	}
+	
+\end{itemize}
+
+
+\subsection{Value representation}
+\begin{enumerate}
+	\item SVCODE values: $$\SvVal \ni \v ::= \a \ | \ (\v,\b) $$
+	\item SVCODE values concatenation: \\ 
+	\begin{align*}
+	&\++: \SvVal \->  \SvVal \-> \SvVal \\
+	&\vapp{\<\a_1,...,\a_i\'>}{\<\a_1',...,\a_j'\'>} = \<\a_1,...,\a_i,\a_1',...,\a_j'\'> \\
+	&\vapp{(\v_1,\b_1)}{(\v_2,\b_2)} = (\vapp{\v_1}{\v_2}, \vapp{\b_1}{\b_2})
+	\end{align*}
+	
+	\item SVCODE value construction from a stream tree: \\
+	\begin{align*}
+	&\sgm : \STree \-> \SvVal \\
+	&\sgm(\s) = \a \\
+	&\sgm((\st,\s)) = (\sgm(\st), \sgm(\s)) 
+	\end{align*}
+	
+	
+	\item Value representation rules
+	\begin{itemize}
+		
+		\item \Jug{\ValRep{v}{\tau}{\v}}
+		
+		\PT{
+			\Axiom{\ValRep{n}{\int}{\singl{n}}}
+		}
+		\PT{
+			\AC{(\ValRep{v_i}{\tau}{\v_i})^k_{i=1}}
+			\RiLa{(\v = \v_1 {\++} ... {\++} \v_k)}
+			\UC{\ValRep{\Seqk{v}}{\tseq{\tau}}{(\v,\langle \F_1,..., \F_k, \T \rangle)}}
+		}
+	\end{itemize}
+\end{enumerate}
+
+
+
+
+\begin{comment}
+\PT{
+\AC{\ValRep {\lrange{v_1}{v_k}} {\tau} {\v}}
+\UC{\ValRep {\Seqk{v}}{\tseq{\tau}}{(\v,\langle \F_1,..., \F_k, \T \rangle)}}
+}\\[4ex]
+
+\item \Jug{\ValRep{\lrange{v_1}{v_k}}{\tau}{\v}}
+\PT{
+\Axiom{\ValRep{\lrange{n_1}{n_k}}{\int}{\vrange{n_1}{n_k}}}
+}
+\PT{
+\AC{\ValRep{v_i}{\tau}{\v}}
+\UC{\ValRep{\lrange{v_1}{v_k}}{\tseq{\tau}}{}}
+}
+
+\end{comment}
+
+
+
+\begin{lem}[\textbf{Value translation backwards determinism}]
+	If $\ValRep{v}{\tau}{w}$, $\ValRep{v'}{\tau}{w}$,
+	then $v=v'$.
+\end{lem}
+

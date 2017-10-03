@@ -1,0 +1,20 @@
+\lstdefinelanguage{nesl}
+{
+  % list of keywords
+  morekeywords={
+  	def,
+    else,
+    false,
+    function,
+    if,
+    in,
+    let,
+    then,
+    true,
+  },
+  sensitive=true, % keywords case-sensitive
+  morecomment=[l]{--}, % l-line comment
+  morecomment=[s]{\{-}{-\}}, % s-start and end
+  otherkeywords={:,\&,\#,\%,++},
+  morestring=[b]" % defines that strings are enclosed in double quotes
+}
