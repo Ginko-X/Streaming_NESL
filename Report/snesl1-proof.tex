@@ -1,5 +1,120 @@
 
-\section{Correctness proof}
+\chapter{Formalization}
+\section{SNESL0}
+
+\subsection{Type system}
+$$\tau ::= \int \ | \ \tseq{\tau_1}$$
+
+Type environment $\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$.
+\begin{itemize}
+	
+	\item Expression typing rules:\\
+	
+	\Jug{\Type{\Gam}{e}{\tau}}
+	
+	\PT{
+		\AxiomC{}
+		\RiLa{(\Gam(x) = \tau)}
+		\UC{\Type{\Gam}{x}{\tau}}
+	}
+	\PT{
+		\AC{\Type{\Gam}{e_1}{\tau_1}}
+		\AC{\Type{\Gam[x \|-> \tau_1]}{e_2}{\tau}}
+		\BC{\Type{\Gam}{\Let{x}{e_1}{e_2}}{\tau}}
+	}\\[1ex]
+	
+	
+	\PT{
+		\AC{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
+		\RiLa{((\Gam(x_i)= \tau_i)^k_{i=1})}
+		\UC{\Type{\Gam}{\hcall{\Tupk{x}}}{\tau}}
+	}\\[1ex]
+	
+	\PT{
+		\AC{\Type{[x \|-> {\tau_1}, \j{x_i \|-> \int}]}{e}{\tau}}
+		\RiLa{(\Gam(y)=\tseq{\tau_1}, \j{\Gam(x_i) = \int})}
+		\UC{\Type{\Gam}{\Comp{e}{x}{y}{\usevars}}{\tseq{\tau}}}
+	}\\[2ex]
+	
+	
+	\item \Jug{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
+	
+	\PT{\Axiom{\Typef{\constn{n}}{}{\int}}}
+	\PT{\Axiom{\Typef{\iotan}{\int} {\tseq{\int}}}}
+	\PT{\Axiom{\Typef{\plusn}{\int,\int} {\int}}}
+	
+	% value types
+	\item Value typing rules: \\
+	
+	\Jug{\TypeV{v}{\tau}}
+	
+	\PT{\Axiom{\TypeV{n}{\int}}}
+	\PT{
+		\AC{(\TypeV{v_i}{\tau})^k_{i=1}}
+		\UC{\TypeV{\Seqk{v}}{\tseq{\tau}}}
+	}
+	
+\end{itemize}
+
+\subsection{Syntax}
+SNESL Expressions:
+$$e ::= x \ | \ \Let{x}{e_1}{e_2} \ | \ \hcall{\Tupk{x}} \ | \ \Comp{e}{x}{y}{\usevars} $$
+$$\hcall = \*{const}_n \ | \ \*{iota} \ | \ \*{plus} $$ 
+
+SNESL values: \\
+$$ n \in \mathbb{Z} $$
+$$ v::= n \ | \ \Seqk{v}$$
+
+
+
+\subsection{Semantics}
+$ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
+\begin{itemize}
+	\item \Jug{\Eval{\rho}{e}{v}}
+	\PT{
+		\AxiomC{}
+		\RiLa{(\rho(x)=v)}
+		\UC{\Eval{\rho}{x}{v}}
+	}
+	\PT{
+		\AC{\Eval{\rho}{e_1}{v_1}}
+		\AC{\Eval{\rho[x \|-> v_1]}{e_2}{v}}
+		\BC{\Eval{\rho}{\Let{e_1}{x}{e_2}}{v}}	
+	}\\[1ex]
+	
+	\PT{
+		\AC{\EvalF\hcall{\replc{k}{v}}{v}}
+		\RiLa{((\rho(x_i)=v_i)^k_{i=1})}
+		\UC{\Eval{\rho}{\hcall{\Tupk{x}}}{v}}
+	}\\[1ex]
+	
+	\PT{
+		\AC{(\Eval{[x \|-> {v_i}, \j{x_i \|-> n_i}]}{e}{v_i'})^k_{i=1}}
+		\RiLa{(\rho(y)=\Seqk{v}, \j{\rho(x_i) = n_i})}
+		\UC{\Eval{\rho}{\Comp{e}{x}{y}{\usevars}}{\Seqk{v'}}}
+	}\\[1ex]
+	
+	\item \Jug{\EvalF\hcall{\replc{k}{v}}{v}}
+	
+	\PT{\Axiom{\EvalF{\constn{n}}{}{n}}}
+	\PT{\AC{}
+		\RiLa{(n \ge 0)}
+		\UC{\EvalF{\iotan}{n}{\{0,1,...,n-1\}}}} \\[1ex]
+	
+	\PT{\AC{} 
+		\RiLa{(n_3= n_1+n_2)} 
+		\UC{\EvalF{\plusn}{n_1,n_2}{n_3}}}
+	
+\end{itemize}
+
+
+\section{SVCODE0}
+
+\subsection{SVCODE0 determinism}
+
+\section{Translation}
+
+\section{Correctness}
 
 \subsection{Definitions}
 We first define a binary relation $\~\S$ on stores to denote that two stores are $similar$: they have identical domains, and their bound values by $\S$ are the same. 
@@ -1068,3 +1183,4 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 \end{proof}
 
 
+\section{Scaling up}

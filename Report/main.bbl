@@ -1,5 +1,16 @@
 \begin{thebibliography}{Mad16}
 
+\bibitem[Ble95]{blel95nesl}
+Guy~E Blelloch.
+\newblock Nesl: A nested data-parallel language.(version 3.1).
+\newblock Technical report, CARNEGIE-MELLON UNIV PITTSBURGH PA SCHOOL OF
+  COMPUTER SCIENCE, 1995.
+
+\bibitem[Ble96]{blel96cost}
+Guy~E Blelloch.
+\newblock Programming parallel algorithms.
+\newblock {\em Communications of the ACM}, 39(3):85--97, 1996.
+
 \bibitem[Mad13]{Fmaster}
 Frederik~M. Madsen.
 \newblock A streaming model for nested data parallelism.

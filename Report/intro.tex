@@ -1,121 +1,102 @@
-\section{Introduction}
+\chapter{Introduction}
 
+\section{Background}
 \subsection{Nested data parallelism}
 
-\subsection{NESL}
+\section{NESL}
+%NESL \cite{blel95nesl} 
 
 \subsection{Work-depth cost model}
 
-\subsection{SNESL}
+% \cite{blel96cost}
 
-\subsubsection{Type system}
-$$\tau ::= \int \ | \ \tseq{\tau_1}$$
+\section{SNESL}
+Streaming NESL (SNESL) \cite{Fphd} is a refinement of NESL
+that attempts to imporve the efficiency of space usage. 
+It extends NESL with two features: streaming semantics and a cost model for space usage. 
+The basic idea behind the streaming semantics may be described as:
+data-parallelism can be realized not only in terms of space, as NESL has demonstrated, but also, for some restricted cases, in terms of time. 
+When there is no enough space to store all the data at the same time, computing them chunk by chunk may be a way out.
 
-Type environment $\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$.
-\begin{itemize}
-	
-	\item Expression typing rules:\\
-	
-	\Jug{\Type{\Gam}{e}{\tau}}
-	
-	\PT{
-		\AxiomC{}
-		\RiLa{(\Gam(x) = \tau)}
-		\UC{\Type{\Gam}{x}{\tau}}
-	}
-	\PT{
-		\AC{\Type{\Gam}{e_1}{\tau_1}}
-		\AC{\Type{\Gam[x \|-> \tau_1]}{e_2}{\tau}}
-		\BC{\Type{\Gam}{\Let{x}{e_1}{e_2}}{\tau}}
-	}\\[1ex]
-	
-	
-	\PT{
-		\AC{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
-		\RiLa{((\Gam(x_i)= \tau_i)^k_{i=1})}
-		\UC{\Type{\Gam}{\hcall{\Tupk{x}}}{\tau}}
-	}\\[1ex]
-	
-	\PT{
-		\AC{\Type{[x \|-> {\tau_1}, \j{x_i \|-> \int}]}{e}{\tau}}
-		\RiLa{(\Gam(y)=\tseq{\tau_1}, \j{\Gam(x_i) = \int})}
-		\UC{\Type{\Gam}{\Comp{e}{x}{y}{\usevars}}{\tseq{\tau}}}
-	}\\[2ex]
-	
-	
-	\item \Jug{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
-	
-	\PT{\Axiom{\Typef{\constn{n}}{}{\int}}}
-	\PT{\Axiom{\Typef{\iotan}{\int} {\tseq{\int}}}}
-	\PT{\Axiom{\Typef{\plusn}{\int,\int} {\int}}}
-	
-	% value types
-	\item Value typing rules: \\
-	
-	\Jug{\TypeV{v}{\tau}}
-	
-	\PT{\Axiom{\TypeV{n}{\int}}}
-	\PT{
-		\AC{(\TypeV{v_i}{\tau})^k_{i=1}}
-		\UC{\TypeV{\Seqk{v}}{\tseq{\tau}}}
-	}
-	
-\end{itemize}
+\subsection{Type system}
 
-\subsubsection{Syntax}
-SNESL Expressions:
-$$e ::= x \ | \ \Let{x}{e_1}{e_2} \ | \ \hcall{\Tupk{x}} \ | \ \Comp{e}{x}{y}{\usevars} $$
-$$\hcall = \*{const}_n \ | \ \*{iota} \ | \ \*{plus} $$ 
+The types of a minimalistic version of SNESL defined in \cite{Fphd} are:
+\begin{align*} 
+& \pi ::= \bool \ | \ \int \ | \ ...  \\
+& \varphi ::= \pi \ | \ (\varphi_1,...,\varphi_k) \ | \ [\varphi]  \\
+& \tau ::= \varphi \ | \ (\tau_1,...,\tau_k) \ | \ \tseq{\tau}  
+\end{align*}
+Here $\pi$ stands for the primitive types and $\varphi$ the concrete types, both originally supported in NESL.
+The type $[\varphi]$, which is called $sequences$ in NESL and $vectors$ in SNESL, represents spatial collections of homogeneous data, and must be
+fully allocated or $materialized$ in memory at once.  $(\varphi_1,...,\varphi_k)$ are tuples with $k$ components that may be of different types.
 
-SNESL values: \\
-$$ n \in \mathbb{Z} $$
-$$ v::= n \ | \ \Seqk{v}$$
+The novel extension is the $streamable$ types $\tau$, which generalizes the types of data that are not necessary to be completely materialized at once, but rather in a streaming fashion. 
+In particular, the type $\{\tau\}$, called $squences$ in SNESL, represents collections of data computed in terms of time.
+So, even with a small size of memory, SNESL could execute programs which is impossible in NESL due to space limitation or more space efficiently than in NESL. 
+
+For clearity, from now on, we will use the terms consistent with SNESL.
+
+\subsection{Values and expressions}
+
+The values of SNESL are as follows:
+\begin{align*}
+& a ::=  \T \ | \ \F \ | \ n \ (n \in \mathbb{Z}) \ | \ ... \\
+& v ::=  a \ | \ (v_1,...,v_k) \ | \ [v_1,...,v_l] \ | \ \{v_1,...,v_l\} 
+\end{align*}
+where $a$ is the atomic values or constants of types $\pi$, and $v$ are
+ general values which can be a constant, a tuple with a small number ($k$) of components, a vertor or a stream with a large number ($l$) of elements.  
+
+The expressions of SNESL are shown in Figure~\ref{fig-snesl-exps}.
+
+\begin{figure}[h]
+\begin{alignat*}{2}
+& e &&::=  a \     \tag{constant} \\
+&   && \quad | \ x  \tag{variable} \\
+&   && \quad | \ (x_1,...,x_k) \tag{tuple}\\
+&   && \quad | \ \Let{x}{e_1}{e_2} \tag{let-binding}\\
+&   && \quad | \ \hcall{\Tupk{x}}  \tag{built-in function call} \\
+&   && \quad | \ \Comp{e_1}{x}{y}{\usevars} \tag{general comprehension} \\
+&   && \quad | \ \Recom{e_1}{x}{\usevars} \tag {restricted comprehension} 
+\end{alignat*}
+\caption{SNESL expressions \label{fig-snesl-exps}}
+\end{figure}
+
+As a minimalistic version of NESL, SNESL maintains the expressive and comfortable programming style of NESL. 
+Basic expressions, such as the first five in Figure~\ref{fig-snesl-exps}, are almost the same as in NESL. 
+The general comprehesion expression looks similar to the apply-to-each construct in NESL except an explicit list of the free variables (listed after the keyword $\*{using}$) occur in the body $e_1$. And the sieve is independent from apply-to-each  as the restricted comprehension for easier analysis and working as the only conditional expression in SNESL. 
+Semantically, these comprehensions extend the apply-to-each to compute from vectors (i.e., type $[\varphi]$) to streams (i.e., type $\{\tau\}$). 
+
+Another notable difference from NESL to SNESL occurs in the built-in functions. 
+
+\begin{figure}[h]
+\begin{alignat}{2} 
+&\hcall && ::= \oplus \ | \ \ \*{append} \ | \ \*{concat} \ | \ \*{zip} \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_{\otimes} \ | \ \*{reduce}_{\otimes} \\
+&   && \quad | \ \*{length} \ | \ \*{elt} \\
+&   && \quad | \ \*{the}  \ | \ \*{empty} \\
+&   && \quad | \ \*{mkseq} \ | \ \*{seq} \ | \ \*{tab} \\
+& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  \div \ | \ \% \ | \le \ | \ ... \tag{consts operations} \\
+& \otimes \ && :: = + \ | \ \times  \ | \ ...  \tag{associative binary operations}
+\end{alignat}
+\caption{SNESL primitive functions \label{fig-snesl-func}}
+\end{figure}
+
+The functions listed in (1.1) and (1.2) of Figure~\ref{fig-snesl-func} are original supported in NESL, doing transformations on consts and vectors. In SNESL, list (1.1) are adapted to streaming versions with slight changes of parameter types where necessary.
+
+Functions in (1.2) are kept their vector versions in SNESL to guarantee the efficiency, although it is possible to realize these functions in a streaming fashion.
+List (1.3) are new primitives primarily working in  streams.  
+The function $\*{the}$ can be used to a two if-else-then statement,  
+$if e_0 then e_1 else e_2 $ 
+$\*{empty}$, which tests if a collection is empty or not, is much more efficient in a streaming setting as it takes only constant complexity both in time and space.  
+Finally, list (1.4) c convert between vectors and streams. $\*{seq}$, typed as $[\varphi] \rightarrow \{\varphi\}$, converts a vector to a sequence; $\*{tab}$ does the contrary work, tabulates the sequence into a vector.
 
 
 
-\subsubsection{Semantics}
-$ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
-\begin{itemize}
-	\item \Jug{\Eval{\rho}{e}{v}}
-	\PT{
-		\AxiomC{}
-		\RiLa{(\rho(x)=v)}
-		\UC{\Eval{\rho}{x}{v}}
-	}
-	\PT{
-		\AC{\Eval{\rho}{e_1}{v_1}}
-		\AC{\Eval{\rho[x \|-> v_1]}{e_2}{v}}
-		\BC{\Eval{\rho}{\Let{e_1}{x}{e_2}}{v}}	
-	}\\[1ex]
-	
-	\PT{
-		\AC{\EvalF\hcall{\replc{k}{v}}{v}}
-		\RiLa{((\rho(x_i)=v_i)^k_{i=1})}
-		\UC{\Eval{\rho}{\hcall{\Tupk{x}}}{v}}
-	}\\[1ex]
-	
-	\PT{
-		\AC{(\Eval{[x \|-> {v_i}, \j{x_i \|-> n_i}]}{e}{v_i'})^k_{i=1}}
-		\RiLa{(\rho(y)=\Seqk{v}, \j{\rho(x_i) = n_i})}
-		\UC{\Eval{\rho}{\Comp{e}{x}{y}{\usevars}}{\Seqk{v'}}}
-	}\\[1ex]
-	
-	\item \Jug{\EvalF\hcall{\replc{k}{v}}{v}}
-	
-	\PT{\Axiom{\EvalF{\constn{n}}{}{n}}}
-	\PT{\AC{}
-		\RiLa{(n \ge 0)}
-		\UC{\EvalF{\iotan}{n}{\{0,1,...,n-1\}}}} \\[1ex]
-	
-	\PT{\AC{} 
-		\RiLa{(n_3= n_1+n_2)} 
-		\UC{\EvalF{\plusn}{n_1,n_2}{n_3}}}
-	
-\end{itemize}
+\subsection{Cost model}
+Based on the work-depth model, the cost model of SNESL is extended with a space
+component, 
 
-\subsubsection{Cost model}
 
-\subsection{Mathematical background and notations}
+\section{Mathematical background and notations}
 \begin{itemize}
 	\item Set difference: \\
 	For two sets $A$ and $B$, 

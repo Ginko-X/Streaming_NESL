@@ -1,9 +1,199 @@
 \clearpage
 
 \def\PRName#1{\textsc{Pre-#1}}
+\newcommand\ra{\rightarrow}
 
-\section{Implementation}
+\chapter{Implementation}
 
+In this chapter, we first talk about the high-level interpreter of our minimal SNESL but with extension of user-defined functions to give the reader a more concrete feeling about SNESL. 
+Then we present a streaming low-level language, SVCODE, with respect to its grammar, semantics and cost model.
+%The translation is shown to show how an SVCODE program is generated from an SNESL one.
+Finally, two low-level interpreters of SVCODE will be described and compared to  to demonstrate the streaming machnism and related issues with emphsis on ? ?
+
+
+
+\section{High-level interpreter}
+
+In this thesis, the SNESL language we experimented with is a subset verison introduced in the last chapter but without vectors. 
+As our first goal is to extend SNESL with user-defined (recursive) functions,
+it is safe to do so because vector is only a subtype of stream that has been sufficiently investigated in \cite{Fphd}. 
+So removing vectors from the language should not affect the complexity of the problem itself; we believe that if the solution works with sequences, the general type in SNESL, it should be trivial to extend it to support vectors. 
+
+The adjusted type system is as follows:
+\begin{align*} 
+& \pi ::= \bool \ | \ \int  \\
+& \tau ::= \pi \ | \ (\tau_1,\tau_2) \ | \ \tseq{\tau}  \ | \ (\tau_1 \times ... \times \tau_k) \rightarrow \tau 
+\end{align*}
+
+The grammar of the implemented minimal SNESL with user-defined functions is given in \ref{fig-mysnesl}. 
+ 
+
+\begin{figure}[H]
+	\begin{alignat*}{2}
+	& t &&::= e \ | \ d  \tag{top-level statement} \\
+	\\
+	& e &&::=  a \     \tag{constant} \\
+	&   && \quad | \ x  \tag{variable} \\
+	&   && \quad | \ (x,y) \tag{pair}\\
+	&   && \quad | \ \{e_1,...,e_l \}	\tag{primitive sequence} \\
+	&   && \quad | \ \{ \}\tau			\tag{empty sequence of type $\tau$} \\
+	&   && \quad | \ \Let{x}{e_1}{e_2} \tag{let-binding}\\
+	&   && \quad | \ \hcall{\Tupk{x}}  \tag{built-in function call} \\
+	&   && \quad | \ \Comp{e_1}{x}{y}{\usevars} \tag{general comprehension} \\
+	&   && \quad | \ \Recom{e_1}{x}{\usevars} \tag {restricted comprehension} \\
+	&   && \quad | \ f(x_1,...,x_k)  \tag {user-defined function call} \\
+	\\
+	& d &&::= function \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e  \tag{user-defined function}
+	\end{alignat*}
+	\caption{Grammar of high-level interpreter  \label{fig-mysnesl}}
+\end{figure}
+
+The high-level interpreter we have implemented supports interpreting both SNESL expressions and function definitions. The reader may find that, compared to the grammar in Figure~\ref{fig-snesl-exps}, we simplified tuples of arbitrary number of components to paris of only two components; also, primitive sequence and empty sequence are added. These small changes just make the language we experiment with as simple as possible to analyze, and also convenient for programming tests.
+Since type inference is not incorporated in the interpreter, the types of  parameters and return values should be given when the user defines a function.
+
+The built-in functions are just a subset of SNESL built-in functions shown in Figure~\ref{fig-snesl-func} that has removed the vector-related ones as shown in Figure~\ref{fig-mysnesl-func}. 
+
+\begin{figure}[h]
+	\begin{alignat*}{2} 
+	&\hcall && ::= \oplus \ | \  \ \*{append} \ | \ \*{concat}  \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_+ \ | \ \*{reduce}_{+} \\
+	&   && \quad | \ \*{the}  \ | \ \*{empty} \\
+	& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  \div \ | \ \% \ | \le \ | \ ... \tag{consts operations} \\
+	\end{alignat*}
+	\caption{Primitive functions \label{fig-mysnesl-func}}
+\end{figure}
+
+\begin{itemize}
+
+	\item $\*{append : (\{\tau\} \times \{\tau\}) \ra \{\tau\}}$ , 
+	appends one sequence to the end of another; syntactic-sugared as the infix symbol {\++}.
+
+	\begin{figure}[H]
+	\begin{example}
+	\end{example}
+	\begin{lstlisting}[style = snesl-style]
+	> {3,1} ++ {4}
+	{3,1,4} :: {int}
+	
+	> {{3,1},{4}} ++ {{}int} ++ {{1,5}}
+	{{3,1},{4},{},{1,5}} :: {{int}}
+	\end{lstlisting}
+	\end{figure}
+
+
+	\item $\*{concat: \{\{\tau\}\} \rightarrow \{\tau\} }$, concatenates the elements of type sequence into one sequence. 
+	\begin{figure}[H]
+	\begin{example}
+	\end{example}
+	\begin{lstlisting}[style = snesl-style]
+	> concat({{3,1},{4}})
+	{3,1,4} :: {int}
+	
+	> concat({{{3,1}, {4}}, {{1}}})
+	{{3,1},{4},{1}} :: {{int}}
+	\end{lstlisting}
+	\end{figure}
+
+	\item $\*{iota: \int \ra \{\int\}}$, generates a sequence of integers starting from 0 to the given argument integer minus 1; syntactic-sugared as the symbol \&. 
+	\begin{figure}[H]
+	\begin{example}
+	\end{example}
+	\begin{lstlisting}[style = snesl-style]
+	> &10
+	{0,1,2,3,4,5,6,7,8,9} :: {int}
+	
+	> &0
+	{} :: {int}
+	\end{lstlisting}
+	\end{figure}
+	
+	\item $\*{part: (\{\tau\} \times \{\bool\}) \ra  \{\{\tau\}\}}$,  partitions a sequence into subsequences segmented by the second descriptor argument. 
+	\begin{figure}[H]
+	\begin{example}
+	\end{example}
+	\begin{lstlisting}[style = snesl-style]
+	> part({3,1,4,1,5,9}, {F,F,T,F,T,T,F,F,F,T})
+	{{3,1},{4},{},{1,5,9}} :: {{int}}
+	
+	> part({{F,T},{T},{}bool, {F,F}}, {F,F,T,F,F,T})
+	{{{F,T},{T}},{{},{F,F}}} :: {{{bool}}}
+	\end{lstlisting}
+	\end{figure}
+	
+	\item $\*{scan_+}: \{\int\} \ra \{\int\}$, performs an exclusive scan of plus operation on the given sequence.
+	\begin{figure}[H]
+	\begin{example}
+	\end{example}
+	\begin{lstlisting}[style = snesl-style]
+	> scanPlus({3,1,4,1})
+	{0,3,4,8} :: {int}
+	
+	> scanPlus({}int)
+	{} :: {int}
+	\end{lstlisting}
+	\end{figure}
+	
+	\item $\*{reduce_+: \{\int\} \ra \int }$, performs a reduction of plus operation on the given sequence, i.e., compute its sum.
+	\begin{figure}[H]
+	\begin{example}
+	\end{example}
+	\begin{lstlisting}[style = snesl-style]
+	> reducePlus({3,1,4,1})
+	9 :: int
+	
+	> reducePlus({}int)
+	0 :: int
+	\end{lstlisting}
+	\end{figure}
+
+
+	\item $\*{the:  \{\tau\} \ra \tau}$, returns the element of a singleton sequence.
+	\begin{figure}[H]
+	\begin{example}
+	\end{example}
+	\begin{lstlisting}[style = snesl-style]
+	> the({3})
+	3 :: int
+	
+	> the({(3,1)})
+	(3,1) :: (int,int)
+	\end{lstlisting}
+	\end{figure}
+	
+	\item $\*{empty:  \{\tau\} \ra \bool}$, tests if the given sequence is empty.
+	\begin{figure}[H]
+	\begin{example}
+	\end{example}
+	\begin{lstlisting}[style = snesl-style]
+	> empty({3,1,4,1})
+	F :: bool
+	
+	> empty({}int)
+	T :: bool
+	\end{lstlisting}
+	\end{figure}
+\end{itemize}
+
+
+\begin{figure}[H]
+	\begin{example}\emph{User-defined function to compute the multiplication of two square matrices.}
+	\end{example}
+	\begin{lstlisting}[style = snesl-style]
+	-- code desplay format changed for readability
+	function matmul(n:int) :{{int}} = 
+  	  let matA = {&n : _ in &n};
+	      matB = {{x : _ in &n} : x in &n} -- transposition of matA
+	  in {{ reducePlus({x*y : x in a, y in b}) : a in matA} : b in matB}
+	
+	> matmul(4)
+	{{0,0,0,0},{6,6,6,6},{12,12,12,12},{18,18,18,18}} :: {{int}}
+	\end{lstlisting}
+\end{figure}
+
+
+
+
+
+\section{SVCODE}
 In \cite{Fmaster} a streaming target language for a minimal SNESL was defined.
 With trivial changes in the instruction set, this language, named as SVCODE (streaming VCODE), has been implemented on a multicore system in \cite{Fphd}; the various experiment results
 have demonstrated single-core performance similar to sequential C code for some simple 
@@ -13,8 +203,14 @@ potential for further performance improvment by scheduling opitmization and code
 In this thesis, we put emphasis on the formalization of this low-level language's semantics.
 Also, to support recursion in the high-level language at the same time preserving the cost, non-trivial extension of this language is needed. 
 
+\section{Translation}
 
-\subsection{SVCODE Syntax}
+\section{Eager interpreter}
+\section{Streaming interpreter}
+\subsection{Xducers}
+
+
+\section{SVCODE Syntax}
 The data or $streams$ that an SVCODE program computes are basically vectors of consts. 
 For our minimal language, a primitive stream $\a$ can be a vector of booleans, integers or units, as the following grammar shows:
 
@@ -32,11 +228,11 @@ The grammar of SVCODE is given in Figure~\ref{fig-svcode-grammar}.
 \begin{figure}[!h] \large
 	\begin{alignat*}{2}
 	&p  && :: = \ \epsilon \\ 
-	& &&\ \ | \ \sdef{\s}{\psi(s_1,...,s_k)}  \tag{$\s \notin \{s_1,...,s_k\}$}\\
-	& &&\ \ | \ \withctrl{\s}{p_1}{\Sin}{\Sout}  \tag{$ \FV{p_1} \subseteq \Sin, \Sout \subseteq \dv{p_1} $} \\
-	& &&\ \ | \ p_1;p_2  \tag{$\dv{p_1} \cap \dv{p_2} = \emptyset$} \\
+	&   &&\ \ | \ \sdef{\s}{\psi(s_1,...,s_k)}  \tag{$\s \notin \{s_1,...,s_k\}$}\\
+	&   &&\ \ | \ \withctrl{\s}{p_1}{\Sin}{\Sout}  \tag{$ \FV{p_1} \subseteq \Sin, \Sout \subseteq \dv{p_1} $} \\
+	&   &&\ \ | \ p_1;p_2  \tag{$\dv{p_1} \cap \dv{p_2} = \emptyset$} \\
 	\\
-	& \s && ::= 0 \ | \ 1 \ ... \in \SId  = \mathbb{N}   \tag{stream ids}\\
+	&\s && ::= 0 \ | \ 1 \ ... \in \SId  = \mathbb{N}   \tag{stream ids}\\
 	\\
 	& \psi \ && ::= \consta{a} \ | \ \toflag  
 	\ | \ \usum \ | \ \maptwo{\oplus} \ | \ \scan_{n_0} \ | \ \distr  \tag{Xducers} \\
@@ -88,7 +284,7 @@ The proof is straightward by induction on the syntax of $p$.
 
 
 
-\subsection{SVCODE semantics}
+\section{SVCODE semantics}
 
 Before showing the semantics, we first introduce some notations and operations about streams for convenience.
 \begin{nota}
@@ -163,9 +359,9 @@ The new control stream is crucial here, because it decides whether or not to exe
 
 
 
-\subsection{Xducers}
+\section{Xducers}
 
-\subsubsection{SVCODE Dataflow}
+\subsection{SVCODE Dataflow}
 Transducers or $Xducers$ are the primitive computing functions on streams in SVCODE. Each Xducer consumes a number of streams and transforms them into another. 
 
 As we can see from the side condition of the rule $\PName{Xducer}$, a stream can be consumed only after it has been produced.
@@ -198,7 +394,7 @@ In Figure~\ref{fig-svcode-dag1}, the channel number is labeled above each edge.
 For example, the Xducer S2 has two clients, S3 and S5, for both of whom it is the No.0 channel;  Xducer S5 has two suppliers: S2 the No.0 channel and S3 the No.1. 
 
 
-\subsubsection{General semantics}
+\subsection{General semantics}
 The semantics of Xducers are abstracted into two levels: the $general$ level and the $block$ level. The general level summarizes the comman property that all Xducers share, and the block level describes the specific behavior of each Xducer. 
 
 Figure~\ref{fig-xducer-semantics} shows the semantics at the general level. 
@@ -234,7 +430,7 @@ maximum number of processors we need to execute the computation most efficiently
 
 
 
-\subsubsection{Block semantics}
+\subsection{Block semantics}
 After abstracting the general semantics, the remaining work of formalizing the specific semantics of Xducers within a block becomes relatively clear and easy. The block semantics are defined in Figure~\ref{fig:xducer-bl-seman}. 
 
 \fig{
@@ -395,7 +591,7 @@ For the scope of this thesis, the block semantics we have shown are already rela
 %\end{mdframed}
 
 %
-%\subsubsection{Data consuming rate}
+%\subsection{Data consuming rate}
 %
 %Because the data from different channels are usually not only different
 %types, but also different consuming rate -- the number of constant that
@@ -403,7 +599,7 @@ For the scope of this thesis, the block semantics we have shown are already rela
 
 
 
-\subsection{SVCODE determinism}
+\section{SVCODE determinism}
 
 As we have given formal semantics to the language, we now argue that a well-formed SVCODE program is deterministic.
 
@@ -615,9 +811,9 @@ a specific Xducer to be consumed in a block.
 \end{proof}
 
 
-\subsection{Streaming interpreter}
+\section{Streaming interpreter}
 
-\subsection{Recursion}
+\section{Recursion}
 
 
 

@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  3 OCT 2017 20:22
+This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  6 OCT 2017 18:12
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -6,19 +6,20 @@ entering extended mode
 (./main.tex
 LaTeX2e <2015/01/01>
 Babel <3.9l> and hyphenation patterns for 79 languages loaded.
-(/usr/local/texlive/2015/texmf-dist/tex/latex/base/article.cls
-Document Class: article 2014/09/29 v1.4h Standard LaTeX document class
+(/usr/local/texlive/2015/texmf-dist/tex/latex/base/report.cls
+Document Class: report 2014/09/29 v1.4h Standard LaTeX document class
 (/usr/local/texlive/2015/texmf-dist/tex/latex/base/size10.clo
 File: size10.clo 2014/09/29 v1.4h Standard LaTeX file (size option)
 )
 \c@part=\count79
-\c@section=\count80
-\c@subsection=\count81
-\c@subsubsection=\count82
-\c@paragraph=\count83
-\c@subparagraph=\count84
-\c@figure=\count85
-\c@table=\count86
+\c@chapter=\count80
+\c@section=\count81
+\c@subsection=\count82
+\c@subsubsection=\count83
+\c@paragraph=\count84
+\c@subparagraph=\count85
+\c@figure=\count86
+\c@table=\count87
 \abovecaptionskip=\skip41
 \belowcaptionskip=\skip42
 \bibindent=\dimen102
@@ -43,13 +44,13 @@ Package: amsbsy 1999/11/29 v1.2d
 (/usr/local/texlive/2015/texmf-dist/tex/latex/amsmath/amsopn.sty
 Package: amsopn 1999/12/14 v2.01 operator names
 )
-\inf@bad=\count87
+\inf@bad=\count88
 LaTeX Info: Redefining \frac on input line 210.
-\uproot@=\count88
-\leftroot@=\count89
+\uproot@=\count89
+\leftroot@=\count90
 LaTeX Info: Redefining \overline on input line 306.
-\classnum@=\count90
-\DOTSCASE@=\count91
+\classnum@=\count91
+\DOTSCASE@=\count92
 LaTeX Info: Redefining \ldots on input line 378.
 LaTeX Info: Redefining \dots on input line 381.
 LaTeX Info: Redefining \cdots on input line 466.
@@ -58,15 +59,15 @@ LaTeX Info: Redefining \cdots on input line 466.
 \big@size=\dimen105
 LaTeX Font Info:    Redeclaring font encoding OML on input line 566.
 LaTeX Font Info:    Redeclaring font encoding OMS on input line 567.
-\macc@depth=\count92
-\c@MaxMatrixCols=\count93
+\macc@depth=\count93
+\c@MaxMatrixCols=\count94
 \dotsspace@=\muskip10
-\c@parentequation=\count94
-\dspbrk@lvl=\count95
+\c@parentequation=\count95
+\dspbrk@lvl=\count96
 \tag@help=\toks15
-\row@=\count96
-\column@=\count97
-\maxfields@=\count98
+\row@=\count97
+\column@=\count98
+\maxfields@=\count99
 \andhelp@=\toks16
 \eqnshift@=\dimen106
 \alignsep@=\dimen107
@@ -112,15 +113,15 @@ Package: keyval 2014/10/28 v1.15 key=value parser (DPC)
 )
 (/usr/local/texlive/2015/texmf-dist/tex/latex/tools/calc.sty
 Package: calc 2014/10/28 v4.3 Infix arithmetic (KKT,FJ)
-\calc@Acount=\count99
-\calc@Bcount=\count100
+\calc@Acount=\count100
+\calc@Bcount=\count101
 \calc@Adimen=\dimen112
 \calc@Bdimen=\dimen113
 \calc@Askip=\skip49
 \calc@Bskip=\skip50
 LaTeX Info: Redefining \setlength on input line 80.
 LaTeX Info: Redefining \addtolength on input line 81.
-\calc@Ccount=\count101
+\calc@Ccount=\count102
 \calc@Cskip=\skip51
 )
 (/usr/local/texlive/2015/texmf-dist/tex/latex/mathtools/mhsetup.sty
@@ -130,7 +131,7 @@ LaTeX Info: Thecontrolsequence`\('isalreadyrobust on input line 129.
 LaTeX Info: Thecontrolsequence`\)'isalreadyrobust on input line 129.
 LaTeX Info: Thecontrolsequence`\['isalreadyrobust on input line 129.
 LaTeX Info: Thecontrolsequence`\]'isalreadyrobust on input line 129.
-\g_MT_multlinerow_int=\count102
+\g_MT_multlinerow_int=\count103
 \l_MT_multwidth_dim=\dimen114
 \origjot=\skip52
 \l_MT_shortvdotswithinadjustabove_dim=\dimen115
@@ -167,8 +168,8 @@ LaTeX Info: Thecontrolsequence`\]'isalreadyrobust on input line 129.
 )
 (/usr/local/texlive/2015/texmf-dist/tex/latex/bussproofs/bussproofs.sty
 Proof Tree (bussproofs) style macros. Version 1.1.
-\theLevel=\count103
-\myMaxLevel=\count104
+\theLevel=\count104
+\myMaxLevel=\count105
 \myBoxA=\box32
 \myBoxB=\box33
 \myBoxC=\box34
@@ -217,9 +218,9 @@ Package ifvtex Info: VTeX not detected.
 (/usr/local/texlive/2015/texmf-dist/tex/generic/ifxetex/ifxetex.sty
 Package: ifxetex 2010/09/12 v0.6 Provides ifxetex conditional
 )
-\Gm@cnth=\count105
-\Gm@cntv=\count106
-\c@Gm@tempcnt=\count107
+\Gm@cnth=\count106
+\Gm@cntv=\count107
+\c@Gm@tempcnt=\count108
 \Gm@bindingoffset=\dimen156
 \Gm@wd@mp=\dimen157
 \Gm@odd@mp=\dimen158
@@ -245,20 +246,20 @@ Package: verbatim 2014/10/28 v1.5q LaTeX2e package for verbatim enhancements
 )
 (/usr/local/texlive/2015/texmf-dist/tex/latex/easylist/easylist.sty
 Package: easylist 2014/01/11 v.1.4 Numbered items with a single command.
-\el@CounterTotal=\count108
-\el@Scratch=\count109
-\el@ControlCounter=\count110
-\el@CounterLevel=\count111
-\c@List1=\count112
-\c@List2=\count113
-\c@List3=\count114
-\c@List4=\count115
-\c@List5=\count116
-\c@List6=\count117
-\c@List7=\count118
-\c@List8=\count119
-\c@List9=\count120
-\c@List10=\count121
+\el@CounterTotal=\count109
+\el@Scratch=\count110
+\el@ControlCounter=\count111
+\el@CounterLevel=\count112
+\c@List1=\count113
+\c@List2=\count114
+\c@List3=\count115
+\c@List4=\count116
+\c@List5=\count117
+\c@List6=\count118
+\c@List7=\count119
+\c@List8=\count120
+\c@List9=\count121
+\c@List10=\count122
 \el@ProgressiveDimension=\dimen164
 \el@CounterBox=\box38
 \el@ControlBox=\box39
@@ -306,24 +307,24 @@ L3 Module: l3tl 2015/01/27 v5500 L3 Token lists
 L3 Module: l3str 2015/03/01 v5545 L3 Strings
 L3 Module: l3seq 2014/08/23 v5354 L3 Sequences and stacks
 L3 Module: l3int 2015/02/21 v5529 L3 Integers
-\c_max_int=\count122
-\l_tmpa_int=\count123
-\l_tmpb_int=\count124
-\g_tmpa_int=\count125
-\g_tmpb_int=\count126
+\c_max_int=\count123
+\l_tmpa_int=\count124
+\l_tmpb_int=\count125
+\g_tmpa_int=\count126
+\g_tmpb_int=\count127
 L3 Module: l3quark 2014/08/23 v5354 L3 Quarks
 L3 Module: l3prg 2014/08/23 v5354 L3 Control structures
-\g__prg_map_int=\count127
+\g__prg_map_int=\count128
 L3 Module: l3clist 2014/08/23 v5354 L3 Comma separated lists
 L3 Module: l3token 2014/09/15 v5422 L3 Experimental token manipulation
 L3 Module: l3prop 2014/08/23 v5354 L3 Property lists
 L3 Module: l3msg 2015/02/26 v5537 L3 Messages
 L3 Module: l3file 2014/08/24 v5369 L3 File and I/O operations
-\l_iow_line_count_int=\count128
-\l__iow_target_count_int=\count129
-\l__iow_current_line_int=\count130
-\l__iow_current_word_int=\count131
-\l__iow_current_indentation_int=\count132
+\l_iow_line_count_int=\count129
+\l__iow_target_count_int=\count130
+\l__iow_current_line_int=\count131
+\l__iow_current_word_int=\count132
+\l__iow_current_indentation_int=\count133
 L3 Module: l3skip 2014/08/23 v5354 L3 Dimensions and skips
 \c_zero_dim=\dimen167
 \c_max_dim=\dimen168
@@ -344,18 +345,18 @@ L3 Module: l3skip 2014/08/23 v5354 L3 Dimensions and skips
 \g_tmpa_muskip=\muskip15
 \g_tmpb_muskip=\muskip16
 L3 Module: l3keys 2015/01/27 v5500 L3 Key-value interfaces
-\g__keyval_level_int=\count133
-\l_keys_choice_int=\count134
+\g__keyval_level_int=\count134
+\l_keys_choice_int=\count135
 L3 Module: l3fp 2014/08/22 v5336 L3 Floating points
-\c__fp_leading_shift_int=\count135
-\c__fp_middle_shift_int=\count136
-\c__fp_trailing_shift_int=\count137
-\c__fp_big_leading_shift_int=\count138
-\c__fp_big_middle_shift_int=\count139
-\c__fp_big_trailing_shift_int=\count140
-\c__fp_Bigg_leading_shift_int=\count141
-\c__fp_Bigg_middle_shift_int=\count142
-\c__fp_Bigg_trailing_shift_int=\count143
+\c__fp_leading_shift_int=\count136
+\c__fp_middle_shift_int=\count137
+\c__fp_trailing_shift_int=\count138
+\c__fp_big_leading_shift_int=\count139
+\c__fp_big_middle_shift_int=\count140
+\c__fp_big_trailing_shift_int=\count141
+\c__fp_Bigg_leading_shift_int=\count142
+\c__fp_Bigg_middle_shift_int=\count143
+\c__fp_Bigg_trailing_shift_int=\count144
 L3 Module: l3box 2014/08/23 v5354 L3 Experimental boxes
 \c_empty_box=\box40
 \l_tmpa_box=\box41
@@ -408,15 +409,15 @@ File: l3unicode-data.def 2015/03/01 v5544 L3 Unicode data
 File: l3xdvidpfmx.def 2015/03/01 v5544 L3 Experimental driver: xdvipdfmx
 ))
 Package: xparse 2014/11/25 v5471 L3 Experimental document command parser
-\l__xparse_current_arg_int=\count144
-\l__xparse_m_args_int=\count145
-\l__xparse_mandatory_args_int=\count146
-\l__xparse_processor_int=\count147
-\l__xparse_v_nesting_int=\count148
+\l__xparse_current_arg_int=\count145
+\l__xparse_m_args_int=\count146
+\l__xparse_mandatory_args_int=\count147
+\l__xparse_processor_int=\count148
+\l__xparse_v_nesting_int=\count149
 )
 (/usr/local/texlive/2015/texmf-dist/tex/latex/etoolbox/etoolbox.sty
 Package: etoolbox 2015/05/04 v2.2 e-TeX tools for LaTeX (JAW)
-\etb@tempcnta=\count149
+\etb@tempcnta=\count150
 )
 (/usr/local/texlive/2015/texmf-dist/tex/latex/oberdiek/zref-abspage.sty
 Package: zref-abspage 2012/04/04 v2.24 Module abspage for zref (HO)
@@ -446,14 +447,14 @@ Package zref Info: New property: page on input line 761.
 (/usr/local/texlive/2015/texmf-dist/tex/generic/oberdiek/atbegshi.sty
 Package: atbegshi 2011/10/05 v1.16 At begin shipout hook (HO)
 )
-\c@abspage=\count150
+\c@abspage=\count151
 Package zref Info: New property: abspage on input line 62.
 )
 (/usr/local/texlive/2015/texmf-dist/tex/latex/needspace/needspace.sty
 Package: needspace 2010/09/12 v1.3d reserve vertical space
 )
 \mdf@templength=\skip59
-\c@mdf@globalstyle@cnt=\count151
+\c@mdf@globalstyle@cnt=\count152
 \mdf@skipabove@length=\skip60
 \mdf@skipbelow@length=\skip61
 \mdf@leftmargin@length=\skip62
@@ -529,7 +530,7 @@ File: md-frame-0.mdf 2013/07/01\ 1.9b: md-frame-0
 \mdf@horizontalspaceofbox=\skip123
 \mdfsubtitleheight=\skip124
 \mdfsubsubtitleheight=\skip125
-\c@mdfcountframes=\count152
+\c@mdfcountframes=\count153
 
 ****** mdframed patching \endmdf@trivlist
 
@@ -545,10 +546,10 @@ File: md-frame-0.mdf 2013/07/01\ 1.9b: md-frame-0
 . 
 . Defining command \mdtheorem with sig. ' O{} m o m o ' on line 701.
 .................................................
-\mdf@envdepth=\count153
-\c@mdf@env@i=\count154
-\c@mdf@env@ii=\count155
-\c@mdf@zref@counter=\count156
+\mdf@envdepth=\count154
+\c@mdf@env@i=\count155
+\c@mdf@env@ii=\count156
+\c@mdf@zref@counter=\count157
 Package zref Info: New property: mdf@pagevalue on input line 895.
 )
 (/usr/local/texlive/2015/texmf-dist/tex/latex/caption/caption.sty
@@ -565,35 +566,44 @@ Package caption3 Info: TeX engine: e-TeX on input line 57.
 \caption@parindent=\dimen203
 \caption@hangindent=\dimen204
 )
-\c@ContinuedFloat=\count157
+\c@ContinuedFloat=\count158
 )
-\c@thm=\count158
-\c@example=\count159
+(/usr/local/texlive/2015/texmf-dist/tex/latex/float/float.sty
+Package: float 2001/11/08 v1.3d Float enhancements (AL)
+\c@float@type=\count159
+\float@exts=\toks30
+\float@box=\box60
+\@float@everytoks=\toks31
+\@floatcapt=\box61
+)
+\c@thm=\count160
+\c@example=\count161
 
 (/usr/local/texlive/2015/texmf-dist/tex/latex/listings/listings.sty
-\lst@mode=\count160
-\lst@gtempboxa=\box60
-\lst@token=\toks30
-\lst@length=\count161
+\lst@mode=\count162
+\lst@gtempboxa=\box62
+\lst@token=\toks32
+\lst@length=\count163
 \lst@currlwidth=\dimen205
-\lst@column=\count162
-\lst@pos=\count163
+\lst@column=\count164
+\lst@pos=\count165
 \lst@lostspace=\dimen206
 \lst@width=\dimen207
-\lst@newlines=\count164
-\lst@lineno=\count165
+\lst@newlines=\count166
+\lst@lineno=\count167
 \lst@maxwidth=\dimen208
 
 (/usr/local/texlive/2015/texmf-dist/tex/latex/listings/lstmisc.sty
 File: lstmisc.sty 2014/09/06 1.5e (Carsten Heinz)
-\c@lstnumber=\count166
-\lst@skipnumbers=\count167
-\lst@framebox=\box61
+\c@lstnumber=\count168
+\lst@skipnumbers=\count169
+\lst@framebox=\box63
 )
 (/usr/local/texlive/2015/texmf-dist/tex/latex/listings/listings.cfg
 File: listings.cfg 2014/09/06 1.5e listings configuration
 ))
 Package: listings 2014/09/06 1.5e (Carsten Heinz)
+Package color Info: Redefining color blue on input line 34.
 
 (./lang-style.tex) (./main.aux
 
@@ -602,18 +612,18 @@ LaTeX Warning: Label `eq-lem24-c3-{8}' multiply defined.
 )
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 284.
-LaTeX Font Info:    ... okay on input line 284.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 284.
-LaTeX Font Info:    ... okay on input line 284.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 284.
-LaTeX Font Info:    ... okay on input line 284.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 284.
-LaTeX Font Info:    ... okay on input line 284.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 284.
-LaTeX Font Info:    ... okay on input line 284.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 284.
-LaTeX Font Info:    ... okay on input line 284.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 285.
+LaTeX Font Info:    ... okay on input line 285.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 285.
+LaTeX Font Info:    ... okay on input line 285.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 285.
+LaTeX Font Info:    ... okay on input line 285.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 285.
+LaTeX Font Info:    ... okay on input line 285.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 285.
+LaTeX Font Info:    ... okay on input line 285.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 285.
+LaTeX Font Info:    ... okay on input line 285.
  (/usr/local/texlive/2015/texmf-dist/tex/latex/graphics/graphicx.sty
 Package: graphicx 2014/10/28 v1.0g Enhanced LaTeX Graphics (DPC,SPQR)
 
@@ -665,53 +675,244 @@ Package graphics Info: Driver file: xetex.def on input line 94.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-\AtBeginShipoutBox=\box62
+\AtBeginShipoutBox=\box64
 Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: float package is loaded.
 Package caption Info: listings package is loaded.
 Package caption Info: End \AtBeginDocument code.
-\c@lstlisting=\count168
-LaTeX Font Info:    Try loading font information for U+msa on input line 285.
+\c@lstlisting=\count170
+LaTeX Font Info:    Try loading font information for U+msa on input line 286.
 (/usr/local/texlive/2015/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 285.
+LaTeX Font Info:    Try loading font information for U+msb on input line 286.
 
 (/usr/local/texlive/2015/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-) (./main.toc)
+) [1
+
+] (./main.toc)
 \tf@toc=\write3
 \openout3 = `main.toc'.
 
+ (./intro.tex [1
 
-[1
+] [2]
+Chapter 1.
+[3
 
-] (./intro.tex
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 17.
+] [4]
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 101.
+
  (/usr/local/texlive/2015/texmf-dist/tex/latex/base/omscmr.fd
 File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 17.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 101.
+)
+(./imple.tex [5]
+Chapter 2.
+[6
 
-Underfull \hbox (badness 10000) in paragraph at lines 17--18
+
+]
+Overfull \hbox (1.84193pt too wide) in paragraph at lines 67--69
+[]$[]$ \OT1/cmr/m/n/12 , ap-pends one se-quence to the end of an-other; syntact
+ic-
+ []
+
+LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10> not available
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 75.
+[7] [8] [9] [10]
+Overfull \hbox (7.05998pt too wide) in paragraph at lines 291--292
+[]\OT1/cmr/bx/n/12 Notation 2.2. []\OT1/cmr/m/it/12 Let $\OMS/cmsy/m/n/12 h\OML
+/cmm/m/it/12 a[]\OMS/cmsy/m/n/12 j[]i$ \OT1/cmr/m/it/12 de-note a non-empty str
+eam $\OMS/cmsy/m/n/12 h\OML/cmm/m/it/12 a[]; a[]; :::; a[]\OMS/cmsy/m/n/12 i$ \
+OT1/cmr/m/it/12 for some $[] \OT1/cmr/m/n/12 = \OMS/cmsy/m/n/12 h\OML/cmm/m/it/
+12 a[]; :::; a[]\OMS/cmsy/m/n/12 i$\OT1/cmr/m/it/12 . 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 296--297
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 19--20
+Underfull \hbox (badness 10000) in paragraph at lines 308--309
 
  []
 
-\myBox1=\box63
+
+Underfull \hbox (badness 10000) in paragraph at lines 308--309
+
+ []
+
+\myBox1=\box65
 \myScoreStart1=\dimen211
 \myCenter1=\dimen212
 \myScoreEnd1=\dimen213
-\myBox2=\box64
+
+Underfull \hbox (badness 10000) in paragraph at lines 311--312
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 316--317
+
+ []
+
+
+Overfull \hbox (29.14561pt too wide) in paragraph at lines 328--338
+[][]
+ []
+
+
+Overfull \hbox (57.52997pt too wide) in paragraph at lines 328--338
+[] \OT1/cmr/m/n/12 : []$ 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 328--338
+
+ []
+
+\myBox2=\box66
 \myScoreStart2=\dimen214
 \myCenter2=\dimen215
 \myScoreEnd2=\dimen216
 
-Underfull \hbox (badness 10000) in paragraph at lines 25--31
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+[11] [12]
+Underfull \hbox (badness 10000) in paragraph at lines 367--370
+
+ []
+
+File: fig/xducerDag2.png Graphic file (type QTm)
+<use  "fig/xducerDag2.png" >
+Overfull \hbox (45.52718pt too wide) in paragraph at lines 388--388
+[][] 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 405--406
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 405--406
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 413--414
+
+ []
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[13]
+Underfull \hbox (badness 10000) in paragraph at lines 475--475
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 475--475
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 475--475
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 475--475
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 475--475
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 475--475
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 475--475
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 483--484
+
+ []
+
+[14]
+File: fig/const3.png Graphic file (type QTm)
+ <use  "fig/const3.png" >
+Underfull \hbox (badness 10000) in paragraph at lines 491--492
+
+ []
+
+File: fig/toflag.png Graphic file (type QTm)
+<use  "fig/toflag.png" >
+Underfull \hbox (badness 10000) in paragraph at lines 500--501
+
+ []
+
+File: fig/maptwo.png Graphic file (type QTm)
+<use  "fig/maptwo.png" >
+Underfull \hbox (badness 10000) in paragraph at lines 508--509
+
+ []
+
+File: fig/usum.png Graphic file (type QTm)
+<use  "fig/usum.png" >
+Underfull \hbox (badness 10000) in paragraph at lines 515--516
+
+ []
+
+File: fig/scan.png Graphic file (type QTm)
+<use  "fig/scan.png" > [15]
+Underfull \hbox (badness 10000) in paragraph at lines 522--523
+
+ []
+
+File: fig/distr.png Graphic file (type QTm)
+<use  "fig/distr.png" >
+Underfull \hbox (badness 10000) in paragraph at lines 608--609
+
+ []
+
+[16]
+Underfull \hbox (badness 10000) in paragraph at lines 648--649
+
+ []
+
+[17] [18]) (./snesl1-proof.tex [19]
+Chapter 3.
+
+Underfull \hbox (badness 10000) in paragraph at lines 11--12
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 13--14
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 19--25
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 31--32
 
  []
 
@@ -721,266 +922,34 @@ Underfull \hbox (badness 10000) in paragraph at lines 37--38
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 43--44
+Underfull \hbox (badness 10000) in paragraph at lines 40--41
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 46--47
+Underfull \hbox (badness 10000) in paragraph at lines 47--48
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 53--54
+Underfull \hbox (badness 10000) in paragraph at lines 49--50
 
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 55--56
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 70--71
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 77--78
-
- []
-
-[2]
-Underfull \hbox (badness 10000) in paragraph at lines 79--90
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 95--96
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 101--102
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 103--104
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 105--109
-
- []
-
-) (./imple.tex [3] [4
+[20
 
 ]
-Overfull \hbox (7.05998pt too wide) in paragraph at lines 95--96
-[]\OT1/cmr/bx/n/12 Notation 2.2. []\OT1/cmr/m/it/12 Let $\OMS/cmsy/m/n/12 h\OML
-/cmm/m/it/12 a[]\OMS/cmsy/m/n/12 j[]i$ \OT1/cmr/m/it/12 de-note a non-empty str
-eam $\OMS/cmsy/m/n/12 h\OML/cmm/m/it/12 a[]; a[]; :::; a[]\OMS/cmsy/m/n/12 i$ \
-OT1/cmr/m/it/12 for some $[] \OT1/cmr/m/n/12 = \OMS/cmsy/m/n/12 h\OML/cmm/m/it/
-12 a[]; :::; a[]\OMS/cmsy/m/n/12 i$\OT1/cmr/m/it/12 . 
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 100--101
+Underfull \hbox (badness 10000) in paragraph at lines 64--65
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 112--113
+Underfull \hbox (badness 10000) in paragraph at lines 71--72
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 112--113
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 115--116
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 120--121
-
- []
-
-
-Overfull \hbox (29.14561pt too wide) in paragraph at lines 132--142
-[][]
- []
-
-
-Overfull \hbox (57.52997pt too wide) in paragraph at lines 132--142
-[] \OT1/cmr/m/n/12 : []$ 
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 132--142
-
- []
-
-
-LaTeX Warning: `!h' float specifier changed to `!ht'.
-
-[5]
-Underfull \hbox (badness 10000) in paragraph at lines 171--174
-
- []
-
-[6]
-LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10> not available
-(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 180.
-File: fig/xducerDag2.png Graphic file (type QTm)
- <use  "fig/xducerDag2.png" >
-Overfull \hbox (45.52718pt too wide) in paragraph at lines 192--192
-[][] 
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 209--210
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 209--210
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 217--218
-
- []
-
-[7]
-Underfull \hbox (badness 10000) in paragraph at lines 279--279
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 279--279
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 279--279
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 279--279
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 279--279
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 279--279
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 279--279
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 287--288
-
- []
-
-File: fig/const3.png Graphic file (type QTm)
-<use  "fig/const3.png" >
-Underfull \hbox (badness 10000) in paragraph at lines 295--296
-
- []
-
-File: fig/toflag.png Graphic file (type QTm)
-<use  "fig/toflag.png" > [8]
-Underfull \hbox (badness 10000) in paragraph at lines 304--305
-
- []
-
-File: fig/maptwo.png Graphic file (type QTm)
-<use  "fig/maptwo.png" >
-Underfull \hbox (badness 10000) in paragraph at lines 312--313
-
- []
-
-File: fig/usum.png Graphic file (type QTm)
-<use  "fig/usum.png" >
-Underfull \hbox (badness 10000) in paragraph at lines 319--320
-
- []
-
-File: fig/scan.png Graphic file (type QTm)
-<use  "fig/scan.png" >
-Underfull \hbox (badness 10000) in paragraph at lines 326--327
-
- []
-
-File: fig/distr.png Graphic file (type QTm)
-<use  "fig/distr.png" > [9]
-Underfull \hbox (badness 10000) in paragraph at lines 412--413
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 452--453
-
- []
-
-[10] [11] [12]) (./trans.tex
-Underfull \hbox (badness 10000) in paragraph at lines 21--22
-
- []
-
-
-Overfull \hbox (38.84715pt too wide) in paragraph at lines 26--31
-[][]    []
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 26--31
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 36--37
-
- []
-
-[13]
-Overfull \hbox (42.2901pt too wide) in paragraph at lines 54--55
-[][]
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 54--55
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 58--59
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 63--64
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 76--77
+Underfull \hbox (badness 10000) in paragraph at lines 73--84
 
  []
 
@@ -990,211 +959,217 @@ Underfull \hbox (badness 10000) in paragraph at lines 89--90
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 96--97
+Underfull \hbox (badness 10000) in paragraph at lines 95--96
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 107--108
-
- []
-
-[14]) (./snesl1-proof.tex
-Underfull \hbox (badness 10000) in paragraph at lines 11--15
+Underfull \hbox (badness 10000) in paragraph at lines 97--98
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 65--69
-
- []
-
-[15]
-Underfull \hbox (badness 10000) in paragraph at lines 78--80
-
- []
-
-[16]
-Underfull \hbox (badness 10000) in paragraph at lines 146--149
+Underfull \hbox (badness 10000) in paragraph at lines 99--103
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 158--162
+Underfull \hbox (badness 10000) in paragraph at lines 126--130
 
- []
-
-[17]
-Underfull \hbox (badness 10000) in paragraph at lines 185--186
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 246--247
-
- []
-
-[18]
-Underfull \hbox (badness 10000) in paragraph at lines 271--272
-
- []
-
-
-Overfull \hbox (1.47284pt too wide) in paragraph at lines 286--291
-[]
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 286--291
-
- []
-
-[19]
-Overfull \hbox (1.78517pt too wide) detected at line 338
-[] 
- []
-
-
-Overfull \hbox (2.57678pt too wide) detected at line 344
-[] 
- []
-
-
-Overfull \hbox (1.47284pt too wide) in paragraph at lines 346--352
-[]
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 346--352
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 353--355
-
- []
-
-[20]
-Overfull \hbox (22.07454pt too wide) detected at line 402
-[] 
- []
-
-
-Overfull \hbox (79.77321pt too wide) detected at line 408
-[] 
  []
 
 [21]
-Underfull \hbox (badness 10000) in paragraph at lines 412--414
+Underfull \hbox (badness 10000) in paragraph at lines 180--184
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 193--195
 
  []
 
 [22]
-Underfull \hbox (badness 10000) in paragraph at lines 523--526
+Underfull \hbox (badness 10000) in paragraph at lines 261--264
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 527--531
+Underfull \hbox (badness 10000) in paragraph at lines 273--277
 
  []
 
 [23]
-Underfull \hbox (badness 10000) in paragraph at lines 532--533
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 552--553
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 584--586
+Underfull \hbox (badness 10000) in paragraph at lines 300--301
 
  []
 
 [24]
-Underfull \hbox (badness 10000) in paragraph at lines 633--634
+Underfull \hbox (badness 10000) in paragraph at lines 361--362
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 636--637
+Underfull \hbox (badness 10000) in paragraph at lines 386--387
 
  []
 
 [25]
-Underfull \hbox (badness 10000) in paragraph at lines 710--711
-
- []
-
-\myBox3=\box65
-\myScoreStart3=\dimen217
-\myCenter3=\dimen218
-\myScoreEnd3=\dimen219
-
-Overfull \hbox (1.47284pt too wide) in paragraph at lines 715--725
-[][] 
+Overfull \hbox (1.47284pt too wide) in paragraph at lines 401--406
+[]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 715--725
+Underfull \hbox (badness 10000) in paragraph at lines 401--406
 
  []
 
-
-Overfull \hbox (47.49826pt too wide) detected at line 745
+[26]
+Overfull \hbox (1.78517pt too wide) detected at line 453
 [] 
  []
 
 
+Overfull \hbox (2.57678pt too wide) detected at line 459
+[] 
+ []
+
+
+Overfull \hbox (1.47284pt too wide) in paragraph at lines 461--467
+[]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 461--467
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 468--470
+
+ []
+
+[27]
+Overfull \hbox (22.07454pt too wide) detected at line 517
+[] 
+ []
+
+
+Overfull \hbox (79.77321pt too wide) detected at line 523
+[] 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 527--529
+
+ []
+
+[28] [29]
+Underfull \hbox (badness 10000) in paragraph at lines 638--641
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 642--646
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 647--648
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 667--668
+
+ []
+
+[30]
+Underfull \hbox (badness 10000) in paragraph at lines 699--701
+
+ []
+
+[31]
 Underfull \hbox (badness 10000) in paragraph at lines 748--749
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 750--752
+Underfull \hbox (badness 10000) in paragraph at lines 751--752
 
  []
 
-[26]
-Overfull \hbox (1.47284pt too wide) in paragraph at lines 753--769
+
+Underfull \hbox (badness 10000) in paragraph at lines 825--826
+
+ []
+
+[32]
+\myBox3=\box67
+\myScoreStart3=\dimen217
+\myCenter3=\dimen218
+\myScoreEnd3=\dimen219
+
+Overfull \hbox (1.47284pt too wide) in paragraph at lines 830--840
 [][] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 772--773
+Underfull \hbox (badness 10000) in paragraph at lines 830--840
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 775--776
+Overfull \hbox (47.49826pt too wide) detected at line 860
+[] 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 863--864
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 790--791
-
- []
-
-[27]
-Underfull \hbox (badness 10000) in paragraph at lines 845--846
-
- []
-
-[28]
-Underfull \hbox (badness 10000) in paragraph at lines 875--877
+Underfull \hbox (badness 10000) in paragraph at lines 865--867
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 909--910
+Overfull \hbox (1.47284pt too wide) in paragraph at lines 868--884
+[][] 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 887--888
+
+ []
+
+[33]
+Underfull \hbox (badness 10000) in paragraph at lines 890--891
 
  []
 
 
-Overfull \hbox (19.6738pt too wide) in paragraph at lines 915--919
+Underfull \hbox (badness 10000) in paragraph at lines 905--906
+
+ []
+
+[34]
+Underfull \hbox (badness 10000) in paragraph at lines 960--961
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 990--992
+
+ []
+
+[35]
+Underfull \hbox (badness 10000) in paragraph at lines 1024--1025
+
+ []
+
+
+Overfull \hbox (19.6738pt too wide) in paragraph at lines 1030--1034
 \OT1/cmr/m/n/12 Also, $\OML/cmm/m/it/12 ^^[[]\OT1/cmr/m/n/12 (\OT1/cmr/m/it/12 
 s[]\OT1/cmr/m/n/12 ) = \OML/cmm/m/it/12 ^^[\OT1/cmr/m/n/12 (\OT1/cmr/m/it/12 s[
 ]\OT1/cmr/m/n/12 ) = \OMS/cmsy/m/n/12 h\OT1/cmtt/m/n/12 F[]\OML/cmm/m/it/12 ; :
@@ -1206,42 +1181,44 @@ L/cmm/m/it/12 ; \OT1/cmr/m/it/12 s[]\OT1/cmr/m/n/12 )) = (\OML/cmm/m/it/12 ^^[[
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 922--923
+Underfull \hbox (badness 10000) in paragraph at lines 1037--1038
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 927--932
-
- []
-
-[29]
-Underfull \hbox (badness 10000) in paragraph at lines 934--936
+Underfull \hbox (badness 10000) in paragraph at lines 1042--1047
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 995--996
+Underfull \hbox (badness 10000) in paragraph at lines 1049--1051
+
+ []
+
+[36]
+Underfull \hbox (badness 10000) in paragraph at lines 1110--1111
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 997--998
+Underfull \hbox (badness 10000) in paragraph at lines 1112--1113
 
  []
 
-[30]) (./concl.tex) [31] (./main.bbl) [32] (./main.aux)
+[37]) (./main.bbl [38]) [39
+
+] (./main.aux)
 
 LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 13477 strings out of 493706
- 234911 string characters out of 6145768
- 312133 words of memory out of 5000000
- 16649 multiletter control sequences out of 15000+600000
- 18073 words of font info for 68 fonts, out of 8000000 for 9000
+ 13617 strings out of 493706
+ 236459 string characters out of 6145768
+ 335062 words of memory out of 5000000
+ 16793 multiletter control sequences out of 15000+600000
+ 18678 words of font info for 70 fonts, out of 8000000 for 9000
  1328 hyphenation exceptions out of 8191
- 39i,20n,49p,10438b,1167s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 39i,20n,49p,10438b,1263s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on main.pdf (32 pages).
+Output written on main.pdf (40 pages).

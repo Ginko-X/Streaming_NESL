@@ -1,4 +1,4 @@
-\documentclass[a4paper]{article}
+\documentclass[a4paper]{report}
 
 
 \usepackage{amsmath, amssymb, amsthm}
@@ -14,30 +14,32 @@
 \usepackage[linewidth=1pt]{mdframed}
 %\usepackage{tcolorbox}
 \usepackage[font=large,labelfont=bf]{caption}
-
+\usepackage{float}
 
 \geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=3cm}
 
 \renewcommand\qedsymbol{$\blacksquare$}
 
-\newtheorem{thm}{Theorem}[section]
+\newtheorem{thm}{Theorem}[chapter]
 \newtheorem{lem}[thm]{Lemma}
 \newtheorem{defi}[thm]{Definition}
 \newtheorem{nota}[thm]{Notation}
 \newtheorem{prop}[thm]{Proposition}
 \newtheorem{cor}[thm]{Corollary}
 
-\newtheorem{example}{Example}[section]
+\newtheorem{example}{Example}[chapter]
 
 
 \usepackage{listings}
+\definecolor{blue}{rgb}{0.0, 0.0, 1.0}
 \definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
-\definecolor{darkgreen}{rgb}{0.0, 0.2, 0.13}
+\definecolor{darkgreen}{rgb}{0.0, 0.42, 0.24}
 \definecolor{darkblue}{rgb}{0,0,1}
 \definecolor{daffodil}{rgb}{1.0, 1.0, 0.19}
 \definecolor{coolblack}{rgb}{0.0, 0.18, 0.39}
 \definecolor{carnelian}{rgb}{0.7, 0.11, 0.11}
 \definecolor{gray}{rgb}{0.3,0.3,0.3}
+\definecolor{blue(munsell)}{rgb}{0.0, 0.5, 0.69}
 
 \input{lang-style.tex}
 
@@ -68,6 +70,7 @@
 %source language syntax
 \def\Let#1#2#3{\*{let} \ #1 = #2 \ \*{in} \ #3}
 \def\Comp#1#2#3#4{\{#1 : #2 \ \*{in} \ #3 \ \*{using} \ #4\}}
+\def\Recom#1#2#3{\{ #1 \ | \ #2 \ \*{using} \ #3 \}}
 
 \def\hcall{\phi} 
 
@@ -87,6 +90,7 @@
 
 %types
 \def\int{\*{int}}
+\def\bool{\*{bool}} 
 \def\tseq#1{\{#1\}}  
 
 
@@ -265,16 +269,13 @@
 
 
 
-\numberwithin{equation}{section}
-\numberwithin{figure}{section}
+\numberwithin{equation}{chapter}
+\numberwithin{figure}{chapter}
 
 
 \newcommand{\eq}[2]{\begin{equation}\label{#1} #2\end{equation}}
 
 \newcommand{\fig}[2]{\begin{figure}[!h]\large #1 \caption{#2}\end{figure}}
-
-
-\providecommand{\versionnumber}{0.2.1}
 
 
 \title{Formalizing cost models for Streaming NESL}
@@ -284,22 +285,22 @@
 \begin{document}\large
 \maketitle
 
-\begin{abstract}
-	TBD
-\end{abstract}
-
+%\begin{abstract}
+%	TBD
+%\end{abstract}
+%
 
 \tableofcontents
-\newpage
+
 
 
 \input{intro.tex}
 \input{imple.tex}
-\input{trans.tex}
+%\input{trans.tex}
 \input{snesl1-proof.tex}
-\input{concl.tex}
+%\input{concl.tex}
 
-\newpage
+
 \bibliography{thesis}
 \bibliographystyle{alpha}
 

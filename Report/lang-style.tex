@@ -1,28 +1,28 @@
 \lstdefinelanguage{snesl}
 { morekeywords={
-  	def,
-    else,
     function,
-    if,
     in,
     let,
     then,
     T,
-    F
+    F,
   },
   sensitive=true, % keywords case-sensitive
   morecomment=[l]{--}, % l-line comment
   morecomment=[s]{\{-}{-\}}, % s-start and end
-  otherkeywords={:,\&,\#,\%,++},
+  otherkeywords={:, &,*, ++,  \%},
   morestring=[b]" % strings are enclosed in double quotes
 }
 
 \lstdefinestyle{snesl-style}{
 	language={snesl},
-	emph=[1] {concat,index,	lshift, not, ord, part,
-		_plus, rshift, scatter,
+	emph=[1] {concat,index, append, ++, &, part,
+		scanPlus, reducePlus, the, empty, 
 	},
-	emphstyle=[1]{\color{blue}}
+	emphstyle=[1]{\color{blue}},
+	emph=[2] {F,T
+	},
+	emphstyle=[2]{\color{blue(munsell)}}
 }
 
 
