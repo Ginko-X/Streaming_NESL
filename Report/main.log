@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  10 OCT 2017 02:59
+This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  10 OCT 2017 19:42
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -699,11 +699,13 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 
  (./intro.tex [2]
 Chapter 1.
+(./code/wordpart.nesl
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10> not available
-(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 23.
-[3
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 3.
+) [3
 
-] [4] [5]) (./imple.tex [6]
+] [4] [5] (./code/wordpart.snesl)) (./imple.tex
+[6]
 Chapter 2.
 [7
 
@@ -1399,12 +1401,12 @@ LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 13674 strings out of 493706
- 236947 string characters out of 6145768
- 331522 words of memory out of 5000000
- 16847 multiletter control sequences out of 15000+600000
+ 13734 strings out of 493706
+ 237530 string characters out of 6145768
+ 346423 words of memory out of 5000000
+ 16899 multiletter control sequences out of 15000+600000
  18678 words of font info for 70 fonts, out of 8000000 for 9000
  1328 hyphenation exceptions out of 8191
- 39i,20n,49p,10438b,1219s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 39i,20n,50p,10438b,1238s stack positions out of 5000i,500n,10000p,200000b,80000s
 
 Output written on main.pdf (51 pages).

@@ -5,36 +5,27 @@
 \subsection{Nested data parallelism}
 
 \section{NESL}
-NESL \cite{blel95nesl} is a first-order functional nested data-parallel language. The main construct to express data-parallelism in NESL is called $apply\!-\!to\!-\!each$, whose form is similar to the list-comprehension in Haskell. 
+NESL \cite{blel95nesl} is a first-order functional nested data-parallel language. The main construct to express data-parallelism in NESL is called \emph{apply-to-each}, whose form is similar to the list-comprehension in Haskell. 
 As an example, adding 1 to each element of a sequence $[1,2,3]$ can be written as the following apply-to-each expression:
 $$ \{x+1 : x \ \*{in} \ [1,2,3] \}$$
-which does the same computation as the Haskell expression $$\texttt{map (+1) [1,2,3]}$$ 
-but the low-level implementation is executed in parallel rather than sequential. 
+which does the same computation as the Haskell expression 
+$$\texttt{map ($\backslash$x -> x + 1) [1,2,3]}$$ 
+but the low-level implementation is executed in parallel rather than sequentially. 
 
 The first highlight of NESL is that the design of this language makes it easy to write readable parallel algorithms. The apply-to-each construct is more expressive in its general form:
 $$ \{ e_1 :  x_1 \ \*{in} \ seq_1 \ ; \ ... \ ; \ x_i \  \*{in} \ seq_i \ \ | \ e_2  \}$$
-where the variables $x_1, ...,x_i$ occurred in $e_1$ and $e_2$ are bound to $seq_1,...,seq_i$ respectively, and $e_2$, called a $sieve$, performs as a condition to filter out some elements. 
+where the variables $x_1, ...,x_i$ possibly occurring in $e_1$ and $e_2$ are corresponding elements of $seq_1,...,seq_i$ respectively, and $e_2$, called a $sieve$, performs as a condition to filter out some elements. 
 Also, NESL's built-in primitive functions, such as scan \cite{blel89scan}, are powerful for manipulating sequences.
-An example of the divide-and-conqure scan algorithm written in NESL is shown in Figure~\ref{fig-nesl-scan}.
+An example program of NESL for splitting a string into words is shown in Figure~\ref{fig-nesl-wordpart}.
 
 \begin{figure}
+\lstinputlisting[style=nesl-style]{code/wordpart.nesl} 
 \begin{lstlisting}[style=nesl-style]
-	-- divide-and-conquer scan
-	function dc_scan(v) =
-	  if #v == 0 then v
-	  else if #v == 1 then [0]
-	       else 
-	         let vp = partition(v, [#v/2, #v - #v/2]);
-	             ps = {dc_scan(p): p in vp};
-	             s0 = ps[0][#ps[0]-1] + vp[0][#vp[0]-1];
-	             ps2 = {x + s0 : x in ps[1]}
-	         in ps[0]++ps2;
-
-	-- a simple test
-	$> dc_scan([1,2,3,4])
-	[0, 1, 3, 6] :: [int]
+-- a test example
+$> str2wds("A   NESL  program . ")
+[['A'], ['N', 'E', 'S', 'L'], ['p', 'r', 'o', 'g', 'r', 'a', 'm'], ['.']] :: [[char]]
 \end{lstlisting}
-\caption{{A NESL program \label{fig-nesl-scan}}}
+\caption{{A NESL program for splitting a string into words \label{fig-nesl-wordpart}}}
 \end{figure}
 
 The low-level language of NESL's implementation is VCODE. 
@@ -48,7 +39,7 @@ Another important idea of NESL is its language-based cost model \cite{blel96cost
 
 \section{SNESL}
 Streaming NESL (SNESL) \cite{Fphd} is a refinement of NESL
-that attempts to imporve the efficiency of space usage. 
+that attempts to improve the efficiency of space usage. 
 It extends NESL with two features: streaming semantics and a cost model for space usage. 
 The basic idea behind the streaming semantics may be described as:
 data-parallelism can be realized not only in terms of space, as NESL has demonstrated, but also, for some restricted cases, in terms of time. 
@@ -59,18 +50,19 @@ When there is no enough space to store all the data at the same time, computing 
 The types of a minimalistic version of SNESL defined in \cite{Fphd} are:
 \begin{align*} 
 & \pi ::= \bool \ | \ \int \ | \ ...  \\
-& \varphi ::= \pi \ | \ (\varphi_1,...,\varphi_k) \ | \ [\varphi]  \\
-& \tau ::= \varphi \ | \ (\tau_1,...,\tau_k) \ | \ \tseq{\tau}  
+& \tau ::= \pi \ | \ (\tau_1,...,\tau_k) \ | \ [\tau]  \\
+& \sigma ::= \tau \ | \ (\sigma_1,...,\sigma_k) \ | \ \tseq{\sigma}  
 \end{align*}
-Here $\pi$ stands for the primitive types and $\varphi$ the concrete types, both originally supported in NESL.
-The type $[\varphi]$, which is called $sequences$ in NESL and $vectors$ in SNESL, represents spatial collections of homogeneous data, and must be
-fully allocated or $materialized$ in memory at once.  $(\varphi_1,...,\varphi_k)$ are tuples with $k$ components that may be of different types.
+Here $\pi$ stands for the primitive types and $\tau$ the concrete types, both originally supported in NESL.
+The type $[\tau]$, which is called $sequences$ in NESL and $vectors$ in SNESL, represents spatial collections of homogeneous data, and must be
+fully allocated or $materialized$ in memory at once for random access.  
+$(\tau_1,...,\tau_k)$ are tuples with $k$ components that may be of different types.
 
-The novel extension is the $streamable$ types $\tau$, which generalizes the types of data that are not necessary to be completely materialized at once, but rather in a streaming fashion. 
-In particular, the type $\{\tau\}$, called $squences$ in SNESL, represents collections of data computed in terms of time.
+The novel extension is the $streamable$ types $\sigma$, which generalizes the types of data that are not necessarily completely materialized at once, but rather in a streaming fashion. 
+In particular, the type $\{\sigma\}$, called $sequences$ in SNESL, represents collections of data computed in terms of time.
 So, even with a small size of memory, SNESL could execute programs which is impossible in NESL due to space limitation or more space efficiently than in NESL. 
 
-For clearity, from now on, we will use the terms consistent with SNESL.
+For clarity, from now on, we will use the terms consistent with SNESL.
 
 \subsection{Values and expressions}
 
@@ -80,7 +72,7 @@ The values of SNESL are as follows:
 & v ::=  a \ | \ (v_1,...,v_k) \ | \ [v_1,...,v_k] \ | \ \{v_1,...,v_k\} 
 \end{align*}
 where $a$ is the atomic values or constants of types $\pi$, and $v$ are
- general values which can be a constant, a tuple, a vertor or a sequence with $k$ elements.  
+ general values which can be a constant, a tuple, a vector or a sequence with $k$ elements.  
 
 The expressions of SNESL are shown in Figure~\ref{fig-snesl-exps}.
 
@@ -88,13 +80,13 @@ The expressions of SNESL are shown in Figure~\ref{fig-snesl-exps}.
 \begin{alignat*}{2}
 & e &&::=  a \     \tag{constant} \\
 &   && \quad | \ x  \tag{variable} \\
-&   && \quad | \ (x_1,...,x_k) \tag{tuple}\\
+&   && \quad | \ (e_1,...,e_k) \tag{tuple}\\
 &   && \quad | \ \Let{x}{e_1}{e_2} \tag{let-binding}\\
 &   && \quad | \ \hcall{\Tupk{x}}  \tag{built-in function call} \\
 &   && \quad | \ \Comp{e_1}{x}{y}{\usevars} \tag{general comprehension} \\
 &   && \quad | \ \RComp{e_1}{x}{\usevars} \tag {restricted comprehension} 
 \end{alignat*}
-\caption{SNESL expressions \label{fig-snesl-exps}}
+\caption{Syntax of SNESL expressions \label{fig-snesl-exps}}
 \end{figure}
 
 As an extension of NESL, SNESL keeps a similar programming style of NESL. 
@@ -103,9 +95,9 @@ Perhaps for easier experimental analysis,
 the apply-to-each construct is splitted to the general and the restricted comprehensions, both added  
 an explicit list of the free variables (listed after the keyword $\*{using}$) occur in the body $e_1$,
 and the restricted one is the only expression that can work as a conditional itself in SNESL (???). 
-These comprehensions also extended the semantics of the apply-to-each from evaluating to vectors (i.e., type $[\varphi]$) to evaluating to sequences (i.e., type $\{\tau\}$). 
+These comprehensions also extended the semantics of the apply-to-each from evaluating to vectors (i.e., type $[\tau]$) to evaluating to sequences (i.e., type $\{\sigma\}$). 
 
-Another remarkable difference from NESL to SNESL occurs in the built-in functions.
+Another notable difference from NESL to SNESL occurs in the built-in functions.
 The primitive functions of SNESL is shown in Figure~\ref{fig-snesl-func}.
 
 \begin{figure}[h]
@@ -128,13 +120,21 @@ There will be more detailed descriptions of these functions in the next chapter.
 Functions in (1.2) are kept their vector versions in SNESL to guarantee the efficiency, although it is possible to realize stream versions for them as well.
 
 List (1.3) are new primitives in SNESL.  
-The function $\*{the}$, returns the sole element of a singleton sequence, can be used to resemble an if-else-then statement together with restricted comprehensions:
+The function $\*{the}$, returns the sole element of a singleton sequence, can be used to simulate an if-then-else expression together with restricted comprehensions:
 $$\*{if} \ e_0 \ \*{then} \ e_1 \ \*{else} \ e_2 \equiv \*{the}(\RComp{e_1}{e_0}{...} {\++} \RComp{e_2}{\*{not}(e_0)}{...}) $$
 where ${\++}$ is a syntactic sugar of $\*{append}$. 
 $\*{empty}$, which tests whether a sequence is empty or not, is much more efficient in a streaming setting as it takes only constant complexity both in time and space.
   
-Finally, list (1.4) are functions performing conversions between concrete types and streams. $\*{seq}$, typed as $[\varphi] \rightarrow \{\varphi\}$, converts a vector to a sequence, and $\*{tab}$ does the contrary work, tabulating the sequence into a vector.
+Finally, list (1.4) are functions performing conversions between concrete types and streams. $\*{seq}$, typed as $[\tau] \rightarrow \{\tau\}$, converts a vector to a sequence, and $\*{tab}$ does the contrary work, tabulating the sequence into a vector.
 
+The SNESL program for string splitting is shown in Figure~\ref{fig-snesl-wordpart}. 
+Compared with the NESL counterpart in Figure~\ref{fig-nesl-wordpart}, the code of SNESL version is simpler, because SNESL's primitives make it good at streaming text processing. 
+In particular, this SNESL version can be executed with even one element space.
+ 
+\begin{figure}[H]
+	\lstinputlisting[style=nesl-style]{code/wordpart.snesl} 
+	\caption{{A SNESL program for splitting a string into words \label{fig-snesl-wordpart}}}
+\end{figure}
 
 
 \subsection{Cost model}

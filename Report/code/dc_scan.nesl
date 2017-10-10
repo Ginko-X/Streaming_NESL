@@ -1,0 +1,10 @@
+	-- divide-and-conquer scan
+	function dc_scan(v) =
+	  if #v == 0 then v
+	  else if #v == 1 then [0]
+	       else 
+	         let vp = partition(v, [#v/2, #v - #v/2]);
+	             ps = {dc_scan(p): p in vp};
+	             s0 = ps[0][#ps[0]-1] + vp[0][#vp[0]-1];
+	             ps2 = {x + s0 : x in ps[1]}
+	         in ps[0]++ps2;

@@ -1,0 +1,9 @@
+-- split a string into words (delimited by spaces)
+function str2wds(str) =
+  let strl = #str;  -- string length
+      spc_is =  { i : c in str, i in &strl | ord(c) == 32}; -- space indices
+      word_ls = { id2 - id1 -1 : id1 in [-1] ++ spc_is, id2 in spc_is++[strl]}; -- length of each word
+      valid_ls = {l : l in word_ls | l > 0}; -- filter multiple spaces
+      chars = {c : c in str | not(ord(c) == 32)}  -- non-space chars
+   in partition(chars, valid_ls);   -- split strings into words 
+

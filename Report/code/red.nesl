@@ -1,0 +1,12 @@
+-- united-and-conquer reduce of plus
+function uc_red(v) =
+   let l = #v
+   in if l == 0 then 0
+      else if l == 1 then v[0]
+           else let odds = {x: i in &l, x in v | not(i%2 == 0)};
+                    evens = {x: i in &l, x in v | i%2 ==0}
+                 in if l % 2 == 0
+                    then uc_red({x+y : x in odds, y in evens})
+                    else let evenss = partition(evens, [#evens-1,1])
+                          in uc_red({x+y : x in odds, y in evenss[0]}) + evenss[1][0];
+  

@@ -46,6 +46,7 @@ data Pat = PVar Id
 instance Show AVal where
     show (IVal i) = show i
     show (BVal b) = if b then "T" else "F"
+    show (UVal u) = show "()"
 
 
 instance Show Val where

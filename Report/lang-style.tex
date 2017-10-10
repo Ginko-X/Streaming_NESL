@@ -39,26 +39,28 @@
 
 \lstdefinestyle{nesl-style}{
 	language={nesl},
-	emph=[1] {concat,index, append, ++, \#, &, partition,
+	emph=[1] {concat,index, append, ++, \#, &, partition, part, ord,
 		scanPlus, reducePlus, the, empty, 
 	},
 	emphstyle=[1]{\color{blue}},
 	emph=[2] {F,T
 	},
-	emphstyle=[2]{\color{blue(munsell)}}
+	emphstyle=[2]{\color{blue(munsell)}},
+	emph=[3] {function, def},
+	emphstyle=[3]{\color{amber}},
 }
 
 
-\lstdefinestyle{snesl-style}{
-	language={nesl},
-	emph=[1] {concat,index, append, ++, &, part,
-		scanPlus, reducePlus, the, empty, 
-	},
-	emphstyle=[1]{\color{blue}},
-	emph=[2] {F,T
-	},
-	emphstyle=[2]{\color{blue(munsell)}}
-}
+%\lstdefinestyle{snesl-style}{
+%	language={nesl},
+%	emph=[1] {concat,index, append, ++, &, part,
+%		scanPlus, reducePlus, the, empty, 
+%	},
+%	emphstyle=[1]{\color{blue}},
+%	emph=[2] {F,T
+%	},
+%	emphstyle=[2]{\color{blue(munsell)}}
+%}
 
 
 \lstdefinelanguage{svcode}
