@@ -1,4 +1,7 @@
 # Working Progress
++ Week 49 (3 Oct ~ 9 Oct)
+    + [reorganization of thesis](https://github.com/Ginko-X/Streaming_NESL/blob/master/Report/main.pdf); sketched out chapter 1 and 2 (some parts still missing or buggy), chapter 3 not updated yet 
+    
 + Week 48 (26 Sep ~ 2 Oct)
     + mainly worked on thesis Chapeter 2: Implementation [(Page 4~13)](https://github.com/Ginko-X/Streaming_NESL/blob/master/Report/main.pdf) (for other parts just adjusted the thesis structure, almost no update) 
     
