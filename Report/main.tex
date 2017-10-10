@@ -70,7 +70,7 @@
 %source language syntax
 \def\Let#1#2#3{\*{let} \ #1 = #2 \ \*{in} \ #3}
 \def\Comp#1#2#3#4{\{#1 : #2 \ \*{in} \ #3 \ \*{using} \ #4\}}
-\def\Recom#1#2#3{\{ #1 \ | \ #2 \ \*{using} \ #3 \}}
+\def\RComp#1#2#3{\{ #1 \ | \ #2 \ \*{using} \ #3 \}}
 
 \def\hcall{\phi} 
 
@@ -209,8 +209,26 @@
 \def\toflag{\mathtt{ToFlags}}
 \def\usum{\mathtt{Usum}}
 \def\maptwo#1{\mathtt{MapTwo}_{#1}}
+\def\map#1{\mathtt{Map}_{#1}}
+
 \def\scan{\mathtt{ScanPlus}}
+
+\def\genscan{\mathtt{Scan}}
+\def\genreduce{\mathtt{Reduce}}
+
 \def\distr{\mathtt{Distr}}
+\def\pack{\mathtt{Pack}}
+\def\upack{\mathtt{UPack}}
+\def\bu{\mathtt{B2u}}
+\def\segconcat{\mathtt{SegConcat}}
+\def\usegcount{\mathtt{USegCount}}
+\def\intermerge{\mathtt{InterMerge}}
+\def\seginter{\mathtt{SegInter}}
+\def\primseginter{\mathtt{PrimSegInter}}
+\def\check{\mathtt{Check}}
+\def\isempty{\mathtt{IsEmpty}}
+\def\emptyctrl{\mathtt{EmptyCtrl}}
+
 
 \def\constaf#1{\mathtt{Const_{#1}()}} 
 \def\toflagf#1{\mathtt{ToFlags}(#1)}
@@ -223,6 +241,9 @@
 \def\sdef#1#2{#1 := #2}
 \def\withctrl#1#2#3#4{#4 := \mathtt{WithCtrl}(#1,#3,#2)}
 \def\wc{$\mathtt{WithCtrl}$ }
+\def\sc{$\mathtt{SCall}$ }
+\def\scall#1#2#3{#3 := \mathtt{SCall}(#1,#2)} 
+\def\sf{$\mathtt{SFun}$}
 
 \def\T{\mathtt{T}} 
 \def\F{\mathtt{F}} 
@@ -257,15 +278,15 @@
 \def\singl#1{\langle #1 \rangle}
 \def\|->{\mapsto}   % map 
 \def\>->{\rightarrowtail} % map a bunch of variables
-\def\=>#1#2{\Rightarrow^{#1}_{#2}}
+%\def\=>#1#2{\Rightarrow^{#1}_{#2}}
 
 
 %translation
 \def\sfun#1#2{(#1,#2)}
 
 % compiling/translation
-\def\Trans#1#2#3#4#5{#1 \Env #2 \=>{#3}{#4} #5}
-\def\Transf#1#2#3#4#5{#1(#2) \=>{#3}{#4} #5}
+\def\Trans#1#2#3#4#5{#1 \Env #2 \Rightarrow^{#3}_{#4} #5}
+\def\Transf#1#2#3#4#5{#1(#2) \Rightarrow^{#3}_{#4} #5}
 
 
 
@@ -275,7 +296,7 @@
 
 \newcommand{\eq}[2]{\begin{equation}\label{#1} #2\end{equation}}
 
-\newcommand{\fig}[2]{\begin{figure}[!h]\large #1 \caption{#2}\end{figure}}
+\newcommand{\fig}[2]{\begin{figure}[H]\large #1 \caption{#2}\end{figure}}
 
 
 \title{Formalizing cost models for Streaming NESL}

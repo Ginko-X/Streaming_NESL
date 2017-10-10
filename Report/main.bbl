@@ -1,5 +1,10 @@
 \begin{thebibliography}{Mad16}
 
+\bibitem[Ble89]{blel89scan}
+Guy~E Blelloch.
+\newblock Scans as primitive parallel operations.
+\newblock {\em IEEE Transactions on computers}, 38(11):1526--1538, 1989.
+
 \bibitem[Ble95]{blel95nesl}
 Guy~E Blelloch.
 \newblock Nesl: A nested data-parallel language.(version 3.1).
@@ -22,5 +27,11 @@ Frederik~M. Madsen.
 \newblock {\em Streaming for Functional Data-Parallel Languages}.
 \newblock PhD thesis, Department of Computer Science (DIKU), University of
   Copenhagen, September 2016.
+
+\bibitem[PP93]{prins93}
+Jan~F Prins and Daniel~W Palmer.
+\newblock Transforming high-level data-parallel programs into vector
+  operations.
+\newblock In {\em ACM SIGPLAN Notices}, volume~28, pages 119--128. ACM, 1993.
 
 \end{thebibliography}

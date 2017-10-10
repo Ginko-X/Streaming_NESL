@@ -1,21 +1,56 @@
-\lstdefinelanguage{snesl}
-{ morekeywords={
-    function,
-    in,
-    let,
-    then,
-    T,
-    F,
-  },
-  sensitive=true, % keywords case-sensitive
-  morecomment=[l]{--}, % l-line comment
-  morecomment=[s]{\{-}{-\}}, % s-start and end
-  otherkeywords={:, &,*, ++,  \%},
-  morestring=[b]" % strings are enclosed in double quotes
+\lstdefinelanguage{nesl}
+{
+	% list of keywords
+	morekeywords={
+		def,
+		else,
+		false,
+		function,
+		if,
+		in,
+		let,
+		then,
+		true,
+		T,
+		F,
+	},
+	sensitive=true,   % keywords case-sensitive
+	morecomment=[l]{--},  % l-line comment
+	morecomment=[s]{\{-}{-\}},  % s-start and end
+	otherkeywords={:,\&,\#,\%,++},
+	morestring=[b]"
 }
 
+
+%\lstdefinelanguage{snesl}
+%{ morekeywords={
+%    function,
+%    in,
+%    let,
+%    then,
+%    
+%  },
+%  sensitive=true, % keywords case-sensitive
+%  morecomment=[l]{--}, % l-line comment
+%  morecomment=[s]{\{-}{-\}}, % s-start and end
+%  otherkeywords={:, &,*, ++,  \%},
+%  morestring=[b]" % strings are enclosed in double quotes
+%}
+
+\lstdefinestyle{nesl-style}{
+	language={nesl},
+	emph=[1] {concat,index, append, ++, \#, &, partition,
+		scanPlus, reducePlus, the, empty, 
+	},
+	emphstyle=[1]{\color{blue}},
+	emph=[2] {F,T
+	},
+	emphstyle=[2]{\color{blue(munsell)}}
+}
+
+
 \lstdefinestyle{snesl-style}{
-	language={snesl},
+	language={nesl},
 	emph=[1] {concat,index, append, ++, &, part,
 		scanPlus, reducePlus, the, empty, 
 	},

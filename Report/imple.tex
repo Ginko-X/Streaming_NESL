@@ -2,65 +2,245 @@
 
 \def\PRName#1{\textsc{Pre-#1}}
 \newcommand\ra{\rightarrow}
+\newcommand\vp{\varphi}
+\newcommand\tr{\triangleright}
+\newcommand{\proc}{\*{Proc}}
+\newcommand{\bufst}{\*{BufState}}
+\newcommand{\sups}{\*{Sups}}
+\newcommand{\clis}{\*{Clis}}
+\newcommand{\xducer}{\*{Xducer}}
+
 
 \chapter{Implementation}
 
-In this chapter, we first talk about the high-level interpreter of our minimal SNESL but with extension of user-defined functions to give the reader a more concrete feeling about SNESL. 
-Then we present a streaming low-level language, SVCODE, with respect to its grammar, semantics and cost model.
-%The translation is shown to show how an SVCODE program is generated from an SNESL one.
-Finally, two low-level interpreters of SVCODE will be described and compared to  to demonstrate the streaming machnism and related issues with emphsis on ? ?
+In this chapter, we will first talk about the high-level interpreter of a minimal SNESL language but with extension of user-defined functions to give the reader a more concrete feeling about SNESL. 
+Then we introduce the streaming low-level language, SVCODE, with respect to its grammar, semantics and primitive operations.
+Translation from the high-level language to the low-level one will be explained to show their connections.
+Finally, two interpreters of SVCODE will be described and compared with emphsis on the latter one to demonstrate the streaming machnism.
 
 
 
 \section{High-level interpreter}
 
-In this thesis, the SNESL language we experimented with is a subset verison introduced in the last chapter but without vectors. 
+In this thesis, the high-level language we have experimented with is a subset of SNESL introduced in the last chapter but without vectors. We will call this language SNESL1.
 As our first goal is to extend SNESL with user-defined (recursive) functions,
-it is safe to do so because vector is only a subtype of stream that has been sufficiently investigated in \cite{Fphd}. 
-So removing vectors from the language should not affect the complexity of the problem itself; we believe that if the solution works with sequences, the general type in SNESL, it should be trivial to extend it to support vectors. 
+it is safe to do experiments only with SNESL1 because removing vectors from SNESL should not affect the complexity of the problem too much; we believe that if the solution works with streams, the general type in SNESL, it should be trivial to make it support vectors. 
 
-The adjusted type system is as follows:
+
+Tuples are also simplified as pairs in SNESL1. 
+Then the type system for SNESL1 is as follows.
 \begin{align*} 
-& \pi ::= \bool \ | \ \int  \\
-& \tau ::= \pi \ | \ (\tau_1,\tau_2) \ | \ \tseq{\tau}  \ | \ (\tau_1 \times ... \times \tau_k) \rightarrow \tau 
+& \vp ::= \bool \ | \ \int \ | \ (\vp_1,\vp_2) \\
+& \tau ::= \vp \ | \ (\tau_1,\tau_2) \ | \ \tseq{\tau}  
 \end{align*}
 
-The grammar of the implemented minimal SNESL with user-defined functions is given in \ref{fig-mysnesl}. 
+The values in SNESL1:
+\begin{align*}
+& a ::=  \T \ | \ \F \ | \ n  \ | \ (a_1,a_2) \\
+& v ::=  a \ | \ (v_1,v_2) \ | \ \{v_1,...,v_k\} 
+\end{align*}
+
+The grammar of the interpreter for SNESL1 is given in \ref{fig-mysnesl}. 
  
 
-\begin{figure}[H]
+\begin{figure}[H]\large
 	\begin{alignat*}{2}
 	& t &&::= e \ | \ d  \tag{top-level statement} \\
 	\\
 	& e &&::=  a \     \tag{constant} \\
 	&   && \quad | \ x  \tag{variable} \\
-	&   && \quad | \ (x,y) \tag{pair}\\
-	&   && \quad | \ \{e_1,...,e_l \}	\tag{primitive sequence} \\
-	&   && \quad | \ \{ \}\tau			\tag{empty sequence of type $\tau$} \\
+	&   && \quad | \ (e_1,e_2) \tag{pair}\\
+	&   && \quad | \ \{e_1,...,e_k \}	\tag{???primitive sequence} \\
+	&   && \quad | \ \{ \}\tau			\tag{???empty sequence of type $\tau$} \\
 	&   && \quad | \ \Let{x}{e_1}{e_2} \tag{let-binding}\\
 	&   && \quad | \ \hcall{\Tupk{x}}  \tag{built-in function call} \\
 	&   && \quad | \ \Comp{e_1}{x}{y}{\usevars} \tag{general comprehension} \\
-	&   && \quad | \ \Recom{e_1}{x}{\usevars} \tag {restricted comprehension} \\
+	&   && \quad | \ \RComp{e_1}{x}{\usevars} \tag {restricted comprehension} \\
 	&   && \quad | \ f(x_1,...,x_k)  \tag {user-defined function call} \\
 	\\
 	& d &&::= function \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e  \tag{user-defined function}
 	\end{alignat*}
-	\caption{Grammar of high-level interpreter  \label{fig-mysnesl}}
+	\caption{Grammar of high-level interpreter \label{fig-mysnesl}}
 \end{figure}
 
-The high-level interpreter we have implemented supports interpreting both SNESL expressions and function definitions. The reader may find that, compared to the grammar in Figure~\ref{fig-snesl-exps}, we simplified tuples of arbitrary number of components to paris of only two components; also, primitive sequence and empty sequence are added. These small changes just make the language we experiment with as simple as possible to analyze, and also convenient for programming tests.
-Since type inference is not incorporated in the interpreter, the types of  parameters and return values should be given when the user defines a function.
+The high-level interpreter we have implemented supports interpreting both SNESL1 expressions and function definitions. 
+%The reader may find that, compared to the grammar in Figure~\ref{fig-snesl-exps}, we simplified tuples of arbitrary number of components to paris of only two components; also, primitive sequence and empty sequence are added. These small changes just make the language we experiment with as simple as possible to analyze, and also convenient for programming tests.
+Since type inference is not incorporated in the interpreter, the types of  parameters and return values need to be provided when the user defines a function.
 
-The built-in functions are just a subset of SNESL built-in functions shown in Figure~\ref{fig-snesl-func} that has removed the vector-related ones as shown in Figure~\ref{fig-mysnesl-func}. 
+The typing rules of SNES1 is given in Figure~\ref{fig-snesl1-typing}. The type environment $\Gam$ is a mapping from variables to types: $$\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$$.
+(may add explaination of how to type user-defined functions)
+\fig{
+	\Jug{\Type{\Gam}{e}{\tau}}
+	
+	\PT{
+		\RiLa{(\TypeV{a}{\vp})}
+		\Axiom{\Type{\Gam}{a}{\vp}}
+	}
+	\PT{
+		\AxiomC{}
+		\RiLa{(\Gam(x) = \tau)}
+		\UC{\Type{\Gam}{x}{\tau}}
+	}
+	\PT{
+		\AC{\Type{\Gam}{e_1}{\tau_1}}
+		\AC{\Type{\Gam}{e_2}{\tau_2}}
+		\BC{\Type{\Gam}{(e_1,e_2)}{(\tau_1,\tau_2)}}
+	}\\[3ex]
+	
+	\PT{
+		\AC{\Type{\Gam}{e_1}{\tau}}
+		\AC{...}
+		\AC{\Type{\Gam}{e_k}{\tau}}
+		\TC{\Type{\Gam}{\{e_1,...,e_k\}}{\{\tau\}}}
+	}
+	\PT{\Axiom{\Type{\Gam}{\{\}\tau}{\{\tau}\}}}
+	\\[3ex]
+	
+	
+	\PT{
+		\AC{\Type{\Gam}{e_1}{\tau_1}}
+		\AC{\Type{\Gam[x \|-> \tau_1]}{e_2}{\tau}}
+		\BC{\Type{\Gam}{\Let{x}{e_1}{e_2}}{\tau}}
+	}	
+	\PT{
+		\AC{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
+		\RiLa{((\Gam(x_i)= \tau_i)^k_{i=1})}
+		\UC{\Type{\Gam}{\hcall{\Tupk{x}}}{\tau}}
+	}\\[3ex]
+	
+	\PT{
+		\AC{\Type{[x \|-> {\tau_1}, \j{x_i \|-> \vp_i}]}{e_1}{\tau}}
+		\RiLa{(\Gam(y)=\tseq{\tau_1}, \j{\Gam(x_i) = \vp_i})}
+		\UC{\Type{\Gam}{\Comp{e_1}{x}{y}{\usevars}}{\tseq{\tau}}}
+	}\\[3ex]
+	
+	\PT{
+		\AC{\Type{[\j{x_i \|-> \tau_i}]}{e_1}{\tau}}
+		\RiLa{(\Gam(x)= \bool, \j{\Gam(x_i) = \tau_i})}
+		\UC{\Type{\Gam}{\RComp{e_1}{x}{\usevars}}{\tseq{\tau}}}
+	}\\[3ex]
+
+	\PT{
+		\AC{\Typef{f}{\tau_1,...,\tau_i}{\tau}}
+		\LeLa{???}
+		\RiLa{(\k{\Gam(x_i) = \tau_i})}
+		\UC{\Type{\Gam}{f(x_1,...,x_k)}{\tau}}
+	}
+%	
+%	\item \Jug{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
+%	
+%	\PT{\Axiom{\Typef{\constn{n}}{}{\int}}}
+%	\PT{\Axiom{\Typef{\iotan}{\int} {\tseq{\int}}}}
+%	\PT{\Axiom{\Typef{\plusn}{\int,\int} {\int}}}
+	
+}{Typing rules of SNESL1 \label{fig-snesl1-typing}}
+
+
+
+Value typing rules: \\
+
+\Jug{\TypeV{a}{\vp}}
+
+\PT{\Axiom{\TypeV{n}{\int}}}
+\PT{\Axiom{\TypeV{\T}{\bool}}}
+\PT{\Axiom{\TypeV{\F}{\bool}}}
+\PT{
+	\AC{\TypeV{a_1}{\vp_1}}
+	\AC{\TypeV{a_2}{\vp_2}}
+	\BC{\TypeV{(a_1,a_2)} {(\vp_1,\vp_2)}}
+}\\[3ex]
+
+
+\Jug{\TypeV{v}{\tau}}
+
+\PT{\Axiom{\TypeV{a}{\vp}}}
+\PT{
+	\AC{\TypeV{v_1}{\tau_1}}
+	\AC{\TypeV{v_2}{\tau_2}}
+	\BC{\TypeV{(v_1,v_2)}{(\tau_1,\tau_2)}}
+}
+\PT{
+	\AC{\TypeV{v_1}{\tau}}
+	\AC{...}
+	\AC{\TypeV{v_k}{\tau}}
+	\TC{\TypeV{\Seqk{v}}{\{\tau\}}}
+}\\[3ex]
+
+
+
+Semantics of SNESL1 with cost (TODO: add cost): \\
+%TODO: add cost
+Evaluation environment $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
+
+ \Jug{\Eval{\rho}{e}{v}}
+	 \PT{
+	 	\Axiom{\Eval{\rho}{a}{a}}
+	 }
+	\PT{
+		\AxiomC{}
+		\RiLa{(\rho(x)=v)}
+		\UC{\Eval{\rho}{x}{v}}
+	}
+	\PT{
+		\AC{\Eval{\rho}{e_1}{v_1}}
+		\AC{\Eval{\rho}{e_2}{v_2}}
+		\BC{\Eval{\rho}{(e_1,e_2)}{(v_1,v_2)}}	
+	}\\[3ex]
+	\PT{
+		\AC{\Eval{\rho}{e_1}{v_1}}
+		\AC{...}
+		\AC{\Eval{\rho}{e_k}{v_k}}
+		\TC{\Eval{\rho}{\{e_1,...,e_k\}}{\{v_1,...,v_k\}}}	
+	}
+	\PT{
+		\Axiom{\Eval{\rho}{\{\}\tau}{\{\}}}
+	}\\[3ex]
+
+	\PT{
+		\AC{\Eval{\rho}{e_1}{v_1}}
+		\AC{\Eval{\rho[x \|-> v_1]}{e_2}{v}}
+		\BC{\Eval{\rho}{\Let{e_1}{x}{e_2}}{v}}	
+	}
+	\PT{
+		\AC{\EvalF\hcall{\replc{k}{v}}{v}}
+		\RiLa{((\rho(x_i)=v_i)^k_{i=1})}
+		\UC{\Eval{\rho}{\hcall{\Tupk{x}}}{v}}
+	}\\[3ex]
+	
+	\PT{
+		\AC{(\Eval{[x \|-> {v_i}, \j{x_i \|-> a_i}]}{e_1}{v_i'})^k_{i=1}}
+		\RiLa{(\rho(y)=\Seqk{v}, \j{\rho(x_i) = a_i})}
+		\UC{\Eval{\rho}{\Comp{e_1}{x}{y}{\usevars}}{\Seqk{v'}}}
+	}\\[3ex]
+	
+	\PT{
+		\AC{}
+		\RiLa{(\rho(x)= \F)}
+		\UC{\Eval{\rho}{\RComp{e_1}{x}{\usevars}}{\{\}}}
+	}\\[3ex]
+	\PT{
+		\AC{\Eval{\rho}{e_1}{v_1}}
+		\RiLa{(\rho(x)= \T)}
+		\UC{\Eval{\rho}{\RComp{e_1}{x}{\usevars}}{\{v_1\}}}
+	}\\[3ex]
+	\PT{
+		\AC{\Eval{\rho}{f(x_1,...,x_k)}{???}}
+	}\\[3ex]
+
+
+The built-in functions are also a subset of SNESL built-in functions shown in Figure~\ref{fig-snesl-func} but  the vector-related ones are removed, as shown in Figure~\ref{fig-mysnesl-func}. 
 
 \begin{figure}[h]
 	\begin{alignat*}{2} 
-	&\hcall && ::= \oplus \ | \  \ \*{append} \ | \ \*{concat}  \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_+ \ | \ \*{reduce}_{+} \\
-	&   && \quad | \ \*{the}  \ | \ \*{empty} \\
+	&\hcall && ::= \oplus \ | \  \ \*{append} \ | \ \*{concat}  \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_\otimes \ | \ \*{reduce}_{\otimes} \ | \ \*{the}  \ | \ \*{empty} \\
 	& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  \div \ | \ \% \ | \le \ | \ ... \tag{consts operations} \\
+	& \otimes \ && :: = + \ | \ \times  \ | \ ...  \tag{associative binary operations}
 	\end{alignat*}
-	\caption{Primitive functions \label{fig-mysnesl-func}}
+	\caption{Primitive functions in SNESL1 \label{fig-mysnesl-func}}
 \end{figure}
+
+The consts operations of $\oplus$ should be self-explained from their conventional names. 
+The types, short descriptions and examples of the other streamable operations are given below.
 
 \begin{itemize}
 
@@ -174,8 +354,9 @@ The built-in functions are just a subset of SNESL built-in functions shown in Fi
 \end{itemize}
 
 
-\begin{figure}[H]
-	\begin{example}\emph{User-defined function to compute the multiplication of two square matrices.}
+
+\begin{figure}[H]\large
+	\begin{example}\emph{A user-defined function  written in SNESL1 to compute the multiplication of a square matrix and its transpose.}
 	\end{example}
 	\begin{lstlisting}[style = snesl-style]
 	-- code desplay format changed for readability
@@ -195,7 +376,7 @@ The built-in functions are just a subset of SNESL built-in functions shown in Fi
 
 \section{SVCODE}
 In \cite{Fmaster} a streaming target language for a minimal SNESL was defined.
-With trivial changes in the instruction set, this language, named as SVCODE (streaming VCODE), has been implemented on a multicore system in \cite{Fphd}; the various experiment results
+With trivial changes in the instruction set, this language, named as SVCODE (Streaming VCODE), has been implemented on a multicore system in \cite{Fphd}; the various experiment results
 have demonstrated single-core performance similar to sequential C code for some simple 
 text-processing tasks as well as the
 potential for further performance improvment by scheduling opitmization and code analysis.
@@ -203,16 +384,13 @@ potential for further performance improvment by scheduling opitmization and code
 In this thesis, we put emphasis on the formalization of this low-level language's semantics.
 Also, to support recursion in the high-level language at the same time preserving the cost, non-trivial extension of this language is needed. 
 
-\section{Translation}
+\subsection{SVCODE Syntax}
+The primitive data structure that SVCODE manipulates, called $stream$, is similar to the one-dimensional array in C language; the main difference is that the elements of a stream can
+be collected through not only a piece of memory, but also a period of time. 
 
-\section{Eager interpreter}
-\section{Streaming interpreter}
-\subsection{Xducers}
+%TODO: add figure of comparison ?
 
-
-\section{SVCODE Syntax}
-The data or $streams$ that an SVCODE program computes are basically vectors of consts. 
-For our minimal language, a primitive stream $\a$ can be a vector of booleans, integers or units, as the following grammar shows:
+For our minimal language, a primitive stream $\a$ can be a stream of booleans, integers or units, as the following grammar shows:
 
 $$b \in \mathbb{B} = \{\T,\F \}$$
 $$ a ::= n \ | \ b \ | \ \unit$$
@@ -222,169 +400,136 @@ $$\a = \vrange{a_1}{a_i}  $$
 
 \hspace{1cm}
 
-The grammar of SVCODE is given in Figure~\ref{fig-svcode-grammar}.
+
+
+The grammar of SVCODE is given in Figure~\ref{fig-svcode1-gram}.
+An SVCODE program is basically a list of command or instructions of ecah defines one or more new streams. 
+As a general rule of reading an SVCODE instruction, the stream ids on the left-hand side of a symbol ``:=" are the defined streams, and the right-hand side ones are possibly used to generate those new ones.
 
 
 \begin{figure}[!h] \large
 	\begin{alignat*}{2}
-	&p  && :: = \ \epsilon \\ 
-	&   &&\ \ | \ \sdef{\s}{\psi(s_1,...,s_k)}  \tag{$\s \notin \{s_1,...,s_k\}$}\\
-	&   &&\ \ | \ \withctrl{\s}{p_1}{\Sin}{\Sout}  \tag{$ \FV{p_1} \subseteq \Sin, \Sout \subseteq \dv{p_1} $} \\
-	&   &&\ \ | \ p_1;p_2  \tag{$\dv{p_1} \cap \dv{p_2} = \emptyset$} \\
+	&p  && :: = \ \epsilon \tag{empty program}\\ 
+	&   && \quad | \ \sdef{\s}{\psi(s_1,...,s_k)}  \tag{single stream definition}\\
+	&   && \quad | \ \withctrl{\s}{p_1}{\Sin}{\Sout}  \tag{\wc block}\\
+	&   && \quad | \ \scall{f}{\S_1}{\S_2} \tag{SVCODE function call}\\
+	&   && \quad | \ p_1;p_2  \\
 	\\
 	&\s && ::= 0 \ | \ 1 \ ... \in \SId  = \mathbb{N}   \tag{stream ids}\\
 	\\
 	& \psi \ && ::= \consta{a} \ | \ \toflag  
-	\ | \ \usum \ | \ \maptwo{\oplus} \ | \ \scan_{n_0} \ | \ \distr  \tag{Xducers} \\
-	& \oplus \ && :: = + \ | \ - \ | \ \times \ | \ \div \ | \ \% \ | \ \le \ | \ ...  \tag{binary operations}\\
+	\ | \ \usum \ | \ \map{\oplus} \ | \ \genscan_{\otimes} \ | \ \genreduce_{\otimes} \ | \ \distr  \tag{Xducers}  \\
+    &   && \quad | \ \pack \ | \ \upack \ | \ \bu \ | \ \segconcat \ | \ \usegcount \ | \ \intermerge \ | \ ...  \\
+    & \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  \div \ | \ \% \ | \le \ | \ ... \tag{consts operations} \\
+    & \otimes \ && :: = + \ | \ \times  \ | \ ...  \tag{associative binary operations} \\
 	\\
-	&  \S && ::= \{\s_1,..., \s_i\} \in \sset  \tag{a set of stream ids}\\
+	&  \S && ::= \{\s_1,..., \s_i\} \in \sset  \tag{set of stream ids}\\
 	\end{alignat*}
-\caption{Grammar of SVCODE \label{fig-svcode-grammar}}
+	\caption{Grammar of SVCODE \label{fig-svcode1-gram}}
 \end{figure}
 
-The instructions in SVCODE that perform the computation directly on primitive streams are stream definitions in the form
-$$\sdef{\s}{\psi(s_1,...,s_k)} $$  
-where $\lcall$ is a primitive function, or a $Xducer$(transducer), taking stream $s_1,...,s_k$ as parameters and returning $s$. 
+A well-formed SVCODE instruction is expected to always assign $fresh$ stream ids to the defined streams, in which way the dataflow of an SVCODE program can construct a DAG (directed acyclic graph). 
+We will give more formal definitions of this language in the next chapter
+to demonstrate how we guarantee the freshness of stream ids. 
+In the practical implementation, we simply identify each stream with a natural number, a smaller one always defined eariler than a greater one. 
 
-The only essential control struture in SVCODE is the instruction 
+The primitive instructions in SVCODE that define only one stream are in the form
+$$\sdef{\s}{\psi(s_1,...,s_k)} $$  
+where $\lcall$ is a primitive function, called a $Xducer$(transducer), taking stream $s_1,...,s_k$ as parameters and returning $s$. 
+
+The only essential control struture in SVCODE is the \wc instruction 
 $$\withctrl{\s}{p_1}{\Sin}{\Sout} $$
-which may or may not execute a piece of SVCODE program $p_1$, but always defines a bunch of stream variables $\Sout$. Discussions about this \wc 
-instruction will occur again and again throughout the thesis as it plays a significant role in dealing with most of the issues we are deeply concerned, 
+which may or may not execute a piece of SVCODE program $p_1$, but always defines a bunch of stream ids $\Sout$.
+$\s$ is the new control stream used when the code block $p_1$ is executed, and $\Sin$ is the set of stream ids that can be used in $p_1$. 
+Discussions about this
+instruction will occur many times throughout the thesis as it plays a significant role in dealing with most of the issues we are deeply concerned, 
 including cost model correctness and dynamic unfolding of recursive functions. 
 
 
-
-
-The function $\texttt{dv}$ returns the set of defined variables of a given SVCODE program.
-
-\begin{alignat*}{2}
-&\dv{\epsilon} && =  \emptyset \\
-&\dv{\sdef{\s}{\psi(s_1,...,s_k)}} && =  \{s\} \\
-&\dv{\withctrl{\s_c}{p_1}{\Sin}{\Sout}} && =   \Sout \\
-&\dv{p_1;p_2} && =  \dv{p_1} \cup \dv{p_2} \\
-\end{alignat*}
-
-Correspondingly, $\texttt{fv}$ returns the free variables set.
-
-\begin{alignat*}{2}
-&\FV{\epsilon} && = \emptyset \\
-&\FV{\sdef{\s}{\psi(s_1,...,s_i)}} && = \{s_1,...,s_k\}\\
-&\FV{\withctrl{\s_c}{p_1}{\Sin}{\Sout}} && = \{s_c\} \cup \Sin \\
-&\FV{p_1;p_2} && = \FV{p_1} \cup (\FV{p_2} - \dv{p_1}) \\
-\end{alignat*}
-
-
-An immediate property of this language is that the defined variables of a well-formed SVCODE program are always $fresh$. In other words, there is no overlapping between the free variables and the newly generated ones.
-\begin{lem}
-	$\FV{p} \cap \dv{p} = \emptyset $. 
-\end{lem}
-
-The proof is straightward by induction on the syntax of $p$.
+%The rules $\PName{Wc-Emp}$ and $\PName{Wc-Nonemp}$ together show two possibilities for interpreting a \wc instruction:
+%\begin{itemize}
+%	\item if the new control stream $\s_c$ as well as the streams in $\Sin$, which includes the free variables of $p_1$, are all empty, then just bind empty vectors to the streams in $\Sout$, which are part of the defined streams of $p_1$.
+%	\item otherwise execute the code of $p_1$ as usual under the new control stream, ending in the store $\sgm''$; then copy the bindings of $\Sout$ from $\sgm''$ to the initial store. 
+%\end{itemize}
+%The new control stream is crucial here, because it decides whether or not to execute $p_1$, which is the key to avoiding infinite unfolding of recursive funtions. For an eager interpreter of SVCODE, if we count one stream definition as one step, then this skip guarantees the low-level step cost agrees on the high-level one. Also, skipping a certain piece of code should help improve the efficiency of execution.
 
 
 
-\section{SVCODE semantics}
+As the high-level language supports recursive functions, the function body must be unfolded dynamically in runtime. 
+A recursive call should be included in some condition statement to decide when the recursion can terminate, which is impossible to do during compiling time. 
+The instruction $\scall{f}{\S_1}{\S_2}$ can be read as: ``calling function $f$ with arguments $\S_1$ returns $\S_2$".
 
-Before showing the semantics, we first introduce some notations and operations about streams for convenience.
-\begin{nota}
-	Let $\< a_0 | \a \'>$ denote a non-empty stream $\< a_0,a_1,...,a_i \'>$ for some $\a = \< a_1,...,a_i \'>$. 
-\end{nota}
+(may add more informal explanation of SVCODE semantics)
+
+%We introduce some notations and operations about streams for convenience.
+%\begin{nota}
+%	Let $\< a_0 | \a \'>$ denote a non-empty stream $\< a_0,a_1,...,a_i \'>$ for some $\a = \< a_1,...,a_i \'>$. 
+%\end{nota}
+%
+%
+%\begin{nota}[\textbf{Stream concatenation}]
+%	$\vapp{\vrange{a_1}{a_i}} {\vrange{a_1'}{a_j'}} = \langle a_1,...,a_i,a_1',...,a_j' \rangle $ \\
+%	
+%\end{nota}
+%
+%The operational semantics of SVCODE is given in Figure~\ref{fig-svcode-semantics}.
+%The runtime environment or store $\sgm$ is a map from stream variables to vectors:
+%$$\sgm = [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$$
+%The $control \ stream$ $\c$, which is basically a vector of units representing an unary number, indicates the $parallel \ degree$ of the computation. The role of control stream will become much clearer when we come to the semantics of Xducers. It is worth noting that only in the rule $\PName{Wc-Nonemp}$ the control stream has a chance to get changed.
 
 
-\begin{nota}[\textbf{Stream concatenation}]
-$\vapp{\vrange{a_1}{a_i}} {\vrange{a_1'}{a_j'}} = \langle a_1,...,a_i,a_1',...,a_j' \rangle $ \\
+\subsection{Xducers and dataflow}
+
+Transducers or $Xducers$ are the primitive functions performing transformation on streams in SVCODE. Each Xducer consumes a number of streams and transforms them into another. 
+
+For example, the Xducer $\map{+}(\<3,2\'>, \< 1,1\'>)$ consumes the stream $\<3,2\'>$ and $\< 1,1\'>$, then outputs 
+the element-wise addition result $\<4, 3\'>$. 
+
+\begin{example} \emph{$\map{+}(\<3,2\'>, \< 1,1\'>)$:}\\
+	\begin{center}
+		\includegraphics[width=0.6\textwidth]{fig/map.png}
+	\end{center}
+\end{example}
+
+
+%the Xducer $\constaf{a}$ outputs the const $a$ until the control stream reaches EOS.
+%
+%\begin{example} \emph{$\constaf{3}$ with control stream $\c = \<(),()\'>$:}\\
+%	\begin{center}
+%		\includegraphics[width=0.6\textwidth]{fig/const3.png}
+%	\end{center}
+%\end{example}
+
 	
-\end{nota}
 
-The operational semantics of SVCODE is given in Figure~\ref{fig-svcode-semantics}.
-The runtime environment or store $\sgm$ is a map from stream variables to vectors:
- $$\sgm = [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$$
-The $control \ stream$ $\c$, which is basically a vector of units representing an unary number, indicates the $parallel \ degree$ of the computation. The role of control stream will become much clearer when we come to the semantics of Xducers. It is worth noting that only in the rule $\PName{Wc-Nonemp}$ the control stream has a chance to get changed.
+As we have mentioned before, the dataflow of an SVCODE program is basically a DAG, where each Xducer stands for one node. 
+The \wc block is only a subgraph that may be added to the DAG at runtime,  
+and \sc another that will be unfolded dynamically.
 
-	
-\begin{figure}[!h]\large 
+Figure~\ref{fig-svcode-eg1} shows an example program, with its DAG in Figure~\ref{fig-svcode-dag1}. \\
 
-\Jug{\seval{p}{\sgm}{\c}{\sgm'}}\\
-
-
-\PT{\LeLa{\PName{Empty:}}  \Axiom{{\seval{\epsilon}{\sgm}{\c}{\sgm}}{}}} \\[2ex]
-
-\PRule{Xducer}{\PT{\AC{\sevalf{\a_1}{\a_k}{\c}{\a}}
-	\RiLa{((\sgm(\s_i) = \a_i)^k_{i=1})}
-	\UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm}{\c}{\sgm[\s \|-> \a]}}
-}} \\[4ex]
-
-\PT{ \LeLa{\PName{Wc-Emp:}}
-	\AC{}
-	\RiLa{
-		\left(
-			\begin{aligned}
-				&\forall s \in \{s_c\} \cup \Sin. \sgm(s) = \emptyv \\
-				&\Sout = \{s_1,...,s_l\}
-			\end{aligned}
-		\right)}
-	\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\l{\s_i \|-> \emptyv}]}}
-}\\[2ex]
-\PRule{Wc-Nonemp}{\PT{
-	\AC{\seval{p_1}{\sgm}{\c_1}{\sgm''}}
-	\RiLa{\left(
-		\begin{aligned} 
-		&\sgm(\s_c)= \c_1 \ne \emptyv \\
-	    &\Sout = \{s_1,...,s_l\}
-		\end{aligned}\right)}
-	\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\l{\s_i \|-> \sgm''(\s_i)}]}}
-}}\\[4ex]
-
-\PRule{Seq}{\PT{
-	\AC{\seval{p_1}{\sgm}{\c}{\sgm''}}
-    \AC{\seval{p_2}{\sgm''}{\c}{\sgm'}}	
-    \BC{\seval{p_1;p_2}{\sgm}{\c}{\sgm'}}
-}}
-
-\caption{SVCODE semantics}
-\label{fig-svcode-semantics}
-\end{figure}
-
-The rule $\PName{Empty}$ is trivial, empty program doing nothing on the store. 
-
-The rule $\PName{Xducer}$ adds the store a new stream binding where the bound vector is generated by a specific Xducer with input streams. The detailed semantics of Xducers are defined in the next subsection. 
-
-The rules $\PName{Wc-Emp}$ and $\PName{Wc-Nonemp}$ together show two possibilities for interpreting a \wc instruction:
-\begin{itemize}
-	\item if the new control stream $\s_c$ as well as the streams in $\Sin$, which includes the free variables of $p_1$, are all empty, then just bind empty vectors to the streams in $\Sout$, which are part of the defined streams of $p_1$.
-	\item otherwise execute the code of $p_1$ as usual under the new control stream, ending in the store $\sgm''$; then copy the bindings of $\Sout$ from $\sgm''$ to the initial store. 
-\end{itemize}
-The new control stream is crucial here, because it decides whether or not to execute $p_1$, which is the key to avoiding infinite unfolding of recursive funtions. For an eager interpreter of SVCODE, if we count one stream definition as one step, then this skip guarantees the low-level step cost agrees on the high-level one. Also, skipping a certain piece of code should help improve the efficiency of execution.
-
-
-
-\section{Xducers}
-
-\subsection{SVCODE Dataflow}
-Transducers or $Xducers$ are the primitive computing functions on streams in SVCODE. Each Xducer consumes a number of streams and transforms them into another. 
-
-As we can see from the side condition of the rule $\PName{Xducer}$, a stream can be consumed only after it has been produced.
-Thus, the dataflow among an SVCODE program constructs a DAG (directed acyclic graph), where each Xducer performs one node. 
-Figure~\ref{fig-svcode-eg1} shows an example program with its DAG in Figure~\ref{fig-svcode-dag1}. \\
-
-\begin{figure}[h]
+\begin{figure}[H]
 	\begin{lstlisting}[style=svcode-style]
 	S1 := Const_3();
 	S2 := ToFlags(S1);
 	S3 := Usum(S2);
-	[S4] := WithCtrl(S3,[], S4 := Const_1();)
+	[S4] := WithCtrl(S3,[], 
+	          S4 := Const_1();
+	        )
 	S5 := ScanPlus(S2, S4);
 	\end{lstlisting}	
-\caption{A small SVCODE program \label{fig-svcode-eg1}}
+	\caption{A small SVCODE program \label{fig-svcode-eg1}}
 \end{figure}
-	
+%	S6 := Usum(S2);
+%	[S7] := WithCtrl(S6, [S5], 
+%	[S7] := SCall(plus1, [S5])
+%	)
 \hspace{1cm}
 
 \fig{\includegraphics[width=1.1\textwidth]{fig/xducerDag2.png}}{
-Dataflow DAG for the code in Figure~\ref{fig-svcode-eg1}.
-\label{fig-svcode-dag1}
-Note that, for simplicity, the control stream is added as an explicit supplier only to Xducer $\consta{a}$.
+	Dataflow DAG for the code in Figure~\ref{fig-svcode-eg1} (assuming S3 is nonempty).
+	\label{fig-svcode-dag1}
+	Note that, for simplicity, the control stream is added as an explicit supplier only to Xducer $\consta{a}$.
 }
 
 
@@ -394,426 +539,308 @@ In Figure~\ref{fig-svcode-dag1}, the channel number is labeled above each edge.
 For example, the Xducer S2 has two clients, S3 and S5, for both of whom it is the No.0 channel;  Xducer S5 has two suppliers: S2 the No.0 channel and S3 the No.1. 
 
 
-\subsection{General semantics}
-The semantics of Xducers are abstracted into two levels: the $general$ level and the $block$ level. The general level summarizes the comman property that all Xducers share, and the block level describes the specific behavior of each Xducer. 
-
-Figure~\ref{fig-xducer-semantics} shows the semantics at the general level. 
 
 
-\begin{figure}[h]\large
-	
-	\Jug{\sevalf{\a_1}{\a_k}{\c}{\a}} \\
-	
-	
-	\PRule{X-Loop}{\PT{
-			\AC{\block{\a_{11}}{\a_{k1}}{\a_{01}}}
-			\AC{\sevalf{\a_{12}}{\a_{k2}}{\c_0}{\a_{02}}}
-			\RiLa{((\vapp{\a_{i1}}{\a_{i2} = \a_i})^k_{i=0})}
-			\BC{\sevalf{\a_1}{\a_k}{\< () | \c_0 \rangle}{\a_0}}
-	}}\\[4ex]
-	
-	\LeLa{\PName{X-Termi:}} 
-	\Axiom{\sevalf {\emptyv_1} {\emptyv_k} \emptyv \emptyv}
-	\DisplayProof \footnotemark	
-	\caption{Semantics of SVCODE transducers \label{fig-xducer-semantics}}
-\end{figure}
-\footnotetext{For notational convenience, in this thesis we add subscripts to a sequence of constants, such as $\emptyv, \F, 1$, to denote the total number of these constants.}
+\section{Value representation}
+In SVCODE, the data structures are only primitive streams and pairs of streams. 
+To support the various high-level value types, that is, to design streamable counterparts to all the values of SNESL1, some technical transformation is necessary.  
+The technique is similar to the idea described in \cite{prins93}, but the descriptors in SVCODE are boolean streams instread of interger ones.
 
-There are only two rules for the general semantics. 
-They together say that the output stream is computed in a ``loop" fashion, where the 
-iteration uses specific block semantics of the Xducer and the number of iteration is the unary number that the control stream represents, i.e., the length of the control stream. 
-In the parallel setting, we prefer to call this iteration a $block$. 
-Recall the control stream is a representation of the parallel degree of the computation, then a block consumes exact one degree. 
-We note that all these blocks are data-independent, which means they can be performed in parallel. 
-Now it is clear that the control stream indeed carrys the theoretical
-maximum number of processors we need to execute the computation most efficiently (if the computation within the block can not be parallelized further)(???).
-
-
-
-\subsection{Block semantics}
-After abstracting the general semantics, the remaining work of formalizing the specific semantics of Xducers within a block becomes relatively clear and easy. The block semantics are defined in Figure~\ref{fig:xducer-bl-seman}. 
-
-\fig{
-	\def\'>{\rangle}
-	
-	\Jug{\block{\a_1}{\a_k}{\a}} \\
-	
-	\PT{\LeLa{\PName{Const:}} 
-		\Axiom{\blockf{\consta{a}}{}{\singl{a}}}
-	}
-	\PT{\LeLa{\PName{ToFlags:}} 
-		\Axiom{\blockf{\toflag}{\singl{n}}{\< \F_1,...,\F_n,\T \'>}} } \\[4ex]
-	
-	\PRule{MapTwo}{\PT{\AC{}
-			\RiLa{(n_3= n_1 \oplus n_2)}
-			\UC{\blockf{\maptwo{\oplus}}{\singl{n_1}, \singl{n_2}} {\singl{n_3}}}
-	}} \\[4ex]
-	
-	%--- UsumF
-	\PRule{UsumF}{
-		\PT{\AC{\blockf{\usum}{\b}{\a}}
-			\UC{\blockf{\usum}{ \<\F|\b \'>}{\<()|\a\'>}}
-		}
-	}
-	\PT{\LeLa{\PName{UsumT:}} \Axiom{\blockf{\usum}{\oT}{\emptyv}}}
-	\\[4ex]
-	
-	\PRule{ScanF}{
-		\PT{\AC{\blockf{\scan_{n_0+n}}{\b,\a}{\a'}}
-			\UC{\blockf{\scan_{n_0}}{\<\F|\b \'>, \<n|\a\'>}{\<n_0|\a'\'>}}
-		}		
-	}
-	\PT{\LeLa{\PName{ScanT:}} \Axiom{\blockf{\scan_{n_0}}{\oT, \emptyv}{\emptyv}}}\\[4ex]
-	
-	
-	\PRule{DistrF}{
-		\PT{\AC{\blockf{\distr}{\b, \<n\'>}{\a}}
-			\UC{\blockf{\distr}{\<\F|\b \'>, \<n\'>}{\<n|\a \'>}}
-		}
-	}
-	\PT{\LeLa{\PName{DistrT:}}\Axiom{\blockf{\distr}{\oT,\<n\'>}{\emptyv}}}\\[1ex]
-}{Semantics of transducer blocks \label{fig:xducer-bl-seman}}
-
-
-
+%First we can only consider the representations of high-level values without pairs.
 \begin{itemize}
-\renewcommand{\labelitemi}{$-$}
-	\item $\constaf{a}$ outputs the const $a$ until the control stream reaches EOS.
-	
-	\begin{example} \emph{$\constaf{3}$ with control stream $\c = \<(),()\'>$:}\\
-	\begin{center}
-		\includegraphics[width=0.6\textwidth]{fig/const3.png}
-	\end{center}
+	\item A const is represented as a singleton stream. 
+	\begin{example}
+		$$3 \tr_\int \ \< 3 \'>$$
+		$$ \T \tr_\bool \oT $$
 	\end{example}
+	
+	
+	
+	\item A non-nested primitive sequence of length $n$ is represented as a primitive data stream with an auxiliary boolean stream called a $descriptor$, which consists of $n$ number of $\F$s and one $\T$. 
+	\begin{example}
+		$$\{3,1,4\} \tr_{\{\int\}} (\< 3,1,4 \'>, \< \F, \F,\F , \T \'>) $$
+	    $$\{\T,\F\} \tr_{\{\bool\}} (\< \T,\F\'>, \< \F,\F , \T \'>) $$
+		$$\{\}\int \tr_{\{\int \}} (\emptyv, \oT)$$
+	\end{example}
+	
+	\item For a nested sequence with a nesting depth $d$, all the data are flattened to one data stream, but $d$ descriptors are used to represent the segments at each depth. 
+	Thus a non-nested sequence is just a special case of depth $d$ = 1.
+	
+	\begin{example}
+		$$\{\{3,1\}, \{4\}\} \tr_{\{\{\int\}\}} ((\< 3,1,4 \'>, \<\F,\F,\T,\F,\T \'>),\< \F, \F, \T \'>)  $$
+		$$\{\}\{\int\} \tr_{\{\{\int\}\}} ((\emptyv, \emptyv), \oT)$$
+	\end{example}
+	
+%	\item A sequence is transformed to a primitive data stream with a number of boolean streams representing the dimension or the nested depth of the sequence. 
+%	These boolean streams are called $descriptors$ because the 
+%	
+%\end{itemize}
+%
+%Now we consider pairs being added.
+%\begin{itemize}
 
-	\item $\toflagf{\singl{n}}$ first outputs $n$ $\F$s, then one $\T$.
-	
-	\begin{example} \emph{$\toflagf{\<2,0\'>}$:}\\
-		\begin{center}
-		\includegraphics[width=0.6\textwidth]{fig/toflag.png}
-		\end{center}
-	\end{example}
-	
-	\item $\maptwof{\oplus}{\singl{n_1}}{\singl{n_2}}$ outputs 
-	the binary operating result of $\oplus$ on $n_1$ with $n_2$. 
+\item A high-level pair is a pair of streams at the low level.  
+\begin{example}
+	$$(1,2) \tr (\singl{1}, \singl{2})$$
+\end{example} 
 
-	\begin{example} \emph{$\maptwof{+}{\<3,2\'>}{\<1,1\'>}$:}\\
-		\begin{center}
-			\includegraphics[width=0.6\textwidth]{fig/maptwo.png}
-		\end{center}
-	\end{example}
-	
-	\item $\usumf{\b}$ transforms an $\F$ to a unit, or a $\T$ to nothing. It is the only Xducer that can generate a unit vector,
-	so it is mainly used when we need to replace the control stream.
-	\begin{example} \emph{$\usumf{\<\F,\T,\F,\F,\T\'>}$:}\\
-		\begin{center}
-			\includegraphics[width=0.6\textwidth]{fig/usum.png}
-		\end{center}
-	\end{example}
-	
-	\item $\scan_{n_0}(\b,\a)$ performs an exclusive scan of the binary operation plus on $\a$, segmented by $\b$, with a starting element $n_0$.
-		\begin{example} \emph{$\scan_{0}(\<\F,\F,\F,\T,\F,\T\'>, \< 2,5,3,6 \'>)$}\\
-		\begin{center}
-			\includegraphics[width=0.7\textwidth]{fig/scan.png}
-		\end{center}
-	\end{example}
-	 
-	\item $\distr(\b,{\singl{n}})$ replictes the const $n$ $u$ times where $u$ is the unary number segmented by $b$. 
-	\begin{example} \emph{$\distrf{\<\F,\F,\F,\T,\F,\T\'>}{\< 2,5 \'>}$}\\
-		\begin{center}
-			\includegraphics[width=0.7\textwidth]{fig/distr.png}
-		\end{center}
-	\end{example}
-	
+(will add one or two examples about sequence of pairs and some explainations)
 \end{itemize}
 
-		
+\section{Translating SNESL1 to SVCODE}
+As we have seen in the last section, a high-level sequence corresponds to a number of low-level streams.
+We use a structure $\STree$ (stream tree) to generalize the relation between the high-level values and the low-level streams during compiling time:
+$$ \STree \ni \st ::= \s \ | \ (\st_1,\st_2) $$
+Thus a stream tree is a binary tree whose leaves are stream ids.  
+
+The translation environment $\del$ is a mapping from high-level variables to stream trees:
+ $$\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $$ 
+
+Another essential component maintained in the translation procedure is an unused stream id called the next fresh id because it will be assigned to the defined stream(s) of the next generated instruction.
+
+\subsection{Expression translation}
+
+%	 Convert a stream tree to a list of  stream ids:
+%	\begin{align*}
+%	&\bar{}: \STree \-> \S \\
+%	&\overline{\s} = [s] \\
+%	&\overline{(\st,s)} = \overline{st} {\++} [s]
+%	\end{align*}
+%	
+The translation rules for SNESL1 expressions is shown in Figure~\ref{fig-trans-snesl1}. 
+The jugement can be read as: `` in the environment $\del$, the expression $e$ is translated to an SVCODE program $p$, whose stream ids starts from $s_0$ and ends at $s_1-1$ (both included), and the evaluatation result corresponds to $\st$". 
 
 
-As we have discussed before, we consider a block  as the minimum computing unit assigned to a single processor. This is reasonable for
-Xducers such as $\consta{a}$ and $\maptwo{\oplus}$, because
-they are already sequential at the block level. 
+(should have more fixes and informal explanations in the rest of this section)
 
-However, some other Xducers, such as $\usum$, can be parallelized further inside a block.
-As we extend the language with more Xducers, we could find that computations on unary numbers within blocks are common, which is mainly due to the value represenation strategy we use, but also more difficult to be regularized.
-For the scope of this thesis, the block semantics we have shown are already relatively clear and simple enough to reason about, and the unary level parallelism can be investegated in future work. 
- 
- 
+\fig{
+ \Jug{\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}}
 
-%Or if we want to use $unary$ semantics maybe for later: \\
-%\begin{mdframed}
-%\PT{
-%	\AC{\unary{\singl \F}{\a_{k1}}{\a_1}}
-%	\AC{\block{\a_{12}}{\a_{k2}}{\a_2}}
-%	\RiLa{(\a = \vapp{\a_1}{\a_2})}
-%	\BC{\block{\vapp {\singl\F} {\a_{12}}} {\vapp {\a_{k1}} {\a_{k2}}}{\a}}
-%}\\[2ex]
-%
-%\PT{
-%	\AC{\unary{\oT} {\a_k}{\a}}
-%	\UC{\block{\oT}{\a_k} \a}
-%}\\[2ex]
-%
-%\begin{itemize}
-%\item Transducer $unary$ semantics:\\ 
-%
-%\Jug{\unary{\singl b}{\a_k}{\a}}
-%
-%\PT{ \Axiom{\usum(\oF) \dda \vunit}}
-%\PT{\Axiom{\usum(\oT) \dda \emptyv }} \\[1ex]
-%
-%
-%%loopuv
-%\item Transducer block with $accumulator$: \\
-%
-%\Jug{\blockv{n}{\a_1}{\a_k}{\a}}
-%\PT{
-%	\AC{\unaryv{n_0} {\singl \F}{\a_{k1}}{n_0'} {\singl{n_1}}  }
-%	\AC{\blockv{n_0'}{\a_{12}}{\a_{k2}}{\a_2}}
-%	\BC{\blockv{n_0} {\vapp {\singl\F} {\a_{12}}} {\vapp {\a_{k1}} {\a_{k2}}}{\vapp {\singl{n_1}} {\a_2}} }
-%}\\[2ex]
-%
-%\PT{
-%	\AC{\unaryv {n_0} \oT {\a_k} {} {\a}}
-%	\UC{\blockv {n_0} \oT {\a_k} {\a} }
-%}
-%
-%\item Transducer unary with $accumulator$: \\
-%
-%\Jug{\unaryv{n}{\oF}{\a_k}{n'}{\a}}
-%
-%\PT{\Axiom{\scan_{n_0}(\oF,{\singl{n}}) \dda^{n_0+n} {\singl{n_0}} }} \\
-%
-%\Jug{\unaryv{n}{\oT}{\a_k}{}{\a}}
-%
-%\PT{\Axiom{\scan_{n_0}(\oT, \emptyv) \dda {\emptyv} }}
-%\end{itemize}
-%\end{mdframed}
-
-%
-%\subsection{Data consuming rate}
-%
-%Because the data from different channels are usually not only different
-%types, but also different consuming rate -- the number of constant that
-%the Xducer consumes at each
-
-
-
-\section{SVCODE determinism}
-
-As we have given formal semantics to the language, we now argue that a well-formed SVCODE program is deterministic.
-
- 
-\begin{defi}[\textbf{Stream prefix}]
-	$\a$ is a $prefix$ of $\a'$, written $\a \prefix \a'$, if one the following rules applys: \\
+	\PT{\Axiom{\Trans{\del}{a}{\s_0}{\s_0+1}{\sfun{\sdef{s_0}{\constaf{a}}}{\s_0}}}}
+	\PT{\AC{}
+		\RiLa{(\del(x)= \st)}
+		\UC{\Trans{\del}{x}{\s_0}{\s_0}{\sfun{\epsilon}{\st}}}
+	}\\[3ex]
 	
-	\emph{\Jug{\a \prefix \a'}}
-	\PT{\LeLa{\PRName{Emp:}} \Axiom{\emptyv \prefix \a' }}
-	\PRName{Nonemp:}{
-		\PT{
-			\AC{\a \prefix \a'}
-			\UC{\<a_0 | \a \'> \prefix \<a_0 | \a' \'>}
-		}}
+	\PT{\AC{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
+		\AC{\Trans{\del}{e_2}{\s_0'}{\s_1}{\sfun{p_2}{\st_2}}}
+		\BC{\Trans{\del}{(e_1,e_2)}{\s_0}{\s_1}{\sfun {p_1;p_2} {(\st_1,\st_2)}}}
+	}\\[3ex]
+
+	\PT{\AC{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
+		\AC{\Trans{\del[x \|-> {\st_1}]}{e_2}{\s_0'}{\s_1}{\sfun {p_2} {\st}}}
+		\BC{\Trans{\del}{\Let{x}{e_1}{e_2}}{\s_0}{\s_1}{\sfun {p_1;p_2} {\st}}}
+	}\\[3ex]
+
+	\PT{
+		\AC{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
+		\RiLa{((\del(x_i)=\st_i)^k_{i=1})}
+		\UC{\Trans{\del}{\hcall \Tupk{x}}{\s_0}{\s_1}{\sfun{p}{\st}}}
+	}\\[5ex]
+
+%TODO: fix and add more 	
+	???! TODO:fix
+	\PT{
+		\AC{\Trans{[x \|-> {\st_1}, \j{x_i \|-> \st_i}]}{e}{\s_0+1+j}{\s_1}{\sfun{p_1}{\st}}}
+		\RiLa{\left(
+			\begin{aligned}
+				\del(y) = &  \ (\st_1,\s_b) \\
+				\j{\del(x_i) = & \ \st_i'} \\
+				p = & \ \sdef{\s_0}{\usum(\s_b)}; \\
+				& \ \j{\sdef{\s_i}{\distrf{\s_b}{\s_i'}};} \\
+				& \ \withctrl{\s_0}{p_1}{\Sin}{\Sout} \\
+				\Sin = &  \ \FV{p_1} \\
+				\Sout = & \ \overline{\st} \cap \dv{p_1} \\
+				\s_{i+1} = & \ \s_i + 1, \forall i \in \{0,...,j-1\} \\
+			\end{aligned}
+			\right)}
+		\UC{\Trans{\del}{\Comp{e}{x}{y}{\usevars}}{\s_0}{\s_1}
+			{ \sfun{p} {(\st,\s_b)}}}
+	}\\[10ex]	
+}{Translation rules for SNESL1 expressions \label{fig-trans-snesl1}}
 	
-\end{defi}
-
-\begin{lem}\label{lem-app2pre}
-	If $\a_1 {\++} \a_2 = \a$, then $\a_1 \prefix \a$.
-\end{lem}
-\begin{proof}
-	The proof is straightforward by induction on $\a_1$: case $\a_1 = \emptyv$ and case $ \a_1 = \< a_0, \a_1' \'>$ for some $\a_1'$.
-\end{proof}
-
-One may notice that in the rule $\PName{X-Termi}$ both the control stream and the parameter stream(s) must be all empty, and no rules apply to the other cases where one of them is empty while the other is not. The following lemma explains why the other cases can never happen: 
-there is only one way to cut down a prefix of each input stream for
-a specific Xducer to be consumed in a block.
+% Auxiliary 
 
 
-\begin{lem} \label{lem-block-unique}
-	If
-	\begin{enumerate}[(i)]
-		\item $(\a_i' \prefix  \a_i \ by \ some \ derivation \ \MP_{ri})^k_{i=1}$ and $\block{\a_1'}{\a_k'}{\a'}$ by some $\MP$, 
-		\item $(\a_i'' \prefix \a_i \ by \ some \ derivation \ \MP'_{ri})^k_{i=1}$ and
-		$\block{\a_1''}{\a_k''}{\a''}$ by some $\MP'$.
-	\end{enumerate} 
-	then \begin{enumerate}[(i)]
-		\item $(\a_i' = \a_i'')^k_{i=1}$ 
-		\item $\a' = \a''$.
-	\end{enumerate}
-\end{lem}
+\subsection{Built-in function translation}
+The function call of a high-level built-in function will be translated to a few lines of SVCODE instuctions.
 
-\begin{proof}
-	The proof is by induction on the syntax of $\lcall$. We show two cases $\toflag$ and $\scan_{n_0}$ here; the others are analogous.
-	\begin{itemize}
-	  \item Case $\lcall = \toflag$. \\
-	  
-		Since there is only one rule for $\toflag$, we must have
-		$$	\PT{\LeLa{\MP =} 
-			\Axiom{\blockf{\toflag}{\singl{n_1}}{\< \F_1,...,\F_{n_1},\T \'>}} }
-		$$
-		and 
-			$$	\PT{\LeLa{\MP' =} 
-			\Axiom{\blockf{\toflag}{\singl{n_2}}{\< \F_1,...,\F_{n_2},\T \'>}} }
-		$$
-		so $k=1, \a_1' = \singl{n_1}$, $\a' = \< \F_1,...,\F_{n_1},\T \'>$, and  
-	     $\a_1'' = \singl{n_2}$, $\a'' = \< \F_1,...,\F_{n_2},\T \'>$. \\
-		Since both $\a_1'$ and $\a_1''$ are nonempty, $\MP_{r1}$ and $\MP_{r1}'$ must all use the rule $\PRName{Nonemp}$,
-		which implies $n_1$ = $n_2$. 
-		Then it is clear that $\a_1' = \a_1''$ and $\a' = \a''$ as required. 
-
-	  \item Case $\lcall = \scan_{n_0}$. \\
-	  From the two rules $\PName{ScanT}$ and $\PName{ScanF}$, it is clear that $k$=2, and both $\a_1'$ and $\a''_1$ must be nonempty, which means $\MP_{r1}$ and $\MP_{r1}'$ must all use $\PRName{Nonemp}$. \\
-	  By induction on $\a_1$, there are two subcases:
-	  \begin{itemize}
-	  	\item Subcase $\a_1 = \< \T | \a_{10} \'>$. \\
-	  	By $\PRName{Nonemp}$ we know $\a_1'$ and $\a_1''$ must start with a $\T$, thus both $\MP$ and $\MP'$ must use $\PName{ScanT}$, and they must be identical:
-	  	$$
-	  	  \PT{\LeLa{\MP = \MP' = } \Axiom{\blockf{\scan_{n_0}}{\oT, \emptyv}{\emptyv}}}$$
-	  	 So immediately we have $\a'_{1} = \a_1'' = \oT$, $\a_2' = \a_2'' = \emptyv$,
-	  	 and $\a' = \a'' = \emptyv$ as required.
-	  	
-	  	\item Subcase $\a_1 = \< \F | \a_{10} \'>$. \\
-	  	By $\PRName{Nonemp}$ we know $\a_1'$ and $\a_1''$ must start with an $\F$, therefore both $\MP$ and $\MP'$ must use $\PName{ScanF}$. 
-	  	Assume $\a_2 = \<n | \a_{20} \'>$, then we must have
-	  	
-	  	$$\PT{\UCN{\MP_0}{\blockf{\scan_{n_0+n}}{\a'_{10},\a'_{20}}{\a_0'}}
-	  		\LeLa{\MP = }
-	  		\UC{\blockf{\scan_{n_0}}{\<\F|\a'_{10} \'>, \<n|\a'_{20}\'>}{\<n_0|\a'_0\'>}}
-	  	}$$
-  	    where \eq{eq-scan-determ-1}{
-  	    ( \a_{i0}' \prefix \a_{i0} )^2_{i=1}}
-  	
-  	    So $\a_1' =  \<\F|\a'_{10} \'>, \a_2' = \<n|\a'_{20}\'>$,
-  	    and $\a' = \<n_0|\a'_0\'>$.
-  	    
-  	    Similarly, 
-  	    
-  	    	$$\PT{\UCN{\MP_0'}{\blockf{\scan_{n_0+n}}{\a''_{10},\a''_{20}}{\a''_0}}
-  	    	\LeLa{\MP' = }
-  	    	\UC{\blockf{\scan_{n_0}}{\<\F|\a''_{10} \'>, \<n|\a''_{20}\'>}{\<n_0|\a''_0\'>}}
-  	    }$$
-  	    where  \eq{eq-scan-determ-2}{
-  	    	(\a''_{i0} \prefix \a_{i0} )^2_{i=1}}
-      	
-      	
-      	and $\a_1'' =  \<\F|\a''_{10} \'>, \a_2'' = \<n|\a''_{20}\'>$, $\a'' = \<n_0|\a''_0\'>$.
-      	
-      	By IH on $\eqref{eq-scan-determ-1}$ with $\MP_0$, 
-      	$\eqref{eq-scan-determ-2}$, $\MP_0'$, we get
-      	$(\a'_{i0} = \a''_{i0})^2_{i=1}$, and $\a'_0 = \a''_0$. \\
-      	Thus $\< \F |\a'_{10} \'> = \<\F | \a''_{10} \'>$, i.e., $\a'_1 = \a''_1$. 
-      	Likewise, $\a'_2 = \<n|\a'_{20}\'> = \<n|\a''_{20}\'> = \a''_2$, and  $\a' = \<n_0|\a'_0\'> = \<n_0|\a''_0\'> = \a''$ as required. 
-	  	
-	  \end{itemize}
-	
-	\end{itemize}
-\end{proof}
-
-
-\begin{lem}[\textbf{Xducer determinism}] \label{lem-xducer-determ}
-	If $\sevalfg{\lcall}{\replc{k}{\a}}{\c}{\a_0}$ by some derivation $\MP$,
-	and $\sevalfg{\lcall}{\replc{k}{\a}}{\c}{\a'_0}$ by some derivation $\MP'$,
-	then $\a_0 = \a'_0$.
-\end{lem}
-
-\begin{proof}
-	The proof is by induction on the structure of $\c$. There are two cases: $\c = \emptyv$ and $\c = \< () | \c_0 \'>$ for some $\c_0$. The first case is trivial, so we just show the second here.
-	\begin{itemize}
-		\item Case $\c = \< () | \c_0 \'>$. \\		
-		$\MP$ must use $\PName{X-Loop}$:
-		$$\PT{
-			\UCN{\MP_1}{\block{\a_{11}}{\a_{k1}}{\a_{01}}}
-			\UCN{\MP_2}{\sevalf{\a_{12}}{\a_{k2}}{\c_0}{\a_{02}}}
-			\LeLa{\MP = }
-			\BC{\sevalf{\a_1}{\a_k}{\< () | \c_0 \rangle}{\a_0}}
-		}$$
-		where 
-		\eq{eq-xdu-1}{(\vapp{\a_{i1}}{\a_{i2}} = \a_i)^k_{i=1}}
-		\eq{eq-xdu-2}{\vapp{\a_{01}}{\a_{02}} = \a_0}
-		Similarly,
-			$$\PT{
-			\UCN{\MP'_1}{\block{\a'_{11}}{\a'_{k1}}{\a'_{01}}}
-			\UCN{\MP'_2}{\sevalf{\a'_{12}}{\a'_{k2}}{\c_0}{\a'_{02}}}
-			\LeLa{\MP' = }
-			\BC{\sevalf{\a_1}{\a_k}{\< () | \c_0 \rangle}{\a'_0}}
-		}$$
-		where
-		\eq{eq-xdu-3}{(\vapp{\a'_{i1}}{\a'_{i2}} = \a_i)^k_{i=1}}
-		\eq{eq-xdu-4}{\vapp{\a'_{01}}{\a'_{02}} = \a'_0}
-		
-		Using Lemma~\ref{lem-app2pre} $k$ times on \eqref{eq-xdu-1}, we have 
-		\eq{eq-xdu-5}{(\a_{i1} \prefix \a_i)^k_{i=1}}
-		Analogously, from  \eqref{eq-xdu-3},
-		  \eq{eq-xdu-6}{(\a'_{i1} \prefix \a_i)^k_{i=1}}
-		
-		By Lemma~\ref{lem-block-unique} on \eqref{eq-xdu-5} with
-		$\MP_1$, \eqref{eq-xdu-6}, $\MP_1'$, we get
-		\eq{eq-xdu-7}{\k{\a_{i1} = \a'_{i1}}}
-		\eq{eq-xdu-8}{\a_{01} = \a'_{01}}
-		
-		It is easy to show that from \eqref{eq-xdu-1}, \eqref{eq-xdu-3} and \eqref{eq-xdu-7} we can get
-				\eq{eq-xdu-9}{\k{\a_{i2} = \a'_{i2}}}
-		Then by IH on $\MP_2$ with $\MP_2'$, we obtain $\a_{02} = \a'_{02}.$
-		
-		Therefore, with \eqref{eq-xdu-2}, \eqref{eq-xdu-4}, \eqref{eq-xdu-8}, 
-		we obtain $\a_0 = \a_{01} {\++} \a_{02} = \a'_{01} {\++} \a'_{02} = \a'_0$, as required.
-	\end{itemize}
-	
-	 
-\end{proof}
-
-
-\begin{thm}[\textbf{SVCODE determinism}] \label{thm-svcode-determ}
-	If $\seval{p}{\sgm}{\c}{\sgm'}$ (by some derivation $\MP$) and $\seval{p}{\sgm}{\c}{\sgm''}$ (by some derivation $\MP'$), 
-	then $\sgm' = \sgm''$.
-\end{thm}
-
-\begin{proof}
-	The proof is by induction on the syntax of $p$. There are four cases: the case for $p = \epsilon$ is trivial; with the help of Lemma~\ref{lem-xducer-determ}, the case for $p = \sdef{s}{\lcall(s_1,...,s_k)}$ is also trivial; proof of $p = p_1; p_2$ can be done by IH; the only interesting case is $p = \withctrl{\s_c}{p_1}{\Sin}{\Sout}$.
-	\begin{itemize}
-		\item Case $p = \withctrl{\s_c}{p_1}{\Sin}{\Sout}$. \\
-		Assume $\Sout = \{s_1,...,s_l\}$. There are two subcases by induction on $\sgm(\s_c)$: 
-		\begin{itemize}
-			\item Subcase $\sgm(\s_c) = \emptyv$. \\
-			Then $\MP$ and $\MP'$ must all use $\PName{Wc-Emp}$, and they must be identical:		
-			$$\PT{ 
-				\LeLa{\MP= \MP' =}
-				\Axiom{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\l{\s_i \|-> \emptyv}]}}
-			}$$
-		    with $ \forall s \in \Sin. \sgm(s) = \emptyv$.
-		    So $\sgm' = \sgm'' = \sgm[\l{\s_i \|-> \emptyv}]$, as required. 
-		    
-		    \item Subcase $\sgm(\s_c) \neq \emptyv$. \\
-		    Then we must have
-			$$\PT{
-				\UCN{\MP_1}{\seval{p_1}{\sgm}{\c_1}{\sgm_1}}
-				\LeLa{\MP = }
-				\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\l{\s_i \|-> \sgm_1(\s_i)}]}}
-			}$$
-		
-			Also, we have
-			$$\PT{
-				\UCN{\MP'_1}{\seval{p_1}{\sgm}{\c_1}{\sgm'_1}}
-				\LeLa{\MP' = }
-				\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\l{\s_i \|-> \sgm'_1(\s_i)}]}}
-			}$$
-		
-			So $\sgm' = \sgm[\l{\s_i \|-> \sgm_1(\s_i)}]$, 
-			and $\sgm'' = \sgm[\l{\s_i \|-> \sgm'_1(\s_i)}]$. \\
-			By IH on $\MP_1$ and $\MP'_1$, we obtain
-			$$\sgm_1 = \sgm_1'$$
-			Then it is clear that $\sgm' = \sgm''$, as required.
+\fig{
+\Jug{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}} 
 			
-		\end{itemize} 
-		
-	\end{itemize}
+	\PT{
+		\Axiom{\Transf{\oplus}{\s_1,...,s_k}{\s_0}{\s_0+1}
+			\sfun{\sdef{\s_0}{\map{\oplus}(\s_1,...,\s_k)}}{\s_0}}
+	}\\[10ex]
+	\PT{
+		\AC{}
+		\RiLa{\left( \begin{aligned}
+				\s_{i+1} & = \s_i + 1, \forall i \in \{0,...,3\} \\
+				p= & \sdef{\s_0}{\toflag(\s)} ; \\ 
+				& \sdef{\s_1}{\usum(s_0)} ; \\
+				& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{[\s_1]}{[\s_2]}; \\
+				& \sdef{\s_3}{\scan_{0}(\s_0,s_2)}
+			\end{aligned}\right)
+		}
+		\UC{\Transf{\iotan}{\s}{\s_0}{\s_4}{\sfun{p} {(\s_3,\s_0)}}}
+	}\\[4ex]
+(will add more)
+%TODO add more
+}{Translation of built-in functions \label{fig-trans-builtin}}
 
-\end{proof}
+
+\subsection{User-defined function translation}
+A user-defined function $function \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e $ will be translated to an SVCODE function
+$([\S_1], p, \ol{\st})$, where $\Trans{[x_1 \|-> st_1,..., x_k \|-> \st_k ]}{e}{0}{s_1}{\sfun{p}{\st}}$ and ...
+$$ tp2tree : \tau \ra \STree  $$ 
+%TODO 
+
+
+\section{Eager interpreter}
+Recall that an SVCODE program is a list of instructions of each defines one or more streams. 
+The eager interpreter executes the instructions sequentially, assuming the available memory is infinitely large, which is the critical difference between the execution models of the eager and streaming interpreters.
+For an eager interpreter, since there is always enough space, a new defined stream can be completely allocated in memory immediately after its definition instruction is executed.
+In this way, traversing the whole program only once will generate the final result, even for recursions.
+And the streaming model of SVCODE does not show any of its strengths here; the interpreter will perform just like a NESL's low-level interpreter. 
+
+\subsection{Dataflow}
+
+\subsection{Cost model}
+
 
 
 \section{Streaming interpreter}
+As we have mentioned before, the execution model of streaming interpreter does not assume an infinite memory; instead, it only uses a limited size of memory as a buffer. 
+If the buffer size is relatively small, then most of the streams cannot be materialized entirely at once. 
+As a result, the SVCODE program will be traversed multiple times, or there will be more scheduling rounds. 
+The dataflow of the streaming execution model is still a DAG, but the difference from the eager one is that each Xducer maintains a small buffer, whose data is updated each round. 
+The final result will be collected from all these scheduling rounds.
 
-\section{Recursion}
+Since in most cases we will have to execute more rounds, some extra setting-up and overhead seem to be inevitable.
+On the other hand, exploiting only a limited buffer increases the efficiency of space usage. 
+In particular, for some streamable cases, such as an exclusive scan, the buffer size can be as small as one (and by one we do not mean one bit or byte of physical memory, but rather a conceptual, minimal size).
 
+
+\subsection{Processes}
+In the streaming execution model, the buffer of a Xducer can be written only by the Xducer itself, but can be read by many other Xducers. 
+And it has two states: 
+\begin{description}
+	\item[Filling state]: the buffer is not full, and the Xducer is producing or writing data to it; any other trying to read it has to wait, or more precisely, enters a read-block state.
+
+	\item[Draining state]: the buffer must be full; the readers, including the read-blocked ones, can start reading it now; if the Xducer tries to write the buffer, then it enters a write-block state.
+\end{description}
+
+The condition of switching from filling state to draining state is simple: when the buffer is fully filled. 
+But the other switching direction takes a bit more work to detect: all the readers have read all the data in the buffer. We will come to this later.
+
+A notable special case is when the Xducer produces its last chunk, whose size may be less than the buffer size thus can never turn the buffer to a draining mode.
+To deal with this case, we add a flag to the draining state to indicate if it is the last chunk of the stream. 
+So we define the buffer state as follows:
+$$\bufst = \{\*{Filling}, \*{Draining} \ b \} $$
+
+
+In addition to maintaining the buffer state, the Xducer also has to remember its suppliers so that it is not necessary to specify the suppliers repeatedly each round. 
+Actually, once a dataflow DAG is established, it is only possible to add more subgraphs to it due to an unfolding of a \wc block or a \sc instruction; the other parts uninvolved will be unchanged until the execution is done.
+
+
+Since Xducers have different data rates (the size of consumed/produced data at each round), it is also important to keep track of the position of the data that has been read, which can be represented by an integer.
+Also, it is possible that a Xducer reads from the same supplier multiple times but with different data rates, in which case only a pair of stream id and an integer is not enough to distinguish all the different read cursors. 
+Thus we need a third component, the channel number, to record the state of each reader, as we have shown in Figure~\ref{fig-svcode-dag1}.
+As a result, we must have a client list $\clis$ of elements of type $(\SId, \int, \int) $
+
+Now we define a $process$, a tuple of four components including a Xducer, as the node on the streaming DAG:
+
+$$ \proc  =  (\bufst, \S, \clis, \xducer) $$
+
+where $\S$ is the stream ids of the suppliers. 
+
+
+
+\subsection{Scheduling}
+
+
+\subsection{Recursion}
+
+\subsection{Deadlock}
+
+\subsection{Examples}
+
+%Figure~\ref{fig-xducer-semantics} shows the semantics at the general level. 
+%
+%
+%\begin{figure}[h]\large
+%	
+%	\Jug{\sevalf{\a_1}{\a_k}{\c}{\a}} \\
+%	
+%	
+%	\PRule{X-Loop}{\PT{
+%			\AC{\block{\a_{11}}{\a_{k1}}{\a_{01}}}
+%			\AC{\sevalf{\a_{12}}{\a_{k2}}{\c_0}{\a_{02}}}
+%			\RiLa{((\vapp{\a_{i1}}{\a_{i2} = \a_i})^k_{i=0})}
+%			\BC{\sevalf{\a_1}{\a_k}{\< () | \c_0 \rangle}{\a_0}}
+%	}}\\[4ex]
+%	
+%	\LeLa{\PName{X-Termi:}} 
+%	\Axiom{\sevalf {\emptyv_1} {\emptyv_k} \emptyv \emptyv}
+%	\DisplayProof \footnotemark	
+%	\caption{Semantics of SVCODE transducers \label{fig-xducer-semantics}}
+%\end{figure}
+%\footnotetext{For notational convenience, in this thesis we add subscripts to a sequence of constants, such as $\emptyv, \F, 1$, to denote the total number of these constants.}
+%
+%There are only two rules for the general semantics. 
+%They together say that the output stream is computed in a ``loop" fashion, where the 
+%iteration uses specific block semantics of the Xducer and the number of iteration is the unary number that the control stream represents, i.e., the length of the control stream. 
+%In the parallel setting, we prefer to call this iteration a $block$. 
+%Recall the control stream is a representation of the parallel degree of the computation, then a block consumes exact one degree. 
+%We note that all these blocks are data-independent, which means they can be performed in parallel. 
+%Now it is clear that the control stream indeed carrys the theoretical
+%maximum number of processors we need to execute the computation most efficiently (if the computation within the block can not be parallelized further)(???).
+%
+%\begin{itemize}
+%\renewcommand{\labelitemi}{$-$}
+%
+%	\item $\toflagf{\singl{n}}$ first outputs $n$ $\F$s, then one $\T$.
+%	
+%	\begin{example} \emph{$\toflagf{\<2,0\'>}$:}\\
+%		\begin{center}
+%		\includegraphics[width=0.6\textwidth]{fig/toflag.png}
+%		\end{center}
+%	\end{example}
+%
+%	\item $\usumf{\b}$ transforms an $\F$ to a unit, or a $\T$ to nothing. It is the only Xducer that can generate a unit vector,
+%	so it is mainly used when we need to replace the control stream.
+%	\begin{example} \emph{$\usumf{\<\F,\T,\F,\F,\T\'>}$:}\\
+%		\begin{center}
+%			\includegraphics[width=0.6\textwidth]{fig/usum.png}
+%		\end{center}
+%	\end{example}
+%	
+%	\item $\scan_{n_0}(\b,\a)$ performs an exclusive scan of the binary operation plus on $\a$, segmented by $\b$, with a starting element $n_0$.
+%		\begin{example} \emph{$\scan_{0}(\<\F,\F,\F,\T,\F,\T\'>, \< 2,5,3,6 \'>)$}\\
+%		\begin{center}
+%			\includegraphics[width=0.7\textwidth]{fig/scan.png}
+%		\end{center}
+%	\end{example}
+%	 
+%	\item $\distr(\b,{\singl{n}})$ replictes the const $n$ $u$ times where $u$ is the unary number segmented by $b$. 
+%	\begin{example} \emph{$\distrf{\<\F,\F,\F,\T,\F,\T\'>}{\< 2,5 \'>}$}\\
+%		\begin{center}
+%			\includegraphics[width=0.7\textwidth]{fig/distr.png}
+%		\end{center}
+%	\end{example}
+%	
+%\end{itemize}
+%
+%		
+%
+%
+%As we have discussed before, we consider a block  as the minimum computing unit assigned to a single processor. This is reasonable for
+%Xducers such as $\consta{a}$ and $\maptwo{\oplus}$, because
+%they are already sequential at the block level. 
+%
+%However, some other Xducers, such as $\usum$, can be parallelized further inside a block.
+%As we extend the language with more Xducers, we could find that computations on unary numbers within blocks are common, which is mainly due to the value represenation strategy we use, but also more difficult to be regularized.
+%For the scope of this thesis, the block semantics we have shown are already relatively clear and simple enough to reason about, and the unary level parallelism can be investegated in future work. 
+% 
 
 

@@ -1,14 +1,50 @@
+
 \chapter{Introduction}
 
 \section{Background}
 \subsection{Nested data parallelism}
 
 \section{NESL}
-%NESL \cite{blel95nesl} 
+NESL \cite{blel95nesl} is a first-order functional nested data-parallel language. The main construct to express data-parallelism in NESL is called $apply\!-\!to\!-\!each$, whose form is similar to the list-comprehension in Haskell. 
+As an example, adding 1 to each element of a sequence $[1,2,3]$ can be written as the following apply-to-each expression:
+$$ \{x+1 : x \ \*{in} \ [1,2,3] \}$$
+which does the same computation as the Haskell expression $$\texttt{map (+1) [1,2,3]}$$ 
+but the low-level implementation is executed in parallel rather than sequential. 
+
+The first highlight of NESL is that the design of this language makes it easy to write readable parallel algorithms. The apply-to-each construct is more expressive in its general form:
+$$ \{ e_1 :  x_1 \ \*{in} \ seq_1 \ ; \ ... \ ; \ x_i \  \*{in} \ seq_i \ \ | \ e_2  \}$$
+where the variables $x_1, ...,x_i$ occurred in $e_1$ and $e_2$ are bound to $seq_1,...,seq_i$ respectively, and $e_2$, called a $sieve$, performs as a condition to filter out some elements. 
+Also, NESL's built-in primitive functions, such as scan \cite{blel89scan}, are powerful for manipulating sequences.
+An example of the divide-and-conqure scan algorithm written in NESL is shown in Figure~\ref{fig-nesl-scan}.
+
+\begin{figure}
+\begin{lstlisting}[style=nesl-style]
+	-- divide-and-conquer scan
+	function dc_scan(v) =
+	  if #v == 0 then v
+	  else if #v == 1 then [0]
+	       else 
+	         let vp = partition(v, [#v/2, #v - #v/2]);
+	             ps = {dc_scan(p): p in vp};
+	             s0 = ps[0][#ps[0]-1] + vp[0][#vp[0]-1];
+	             ps2 = {x + s0 : x in ps[1]}
+	         in ps[0]++ps2;
+
+	-- a simple test
+	$> dc_scan([1,2,3,4])
+	[0, 1, 3, 6] :: [int]
+\end{lstlisting}
+\caption{{A NESL program \label{fig-nesl-scan}}}
+\end{figure}
+
+The low-level language of NESL's implementation is VCODE. 
+% TODO 
+(some more about vcode)
 
 \subsection{Work-depth cost model}
-
-% \cite{blel96cost}
+Another important idea of NESL is its language-based cost model \cite{blel96cost}. 
+(some more)
+% TODO 
 
 \section{SNESL}
 Streaming NESL (SNESL) \cite{Fphd} is a refinement of NESL
@@ -41,10 +77,10 @@ For clearity, from now on, we will use the terms consistent with SNESL.
 The values of SNESL are as follows:
 \begin{align*}
 & a ::=  \T \ | \ \F \ | \ n \ (n \in \mathbb{Z}) \ | \ ... \\
-& v ::=  a \ | \ (v_1,...,v_k) \ | \ [v_1,...,v_l] \ | \ \{v_1,...,v_l\} 
+& v ::=  a \ | \ (v_1,...,v_k) \ | \ [v_1,...,v_k] \ | \ \{v_1,...,v_k\} 
 \end{align*}
 where $a$ is the atomic values or constants of types $\pi$, and $v$ are
- general values which can be a constant, a tuple with a small number ($k$) of components, a vertor or a stream with a large number ($l$) of elements.  
+ general values which can be a constant, a tuple, a vertor or a sequence with $k$ elements.  
 
 The expressions of SNESL are shown in Figure~\ref{fig-snesl-exps}.
 
@@ -56,58 +92,68 @@ The expressions of SNESL are shown in Figure~\ref{fig-snesl-exps}.
 &   && \quad | \ \Let{x}{e_1}{e_2} \tag{let-binding}\\
 &   && \quad | \ \hcall{\Tupk{x}}  \tag{built-in function call} \\
 &   && \quad | \ \Comp{e_1}{x}{y}{\usevars} \tag{general comprehension} \\
-&   && \quad | \ \Recom{e_1}{x}{\usevars} \tag {restricted comprehension} 
+&   && \quad | \ \RComp{e_1}{x}{\usevars} \tag {restricted comprehension} 
 \end{alignat*}
 \caption{SNESL expressions \label{fig-snesl-exps}}
 \end{figure}
 
-As a minimalistic version of NESL, SNESL maintains the expressive and comfortable programming style of NESL. 
-Basic expressions, such as the first five in Figure~\ref{fig-snesl-exps}, are almost the same as in NESL. 
-The general comprehesion expression looks similar to the apply-to-each construct in NESL except an explicit list of the free variables (listed after the keyword $\*{using}$) occur in the body $e_1$. And the sieve is independent from apply-to-each  as the restricted comprehension for easier analysis and working as the only conditional expression in SNESL. 
-Semantically, these comprehensions extend the apply-to-each to compute from vectors (i.e., type $[\varphi]$) to streams (i.e., type $\{\tau\}$). 
+As an extension of NESL, SNESL keeps a similar programming style of NESL. 
+Basic expressions, such as the first five in Figure~\ref{fig-snesl-exps}, are the same as in NESL. 
+Perhaps for easier experimental analysis,
+the apply-to-each construct is splitted to the general and the restricted comprehensions, both added  
+an explicit list of the free variables (listed after the keyword $\*{using}$) occur in the body $e_1$,
+and the restricted one is the only expression that can work as a conditional itself in SNESL (???). 
+These comprehensions also extended the semantics of the apply-to-each from evaluating to vectors (i.e., type $[\varphi]$) to evaluating to sequences (i.e., type $\{\tau\}$). 
 
-Another notable difference from NESL to SNESL occurs in the built-in functions. 
+Another remarkable difference from NESL to SNESL occurs in the built-in functions.
+The primitive functions of SNESL is shown in Figure~\ref{fig-snesl-func}.
 
 \begin{figure}[h]
 \begin{alignat}{2} 
-&\hcall && ::= \oplus \ | \ \ \*{append} \ | \ \*{concat} \ | \ \*{zip} \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_{\otimes} \ | \ \*{reduce}_{\otimes} \\
+&\hcall && ::= \oplus \ | \ \ \*{append} \ | \ \*{concat} \ | \ \*{zip} \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_{\otimes} \ | \ \*{reduce}_{\otimes} \ | \ \*{mkseq} \\
 &   && \quad | \ \*{length} \ | \ \*{elt} \\
 &   && \quad | \ \*{the}  \ | \ \*{empty} \\
-&   && \quad | \ \*{mkseq} \ | \ \*{seq} \ | \ \*{tab} \\
+&   && \quad | \ \*{seq} \ | \ \*{tab} \\
 & \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  \div \ | \ \% \ | \le \ | \ ... \tag{consts operations} \\
 & \otimes \ && :: = + \ | \ \times  \ | \ ...  \tag{associative binary operations}
 \end{alignat}
 \caption{SNESL primitive functions \label{fig-snesl-func}}
 \end{figure}
 
-The functions listed in (1.1) and (1.2) of Figure~\ref{fig-snesl-func} are original supported in NESL, doing transformations on consts and vectors. In SNESL, list (1.1) are adapted to streaming versions with slight changes of parameter types where necessary.
+The functions listed in (1.1) and (1.2) of Figure~\ref{fig-snesl-func} are original supported in NESL, doing transformations on consts and vectors. 
+In SNESL, list (1.1) are adapted to streaming versions with slight changes of parameter types where necessary.
+By streaming version we mean that these functions in SNESL take sequences as parameters instead of vectors as they do in NESL, thus most of these functions can be executed in a more space-efficient way.  
+There will be more detailed descriptions of these functions in the next chapter.
 
-Functions in (1.2) are kept their vector versions in SNESL to guarantee the efficiency, although it is possible to realize these functions in a streaming fashion.
-List (1.3) are new primitives primarily working in  streams.  
-The function $\*{the}$ can be used to a two if-else-then statement,  
-$if e_0 then e_1 else e_2 $ 
-$\*{empty}$, which tests if a collection is empty or not, is much more efficient in a streaming setting as it takes only constant complexity both in time and space.  
-Finally, list (1.4) c convert between vectors and streams. $\*{seq}$, typed as $[\varphi] \rightarrow \{\varphi\}$, converts a vector to a sequence; $\*{tab}$ does the contrary work, tabulates the sequence into a vector.
+Functions in (1.2) are kept their vector versions in SNESL to guarantee the efficiency, although it is possible to realize stream versions for them as well.
+
+List (1.3) are new primitives in SNESL.  
+The function $\*{the}$, returns the sole element of a singleton sequence, can be used to resemble an if-else-then statement together with restricted comprehensions:
+$$\*{if} \ e_0 \ \*{then} \ e_1 \ \*{else} \ e_2 \equiv \*{the}(\RComp{e_1}{e_0}{...} {\++} \RComp{e_2}{\*{not}(e_0)}{...}) $$
+where ${\++}$ is a syntactic sugar of $\*{append}$. 
+$\*{empty}$, which tests whether a sequence is empty or not, is much more efficient in a streaming setting as it takes only constant complexity both in time and space.
+  
+Finally, list (1.4) are functions performing conversions between concrete types and streams. $\*{seq}$, typed as $[\varphi] \rightarrow \{\varphi\}$, converts a vector to a sequence, and $\*{tab}$ does the contrary work, tabulating the sequence into a vector.
 
 
 
 \subsection{Cost model}
-Based on the work-depth model, the cost model of SNESL is extended with a space
-component, 
-
+Based on the work-depth model, SNESL develops a third component of complexity measurement with regards to space.
+(% TODO 
+more)
 
 \section{Mathematical background and notations}
-\begin{itemize}
-	\item Set difference: \\
-	For two sets $A$ and $B$, 
-	\[ A \ \backslash \ B = \{s | s \in A \wedge s \notin B\} \]
-	
-	It is easy to prove the following properties: 
- 	\begin{itemize}
-	 	\item For any three sets $A,B$ and $C$: 
-	 			\eq{set-p1}{(A \bs B) \cap C = (A \cap C) \bs B  =  A \cap (C \bs B)}
-	 	\item For two sets $A$ and $B$,
-	 	       \eq {set-p2}{A \cap B = \emptyset  \Leftrightarrow A \bs B = A}
- 	\end{itemize}
-
-\end{itemize}
+%\begin{itemize}
+%	\item Set difference: \\
+%	For two sets $A$ and $B$, 
+%	\[ A \ \backslash \ B = \{s | s \in A \wedge s \notin B\} \]
+%	
+%	It is easy to prove the following properties: 
+% 	\begin{itemize}
+%	 	\item For any three sets $A,B$ and $C$: 
+%	 			\eq{set-p1}{(A \bs B) \cap C = (A \cap C) \bs B  =  A \cap (C \bs B)}
+%	 	\item For two sets $A$ and $B$,
+%	 	       \eq {set-p2}{A \cap B = \emptyset  \Leftrightarrow A \bs B = A}
+% 	\end{itemize}
+%
+%\end{itemize}
