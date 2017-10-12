@@ -207,10 +207,10 @@ testString str env@(e0,t0,v0,f0,bs,mflag) =
        sneslTy <- runTypingExp e t0   
        (sneslRes,w,s) <- runSneslExp e e0 
        (svcode, st) <- runCompileExp e v0
-       (svcodeResCtx, (w',s')) <- runSvcodeExp svcode f0  -- eager interp
-       svcodeRes <- sv2sv st svcodeResCtx
-       --(svcodeResCtx, (w',s')) <- runSvcodePExp svcode bs mflag f0 -- streaming interp       
-       --svcodeRes <- avs2sv st svcodeResCtx
+       --(svcodeResCtx, (w',s')) <- runSvcodeExp svcode f0  -- eager interp
+       --svcodeRes <- sv2sv st svcodeResCtx
+       (svcodeResCtx, (w',s')) <- runSvcodePExp svcode bs mflag f0 -- streaming interp       
+       svcodeRes <- avs2sv st svcodeResCtx
        svcodeRes' <- dataTransBack sneslTy svcodeRes
        if compareVal sneslRes svcodeRes'  
          then return (sneslRes, sneslTy,(w,s),(w',s')) 

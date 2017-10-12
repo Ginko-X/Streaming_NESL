@@ -13,11 +13,12 @@
 		true,
 		T,
 		F,
+		Deadlock
 	},
 	sensitive=true,   % keywords case-sensitive
 	morecomment=[l]{--},  % l-line comment
-	morecomment=[s]{\{-}{-\}},  % s-start and end
-	otherkeywords={:,\&,\#,\%,++},
+%	morecomment=[s]{\{-}{-\}},  % s-start and end
+	otherkeywords={:,\&,\#,\%,++, ==, !=},
 	morestring=[b]"
 }
 
@@ -39,7 +40,7 @@
 
 \lstdefinestyle{nesl-style}{
 	language={nesl},
-	emph=[1] {concat,index, append, ++, \#, &, partition, part, ord,
+	emph=[1] {concat,index, append, ++, \#, &, \%, ==, !=, partition, part, ord,
 		scanPlus, reducePlus, the, empty, 
 	},
 	emphstyle=[1]{\color{blue}},
@@ -48,6 +49,8 @@
 	emphstyle=[2]{\color{blue(munsell)}},
 	emph=[3] {function, def},
 	emphstyle=[3]{\color{amber}},
+	emph=[4] {Deadlock},
+	emphstyle=[4]{\color{darkred}},
 }
 
 

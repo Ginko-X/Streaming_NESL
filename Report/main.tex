@@ -15,8 +15,9 @@
 %\usepackage{tcolorbox}
 \usepackage[font=large,labelfont=bf]{caption}
 \usepackage{float}
+\usepackage{diagbox}
 
-\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=3cm}
+\geometry{left=3cm,right=3cm,top=3cm,bottom=3cm}
 
 \renewcommand\qedsymbol{$\blacksquare$}
 
@@ -40,6 +41,7 @@
 \definecolor{carnelian}{rgb}{0.7, 0.11, 0.11}
 \definecolor{gray}{rgb}{0.3,0.3,0.3}
 \definecolor{blue(munsell)}{rgb}{0.0, 0.5, 0.69}
+\definecolor{darkred}{rgb}{0.5, 0.0, 0.13}
 
 \input{lang-style.tex}
 
@@ -66,6 +68,9 @@
 
 
 \def\*#1{\mathbf{#1}}
+\def\mysnesl{$\mathrm{SNESL_1} \ $}
+\def\fmsnesl{$\mathrm{SNESL_0} \ $}
+\def\fmsvcode{$\mathrm{SVCODE_0} \ $}
 
 %source language syntax
 \def\Let#1#2#3{\*{let} \ #1 = #2 \ \*{in} \ #3}
@@ -306,9 +311,14 @@
 \begin{document}\large
 \maketitle
 
-%\begin{abstract}
-%	TBD
-%\end{abstract}
+\begin{abstract}
+ Streaming NESL (SNESL) is a first-order functional, nested data-parallel language, employing a streaming execution model and integrating with a cost model that can predict both time and space complexity.
+ The experimentation has demonstrated good performance of SNESL's implementation and positive empirical evidence of the validity of the code model.
+ In this thesis, we first present non-trivial extension to SNESL's target language, SVCODE, which enables SNESL to support recursion at the same time preserve the cost.
+ Then the formalization of the semantics of this low-level streaming language is given. 
+ Finally, we present the proof of the correctness of SNESL's implementation model.
+ 
+\end{abstract}
 
 
 \tableofcontents
@@ -318,8 +328,8 @@
 \input{intro.tex}
 \input{imple.tex}
 %\input{trans.tex}
-\input{snesl1-proof.tex}
-\input{concl.tex}
+%\input{snesl1-proof.tex}
+%\input{concl.tex}
 
 
 \bibliography{thesis}

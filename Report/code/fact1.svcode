@@ -1,0 +1,25 @@
+> :c {{fact(y): y in &x} : x in {9,10}}
+
+Parameters: []
+S0 := Ctrl;
+S1 := Const 9;
+S2 := Const 10;
+S3 := Const 1;
+S4 := ToFlags 3;
+S5 := ToFlags 3;
+S6 := InterMergeS [4,5];
+S7 := PriSegInterS [(1,4),(2,5)];
+S8 := Usum 6;
+WithCtrl S8 (import [7]):
+	S9 := ToFlags 7
+	S10 := Usum 9
+	WithCtrl S10 (import []):
+	S11 := Const 1
+	Return: (IStr 11)
+	S12 := SegscanPlus 11 9
+	S13 := Usum 9
+	WithCtrl S13 (import [12]):
+	SCall fact [12] [14]
+	Return: (IStr 14)
+	Return: (SStr (IStr 14), 9)
+Return: (SStr (SStr (IStr 14), 9), 6)

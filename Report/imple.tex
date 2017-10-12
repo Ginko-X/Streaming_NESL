@@ -2,45 +2,48 @@
 
 \def\PRName#1{\textsc{Pre-#1}}
 \newcommand\ra{\rightarrow}
-\newcommand\vp{\varphi}
 \newcommand\tr{\triangleright}
 \newcommand{\proc}{\*{Proc}}
 \newcommand{\bufst}{\*{BufState}}
 \newcommand{\sups}{\*{Sups}}
 \newcommand{\clis}{\*{Clis}}
 \newcommand{\xducer}{\*{Xducer}}
-
+\newcommand{\filling}{\texttt{Filling} \ }
+\newcommand{\draining}{\texttt{Draining} \ }
+\newcommand{\pin}{\texttt{Pin} \ }
+\newcommand{\pout}{\texttt{Pout}}
+\newcommand{\done}{\texttt{Done}}
+\renewcommand{\skip}{\texttt{skip}} 
 
 \chapter{Implementation}
 
 In this chapter, we will first talk about the high-level interpreter of a minimal SNESL language but with extension of user-defined functions to give the reader a more concrete feeling about SNESL. 
 Then we introduce the streaming low-level language, SVCODE, with respect to its grammar, semantics and primitive operations.
 Translation from the high-level language to the low-level one will be explained to show their connections.
-Finally, two interpreters of SVCODE will be described and compared with emphsis on the latter one to demonstrate the streaming machnism.
+Finally, two interpreters of SVCODE will be described and compared with emphasis on the latter one to demonstrate the streaming mechanism.
 
 
 
 \section{High-level interpreter}
 
-In this thesis, the high-level language we have experimented with is a subset of SNESL introduced in the last chapter but without vectors. We will call this language SNESL1.
+In this thesis, the high-level language we have experimented with is a subset of SNESL introduced in the last chapter but without vectors. We will call this language \mysnesl.
 As our first goal is to extend SNESL with user-defined (recursive) functions,
-it is safe to do experiments only with SNESL1 because removing vectors from SNESL should not affect the complexity of the problem too much; we believe that if the solution works with streams, the general type in SNESL, it should be trivial to make it support vectors. 
+it is safe to do experiments only with \mysnesl because removing vectors from SNESL should not affect the complexity of the problem too much; we believe that if the solution works with streams, the general type in SNESL, it should be trivial to extend it to support vectors. 
 
-
-Tuples are also simplified as pairs in SNESL1. 
-Then the type system for SNESL1 is as follows.
+Besides, only two primitive types of SNESL, $\int$ and $\bool$, are retained in \mysnesl. 
+Tuples are also simplified to pairs. 
+Thus the type structure for \mysnesl is as follows.
 \begin{align*} 
-& \vp ::= \bool \ | \ \int \ | \ (\vp_1,\vp_2) \\
-& \tau ::= \vp \ | \ (\tau_1,\tau_2) \ | \ \tseq{\tau}  
+& \pi ::= \bool \ | \ \int \\
+& \tau ::= \pi \ | \ (\tau_1,\tau_2) \ | \ \tseq{\tau}  
 \end{align*}
-
-The values in SNESL1:
+And the values in \mysnesl are:
 \begin{align*}
-& a ::=  \T \ | \ \F \ | \ n  \ | \ (a_1,a_2) \\
+& a ::=  \T \ | \ \F \ | \ n  \\
 & v ::=  a \ | \ (v_1,v_2) \ | \ \{v_1,...,v_k\} 
 \end{align*}
 
-The grammar of the interpreter for SNESL1 is given in \ref{fig-mysnesl}. 
+The abstract syntax of \mysnesl is given in Figure~\ref{fig-mysnesl}. 
  
 
 \begin{figure}[H]\large
@@ -63,7 +66,7 @@ The grammar of the interpreter for SNESL1 is given in \ref{fig-mysnesl}.
 	\caption{Grammar of high-level interpreter \label{fig-mysnesl}}
 \end{figure}
 
-The high-level interpreter we have implemented supports interpreting both SNESL1 expressions and function definitions. 
+The high-level interpreter we have implemented supports interpreting both \mysnesl expressions and function definitions. 
 %The reader may find that, compared to the grammar in Figure~\ref{fig-snesl-exps}, we simplified tuples of arbitrary number of components to paris of only two components; also, primitive sequence and empty sequence are added. These small changes just make the language we experiment with as simple as possible to analyze, and also convenient for programming tests.
 Since type inference is not incorporated in the interpreter, the types of  parameters and return values need to be provided when the user defines a function.
 
@@ -73,8 +76,8 @@ The typing rules of SNES1 is given in Figure~\ref{fig-snesl1-typing}. The type e
 	\Jug{\Type{\Gam}{e}{\tau}}
 	
 	\PT{
-		\RiLa{(\TypeV{a}{\vp})}
-		\Axiom{\Type{\Gam}{a}{\vp}}
+		\RiLa{(\TypeV{a}{\pi})}
+		\Axiom{\Type{\Gam}{a}{\pi}}
 	}
 	\PT{
 		\AxiomC{}
@@ -109,8 +112,8 @@ The typing rules of SNES1 is given in Figure~\ref{fig-snesl1-typing}. The type e
 	}\\[3ex]
 	
 	\PT{
-		\AC{\Type{[x \|-> {\tau_1}, \j{x_i \|-> \vp_i}]}{e_1}{\tau}}
-		\RiLa{(\Gam(y)=\tseq{\tau_1}, \j{\Gam(x_i) = \vp_i})}
+		\AC{\Type{[x \|-> {\tau_1}, \j{x_i \|-> \pi_i}]}{e_1}{\tau}}
+		\RiLa{(\Gam(y)=\tseq{\tau_1}, \j{\Gam(x_i) = \pi_i})}
 		\UC{\Type{\Gam}{\Comp{e_1}{x}{y}{\usevars}}{\tseq{\tau}}}
 	}\\[3ex]
 	
@@ -133,27 +136,27 @@ The typing rules of SNES1 is given in Figure~\ref{fig-snesl1-typing}. The type e
 %	\PT{\Axiom{\Typef{\iotan}{\int} {\tseq{\int}}}}
 %	\PT{\Axiom{\Typef{\plusn}{\int,\int} {\int}}}
 	
-}{Typing rules of SNESL1 \label{fig-snesl1-typing}}
+}{Typing rules of \mysnesl \label{fig-snesl1-typing}}
 
 
 
 Value typing rules: \\
 
-\Jug{\TypeV{a}{\vp}}
+\Jug{\TypeV{a}{\pi}}
 
 \PT{\Axiom{\TypeV{n}{\int}}}
 \PT{\Axiom{\TypeV{\T}{\bool}}}
 \PT{\Axiom{\TypeV{\F}{\bool}}}
 \PT{
-	\AC{\TypeV{a_1}{\vp_1}}
-	\AC{\TypeV{a_2}{\vp_2}}
-	\BC{\TypeV{(a_1,a_2)} {(\vp_1,\vp_2)}}
+	\AC{\TypeV{a_1}{\pi_1}}
+	\AC{\TypeV{a_2}{\pi_2}}
+	\BC{\TypeV{(a_1,a_2)} {(\pi_1,\pi_2)}}
 }\\[3ex]
 
 
 \Jug{\TypeV{v}{\tau}}
 
-\PT{\Axiom{\TypeV{a}{\vp}}}
+\PT{\Axiom{\TypeV{a}{\pi}}}
 \PT{
 	\AC{\TypeV{v_1}{\tau_1}}
 	\AC{\TypeV{v_2}{\tau_2}}
@@ -168,7 +171,7 @@ Value typing rules: \\
 
 
 
-Semantics of SNESL1 with cost (TODO: add cost): \\
+Semantics of \mysnesl with cost (TODO: add cost): \\
 %TODO: add cost
 Evaluation environment $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 
@@ -236,7 +239,7 @@ The built-in functions are also a subset of SNESL built-in functions shown in Fi
 	& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  \div \ | \ \% \ | \le \ | \ ... \tag{consts operations} \\
 	& \otimes \ && :: = + \ | \ \times  \ | \ ...  \tag{associative binary operations}
 	\end{alignat*}
-	\caption{Primitive functions in SNESL1 \label{fig-mysnesl-func}}
+	\caption{Primitive functions in \mysnesl \label{fig-mysnesl-func}}
 \end{figure}
 
 The consts operations of $\oplus$ should be self-explained from their conventional names. 
@@ -356,7 +359,7 @@ The types, short descriptions and examples of the other streamable operations ar
 
 
 \begin{figure}[H]\large
-	\begin{example}\emph{A user-defined function  written in SNESL1 to compute the multiplication of a square matrix and its transpose.}
+	\begin{example}\emph{A user-defined function  written in \mysnesl to compute the multiplication of a square matrix and its transpose.}
 	\end{example}
 	\begin{lstlisting}[style = nesl-style]
 	-- code desplay format changed for readability
@@ -543,7 +546,7 @@ For example, the Xducer S2 has two clients, S3 and S5, for both of whom it is th
 
 \section{Value representation}
 In SVCODE, the data structures are only primitive streams and pairs of streams. 
-To support the various high-level value types, that is, to design streamable counterparts to all the values of SNESL1, some technical transformation is necessary.  
+To support the various high-level value types, that is, to design streamable counterparts to all the values of \mysnesl, some technical transformation is necessary.  
 The technique is similar to the idea described in \cite{prins93}, but the descriptors in SVCODE are boolean streams instread of interger ones.
 
 %First we can only consider the representations of high-level values without pairs.
@@ -587,7 +590,7 @@ The technique is similar to the idea described in \cite{prins93}, but the descri
 (will add one or two examples about sequence of pairs and some explainations)
 \end{itemize}
 
-\section{Translating SNESL1 to SVCODE}
+\section{Translating \mysnesl to SVCODE}
 As we have seen in the last section, a high-level sequence corresponds to a number of low-level streams.
 We use a structure $\STree$ (stream tree) to generalize the relation between the high-level values and the low-level streams during compiling time:
 $$ \STree \ni \st ::= \s \ | \ (\st_1,\st_2) $$
@@ -607,7 +610,7 @@ Another essential component maintained in the translation procedure is an unused
 %	&\overline{(\st,s)} = \overline{st} {\++} [s]
 %	\end{align*}
 %	
-The translation rules for SNESL1 expressions is shown in Figure~\ref{fig-trans-snesl1}. 
+The translation rules for \mysnesl expressions is shown in Figure~\ref{fig-trans-snesl1}. 
 The jugement can be read as: `` in the environment $\del$, the expression $e$ is translated to an SVCODE program $p$, whose stream ids starts from $s_0$ and ends at $s_1-1$ (both included), and the evaluatation result corresponds to $\st$". 
 
 
@@ -657,7 +660,7 @@ The jugement can be read as: `` in the environment $\del$, the expression $e$ is
 		\UC{\Trans{\del}{\Comp{e}{x}{y}{\usevars}}{\s_0}{\s_1}
 			{ \sfun{p} {(\st,\s_b)}}}
 	}\\[10ex]	
-}{Translation rules for SNESL1 expressions \label{fig-trans-snesl1}}
+}{Translation rules for \mysnesl expressions \label{fig-trans-snesl1}}
 	
 % Auxiliary 
 
@@ -697,16 +700,26 @@ $$ tp2tree : \tau \ra \STree  $$
 
 
 \section{Eager interpreter}
-Recall that an SVCODE program is a list of instructions of each defines one or more streams. 
+Recall that an SVCODE program is a list of instructions each of which defines one or more streams. 
 The eager interpreter executes the instructions sequentially, assuming the available memory is infinitely large, which is the critical difference between the execution models of the eager and streaming interpreters.
-For an eager interpreter, since there is always enough space, a new defined stream can be completely allocated in memory immediately after its definition instruction is executed.
+
+For an eager interpreter, since there is always enough space, a new defined stream can be entirely allocated in memory immediately after its definition instruction is executed.
 In this way, traversing the whole program only once will generate the final result, even for recursions.
-And the streaming model of SVCODE does not show any of its strengths here; the interpreter will perform just like a NESL's low-level interpreter. 
+The streaming model of SVCODE does not show any of its strengths here; the interpreter will perform just like a NESL's low-level interpreter. 
+
+
+As we will add a limitation to the memory size in the streaming model, it is reasonable to consider the eager version as an extreme case with the largest buffer size of the streaming one. 
+In this case, much work can be simplified or even removed, such as the scheduling since there is only one sequential execution round. 
+Thus the correctness as well as the time complexity is the easiest to analyze, which can be used as a baseline to compare with the streaming version with different buffer sizes.
+
 
 \subsection{Dataflow}
-
+In the eage model, a Xducer consumes the entire input streams at once and output the entire stream immediately. 
+The dataflow DAG is established gradually as Xducers are activated one by one.   
+%TODO An example ?
 \subsection{Cost model}
-
+The low-level work cost in the eager model is the total amount of consumed and produced elements of all Xducers, and the step is simply the number of activated Xducers. 
+By activated we mean the executed Xducer definitions, because the stream definitions inside a \wc block may be skipped, in which case we will not account for the steps for those definitions. 
 
 
 \section{Streaming interpreter}
@@ -723,23 +736,25 @@ In particular, for some streamable cases, such as an exclusive scan, the buffer 
 
 \subsection{Processes}
 In the streaming execution model, the buffer of a Xducer can be written only by the Xducer itself, but can be read by many other Xducers. 
+We define two states for a buffer:
 And it has two states: 
-\begin{description}
-	\item[Filling state]: the buffer is not full, and the Xducer is producing or writing data to it; any other trying to read it has to wait, or more precisely, enters a read-block state.
+\begin{itemize}
+	\item \filling state　: the buffer is not full, and the Xducer is producing or writing data to it; any other trying to read it has to wait, or more precisely, enters a read-block state.
 
-	\item[Draining state]: the buffer must be full; the readers, including the read-blocked ones, can start reading it now; if the Xducer tries to write the buffer, then it enters a write-block state.
-\end{description}
+	\item \draining state: the buffer must be full; the readers, including the read-blocked ones, can read it only in this state; if the Xducer itself tries to write the buffer, then it enters a write-block state.
+\end{itemize}
 
-The condition of switching from filling state to draining state is simple: when the buffer is fully filled. 
+The condition of switching from \filling to \draining is simple: when the buffer is fully filled. 
 But the other switching direction takes a bit more work to detect: all the readers have read all the data in the buffer. We will come to this later.
+
 
 A notable special case is when the Xducer produces its last chunk, whose size may be less than the buffer size thus can never turn the buffer to a draining mode.
 To deal with this case, we add a flag to the draining state to indicate if it is the last chunk of the stream. 
-So we define the buffer state as follows:
-$$\bufst = \{\*{Filling}, \*{Draining} \ b \} $$
+Thus, the definition of a buffer state is as follows:
+$$\bufst = \{\filling \ \a, \ \draining \ \a' \ b \} $$
 
 
-In addition to maintaining the buffer state, the Xducer also has to remember its suppliers so that it is not necessary to specify the suppliers repeatedly each round. 
+In addition to maintaining the buffer state, a Xducer also has to remember its suppliers so that it is not necessary to specify the suppliers repeatedly each round. 
 Actually, once a dataflow DAG is established, it is only possible to add more subgraphs to it due to an unfolding of a \wc block or a \sc instruction; the other parts uninvolved will be unchanged until the execution is done.
 
 
@@ -748,99 +763,270 @@ Also, it is possible that a Xducer reads from the same supplier multiple times b
 Thus we need a third component, the channel number, to record the state of each reader, as we have shown in Figure~\ref{fig-svcode-dag1}.
 As a result, we must have a client list $\clis$ of elements of type $(\SId, \int, \int) $
 
-Now we define a $process$, a tuple of four components including a Xducer, as the node on the streaming DAG:
+Now we define a structure $process$, a tuple of four components including a Xducer, as the node on the streaming DAG:
 
 $$ \proc  =  (\bufst, \S, \clis, \xducer) $$
 
-where $\S$ is the stream ids of the suppliers. 
+where $\S$ is the stream ids of the suppliers. An example process of Xducer $\map{+}$ can be found in Figure~\ref{fig:process}.
 
+\begin{figure}
+	\centering
+	\includegraphics[width=0.9\linewidth]{fig/process}
+	\caption{A process S2 of Xducer $\map{+}$. 
+		It is reading from S0's buffer (as its No.0 channel) and S1's buffer (as No.1). The read cursors on these buffers are both 1 (0-indexed).}
+	\label{fig:process}
+\end{figure}
+
+The Xducer inside a process is the action-performing unit. 
+We classify the atomic actions of a Xducer into three:
+\begin{itemize}
+	\item \pin: read one element from one supplier's buffer.
+	\item \pout : write one element to its own buffer.
+	\item \done: shutdown itself, no read or write any more.
+\end{itemize}
+
+In this way, a Xducer's actions can be considered as a sequential list of these three atomics.
+For example,  the $\map{+}$ Xducer's action will be repetitions of two \pin s (reads from two suppilers respectively) followed by one \pout, and 
+a \done \ action can be added where we want to shut down the Xducer: 
+$$[\pin_0, \pin_1, \pout, \pin_0, \pin_1, \pout,... ,\done]$$
+ where the subscripts of \pin indicates reading different suppliers.
+
+In our practical implementation, we use a strategy to make the Xducer self-shutdown: we add an extra input stream, the control stream, to each Xducer,
+and the Xducer will shut itself down when its read-cursor on the control stream reaches the end, i.e., it reads an EOS (end of stream) from the control stream.
+
+
+A process is responsible for managing its buffer and Xducer. 
+The activity of a process can be described as follows:
+
+
+ \begin{table}[H]\large
+ 	\centering
+ 	\begin{tabular}{|l|p{0.25\columnwidth}|p{0.25\columnwidth}|l|}  
+ 		\hline
+ 		 \diagbox{Xducer \\ action}{Buffer \\ state} & \filling & \draining \texttt{F} & \draining \texttt{T} \\ \hline
+ 		\pin  & Process read  &  Process read  & impossible \\
+ 		\hline
+ 		\pout &  write one element to buffer;
+ 		if buffer is full, switch to \draining \texttt{F}    &    enter write-block     & impossible \\ 
+ 		\hline
+ 		\done &  switch to \draining \texttt{T}      & switch to \draining \texttt{T}   & \skip  \\ 
+ 		\hline
+ 	\end{tabular}
+ \caption{Process actions. }
+ \end{table}
+
+Process read:
+
+\begin{itemize}
+	\item if the supplier's buffer state is \draining, and the read-cursor shows the process has not yet read all the data, then the process reads one element successfully
+	\item if the supplier's buffer state is \draining, but the read-cursor shows the process has read all the data, or the supplier's buffer state is \filling, then the process enters a read-block state
+\end{itemize}
+
+full-check: if the buffer is full, switch it to \draining \texttt{F} state.
+
+allread-check: if all the clients have read all the data of the buffer, switch it to \filling state.
 
 
 \subsection{Scheduling}
+The streaming execution model consists of two phases:
+\begin{enumerate}[(1)]
+\item Initialization \\
+In this phase, the interpreter establishes the initial DAG by traversing the SVCODE program. The cases are:
+\begin{itemize}
+	\item initialize a sole stream definition $\sdef{s}{\lcall(s_1,...,s_k)}$: \\
+	This is to set up one process $\s$:
+	\begin{itemize}
+		\item set its suppilers $\S$ = $[s_1,...,s_k]$
+		\item add itself to its suppliers' $\clis$ with the corresponding channel number $\in \{1,...,k\}$ and a read-cursor number 0
+		\item empty buffer of state \filling
+		\item set up the specific Xducer $\lcall$
+	\end{itemize}
+
+	
+	\item initialize a function call  $\scall{f}{[s_1,...,s_n]}{[s_1',...,s_m']}$: \\
+	A user-defined function at runtime can be considered as another DAG, whose nodes(processes) of the formal arguments are missing. 
+	So the interpreter just adds the function's DAG to the main program's DAG 
+	and replaces the function's formal arguments with the actual parameters $[s_1,...,s_n]$, and the formal return ones with the actual ones $[s_1',...,s_m']$.  
+
+	
+	\item initialize a \wc block $\withctrl{\s_c}{p}{\Sin}{\Sout}$ \\
+	At the initialization phase, the interpreter does not unfold $p$; instead, it mainly does the following two tasks:	
+	\begin{itemize}
+		\item prevents all the import streams of $\Sin$ from producing one more chunk (a full buffer) of data before the interpreter knows whether $s_c$ is an empty stream or not.
+		\item initializes all the import streams of $\Sout$ as dummy processes that do not produce any data
+	\end{itemize}
+	Note that the practical approach for achieving these two goals can be various.
+	
+\end{itemize}
+
+
+\item Loop scheduling. \\ 
+This phase is a looping procedure. The condition of its end is that all the Xducers have shutdown, and all the buffers are in $\draining \T$ state. 
+
+In a single scheduling round, the processes on the DAG are activated one by one from small to large.
+The active process acts as Table~\ref{fig:process} shows, until it enters a read-block or write-block state, or it is skipped.  
+The results collected from each round consist entire streams as the final result.
+
+As long as a real (not dummy) process has been set up, it will keep working until its Xducer shutdown. 
+The only crucial task in each round is to judge whether to unfold a \wc block or not. The judgment depends on the buffer state of the new control stream.
+Note that the new control stream must be some real process
+defined earlier than the code inside a \wc block. 
+
+\begin{itemize}
+	\item \filling$\emptyv$: the new control process has not produce any data yet, so the judgment cannot be made this round, thus delayed to the next round
+	\item \draining$\emptyv \ \T$ : the new control stream is empty, thus no need to unfold the code, just sets the export list streams also empty, and performs some other necessary clean-up job  
+	\item other cases: the new control stream must be nonempty, thus the interpreter can unfold the code now
+\end{itemize}
+
+
+
+
+
+
+
+	
+\end{enumerate}
+
+\subsection{Cost model}
+Since we have defined the atomic actions of Xducers, it is now easy to define the low-level cost:
+\begin{description}
+	\item[Work] = the total number of \pin and \pout \  of all processes
+	\item[Step] = the total number of switches from \filling to \draining of all processes
+\end{description}
 
 
 \subsection{Recursion}
 
+In SVOCDE, a recursive function call happens when the function body of $f$ from the instruction $\scall{f}{[s_1,...,s_m]}{[s_1',...,s_n']}$ includes another \sc 
+calling  $f$ as well.
+
+As we have shown, for a non-recursive \sc, the effect of interpreting this instruction is almost transparent. 
+For a recursive one, there is not much difference except one crucial point: the recursive \sc must be wrapped by a \wc block, otherwise it can never terminate;
+at each time of interpreting an inline \sc, the function body is unfolded, but the \wc instruction inside it will stop its further unfolding, that is, the stack-frame number only grows by one. 
+
+At the high level, a well-defined SNESL program should use some conditional to decide when to terminate the recursion. 
+As the only conditional of SNESL is the restricted comprehension, which is always translated to a \wc block wrapping the expression body.
+Thus we can guarantee that a recursion that can terminate at the high level will also terminate at the low level. 
+
+
+\begin{example}
+\end{example}
+\begin{lstlisting}[style=nesl-style]
+  -- buffer size 1
+  
+  -- define a function to compute factorial
+  > function fact(x:int):int = if x <= 1 then 1 else x*fact(x-1)
+  
+  -- running example
+  > {{fact(y): y in &x} : x in {5,10}}
+  {{1,1,2,6,24},{1,1,2,6,24,120,720,5040,40320,362880}} :: {{int}}
+\end{lstlisting}
+
+
+[?? Optional] The function body of  \texttt{fact}:
+%\lstinputlisting[style=svcode-style]{code/fact.svcode}
+
+The translated SVCODE of the expression:
+\lstinputlisting[style=svcode-style]{code/fact1.svcode}
+
+
+
 \subsection{Deadlock}
+An inherent tough issue of the streaming execution model is the risk of deadlock, which is mainly due to the limitation of available memory and the irreversibility (maybe ?) of time.
+In general, we classify deadlock situations into two types: soft deadlock, which can be detected and broken relatively easily but not necessarily by enlarging the buffer size, and hard deadlock, which can only be solved by enlarging the buffer size. 
 
-\subsection{Examples}
+\begin{itemize}
 
-%Figure~\ref{fig-xducer-semantics} shows the semantics at the general level. 
-%
-%
-%\begin{figure}[h]\large
-%	
-%	\Jug{\sevalf{\a_1}{\a_k}{\c}{\a}} \\
-%	
-%	
-%	\PRule{X-Loop}{\PT{
-%			\AC{\block{\a_{11}}{\a_{k1}}{\a_{01}}}
-%			\AC{\sevalf{\a_{12}}{\a_{k2}}{\c_0}{\a_{02}}}
-%			\RiLa{((\vapp{\a_{i1}}{\a_{i2} = \a_i})^k_{i=0})}
-%			\BC{\sevalf{\a_1}{\a_k}{\< () | \c_0 \rangle}{\a_0}}
-%	}}\\[4ex]
-%	
-%	\LeLa{\PName{X-Termi:}} 
-%	\Axiom{\sevalf {\emptyv_1} {\emptyv_k} \emptyv \emptyv}
-%	\DisplayProof \footnotemark	
-%	\caption{Semantics of SVCODE transducers \label{fig-xducer-semantics}}
-%\end{figure}
-%\footnotetext{For notational convenience, in this thesis we add subscripts to a sequence of constants, such as $\emptyv, \F, 1$, to denote the total number of these constants.}
-%
-%There are only two rules for the general semantics. 
-%They together say that the output stream is computed in a ``loop" fashion, where the 
-%iteration uses specific block semantics of the Xducer and the number of iteration is the unary number that the control stream represents, i.e., the length of the control stream. 
-%In the parallel setting, we prefer to call this iteration a $block$. 
-%Recall the control stream is a representation of the parallel degree of the computation, then a block consumes exact one degree. 
-%We note that all these blocks are data-independent, which means they can be performed in parallel. 
-%Now it is clear that the control stream indeed carrys the theoretical
-%maximum number of processors we need to execute the computation most efficiently (if the computation within the block can not be parallelized further)(???).
-%
-%\begin{itemize}
-%\renewcommand{\labelitemi}{$-$}
-%
-%	\item $\toflagf{\singl{n}}$ first outputs $n$ $\F$s, then one $\T$.
-%	
-%	\begin{example} \emph{$\toflagf{\<2,0\'>}$:}\\
-%		\begin{center}
-%		\includegraphics[width=0.6\textwidth]{fig/toflag.png}
-%		\end{center}
-%	\end{example}
-%
-%	\item $\usumf{\b}$ transforms an $\F$ to a unit, or a $\T$ to nothing. It is the only Xducer that can generate a unit vector,
-%	so it is mainly used when we need to replace the control stream.
-%	\begin{example} \emph{$\usumf{\<\F,\T,\F,\F,\T\'>}$:}\\
-%		\begin{center}
-%			\includegraphics[width=0.6\textwidth]{fig/usum.png}
-%		\end{center}
-%	\end{example}
-%	
-%	\item $\scan_{n_0}(\b,\a)$ performs an exclusive scan of the binary operation plus on $\a$, segmented by $\b$, with a starting element $n_0$.
-%		\begin{example} \emph{$\scan_{0}(\<\F,\F,\F,\T,\F,\T\'>, \< 2,5,3,6 \'>)$}\\
-%		\begin{center}
-%			\includegraphics[width=0.7\textwidth]{fig/scan.png}
-%		\end{center}
-%	\end{example}
-%	 
-%	\item $\distr(\b,{\singl{n}})$ replictes the const $n$ $u$ times where $u$ is the unary number segmented by $b$. 
-%	\begin{example} \emph{$\distrf{\<\F,\F,\F,\T,\F,\T\'>}{\< 2,5 \'>}$}\\
-%		\begin{center}
-%			\includegraphics[width=0.7\textwidth]{fig/distr.png}
-%		\end{center}
-%	\end{example}
-%	
-%\end{itemize}
-%
-%		
-%
-%
-%As we have discussed before, we consider a block  as the minimum computing unit assigned to a single processor. This is reasonable for
-%Xducers such as $\consta{a}$ and $\maptwo{\oplus}$, because
-%they are already sequential at the block level. 
-%
-%However, some other Xducers, such as $\usum$, can be parallelized further inside a block.
-%As we extend the language with more Xducers, we could find that computations on unary numbers within blocks are common, which is mainly due to the value represenation strategy we use, but also more difficult to be regularized.
-%For the scope of this thesis, the block semantics we have shown are already relatively clear and simple enough to reason about, and the unary level parallelism can be investegated in future work. 
-% 
+\item Soft deadlock: \\
 
+One case of soft deadlock can be caused by trying to traverse the same sequence multiple times. 
+A simpler example:
+
+\begin{example} \emph{A soft deadlock caused by travesing the sequence $x$ two times.} \label{eg:deadlock1}
+\end{example}
+	\begin{lstlisting}[style=nesl-style]
+  > let x = {1} in x ++ x
+  Deadlock!
+\end{lstlisting}
+
+There are at least two feasible solutions to this case.
+One is manually rewriting the code to define new variables for the same sequence, as the following code shows :\\
+
+\begin{lstlisting}[style=nesl-style]
+  > let x = {1}; y = {1} in x ++ y
+  {1,1} :: {int}
+\end{lstlisting}
+
+%Or, for the full SNESL supporting vectors, the 
+
+The other can be done by optimizing the compiler to support multi-traversing check and automatic 
+redefinition of retraversed sequences. 
+As the code grows more complicated, locating the problem can become much harder, thus a smarter compiler is definitely necessary, which is worth some future investigation.\\
+
+
+Another case of soft deadlock can be due to the different data rates of processes, which leads to a situation where some buffer(s) of $\filling$ state can never turn to \draining. 
+For example, the following expression tries to negate the elements that can be divided by 5 exactly of a sequence.
+\begin{example}\emph{ A soft deadlock that can be broken by stealing}
+\end{example}
+\begin{lstlisting}[style=nesl-style]
+  -- buffer size 4 
+ > concat({{-x | x % 5 == 0} ++ {x | x %5 != 0} :  x in &10})
+ {0,1,2,3,4,-5,6,7,8,9} :: {int}
+\end{lstlisting}
+
+In this example, the sequence contains elements from 0 to 9; the subsequence of the negated numbers, which only contains 0 and -5, are concatenated with the one of the other eight numbers. Since these two subsequences are generated at different rates, 
+If we minimize the buffer size to 1, then the deadlock can be broken since buffer of size one can always turn to \draining mode as long as there is one element generated. 
+In our implementation, we use an automatic solution for this case, called $stealing$. 
+The idea is that when a deadlock is detected, we will first switch the smallest process with a \filling buffer, into \draining mode, to see if the deadlock can be broken; if not, we repeat this switch until the deadlock is broken; otherwise, it may be a hard deadlock.
+
+Since the stealing strategy is basically a premature
+switch from \filling to \draining, the low-level step cost is possible to be affected. More precisely,  it can be increased by a certain amount, which depends on the concrete program and the buffer size. 
+The effect of stealing on the cost model can also be investigated as future work.
+
+
+\item Hard deadlock: \\
+
+This type of deadlock is mainly because of insufficient space.
+
+\begin{example} \emph{The following SNESL function {\ttfamily oeadd} risks a hard deadlock. Given an integer sequence with an equal number of odd and even numbers, this function will try to perform addition on a pair of an odd and an even number with the same index from their respective subsequences.} 
+\end{example}
+
+\lstinputlisting[style=nesl-style]{code/harddeadlock.snesl} 
+\hspace{0.3cm}
+
+If we give a proper argument, for example, an sequence of odds and evens interleaving with each other(??? not clear), it may never deadlock, even with a buffer of size one. 
+But if there is a relatively large distance between any odd-even pair, the code will deadlock.  \\
+  
+\begin{lstlisting}[style=nesl-style]
+-- buffer size 1
+
+> oeadd(&30)
+{1,5,9,13,17,21,25,29,33,37,41,45,49,53,57} :: {int}
+
+> oeadd({1,3,5,7,0,2,4,8})
+Deadlock!
+\end{lstlisting}
+
+
+This type of deadlock can only be broken by enlarging the buffer size. 
+
+
+\end{itemize}
+
+
+\subsection{[optional] Evaluation}
+Some possibilies for improving the scheduling:
+
+\begin{itemize}
+\item The processes in a block state will be activated in the next scheduling round, but it may still  block itself immediately since the blocking condition still holds. So a better strategy can be 
+
+\item The processes are activated only one by one, even though some of them can be data-independent, this simulates a SIMD machine execution. But it should be able to be optmized to support MIMD machine. 
+Evaluation of some high-level expressions, such as the evaluation of the components of a tuple or a function call , can be executed in parallel as well.
+
+
+\end{itemize}
+
+\subsection{[optional] Examples}
+
+\lstinputlisting[style=nesl-style]{code/uc_scanred.snesl}
 

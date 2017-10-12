@@ -1,9 +1,8 @@
-function scanred(v:{int}, n:int) : ({int},int) =
-    if n==1 then ({0}, the(v))
+function uc_red(v:{int}) : int =
+    if empty(v) then 0
     else
-      let is = scanExPlus({1 : x in v});
-	  odds = {x: i in is, x in v | i%2 !=0};
-	  evens ={x: i in is, x in v | i%2 ==0};
-          ps = {x+y : x in evens, y in odds};
-					              (ss,r) = scanred(ps,n/2)
-						            in (concat({{s,s+x} : s in ss, x in evens}), r)
+      let is = scanExPlus({1 : _ in v });
+          odds = concat({{x | i %2 != 0} : i in is, x in v});
+	  evens = concat({{x| i %2 == 0} : i in is, x in v});
+          ps = {x+y : x in evens, y in odds}
+       in uc_red(ps)

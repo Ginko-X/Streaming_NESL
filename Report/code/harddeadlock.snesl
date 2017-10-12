@@ -1,0 +1,6 @@
+-- v must have equal number of odd and even numbers
+function oeadd(v:{int}):{int} =
+  let odds = concat({{x | x %2 !=0}: x in v});
+      evens = concat({{x | x %2 == 0} : x in v})
+   in {o+e : o in odds, e in evens}
+

@@ -1,0 +1,10 @@
+-- united-and-conquer scan and reduce (only for n = power of 2)
+function scanred(v:{int}, n:int) : ({int},int) =
+    if n==1 then ({0}, the(v))
+    else
+      let is = scanExPlus({1 : x in v});
+          odds = {x: i in is, x in v | i%2 !=0};
+          evens ={x: i in is, x in v | i%2 ==0};
+          ps = {x+y : x in evens, y in odds};
+          (ss,r) = scanred(ps,n/2)
+      in (concat({{s,s+x} : s in ss, x in evens}), r)
