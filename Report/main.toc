@@ -10,22 +10,22 @@
 \contentsline {section}{\numberline {1.4}Mathematical background and notations}{5}
 \contentsline {chapter}{\numberline {2}Implementation}{6}
 \contentsline {section}{\numberline {2.1}High-level interpreter}{6}
-\contentsline {section}{\numberline {2.2}SVCODE}{11}
-\contentsline {subsection}{\numberline {2.2.1}SVCODE Syntax}{12}
-\contentsline {subsection}{\numberline {2.2.2}Xducers and dataflow}{13}
-\contentsline {section}{\numberline {2.3}Value representation}{14}
+\contentsline {section}{\numberline {2.2}Value representation}{11}
+\contentsline {section}{\numberline {2.3}SVCODE}{13}
+\contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{13}
+\contentsline {subsection}{\numberline {2.3.2}Xducers and dataflow}{14}
 \contentsline {section}{\numberline {2.4}Translating $\mathrm {SNESL_1} \ $to SVCODE}{15}
-\contentsline {subsection}{\numberline {2.4.1}Expression translation}{15}
+\contentsline {subsection}{\numberline {2.4.1}Expression translation}{16}
 \contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{16}
 \contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{17}
 \contentsline {section}{\numberline {2.5}Eager interpreter}{17}
 \contentsline {subsection}{\numberline {2.5.1}Dataflow}{17}
-\contentsline {subsection}{\numberline {2.5.2}Cost model}{17}
-\contentsline {section}{\numberline {2.6}Streaming interpreter}{17}
+\contentsline {subsection}{\numberline {2.5.2}Cost model}{18}
+\contentsline {section}{\numberline {2.6}Streaming interpreter}{18}
 \contentsline {subsection}{\numberline {2.6.1}Processes}{18}
 \contentsline {subsection}{\numberline {2.6.2}Scheduling}{20}
 \contentsline {subsection}{\numberline {2.6.3}Cost model}{21}
-\contentsline {subsection}{\numberline {2.6.4}Recursion}{21}
-\contentsline {subsection}{\numberline {2.6.5}Deadlock}{22}
+\contentsline {subsection}{\numberline {2.6.4}Recursion}{22}
+\contentsline {subsection}{\numberline {2.6.5}Deadlock}{23}
 \contentsline {subsection}{\numberline {2.6.6}[optional] Evaluation}{24}
 \contentsline {subsection}{\numberline {2.6.7}[optional] Examples}{25}

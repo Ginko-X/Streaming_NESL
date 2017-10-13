@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  12 OCT 2017 21:36
+This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  13 OCT 2017 12:15
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -905,131 +905,133 @@ File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
 (Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 250.
  [9] [10] [11]
+[12]
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-[12]
-Underfull \hbox (badness 10000) in paragraph at lines 491--492
+[13]
+Underfull \hbox (badness 10000) in paragraph at lines 542--543
 
  []
 
 File: fig/map.png Graphic file (type QTm)
-<use  "fig/map.png" > [13]
-Underfull \hbox (badness 10000) in paragraph at lines 512--513
+<use  "fig/map.png" > [14]
+Underfull \hbox (badness 10000) in paragraph at lines 563--564
 
  []
 
 File: fig/xducerDag2.png Graphic file (type QTm)
 <use  "fig/xducerDag2.png" >
-Overfull \hbox (42.68173pt too wide) in paragraph at lines 536--536
+Overfull \hbox (42.68173pt too wide) in paragraph at lines 587--587
 [][] 
  []
 
-[14]
-Underfull \hbox (badness 10000) in paragraph at lines 663--663
+[15]
+Underfull \hbox (badness 10000) in paragraph at lines 670--670
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 663--663
+Underfull \hbox (badness 10000) in paragraph at lines 670--670
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 663--663
+Underfull \hbox (badness 10000) in paragraph at lines 670--670
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 663--663
+Underfull \hbox (badness 10000) in paragraph at lines 670--670
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 663--663
+Underfull \hbox (badness 10000) in paragraph at lines 670--670
 
  []
 
 
-Overfull \hbox (130.00261pt too wide) in paragraph at lines 663--663
+Overfull \hbox (130.00261pt too wide) in paragraph at lines 670--670
 []\OT1/cmr/m/n/12 ???! TODO:fix   []
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 663--663
+Underfull \hbox (badness 10000) in paragraph at lines 670--670
 
  []
 
-[15]
-Underfull \hbox (badness 10000) in paragraph at lines 692--692
+
+Underfull \hbox (badness 10000) in paragraph at lines 699--699
 
  []
 
 [16] [17]
 Missing character: There is no 　 in font cmr12!
+ [18]
 File: fig/process.png Graphic file (type QTm)
- <use  "fig/process.png" > [18]
-Underfull \hbox (badness 6348) in paragraph at lines 809--810
+ <use  "fig/process.png" > [19]
+Underfull \hbox (badness 6348) in paragraph at lines 817--818
 []\OT1/cmr/m/n/12 write one el-e-ment
  []
 
 
-Underfull \hbox (badness 1043) in paragraph at lines 809--810
+Underfull \hbox (badness 1043) in paragraph at lines 817--818
 \OT1/cmr/m/n/12 to buffer; if buffer
  []
 
 
-Underfull \hbox (badness 5563) in paragraph at lines 809--810
+Underfull \hbox (badness 5563) in paragraph at lines 817--818
 \OT1/cmr/m/n/12 is full, switch to
  []
 
-[19]
-Overfull \hbox (0.96353pt too wide) in paragraph at lines 846--850
+[20]
+Overfull \hbox (0.96353pt too wide) in paragraph at lines 854--858
 \OT1/cmr/m/n/12 places the func-tion's for-mal ar-gu-ments with the ac-tual pa-
 ram-e-ters $[\OML/cmm/m/it/12 s[]; :::; s[]\OT1/cmr/m/n/12 ]$,
  []
 
-[20] [21] (./code/fact1.svcode) [22]
-Underfull \hbox (badness 10000) in paragraph at lines 940--941
+[21] (./code/fact1.svcode [22])
+Underfull \hbox (badness 10000) in paragraph at lines 948--949
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 952--954
+Underfull \hbox (badness 10000) in paragraph at lines 960--962
 
  []
 
 
-Overfull \hbox (3.25308pt too wide) in paragraph at lines 962--965
+Overfull \hbox (3.25308pt too wide) in paragraph at lines 970--973
 \OT1/cmr/m/n/12 more com-pli-cated, lo-cat-ing the prob-lem can be-come much ha
 rder, thus a smarter
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 962--965
+Underfull \hbox (badness 10000) in paragraph at lines 970--973
 
  []
 
 [23]
-Underfull \hbox (badness 10000) in paragraph at lines 987--988
+Underfull \hbox (badness 10000) in paragraph at lines 995--996
 
  []
 
 (./code/harddeadlock.snesl)
-Underfull \hbox (badness 10000) in paragraph at lines 997--999
+Underfull \hbox (badness 10000) in paragraph at lines 1005--1007
 
  []
 
-(./code/uc_scanred.snesl [24])) (./main.bbl [25]) [26
+[24] (./code/uc_scanred.snesl)) (./main.bbl [25]) [26
 
 ] (./main.aux) ) 
 Here is how much of TeX's memory you used:
  14571 strings out of 493706
  247021 string characters out of 6145768
- 380060 words of memory out of 5000000
+ 375060 words of memory out of 5000000
  17679 multiletter control sequences out of 15000+600000
  18830 words of font info for 72 fonts, out of 8000000 for 9000
  1328 hyphenation exceptions out of 8191
- 39i,16n,50p,10438b,1578s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 39i,16n,50p,10438b,1548s stack positions out of 5000i,500n,10000p,200000b,80000s
 
 Output written on main.pdf (28 pages).

@@ -374,7 +374,59 @@ The types, short descriptions and examples of the other streamable operations ar
 \end{figure}
 
 
+\section{Value representation}
+At the low level, a value of \mysnesl is represented as either a primitive $stream \ \a$, a collection of primitive values,
+or a binary tree structure $w$ with stream leaves.
+We use $\<a_1,...,a_k\'>$ to denote a primitive stream which consists of $k$ elements $a_1,...,a_k$. Thus,
+$$ \a ::= \<a_1,...,a_k\'>$$
+$$ w ::= \a \ | \ (w_1,w_2) $$
 
+%TODO add cite from 
+%TODO The idea of this representation is from ...
+
+The representation also relies on the type of the value. 
+We use the infix symbol ``$ \tr$" subscripted by a type $\tau$ to denote a type-depended representation relation.
+
+Some simple but representative cases are given below. 
+More formal and general rules will be presented in the next chapter.
+
+\begin{itemize}
+	\item A primitive value is represented as a singleton primitive stream: 
+	\begin{example}
+		$$3 \tr_\int \ \< 3 \'>$$
+		$$ \T \tr_\bool \oT $$
+	\end{example}
+	
+	
+	\item A non-nested/flat sequence of length $n$ is represented as a primitive $data \ stream$ with an auxiliary boolean stream called a $descriptor$, which consists of $n$ number of $\F$s followed by one $\T$ denoting the end of a segment. 
+	\begin{example}
+		$$\{3,1,4\} \tr_{\{\int\}} (\< 3,1,4 \'>, \< \F, \F,\F , \T \'>) $$
+		$$\{\T,\F\} \tr_{\{\bool\}} (\< \T,\F\'>, \< \F,\F , \T \'>) $$
+		$$\{\} \tr_{\{\int \}} (\emptyv, \oT)$$
+	\end{example}
+	
+	\item For a nested sequence with a nesting depth $d$ (or a $d$-dimensional sequence), all the data are flattened to a data stream, but $d$ descriptors are used to maintain the segment information at each depth. 
+	(Thus a non-nested sequence is just a special case of $d$ = 1).
+	
+	\begin{example}
+		$$\{\{3,1\}, \{4\}\} \tr_{\{\{\int\}\}} ((\< 3,1,4 \'>, \<\F,\F,\T,\F,\T \'>),\< \F, \F, \T \'>)  $$		
+		$$\{\}\{\int\} \tr_{\{\{\int\}\}} ((\emptyv, \emptyv), \oT)$$
+	\end{example}
+
+	
+	\item A pair of high-level values is a pair of streams (or stream trees) representing the two high-level components respectively.  
+	\begin{example}
+		$$(1,2) \tr_{(\int,\int)} (\singl{1}, \singl{2})$$
+		$$(\{\T,\F\},2) \tr_{(\{\bool\},\int)} ((\< \T, \F \'>, \< \F,\F,\T \'>),\singl{2})$$
+	\end{example} 
+	
+	\item A sequence of pair can be regarded as a pair of sequences sharing a descriptor at the low level:
+	\begin{example}
+		$$\{(1,\T),(2,\F),(3,\F)\} \tr_{\{(\int,\bool)\}} ((\<1,2,3\'>, \<\T,\F, \F\'>), \< \F,\F,\F,\T \'>)$$
+	\end{example}
+	
+	
+\end{itemize}
 
 
 \section{SVCODE}
@@ -544,51 +596,7 @@ For example, the Xducer S2 has two clients, S3 and S5, for both of whom it is th
 
 
 
-\section{Value representation}
-In SVCODE, the data structures are only primitive streams and pairs of streams. 
-To support the various high-level value types, that is, to design streamable counterparts to all the values of \mysnesl, some technical transformation is necessary.  
-The technique is similar to the idea described in \cite{prins93}, but the descriptors in SVCODE are boolean streams instread of interger ones.
 
-%First we can only consider the representations of high-level values without pairs.
-\begin{itemize}
-	\item A const is represented as a singleton stream. 
-	\begin{example}
-		$$3 \tr_\int \ \< 3 \'>$$
-		$$ \T \tr_\bool \oT $$
-	\end{example}
-	
-	
-	
-	\item A non-nested primitive sequence of length $n$ is represented as a primitive data stream with an auxiliary boolean stream called a $descriptor$, which consists of $n$ number of $\F$s and one $\T$. 
-	\begin{example}
-		$$\{3,1,4\} \tr_{\{\int\}} (\< 3,1,4 \'>, \< \F, \F,\F , \T \'>) $$
-	    $$\{\T,\F\} \tr_{\{\bool\}} (\< \T,\F\'>, \< \F,\F , \T \'>) $$
-		$$\{\}\int \tr_{\{\int \}} (\emptyv, \oT)$$
-	\end{example}
-	
-	\item For a nested sequence with a nesting depth $d$, all the data are flattened to one data stream, but $d$ descriptors are used to represent the segments at each depth. 
-	Thus a non-nested sequence is just a special case of depth $d$ = 1.
-	
-	\begin{example}
-		$$\{\{3,1\}, \{4\}\} \tr_{\{\{\int\}\}} ((\< 3,1,4 \'>, \<\F,\F,\T,\F,\T \'>),\< \F, \F, \T \'>)  $$
-		$$\{\}\{\int\} \tr_{\{\{\int\}\}} ((\emptyv, \emptyv), \oT)$$
-	\end{example}
-	
-%	\item A sequence is transformed to a primitive data stream with a number of boolean streams representing the dimension or the nested depth of the sequence. 
-%	These boolean streams are called $descriptors$ because the 
-%	
-%\end{itemize}
-%
-%Now we consider pairs being added.
-%\begin{itemize}
-
-\item A high-level pair is a pair of streams at the low level.  
-\begin{example}
-	$$(1,2) \tr (\singl{1}, \singl{2})$$
-\end{example} 
-
-(will add one or two examples about sequence of pairs and some explainations)
-\end{itemize}
 
 \section{Translating \mysnesl to SVCODE}
 As we have seen in the last section, a high-level sequence corresponds to a number of low-level streams.
@@ -710,15 +718,16 @@ The streaming model of SVCODE does not show any of its strengths here; the inter
 
 As we will add a limitation to the memory size in the streaming model, it is reasonable to consider the eager version as an extreme case with the largest buffer size of the streaming one. 
 In this case, much work can be simplified or even removed, such as the scheduling since there is only one sequential execution round. 
-Thus the correctness as well as the time complexity is the easiest to analyze, which can be used as a baseline to compare with the streaming version with different buffer sizes.
+Thus the correctness, as well as the time complexity, is the easiest to analyze, which can be used as a baseline to compare with the streaming version with different buffer sizes.
 
 
 \subsection{Dataflow}
 In the eage model, a Xducer consumes the entire input streams at once and output the entire stream immediately. 
 The dataflow DAG is established gradually as Xducers are activated one by one.   
 %TODO An example ?
+
 \subsection{Cost model}
-The low-level work cost in the eager model is the total amount of consumed and produced elements of all Xducers, and the step is simply the number of activated Xducers. 
+The low-level work cost in the eager model is the total number of consumed and produced elements of all Xducers, and the step is merely the number of activated Xducers. 
 By activated we mean the executed Xducer definitions, because the stream definitions inside a \wc block may be skipped, in which case we will not account for the steps for those definitions. 
 
 
@@ -773,7 +782,7 @@ where $\S$ is the stream ids of the suppliers. An example process of Xducer $\ma
 	\centering
 	\includegraphics[width=0.9\linewidth]{fig/process}
 	\caption{A process S2 of Xducer $\map{+}$. 
-		It is reading from S0's buffer (as its No.0 channel) and S1's buffer (as No.1). The read cursors on these buffers are both 1 (0-indexed).}
+		It reads a 2 from S0's buffer and a 1 from S1's buffers, then writes a 3 to its own buffer.}
 	\label{fig:process}
 \end{figure}
 
