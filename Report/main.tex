@@ -247,7 +247,7 @@
 \def\withctrl#1#2#3#4{#4 := \mathtt{WithCtrl}(#1,#3,#2)}
 \def\wc{$\mathtt{WithCtrl}$ }
 \def\sc{$\mathtt{SCall}$ }
-\def\scall#1#2#3{#3 := \mathtt{SCall}(#1,#2)} 
+\def\scall#1#2#3{#3 := \mathtt{SCall} \ #1(#2)} 
 \def\sf{$\mathtt{SFun}$}
 
 \def\T{\mathtt{T}} 
@@ -265,6 +265,7 @@
 \def\~#1{\stackrel{#1}{\sim}}
 \def\x#1{\stackrel{#1}{\bowtie}} % sgm append
 
+\newcommand\ra{\rightarrow}
 \def\Da{\Downarrow}
 \def\dda{\downdownarrows}
 
@@ -302,6 +303,7 @@
 \newcommand{\eq}[2]{\begin{equation}\label{#1} #2\end{equation}}
 
 \newcommand{\fig}[2]{\begin{figure}[H]\large #1 \caption{#2}\end{figure}}
+
 
 
 \title{Formalizing the implementation of Streaming NESL}

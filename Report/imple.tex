@@ -1,7 +1,6 @@
 \clearpage
 
 \def\PRName#1{\textsc{Pre-#1}}
-\newcommand\ra{\rightarrow}
 \newcommand\tr{\triangleright}
 \newcommand{\proc}{\*{Proc}}
 \newcommand{\bufst}{\*{BufState}}
@@ -374,7 +373,7 @@ The types, short descriptions and examples of the other streamable operations ar
 \end{figure}
 
 
-\section{Value representation}
+\section{Value representation} \label{sec:valrep}
 At the low level, a value of \mysnesl is represented as either a primitive $stream \ \a$, a collection of primitive values,
 or a binary tree structure $w$ with stream leaves.
 We use $\<a_1,...,a_k\'>$ to denote a primitive stream which consists of $k$ elements $a_1,...,a_k$. Thus,
@@ -433,32 +432,19 @@ More formal and general rules will be presented in the next chapter.
 In \cite{Fmaster} a streaming target language for a minimal SNESL was defined.
 With trivial changes in the instruction set, this language, named as SVCODE (Streaming VCODE), has been implemented on a multicore system in \cite{Fphd}; the various experiment results
 have demonstrated single-core performance similar to sequential C code for some simple 
-text-processing tasks as well as the
-potential for further performance improvment by scheduling opitmization and code analysis.
+text-processing tasks and near-linear scales to multicore.
 
 In this thesis, we put emphasis on the formalization of this low-level language's semantics.
 Also, to support recursion in the high-level language at the same time preserving the cost, non-trivial extension of this language is needed. 
 
 \subsection{SVCODE Syntax}
-The primitive data structure that SVCODE manipulates, called $stream$, is similar to the one-dimensional array in C language; the main difference is that the elements of a stream can
-be collected through not only a piece of memory, but also a period of time. 
-
-%TODO: add figure of comparison ?
-
-For our minimal language, a primitive stream $\a$ can be a stream of booleans, integers or units, as the following grammar shows:
-
-$$b \in \mathbb{B} = \{\T,\F \}$$
-$$ a ::= n \ | \ b \ | \ \unit$$
-$$\b = \vrange{b_1}{b_i}$$ 
-$$\c = \vrange{()}{()} $$
-$$\a = \vrange{a_1}{a_i}  $$ 
-
-\hspace{1cm}
+%The primitive data structure that SVCODE manipulates,  $stream$, is be collected through not only a piece of memory, but also a period of time. 
+%
 
 
-
-The grammar of SVCODE is given in Figure~\ref{fig-svcode1-gram}.
-An SVCODE program is basically a list of command or instructions of ecah defines one or more new streams. 
+The abstract syntax of SVCODE is given in Figure~\ref{fig-svcode1-gram}.
+An SVCODE program $p$ is basically a list of commands or instructions each of which defines one or more streams. 
+We use $s$ as a stream variable, called a stream $id$, and $\S$ a bunch of stream ids.
 As a general rule of reading an SVCODE instruction, the stream ids on the left-hand side of a symbol ``:=" are the defined streams, and the right-hand side ones are possibly used to generate those new ones.
 
 
@@ -467,75 +453,57 @@ As a general rule of reading an SVCODE instruction, the stream ids on the left-h
 	&p  && :: = \ \epsilon \tag{empty program}\\ 
 	&   && \quad | \ \sdef{\s}{\psi(s_1,...,s_k)}  \tag{single stream definition}\\
 	&   && \quad | \ \withctrl{\s}{p_1}{\Sin}{\Sout}  \tag{\wc block}\\
-	&   && \quad | \ \scall{f}{\S_1}{\S_2} \tag{SVCODE function call}\\
+	&   && \quad | \ \scall{f}{s_1,...,s_m}{(s_1',...,s_n')} \tag{SVCODE function call}\\
 	&   && \quad | \ p_1;p_2  \\
 	\\
 	&\s && ::= 0 \ | \ 1 \ ... \in \SId  = \mathbb{N}   \tag{stream ids}\\
+	&  \S && ::= \{\s_1,..., \s_i\} \in \sset  \tag{set of stream ids}\\
 	\\
 	& \psi \ && ::= \consta{a} \ | \ \toflag  
 	\ | \ \usum \ | \ \map{\oplus} \ | \ \genscan_{\otimes} \ | \ \genreduce_{\otimes} \ | \ \distr  \tag{Xducers}  \\
     &   && \quad | \ \pack \ | \ \upack \ | \ \bu \ | \ \segconcat \ | \ \usegcount \ | \ \intermerge \ | \ ...  \\
-    & \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  \div \ | \ \% \ | \le \ | \ ... \tag{consts operations} \\
+    & \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | <= \ | \ == \ | \  \*{not} \ | \ ... \tag{scalar operations} \\
     & \otimes \ && :: = + \ | \ \times  \ | \ ...  \tag{associative binary operations} \\
-	\\
-	&  \S && ::= \{\s_1,..., \s_i\} \in \sset  \tag{set of stream ids}\\
 	\end{alignat*}
-	\caption{Grammar of SVCODE \label{fig-svcode1-gram}}
+	\caption{Abstract syntax of SVCODE \label{fig-svcode1-gram}}
 \end{figure}
 
-A well-formed SVCODE instruction is expected to always assign $fresh$ stream ids to the defined streams, in which way the dataflow of an SVCODE program can construct a DAG (directed acyclic graph). 
-We will give more formal definitions of this language in the next chapter
-to demonstrate how we guarantee the freshness of stream ids. 
-In the practical implementation, we simply identify each stream with a natural number, a smaller one always defined eariler than a greater one. 
 
-The primitive instructions in SVCODE that define only one stream are in the form
+The instructions in SVCODE that define only one stream are in the form
 $$\sdef{\s}{\psi(s_1,...,s_k)} $$  
-where $\lcall$ is a primitive function, called a $Xducer$(transducer), taking stream $s_1,...,s_k$ as parameters and returning $s$. 
+where $\lcall$ is a primitive function, called a $Xducer$(transducer), taking the stream $s_1,...,s_k$ as parameters and returning $s$. 
+More detailed descriptions for specific Xducers are given in the next subsection.
+
 
 The only essential control struture in SVCODE is the \wc instruction 
 $$\withctrl{\s}{p_1}{\Sin}{\Sout} $$
 which may or may not execute a piece of SVCODE program $p_1$, but always defines a bunch of stream ids $\Sout$.
-$\s$ is the new control stream used when the code block $p_1$ is executed, and $\Sin$ is the set of stream ids that can be used in $p_1$. 
-Discussions about this
-instruction will occur many times throughout the thesis as it plays a significant role in dealing with most of the issues we are deeply concerned, 
-including cost model correctness and dynamic unfolding of recursive functions. 
+The definition instructions for all the stream ids in $\Sout$ are included in the code block $p_1$. 
+Whether to execute $p_1$ or not depends on the value of the stream $\s$, the $new \ control \ stream$, at runtime:
+\begin{itemize}
+	\item If $s$ is an empty stream, then execute $p_1$ and compute $\Sout$ as usual
+	\item Otherwise, skip $p_1$ and assign $\Sout$ all empty streams 
+\end{itemize}
+Thus the new control stream is the most important role here, because it decides whether or not to execute $p_1$, which is the key to avoiding infinite unfolding of recursive functions.  
+$\Sin$ is the variable set including all the streams that are referred to by $p_1$. 
+It will only affect the streaming execution model of SVCODE; in the eager model, it can be totally ignored.
+
+The instruction $\scall{f}{\replc{m}{s}}{(\replc{n}{s'})}$ can be read as: ``calling function $f$ with arguments $\replc{m}{s}$ returns $\replc{n}{s'}$". 
+The function body of $f$ is merely another piece of SVCODE program, but without the definition instructions of its argument streams.
 
 
-%The rules $\PName{Wc-Emp}$ and $\PName{Wc-Nonemp}$ together show two possibilities for interpreting a \wc instruction:
-%\begin{itemize}
-%	\item if the new control stream $\s_c$ as well as the streams in $\Sin$, which includes the free variables of $p_1$, are all empty, then just bind empty vectors to the streams in $\Sout$, which are part of the defined streams of $p_1$.
-%	\item otherwise execute the code of $p_1$ as usual under the new control stream, ending in the store $\sgm''$; then copy the bindings of $\Sout$ from $\sgm''$ to the initial store. 
-%\end{itemize}
-%The new control stream is crucial here, because it decides whether or not to execute $p_1$, which is the key to avoiding infinite unfolding of recursive funtions. For an eager interpreter of SVCODE, if we count one stream definition as one step, then this skip guarantees the low-level step cost agrees on the high-level one. Also, skipping a certain piece of code should help improve the efficiency of execution.
+It is worth noting that a well-formed SVCODE instruction should always assign $fresh$ (never used) stream ids to the defined streams, in which way the dataflow of an SVCODE program can construct a DAG (directed acyclic graph). 
+We will give more formal definitions of this language in the next chapter
+to demonstrate how the freshness property is guaranteed. 
+In the practical implementation, we simply identify each stream with a natural number, a smaller one always defined earlier than a greater one. 
 
 
-
-As the high-level language supports recursive functions, the function body must be unfolded dynamically in runtime. 
-A recursive call should be included in some condition statement to decide when the recursion can terminate, which is impossible to do during compiling time. 
-The instruction $\scall{f}{\S_1}{\S_2}$ can be read as: ``calling function $f$ with arguments $\S_1$ returns $\S_2$".
-
-(may add more informal explanation of SVCODE semantics)
-
-%We introduce some notations and operations about streams for convenience.
-%\begin{nota}
-%	Let $\< a_0 | \a \'>$ denote a non-empty stream $\< a_0,a_1,...,a_i \'>$ for some $\a = \< a_1,...,a_i \'>$. 
-%\end{nota}
-%
-%
-%\begin{nota}[\textbf{Stream concatenation}]
-%	$\vapp{\vrange{a_1}{a_i}} {\vrange{a_1'}{a_j'}} = \langle a_1,...,a_i,a_1',...,a_j' \rangle $ \\
-%	
-%\end{nota}
-%
-%The operational semantics of SVCODE is given in Figure~\ref{fig-svcode-semantics}.
-%The runtime environment or store $\sgm$ is a map from stream variables to vectors:
-%$$\sgm = [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$$
-%The $control \ stream$ $\c$, which is basically a vector of units representing an unary number, indicates the $parallel \ degree$ of the computation. The role of control stream will become much clearer when we come to the semantics of Xducers. It is worth noting that only in the rule $\PName{Wc-Nonemp}$ the control stream has a chance to get changed.
-
+\subsection{Control stream}
 
 \subsection{Xducers and dataflow}
 
-Transducers or $Xducers$ are the primitive functions performing transformation on streams in SVCODE. Each Xducer consumes a number of streams and transforms them into another. 
+Transducers or $Xducers$ are the primitive functions performing transformation on streams in SVCODE. 
+Each Xducer consumes a number of streams and transforms them into another. 
 
 For example, the Xducer $\map{+}(\<3,2\'>, \< 1,1\'>)$ consumes the stream $\<3,2\'>$ and $\< 1,1\'>$, then outputs 
 the element-wise addition result $\<4, 3\'>$. 
@@ -599,55 +567,40 @@ For example, the Xducer S2 has two clients, S3 and S5, for both of whom it is th
 
 
 \section{Translating \mysnesl to SVCODE}
-As we have seen in the last section, a high-level sequence corresponds to a number of low-level streams.
-We use a structure $\STree$ (stream tree) to generalize the relation between the high-level values and the low-level streams during compiling time:
+In Section~\ref{sec:valrep}, we have seen the idea of how a high-level value of \mysnesl can be represented as a binary tree of low-level stream values.
+At the compiling time, we use a structure $\STree$ (stream id tree) to generalize a binary tree of stream ids, so that the high-level variables and the low-level ones can be connected: 
 $$ \STree \ni \st ::= \s \ | \ (\st_1,\st_2) $$
-Thus a stream tree is a binary tree whose leaves are stream ids.  
-
-The translation environment $\del$ is a mapping from high-level variables to stream trees:
+Thus the translation environment $\del$ is a mapping from high-level variables to stream trees:
  $$\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $$ 
 
-Another essential component maintained in the translation procedure is an unused stream id called the next fresh id because it will be assigned to the defined stream(s) of the next generated instruction.
+Another important component maintained at the compiling time is a fresh stream id, which has not been used yet. 
+It will be assigned to the defined stream(s) of the next generated instruction.
+
+We will use the symbol ``$\Ra$" superscripted with the fresh id to denote the translation relation. 
+Also, for clarity, we
 
 \subsection{Expression translation}
 
-%	 Convert a stream tree to a list of  stream ids:
-%	\begin{align*}
-%	&\bar{}: \STree \-> \S \\
-%	&\overline{\s} = [s] \\
-%	&\overline{(\st,s)} = \overline{st} {\++} [s]
-%	\end{align*}
-%	
-The translation rules for \mysnesl expressions is shown in Figure~\ref{fig-trans-snesl1}. 
-The jugement can be read as: `` in the environment $\del$, the expression $e$ is translated to an SVCODE program $p$, whose stream ids starts from $s_0$ and ends at $s_1-1$ (both included), and the evaluatation result corresponds to $\st$". 
+A \mysnesl expression will be translated to a pair of an SVCODE program $p$ and a stream tree $\st$ whose stream values representing the high-level evaluation result.
+
+The translation for constants, variables and pairs are straightforward. For example, a pair $(x,4)$ will be translated to an instruction $s_0 := \constaf{4}$ with stream tree $(s,s_0)$, assuming in the context $x$ is bound to $s$ and $s_0$ is a fresh id:   
+$$[x \|-> \s] \Env (x,4)  \Ra^{s_0} (s_0 := \constaf{4}, (s,s_0))$$ 
+
+For a let-binding  first adding a new binding to $\del$ and then translating the subexpression in the new environment.
+
+The most interesting case may be the general comprehension.
+$\Comp{e_1}{x}{y}{x_1,...,x_j}$, where 
 
 
-(should have more fixes and informal explanations in the rest of this section)
 
 \fig{
  \Jug{\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}}
 
-	\PT{\Axiom{\Trans{\del}{a}{\s_0}{\s_0+1}{\sfun{\sdef{s_0}{\constaf{a}}}{\s_0}}}}
-	\PT{\AC{}
-		\RiLa{(\del(x)= \st)}
-		\UC{\Trans{\del}{x}{\s_0}{\s_0}{\sfun{\epsilon}{\st}}}
-	}\\[3ex]
-	
-	\PT{\AC{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
-		\AC{\Trans{\del}{e_2}{\s_0'}{\s_1}{\sfun{p_2}{\st_2}}}
-		\BC{\Trans{\del}{(e_1,e_2)}{\s_0}{\s_1}{\sfun {p_1;p_2} {(\st_1,\st_2)}}}
-	}\\[3ex]
 
 	\PT{\AC{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
 		\AC{\Trans{\del[x \|-> {\st_1}]}{e_2}{\s_0'}{\s_1}{\sfun {p_2} {\st}}}
 		\BC{\Trans{\del}{\Let{x}{e_1}{e_2}}{\s_0}{\s_1}{\sfun {p_1;p_2} {\st}}}
 	}\\[3ex]
-
-	\PT{
-		\AC{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
-		\RiLa{((\del(x_i)=\st_i)^k_{i=1})}
-		\UC{\Trans{\del}{\hcall \Tupk{x}}{\s_0}{\s_1}{\sfun{p}{\st}}}
-	}\\[5ex]
 
 %TODO: fix and add more 	
 	???! TODO:fix
@@ -675,6 +628,13 @@ The jugement can be read as: `` in the environment $\del$, the expression $e$ is
 
 \subsection{Built-in function translation}
 The function call of a high-level built-in function will be translated to a few lines of SVCODE instuctions.
+
+	\PT{
+	\AC{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
+	\RiLa{((\del(x_i)=\st_i)^k_{i=1})}
+	\UC{\Trans{\del}{\hcall \Tupk{x}}{\s_0}{\s_1}{\sfun{p}{\st}}}
+}\\[5ex]
+
 
 \fig{
 \Jug{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}} 

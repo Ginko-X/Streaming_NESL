@@ -3,7 +3,9 @@
 \citation{blel95nesl}
 \citation{blel89scan}
 \citation{blel96cost}
+\citation{prins93}
 \citation{Fphd}
+\citation{palm95}
 \@writefile{toc}{\contentsline {chapter}{\numberline {1}Introduction}{2}}
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
@@ -17,70 +19,76 @@
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
 \newlabel{fig-nesl-wordpart}{{1.1}{3}}
 \@writefile{toc}{\contentsline {section}{\numberline {1.3}SNESL}{3}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.1}Type system}{3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.1}Types}{3}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {1.3.2}Values and expressions}{4}}
 \@writefile{lof}{\contentsline {figure}{\numberline {1.2}{\ignorespaces Syntax of SNESL expressions \relax }}{4}}
 \newlabel{fig-snesl-exps}{{1.2}{4}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1.3}{\ignorespaces SNESL primitive functions \relax }}{4}}
-\newlabel{fig-snesl-func}{{1.3}{4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.3}Primitive functions}{4}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.3}{\ignorespaces SNESL primitive functions \relax }}{5}}
+\newlabel{fig-snesl-func}{{1.3}{5}}
 \@writefile{lol}{\contentsline {lstlisting}{code/wordpart.snesl}{5}}
 \@writefile{lof}{\contentsline {figure}{\numberline {1.4}{\ignorespaces {A SNESL program for splitting a string into words }\relax }}{5}}
 \newlabel{fig-snesl-wordpart}{{1.4}{5}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.3}Cost model}{5}}
-\@writefile{toc}{\contentsline {section}{\numberline {1.4}Mathematical background and notations}{5}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {2}Implementation}{6}}
+\@writefile{lot}{\contentsline {table}{\numberline {1.1}{\ignorespaces SNESL primitive functions with types\relax }}{6}}
+\newlabel{tab:snesl-funcs}{{1.1}{6}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.4}Cost model}{7}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.4}Mathematical background and notations}{7}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {2}Implementation}{8}}
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {2.1}High-level interpreter}{6}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.1}{\ignorespaces Grammar of high-level interpreter \relax }}{7}}
-\newlabel{fig-mysnesl}{{2.1}{7}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.2}{\ignorespaces Typing rules of $\mathrm  {SNESL_1} \ $\relax }}{8}}
-\newlabel{fig-snesl1-typing}{{2.2}{8}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.3}{\ignorespaces Primitive functions in $\mathrm  {SNESL_1} \ $\relax }}{9}}
-\newlabel{fig-mysnesl-func}{{2.3}{9}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.2}Value representation}{11}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.1}High-level interpreter}{8}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.1}{\ignorespaces Grammar of high-level interpreter \relax }}{9}}
+\newlabel{fig-mysnesl}{{2.1}{9}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.2}{\ignorespaces Typing rules of $\mathrm  {SNESL_1} \ $\relax }}{10}}
+\newlabel{fig-snesl1-typing}{{2.2}{10}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.3}{\ignorespaces Primitive functions in $\mathrm  {SNESL_1} \ $\relax }}{11}}
+\newlabel{fig-mysnesl-func}{{2.3}{11}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.2}Value representation}{13}}
+\newlabel{sec:valrep}{{2.2}{13}}
 \citation{Fmaster}
 \citation{Fphd}
-\@writefile{toc}{\contentsline {section}{\numberline {2.3}SVCODE}{13}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{13}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.4}{\ignorespaces Grammar of SVCODE \relax }}{14}}
-\newlabel{fig-svcode1-gram}{{2.4}{14}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.2}Xducers and dataflow}{14}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.5}{\ignorespaces A small SVCODE program \relax }}{15}}
-\newlabel{fig-svcode-eg1}{{2.5}{15}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.6}{\ignorespaces  Dataflow DAG for the code in Figure\nobreakspace  {}2.5\hbox {} (assuming S3 is nonempty).  Note that, for simplicity, the control stream is added as an explicit supplier only to Xducer $\mathtt  {Const_{a}}$. \relax }}{15}}
-\newlabel{fig-svcode-dag1}{{2.6}{15}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.4}Translating $\mathrm  {SNESL_1} \ $to SVCODE}{15}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.1}Expression translation}{16}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.7}{\ignorespaces Translation rules for $\mathrm  {SNESL_1} \ $expressions \relax }}{16}}
-\newlabel{fig-trans-snesl1}{{2.7}{16}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{16}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.8}{\ignorespaces Translation of built-in functions \relax }}{17}}
-\newlabel{fig-trans-builtin}{{2.8}{17}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{17}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.5}Eager interpreter}{17}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.1}Dataflow}{17}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.2}Cost model}{18}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.6}Streaming interpreter}{18}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.1}Processes}{18}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.9}{\ignorespaces A process S2 of Xducer $\mathtt  {Map}_{+}$. It reads a 2 from S0's buffer and a 1 from S1's buffers, then writes a 3 to its own buffer.\relax }}{19}}
-\newlabel{fig:process}{{2.9}{19}}
-\@writefile{lot}{\contentsline {table}{\numberline {2.1}{\ignorespaces Process actions. \relax }}{20}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.2}Scheduling}{20}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.3}Cost model}{21}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.4}Recursion}{22}}
-\@writefile{lol}{\contentsline {lstlisting}{code/fact1.svcode}{22}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.5}Deadlock}{23}}
-\newlabel{eg:deadlock1}{{2.17}{23}}
-\@writefile{lol}{\contentsline {lstlisting}{code/harddeadlock.snesl}{24}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.6}[optional] Evaluation}{24}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.3}SVCODE}{15}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{15}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.4}{\ignorespaces Abstract syntax of SVCODE \relax }}{15}}
+\newlabel{fig-svcode1-gram}{{2.4}{15}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.2}Control stream}{16}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.3}Xducers and dataflow}{16}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.5}{\ignorespaces A small SVCODE program \relax }}{17}}
+\newlabel{fig-svcode-eg1}{{2.5}{17}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.6}{\ignorespaces  Dataflow DAG for the code in Figure\nobreakspace  {}2.5\hbox {} (assuming S3 is nonempty).  Note that, for simplicity, the control stream is added as an explicit supplier only to Xducer $\mathtt  {Const_{a}}$. \relax }}{17}}
+\newlabel{fig-svcode-dag1}{{2.6}{17}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.4}Translating $\mathrm  {SNESL_1} \ $to SVCODE}{17}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.1}Expression translation}{17}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.7}{\ignorespaces Translation rules for $\mathrm  {SNESL_1} \ $expressions \relax }}{18}}
+\newlabel{fig-trans-snesl1}{{2.7}{18}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{18}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.8}{\ignorespaces Translation of built-in functions \relax }}{18}}
+\newlabel{fig-trans-builtin}{{2.8}{18}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{19}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.5}Eager interpreter}{19}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.1}Dataflow}{19}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.2}Cost model}{19}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.6}Streaming interpreter}{19}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.1}Processes}{20}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.9}{\ignorespaces A process S2 of Xducer $\mathtt  {Map}_{+}$. It reads a 2 from S0's buffer and a 1 from S1's buffers, then writes a 3 to its own buffer.\relax }}{21}}
+\newlabel{fig:process}{{2.9}{21}}
+\@writefile{lot}{\contentsline {table}{\numberline {2.1}{\ignorespaces Process actions. \relax }}{22}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.2}Scheduling}{22}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.3}Cost model}{23}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.4}Recursion}{23}}
+\@writefile{lol}{\contentsline {lstlisting}{code/fact1.svcode}{24}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.5}Deadlock}{24}}
+\newlabel{eg:deadlock1}{{2.17}{25}}
+\@writefile{lol}{\contentsline {lstlisting}{code/harddeadlock.snesl}{26}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.6}[optional] Evaluation}{26}}
 \bibdata{thesis}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.7}[optional] Examples}{25}}
-\@writefile{lol}{\contentsline {lstlisting}{code/uc\textunderscore scanred.snesl}{25}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.7}[optional] Examples}{27}}
+\@writefile{lol}{\contentsline {lstlisting}{code/uc\textunderscore scanred.snesl}{27}}
 \bibcite{blel89scan}{Ble89}
 \bibcite{blel95nesl}{Ble95}
 \bibcite{blel96cost}{Ble96}
 \bibcite{Fmaster}{Mad13}
 \bibcite{Fphd}{Mad16}
 \bibcite{prins93}{PP93}
+\bibcite{palm95}{PPCF95}
 \bibstyle{alpha}

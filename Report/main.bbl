@@ -1,15 +1,15 @@
-\begin{thebibliography}{Mad16}
+\begin{thebibliography}{PPCF95}
 
 \bibitem[Ble89]{blel89scan}
 Guy~E Blelloch.
 \newblock Scans as primitive parallel operations.
-\newblock {\em IEEE Transactions on computers}, 38(11):1526--1538, 1989.
+\newblock {\em IEEE Transactions on Computers}, 38(11):1526--1538, 1989.
 
 \bibitem[Ble95]{blel95nesl}
 Guy~E Blelloch.
 \newblock Nesl: A nested data-parallel language.(version 3.1).
-\newblock Technical report, CARNEGIE-MELLON UNIV PITTSBURGH PA SCHOOL OF
-  COMPUTER SCIENCE, 1995.
+\newblock Technical Report CMU-CS-95-170, School of Computer Science, Carnegie
+  Mellon University, 1995.
 
 \bibitem[Ble96]{blel96cost}
 Guy~E Blelloch.
@@ -32,6 +32,13 @@ Frederik~M. Madsen.
 Jan~F Prins and Daniel~W Palmer.
 \newblock Transforming high-level data-parallel programs into vector
   operations.
-\newblock In {\em ACM SIGPLAN Notices}, volume~28, pages 119--128. ACM, 1993.
+\newblock In {\em Proceedings of the Fourth SIGPLAN Symposium on Principles and
+  Practice of Parallel Programming}, PPoPP'93, pages 119--128. ACM, 1993.
+
+\bibitem[PPCF95]{palm95}
+Daniel~W Palmer, Jan~F Prins, Siddhartha Chatterjee, and Rickard~E Faith.
+\newblock Piecewise execution of nested data-parallel programs.
+\newblock In {\em International Workshop on Languages and Compilers for
+  Parallel Computing}, pages 346--361. Springer, 1995.
 
 \end{thebibliography}

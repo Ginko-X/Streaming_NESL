@@ -717,6 +717,17 @@ a specific Xducer to be consumed in a block.
 
 \section{Translation}
 
+%	 Convert a stream tree to a list of  stream ids:
+%	\begin{align*}
+%	&\bar{}: \STree \-> \S \\
+%	&\overline{\s} = [s] \\
+%	&\overline{(\st,s)} = \overline{st} {\++} [s]
+%	\end{align*}
+%	
+The translation rules for \mysnesl expressions is shown in Figure~\ref{fig-trans-snesl1}. 
+
+The jugement can be read as: `` in the environment $\del$, the expression $e$ is translated to an SVCODE program $p$, whose stream ids starts from $s_0$ and ends at $s_1-1$ (both included), and the evaluatation result corresponds to $\st$". 
+
 \subsection{Translation rules}
 \begin{enumerate}[(1)]
 	\item Stream tree: $$ \STree \ni \st ::= \s \ | \ (\st_1,\s) $$

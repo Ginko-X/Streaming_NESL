@@ -14,7 +14,7 @@ but the low-level implementation is executed in parallel rather than sequentiall
 
 The first highlight of NESL is that the design of this language makes it easy to write readable parallel algorithms. The apply-to-each construct is more expressive in its general form:
 $$ \{ e_1 :  x_1 \ \*{in} \ seq_1 \ ; \ ... \ ; \ x_i \  \*{in} \ seq_i \ \ | \ e_2  \}$$
-where the variables $x_1, ...,x_i$ possibly occurring in $e_1$ and $e_2$ are corresponding elements of $seq_1,...,seq_i$ respectively, and $e_2$, called a $sieve$, performs as a condition to filter out some elements. 
+where the variables $x_1, ...,x_i$ possibly occurring in $e_1$ and $e_2$ are corresponding elements of $seq_1,...,seq_i$ respectively; $e_2$, called a $sieve$, performs as a condition to filter out some elements. 
 Also, NESL's built-in primitive functions, such as scan \cite{blel89scan}, are powerful for manipulating sequences.
 An example program of NESL for splitting a string into words is shown in Figure~\ref{fig-nesl-wordpart}.
 
@@ -33,7 +33,7 @@ The low-level language of NESL's implementation is VCODE.
 (some more about vcode)
 
 \subsection{Work-depth cost model}
-Another important idea of NESL is its language-based cost model \cite{blel96cost}. 
+Another important idea of NESL is its language-based cost model \cite{blel96cost}.  \cite{prins93}. 
 (some more)
 % TODO 
 
@@ -44,8 +44,9 @@ It extends NESL with two features: streaming semantics and a cost model for spac
 The basic idea behind the streaming semantics may be described as:
 data-parallelism can be realized not only in terms of space, as NESL has demonstrated, but also, for some restricted cases, in terms of time. 
 When there is no enough space to store all the data at the same time, computing them chunk by chunk may be a way out.
+This idea is similar to the concept $piecewise \ execution$ in \cite{palm95}, but SNESL makes the chunking exposed at the source level in the type system and the cost model instead of a low-level execution optimization.
 
-\subsection{Type system}
+\subsection{Types}
 
 The types of a minimalistic version of SNESL defined in \cite{Fphd} are:
 \begin{align*} 
@@ -58,7 +59,7 @@ The type $[\tau]$, which is called $sequences$ in NESL and $vectors$ in SNESL, r
 fully allocated or $materialized$ in memory at once for random access.  
 $(\tau_1,...,\tau_k)$ are tuples with $k$ components that may be of different types.
 
-The novel extension is the $streamable$ types $\sigma$, which generalizes the types of data that are not necessarily completely materialized at once, but rather in a streaming fashion. 
+The novel extension is the $streamable$ types $\sigma$, which generalizes the types of data that are not necessarily entirely materialized at once, but rather in a streaming fashion. 
 In particular, the type $\{\sigma\}$, called $sequences$ in SNESL, represents collections of data computed in terms of time.
 So, even with a small size of memory, SNESL could execute programs which is impossible in NESL due to space limitation or more space efficiently than in NESL. 
 
@@ -76,56 +77,90 @@ where $a$ is the atomic values or constants of types $\pi$, and $v$ are
 
 The expressions of SNESL are shown in Figure~\ref{fig-snesl-exps}.
 
-\begin{figure}[h]
+\begin{figure}[h]\large 
 \begin{alignat*}{2}
 & e &&::=  a \     \tag{constant} \\
 &   && \quad | \ x  \tag{variable} \\
 &   && \quad | \ (e_1,...,e_k) \tag{tuple}\\
 &   && \quad | \ \Let{x}{e_1}{e_2} \tag{let-binding}\\
-&   && \quad | \ \hcall{\Tupk{x}}  \tag{built-in function call} \\
-&   && \quad | \ \Comp{e_1}{x}{y}{\usevars} \tag{general comprehension} \\
-&   && \quad | \ \RComp{e_1}{x}{\usevars} \tag {restricted comprehension} 
+&   && \quad | \ \hcall{\Tupk{e}}  \tag{built-in function call} \\
+&   && \quad | \ \{e_1: \ x \ \*{in} \ e_0 \} \tag{general comprehension} \\
+&   && \quad | \ \{e_1 \ | \ e_0 \}\tag {restricted comprehension} 
 \end{alignat*}
 \caption{Syntax of SNESL expressions \label{fig-snesl-exps}}
 \end{figure}
 
 As an extension of NESL, SNESL keeps a similar programming style of NESL. 
 Basic expressions, such as the first five in Figure~\ref{fig-snesl-exps}, are the same as in NESL. 
-Perhaps for easier experimental analysis,
-the apply-to-each construct is splitted to the general and the restricted comprehensions, both added  
-an explicit list of the free variables (listed after the keyword $\*{using}$) occur in the body $e_1$,
-and the restricted one is the only expression that can work as a conditional itself in SNESL (???). 
-These comprehensions also extended the semantics of the apply-to-each from evaluating to vectors (i.e., type $[\tau]$) to evaluating to sequences (i.e., type $\{\sigma\}$). 
+The apply-to-each construct in its general form splits into the general and the restricted comprehensions:
+the general one now is only responsible for performing parallel computation,
+and the restricted one can decide if a computation is necessary to do, working as the only conditional in SNESL.
+Also, these comprehensions extend the semantics of the apply-to-each from evaluating to vectors (i.e., type $[\tau]$) to evaluating to sequences (i.e., type $\{\sigma\}$). 
+A notable difference between them is that the free variables of $e_1$ in the general comprehension can only be of concrete types, while they can be of any types in the restricted one.
 
-Another notable difference from NESL to SNESL occurs in the built-in functions.
+\subsection{Primitive functions}
+
+SNESL also extends the primitive functions of NESL non-trivially.
 The primitive functions of SNESL is shown in Figure~\ref{fig-snesl-func}.
 
-\begin{figure}[h]
+\begin{figure}[h]\large
 \begin{alignat}{2} 
 &\hcall && ::= \oplus \ | \ \ \*{append} \ | \ \*{concat} \ | \ \*{zip} \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_{\otimes} \ | \ \*{reduce}_{\otimes} \ | \ \*{mkseq} \\
 &   && \quad | \ \*{length} \ | \ \*{elt} \\
 &   && \quad | \ \*{the}  \ | \ \*{empty} \\
 &   && \quad | \ \*{seq} \ | \ \*{tab} \\
-& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  \div \ | \ \% \ | \le \ | \ ... \tag{consts operations} \\
+& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | ==  \ |\ <=  \ | \ \*{not} \ | \ ... \tag{scalar operations} \\
 & \otimes \ && :: = + \ | \ \times  \ | \ ...  \tag{associative binary operations}
 \end{alignat}
 \caption{SNESL primitive functions \label{fig-snesl-func}}
 \end{figure}
 
-The functions listed in (1.1) and (1.2) of Figure~\ref{fig-snesl-func} are original supported in NESL, doing transformations on consts and vectors. 
-In SNESL, list (1.1) are adapted to streaming versions with slight changes of parameter types where necessary.
-By streaming version we mean that these functions in SNESL take sequences as parameters instead of vectors as they do in NESL, thus most of these functions can be executed in a more space-efficient way.  
-There will be more detailed descriptions of these functions in the next chapter.
+The scalar functions of $\oplus$ and $\otimes$ should be self-explanatory from their conventional symbols. 
+The types of the other functions and their brief description are given in Table~\ref{tab:snesl-funcs}.
 
-Functions in (1.2) are kept their vector versions in SNESL to guarantee the efficiency, although it is possible to realize stream versions for them as well.
+The functions listed in (1.1) and (1.2) of Figure~\ref{fig-snesl-func} are original supported in NESL, doing transformations on scalars and vectors.
+In SNESL, list (1.1) are adapted to streaming versions with slight changes of parameter types where necessary.
+By streaming version we mean that these functions in SNESL take sequences as parameters instead of vectors as they do in NESL, as we can see from Table~\ref{tab:snesl-funcs}, thus most of these functions can execute in a more space-efficient way.  
+
+Functions in (1.2), i.e., $\*{length}$ and $\*{elt}$, are kept their vector versions in SNESL. 
+For $\*{length}$, this is because it is impossible to know the length of a sequence in advance before the sequence reaches its EOS (end of stream).
+Thus it is more reasonable to obtain the length by materializing all the elements at once. 
+A similar reason applies to the element-indexing function $\*{elt}$.
 
 List (1.3) are new primitives in SNESL.  
-The function $\*{the}$, returns the sole element of a singleton sequence, can be used to simulate an if-then-else expression together with restricted comprehensions:
+The function $\*{the}$, returning the sole element of a singleton sequence, can be used to simulate an if-then-else expression together with restricted comprehensions:
 $$\*{if} \ e_0 \ \*{then} \ e_1 \ \*{else} \ e_2 \equiv \*{the}(\RComp{e_1}{e_0}{...} {\++} \RComp{e_2}{\*{not}(e_0)}{...}) $$
-where ${\++}$ is a syntactic sugar of $\*{append}$. 
-$\*{empty}$, which tests whether a sequence is empty or not, is much more efficient in a streaming setting as it takes only constant complexity both in time and space.
-  
-Finally, list (1.4) are functions performing conversions between concrete types and streams. $\*{seq}$, typed as $[\tau] \rightarrow \{\tau\}$, converts a vector to a sequence, and $\*{tab}$ does the contrary work, tabulating the sequence into a vector.
+The function $\*{empty}$, which tests whether a sequence is empty or not, only needs to check at most one element of the sequence instead of materializing all the element. Therefore, it works in a fairly efficient way with a constant complexity both in time and space.
+
+Finally, functions in list (1.4) connects the concrete types and streams, allowing SNESL to be flexible enough to not only write programs as NESL can do but also provide a streaming execution possibility. 
+
+\begin{table}\large
+	\renewcommand\arraystretch{1.5}
+	\centering
+	\begin{tabular}{|p{0.4\columnwidth}|p{0.5\columnwidth}|}
+		\hline
+		Function type & Brief description  \\ \hline
+		$\*{append : \{\sgm\} \times \{\sgm\} \ra \{\sgm\}}$ & append two sequences; syntactic sugar: infix symbol ``${\++}$" \\ \hline
+		$\*{concat: \{\{\sgm\}\} \rightarrow \{\sgm\} }$ &  concatenates a sequence of sequences into one                    \\ \hline
+		$\*{zip}: \{\sgm_1\} \times ... \times \{\sgm_k\}  \ra \{(\sgm_1,...,\sgm_k)\}$ & convert $k$ sequences into a sequence of $k$-component tuples \\ \hline
+		$\*{iota: \int \ra \{\int\}}$  &  generate an integer sequence starting from 0 to the given argument minus one; syntactic sugar: symbol ``\&"    \\ \hline
+		$\*{part: (\{\sgm\} \times \{\bool\}) \ra  \{\{\sgm\}\}}$   & partitions a sequence into subsequences segmented by $\T$s in the second argument; e.g., $\*{part}(\{3,1,4\}, \{\F,\F,\T,\F,\T,\T\}) = \{\{3,1\},\{4\},\{\}\}$                \\ \hline
+		$\*{scan_\otimes}: \{\int\} \ra \{\int\}$     &  performs an exclusive scan of $\otimes$ operation on the given sequence.    \\ \hline
+		$\*{reduce_\otimes: \{\int\} \ra \int }$     &   performs a reduction of $\otimes$ operation on the given sequence             \\ \hline
+		$\*{mkseq}: (\overbrace{\sgm,...,\sgm}^{k}) \ra \{\sgm\}$  & make a $k$-component tuple to a sequence of length $k$ \\ \hline  
+	    $\*{length}$: $[\tau] \ra \int$ & return the length of a vector; syntactic sugar: symbol ``\#" \\ \hline  
+	    $\*{elt}$: $[\tau] \times \int \ra \tau$  & return the  element of a vector with the given index;syntactic sugar: infix symbol ``!" \\ \hline  
+	    $\*{the:  \{\sgm\} \ra \sgm}$     &     return the element of a singleton sequence           \\ \hline
+	    $\*{empty:  \{\sgm\} \ra \bool}$       & test if the given sequence is empty.             \\ \hline  
+	    $\*{seq}: [\tau] \ra \{\tau\} $  & convert a vector into a sequence \\ \hline  
+	    $\*{tab}: \{\tau\} \ra [\tau] $  & tabulate a sequence into a vector\\ \hline  
+	\end{tabular}
+	\caption{SNESL primitive functions with types}
+	\label{tab:snesl-funcs}
+\end{table}
+
+
+
 
 The SNESL program for string splitting is shown in Figure~\ref{fig-snesl-wordpart}. 
 Compared with the NESL counterpart in Figure~\ref{fig-nesl-wordpart}, the code of SNESL version is simpler, because SNESL's primitives make it good at streaming text processing. 
