@@ -9,6 +9,7 @@ NESL \cite{blel95nesl} is a first-order functional nested data-parallel language
 As an example, adding 1 to each element of a sequence $[1,2,3]$ can be written as the following apply-to-each expression:
 $$ \{x+1 : x \ \*{in} \ [1,2,3] \}$$
 which does the same computation as the Haskell expression 
+
 $$\texttt{map ($\backslash$x -> x + 1) [1,2,3]}$$ 
 but the low-level implementation is executed in parallel rather than sequentially. 
 
@@ -144,7 +145,7 @@ Finally, functions in list (1.4) connects the concrete types and streams, allowi
 		$\*{concat: \{\{\sgm\}\} \rightarrow \{\sgm\} }$ &  concatenates a sequence of sequences into one                    \\ \hline
 		$\*{zip}: \{\sgm_1\} \times ... \times \{\sgm_k\}  \ra \{(\sgm_1,...,\sgm_k)\}$ & convert $k$ sequences into a sequence of $k$-component tuples \\ \hline
 		$\*{iota: \int \ra \{\int\}}$  &  generate an integer sequence starting from 0 to the given argument minus one; syntactic sugar: symbol ``\&"    \\ \hline
-		$\*{part: (\{\sgm\} \times \{\bool\}) \ra  \{\{\sgm\}\}}$   & partitions a sequence into subsequences segmented by $\T$s in the second argument; e.g., $\*{part}(\{3,1,4\}, \{\F,\F,\T,\F,\T,\T\}) = \{\{3,1\},\{4\},\{\}\}$                \\ \hline
+		$\*{part: \{\sgm\} \times \{\bool\} \ra  \{\{\sgm\}\}}$   & partitions a sequence into subsequences segmented by $\T$s in the second argument; e.g., $\*{part}(\{3,1,4\}, \{\F,\F,\T,\F,\T,\T\}) = \{\{3,1\},\{4\},\{\}\}$                \\ \hline
 		$\*{scan_\otimes}: \{\int\} \ra \{\int\}$     &  performs an exclusive scan of $\otimes$ operation on the given sequence.    \\ \hline
 		$\*{reduce_\otimes: \{\int\} \ra \int }$     &   performs a reduction of $\otimes$ operation on the given sequence             \\ \hline
 		$\*{mkseq}: (\overbrace{\sgm,...,\sgm}^{k}) \ra \{\sgm\}$  & make a $k$-component tuple to a sequence of length $k$ \\ \hline  

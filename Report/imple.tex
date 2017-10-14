@@ -16,6 +16,9 @@
 
 \chapter{Implementation}
 
+\def\Type#1#2#3{#1 \vdash_{\Sigma} \ #2 : #3 } 
+\def\Eval#1#2#3{#1 \vdash_{\Phi} #2 \Eva #3 } 
+
 In this chapter, we will first talk about the high-level interpreter of a minimal SNESL language but with extension of user-defined functions to give the reader a more concrete feeling about SNESL. 
 Then we introduce the streaming low-level language, SVCODE, with respect to its grammar, semantics and primitive operations.
 Translation from the high-level language to the low-level one will be explained to show their connections.
@@ -52,25 +55,34 @@ The abstract syntax of \mysnesl is given in Figure~\ref{fig-mysnesl}.
 	& e &&::=  a \     \tag{constant} \\
 	&   && \quad | \ x  \tag{variable} \\
 	&   && \quad | \ (e_1,e_2) \tag{pair}\\
-	&   && \quad | \ \{e_1,...,e_k \}	\tag{???primitive sequence} \\
-	&   && \quad | \ \{ \}\tau			\tag{???empty sequence of type $\tau$} \\
+	&   && \quad | \ \{e_1,...,e_k \}_{\qquad k \ge 1}	\tag{primitive sequence} \\
+	&   && \quad | \ \{ \}\tau			\tag{empty sequence of type $\tau$} \\
 	&   && \quad | \ \Let{x}{e_1}{e_2} \tag{let-binding}\\
-	&   && \quad | \ \hcall{\Tupk{x}}  \tag{built-in function call} \\
-	&   && \quad | \ \Comp{e_1}{x}{y}{\usevars} \tag{general comprehension} \\
-	&   && \quad | \ \RComp{e_1}{x}{\usevars} \tag {restricted comprehension} \\
-	&   && \quad | \ f(x_1,...,x_k)  \tag {user-defined function call} \\
+	&   && \quad | \ \hcall{\Tupk{e}}  \tag{built-in function call} \\
+	&   && \quad | \ \Comp{e_1}{x}{e_0}{\usevars} \tag{general comprehension} \\
+	&   && \quad | \ \RComp{e_1}{e_0}{\usevars} \tag {restricted comprehension} \\
+	&   && \quad | \ f(e_1,...,e_k)  \tag {user-defined function call} \\
 	\\
-	& d &&::= function \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e  \tag{user-defined function}
+	& d &&::= \*{function} \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e  \tag{user-defined function}
 	\end{alignat*}
-	\caption{Grammar of high-level interpreter \label{fig-mysnesl}}
+	\caption{Abstract syntax of \mysnesl \label{fig-mysnesl}}
 \end{figure}
 
-The high-level interpreter we have implemented supports interpreting both \mysnesl expressions and function definitions. 
-%The reader may find that, compared to the grammar in Figure~\ref{fig-snesl-exps}, we simplified tuples of arbitrary number of components to paris of only two components; also, primitive sequence and empty sequence are added. These small changes just make the language we experiment with as simple as possible to analyze, and also convenient for programming tests.
-Since type inference is not incorporated in the interpreter, the types of  parameters and return values need to be provided when the user defines a function.
+In addition to the simplifications mentioned before, we also made the following changes or extensions on expressions:
 
-The typing rules of SNES1 is given in Figure~\ref{fig-snesl1-typing}. The type environment $\Gam$ is a mapping from variables to types: $$\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$$.
-(may add explaination of how to type user-defined functions)
+\begin{itemize}
+	\item For comprehension expressions, the free variables of the comprehension body $e_1$ are collected as a list added after the keyword $\*{using}$. This task can simply be done by the compiler; we do this for presenting the details of implementation more conveniently.
+	
+	\item Added primitive sequence expression (including the empty one with its type explicitly given). They work as a replacement of the function $\*{mkseq}$ or $\*{seq}$ which we didn't use in \mysnesl.
+	
+	\item Added user-defined functions which allow recursions. Since type inference is not incorporated in the interpreter, the types of  parameters and return values need to be provided when the user defines a function.
+\end{itemize}
+
+
+The typing rules of \mysnesl are given in Figure~\ref{fig-snesl1-typing} and Figure~\ref{fig-snesl1-values}. The type environment $\Gam$ is a mapping from variables to types: $$\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$$
+and $\Sigma$ from the function identities to their defined types: 
+$$\Sigma = [f_1 \|-> \tau_1 \times ... \times \tau_k  \ra \tau, ..., f_i \|-> \tau_1' \times ... \times \tau_m'  \ra \tau' ]$$
+
 \fig{
 	\Jug{\Type{\Gam}{e}{\tau}}
 	
@@ -82,13 +94,12 @@ The typing rules of SNES1 is given in Figure~\ref{fig-snesl1-typing}. The type e
 		\AxiomC{}
 		\RiLa{(\Gam(x) = \tau)}
 		\UC{\Type{\Gam}{x}{\tau}}
-	}
+	}\\[4ex]
 	\PT{
 		\AC{\Type{\Gam}{e_1}{\tau_1}}
 		\AC{\Type{\Gam}{e_2}{\tau_2}}
 		\BC{\Type{\Gam}{(e_1,e_2)}{(\tau_1,\tau_2)}}
-	}\\[3ex]
-	
+	}\\[4ex]	
 	\PT{
 		\AC{\Type{\Gam}{e_1}{\tau}}
 		\AC{...}
@@ -96,66 +107,50 @@ The typing rules of SNES1 is given in Figure~\ref{fig-snesl1-typing}. The type e
 		\TC{\Type{\Gam}{\{e_1,...,e_k\}}{\{\tau\}}}
 	}
 	\PT{\Axiom{\Type{\Gam}{\{\}\tau}{\{\tau}\}}}
-	\\[3ex]
-	
-	
+	\\[4ex]
 	\PT{
 		\AC{\Type{\Gam}{e_1}{\tau_1}}
 		\AC{\Type{\Gam[x \|-> \tau_1]}{e_2}{\tau}}
 		\BC{\Type{\Gam}{\Let{x}{e_1}{e_2}}{\tau}}
-	}	
+	}\\[4ex]
 	\PT{
-		\AC{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
-		\RiLa{((\Gam(x_i)= \tau_i)^k_{i=1})}
-		\UC{\Type{\Gam}{\hcall{\Tupk{x}}}{\tau}}
-	}\\[3ex]
-	
+		\AC{\Type{\Gam}{e_1}{\tau_1}}
+		\AC{...}
+		\AC{\Type{\Gam}{e_k}{\tau_k}}
+		\RiLa{(\Sigma(\hcall) = \tau_1 \times ... \times \tau_k \ra \tau)}
+		\TC{\Type{\Gam}{\hcall{\Tupk{e}}}{\tau}}
+	}\\[4ex]	
 	\PT{
-		\AC{\Type{[x \|-> {\tau_1}, \j{x_i \|-> \pi_i}]}{e_1}{\tau}}
-		\RiLa{(\Gam(y)=\tseq{\tau_1}, \j{\Gam(x_i) = \pi_i})}
-		\UC{\Type{\Gam}{\Comp{e_1}{x}{y}{\usevars}}{\tseq{\tau}}}
-	}\\[3ex]
-	
+		\AC{\Type{\Gam}{e_0}{\{\tau_0\}}}
+		\AC{\Type{[x \|-> \tau_0, \j{x_i \|-> \tau_i}]}{e_1}{\tau}}
+		\RiLa{(\j{\Gam(x_i) = \tau_i \in \{\pi, (\pi,\pi)\}})}
+		\BC{\Type{\Gam}{\Comp{e_1}{x}{e_0}{\usevars}}{\tseq{\tau}}}
+	}\\[4ex]
 	\PT{
+		\AC{\Type{\Gam}{e_0}{\bool}}
 		\AC{\Type{[\j{x_i \|-> \tau_i}]}{e_1}{\tau}}
-		\RiLa{(\Gam(x)= \bool, \j{\Gam(x_i) = \tau_i})}
-		\UC{\Type{\Gam}{\RComp{e_1}{x}{\usevars}}{\tseq{\tau}}}
-	}\\[3ex]
-
+		\RiLa{(\j{\Gam(x_i) = \tau_i})}
+		\BC{\Type{\Gam}{\RComp{e_1}{e_0}{\usevars}}{\tseq{\tau}}}
+	}\\[4ex]
 	\PT{
-		\AC{\Typef{f}{\tau_1,...,\tau_i}{\tau}}
-		\LeLa{???}
-		\RiLa{(\k{\Gam(x_i) = \tau_i})}
-		\UC{\Type{\Gam}{f(x_1,...,x_k)}{\tau}}
+		\AC{\Type{\Gam}{e_1}{\tau_1}}
+		\AC{...}
+		\AC{\Type{\Gam}{e_k}{\tau_k}}
+		\RiLa{(\Sigma(f) = \tau_1 \times ... \times \tau_k \ra \tau)}
+		\TC{\Type{\Gam}{f(e_1,...,e_k)}{\tau}}
 	}
-%	
-%	\item \Jug{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
-%	
-%	\PT{\Axiom{\Typef{\constn{n}}{}{\int}}}
-%	\PT{\Axiom{\Typef{\iotan}{\int} {\tseq{\int}}}}
-%	\PT{\Axiom{\Typef{\plusn}{\int,\int} {\int}}}
-	
-}{Typing rules of \mysnesl \label{fig-snesl1-typing}}
+
+}{Typing rules of \mysnesl  expressions \label{fig-snesl1-typing}}
 
 
 
-Value typing rules: \\
 
-\Jug{\TypeV{a}{\pi}}
+\fig{
+\Jug{\TypeV{v}{\tau}}
 
 \PT{\Axiom{\TypeV{n}{\int}}}
 \PT{\Axiom{\TypeV{\T}{\bool}}}
-\PT{\Axiom{\TypeV{\F}{\bool}}}
-\PT{
-	\AC{\TypeV{a_1}{\pi_1}}
-	\AC{\TypeV{a_2}{\pi_2}}
-	\BC{\TypeV{(a_1,a_2)} {(\pi_1,\pi_2)}}
-}\\[3ex]
-
-
-\Jug{\TypeV{v}{\tau}}
-
-\PT{\Axiom{\TypeV{a}{\pi}}}
+\PT{\Axiom{\TypeV{\F}{\bool}}}\\[4ex]
 \PT{
 	\AC{\TypeV{v_1}{\tau_1}}
 	\AC{\TypeV{v_2}{\tau_2}}
@@ -166,14 +161,22 @@ Value typing rules: \\
 	\AC{...}
 	\AC{\TypeV{v_k}{\tau}}
 	\TC{\TypeV{\Seqk{v}}{\{\tau\}}}
-}\\[3ex]
+}
+}{Typing rules of \mysnesl values \label{fig-snesl1-values}}
 
 
+The type rules of \mysnesl should be straightforward except those for comprehensions. 
+For the general comprehension, the types of free variables of the comprehension body $e_1$ in the rules, i.e., $x_1,...,x_j$, are all required 
+to be non-sequence, i.e., only primitive types or pair of primitive types.
+This is because the values of these variables will be repeatedly used $k$ times ($k \ge 0$) to evaluate the $k$ elements of the comprehension,
+so they are not allowed to be streams as streams can only be traversed once. \\
 
-Semantics of \mysnesl with cost (TODO: add cost): \\
-%TODO: add cost
-Evaluation environment $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 
+The semantics of \mysnesl is given in Figure~\ref{fig:mysnesl-semantics} with the evaluation environment in the form $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
+ (??TODO: add cost) \\
+ %TODO: add cost??
+
+\fig{
  \Jug{\Eval{\rho}{e}{v}}
 	 \PT{
 	 	\Axiom{\Eval{\rho}{a}{a}}
@@ -187,7 +190,7 @@ Evaluation environment $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 		\AC{\Eval{\rho}{e_1}{v_1}}
 		\AC{\Eval{\rho}{e_2}{v_2}}
 		\BC{\Eval{\rho}{(e_1,e_2)}{(v_1,v_2)}}	
-	}\\[3ex]
+	}\\[4ex]
 	\PT{
 		\AC{\Eval{\rho}{e_1}{v_1}}
 		\AC{...}
@@ -196,57 +199,67 @@ Evaluation environment $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
 	}
 	\PT{
 		\Axiom{\Eval{\rho}{\{\}\tau}{\{\}}}
-	}\\[3ex]
-
+	}\\[4ex]
 	\PT{
 		\AC{\Eval{\rho}{e_1}{v_1}}
 		\AC{\Eval{\rho[x \|-> v_1]}{e_2}{v}}
 		\BC{\Eval{\rho}{\Let{e_1}{x}{e_2}}{v}}	
-	}
-	\PT{
-		\AC{\EvalF\hcall{\replc{k}{v}}{v}}
-		\RiLa{((\rho(x_i)=v_i)^k_{i=1})}
-		\UC{\Eval{\rho}{\hcall{\Tupk{x}}}{v}}
-	}\\[3ex]
-	
-	\PT{
-		\AC{(\Eval{[x \|-> {v_i}, \j{x_i \|-> a_i}]}{e_1}{v_i'})^k_{i=1}}
-		\RiLa{(\rho(y)=\Seqk{v}, \j{\rho(x_i) = a_i})}
-		\UC{\Eval{\rho}{\Comp{e_1}{x}{y}{\usevars}}{\Seqk{v'}}}
-	}\\[3ex]
-	
-	\PT{
-		\AC{}
-		\RiLa{(\rho(x)= \F)}
-		\UC{\Eval{\rho}{\RComp{e_1}{x}{\usevars}}{\{\}}}
-	}\\[3ex]
+	}\\[4ex]
 	\PT{
 		\AC{\Eval{\rho}{e_1}{v_1}}
-		\RiLa{(\rho(x)= \T)}
-		\UC{\Eval{\rho}{\RComp{e_1}{x}{\usevars}}{\{v_1\}}}
-	}\\[3ex]
+		\AC{...}
+		\AC{\Eval{\rho}{e_k}{v_k}}
+		\RiLa{((\Phi(\hcall)=(v_1,...,v_k) \Eva v)}
+		\TC{\Eval{\rho}{\hcall{\Tupk{e}}}{v}}
+	}\\[4ex]
+	
 	\PT{
-		\AC{\Eval{\rho}{f(x_1,...,x_k)}{???}}
-	}\\[3ex]
+		\AC{\Eval{\rho}{e_0}{\{v_1,...,v_k\}}}
+		\AC{(\Eval{\rho[x \|-> {v_i}]}{e_1}{v_i'})^k_{i=1}}
+		\BC{\Eval{\rho}{\Comp{e_1}{x}{e_0}{\usevars}}{\Seqk{v'}}}
+	}\\[4ex]	
+	\PT{
+		\AC{\Eval{\rho}{e_0}{\F}}
+		\UC{\Eval{\rho}{\RComp{e_1}{e_0}{\usevars}}{\{\}}}
+	}
+	\PT{
+		\AC{\Eval{\rho}{e_0}{\T}}
+		\AC{\Eval{\rho}{e_1}{v_1}}
+		\BC{\Eval{\rho}{\RComp{e_1}{x}{\usevars}}{\{v_1\}}}
+	}\\[4ex]
+	\PT{
+		\AC{\Eval{\rho}{e_1}{v_1}}
+		\AC{...}
+		\AC{\Eval{\rho}{e_k}{v_k}}
+		\RiLa{((\Phi(f)=(v_1,...,v_k) \Eva v)}
+		\TC{\Eval{\rho}{f{\Tupk{e}}}{v}}
+	}
+}{Semantics of \mysnesl \label{fig:mysnesl-semantics}}
+
+Again, the evaluation rules are also straightforward except for the comprehensions.
+In the general comprehension, the bound sequence $e_0$ gets evaluated first, then its $k$ elements are used to substitute the bound variable $x$ in the comprehension body $e_1$; so $e_1$ will be evaluated $k$ times with different substitutions of $x$.
+
+For the restricted comprehension, the guard expression $e_0$ first gets evaluated: if it is a $\T$, then $e_1$ will be evaluated, generating a singleton sequence; otherwise, $e_1$ will not be evaluated, and the comprehension only returns an empty sequence. \\
 
 
-The built-in functions are also a subset of SNESL built-in functions shown in Figure~\ref{fig-snesl-func} but  the vector-related ones are removed, as shown in Figure~\ref{fig-mysnesl-func}. 
+The built-in functions of \mysnesl correspond to a subset of SNESL's shown in Figure~\ref{fig-snesl-func} but without the vector-related ones and $\*{mqseq}$. 
+In addition, the function $\*{scan}$ and $\*{reduce}$ are also
+taken a specific verison: picked $+$ from $\otimes$, for simplicity, as shown in Figure~\ref{fig-mysnesl-func}. 
 
-\begin{figure}[h]
+
+\begin{figure}[H]\large
 	\begin{alignat*}{2} 
-	&\hcall && ::= \oplus \ | \  \ \*{append} \ | \ \*{concat}  \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_\otimes \ | \ \*{reduce}_{\otimes} \ | \ \*{the}  \ | \ \*{empty} \\
-	& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  \div \ | \ \% \ | \le \ | \ ... \tag{consts operations} \\
-	& \otimes \ && :: = + \ | \ \times  \ | \ ...  \tag{associative binary operations}
+	&\hcall && ::= \oplus \ | \  \ \*{append} \ | \ \*{concat}  \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_+ \ | \ \*{reduce}_{+} \ | \ \*{the}  \ | \ \*{empty} \\	
+	& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | <= \ | \ == \ | \  \*{not} \ | \ ... \tag{scalar operations} \\
 	\end{alignat*}
 	\caption{Primitive functions in \mysnesl \label{fig-mysnesl-func}}
 \end{figure}
 
-The consts operations of $\oplus$ should be self-explained from their conventional names. 
-The types, short descriptions and examples of the other streamable operations are given below.
+The types and semantics of these built-in functions remain the same as they are described in Table~\ref{tab:snesl-funcs}; we complement that brief version with more details where necessary and examples here.
 
 \begin{itemize}
 
-	\item $\*{append : (\{\tau\} \times \{\tau\}) \ra \{\tau\}}$ , 
+	\item $\*{append : \{\tau\} \times \{\tau\} \ra \{\tau\}}$ , 
 	appends one sequence to the end of another; syntactic-sugared as the infix symbol {\++}.
 
 	\begin{figure}[H]
@@ -262,7 +275,7 @@ The types, short descriptions and examples of the other streamable operations ar
 	\end{figure}
 
 
-	\item $\*{concat: \{\{\tau\}\} \rightarrow \{\tau\} }$, concatenates the elements of type sequence into one sequence. 
+	\item $\*{concat: \{\{\tau\}\} \rightarrow \{\tau\} }$, concatenates a sequence of sequences into one, that is, decreases the nesting-depth by one.
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -275,7 +288,7 @@ The types, short descriptions and examples of the other streamable operations ar
 	\end{lstlisting}
 	\end{figure}
 
-	\item $\*{iota: \int \ra \{\int\}}$, generates a sequence of integers starting from 0 to the given argument integer minus 1; syntactic-sugared as the symbol \&. 
+	\item $\*{iota: \int \ra \{\int\}}$, generates a sequence of integers starting from 0 to the given argument minus 1; syntactic-sugared as the symbol \&; if the argument is negative, then reports a runtime error.
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -288,7 +301,8 @@ The types, short descriptions and examples of the other streamable operations ar
 	\end{lstlisting}
 	\end{figure}
 	
-	\item $\*{part: (\{\tau\} \times \{\bool\}) \ra  \{\{\tau\}\}}$,  partitions a sequence into subsequences segmented by the second descriptor argument. 
+	\item $\*{part: \{\tau\} \times \{\bool\} \ra  \{\{\tau\}\}}$, partitions a sequence into subsequences according to the second boolean sequence, where a $\F$ corresponds to one element of the first argument and a $\T$ indicates a segment separation; so the number of $\F$s is equal to length of the first argument, and the number of $\T$s is equal to the length of the returned value, and it must end with a $\T$. 
+	If the second argument does not satisfy the requirement, a runtime error will be reported.
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -301,7 +315,7 @@ The types, short descriptions and examples of the other streamable operations ar
 	\end{lstlisting}
 	\end{figure}
 	
-	\item $\*{scan_+}: \{\int\} \ra \{\int\}$, performs an exclusive scan of plus operation on the given sequence.
+	\item $\*{scan_+}: \{\int\} \ra \{\int\}$, performs an exclusive scan of addition operation on the given sequence, that is, assuming the argument is $\{n_1,n_2,..,n_{k-1},n_k\}$, to compute $\{0, n_1,n_1+n_2,...,n_1+...+n_{k-1}\}$. This scan operation has its general form in full SNESL, where it supports more associative binary operations with a specified identity element $e_0$  such that $e_0 \otimes e_0 = e_0$.
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -314,7 +328,8 @@ The types, short descriptions and examples of the other streamable operations ar
 	\end{lstlisting}
 	\end{figure}
 	
-	\item $\*{reduce_+: \{\int\} \ra \int }$, performs a reduction of plus operation on the given sequence, i.e., compute its sum.
+	\item $\*{reduce_+: \{\int\} \ra \int }$, performs a reduction of addition operation on the given sequence, i.e., computes its sum. 
+	Again, this function also has its general form in full SNESL, where it computes $a_1 \otimes a_2 \otimes... \otimes a_k $ for an argument $\{a_1,a_2,...,a_k\}$.
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -328,7 +343,7 @@ The types, short descriptions and examples of the other streamable operations ar
 	\end{figure}
 
 
-	\item $\*{the:  \{\tau\} \ra \tau}$, returns the element of a singleton sequence.
+	\item $\*{the:  \{\tau\} \ra \tau}$, returns the element of a singleton sequence; if the length of the argument is not exact one, reports a runtime error. 
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -341,7 +356,7 @@ The types, short descriptions and examples of the other streamable operations ar
 	\end{lstlisting}
 	\end{figure}
 	
-	\item $\*{empty:  \{\tau\} \ra \bool}$, tests if the given sequence is empty.
+	\item $\*{empty:  \{\tau\} \ra \bool}$, tests if the given sequence is empty; if it is empty, returns a $\T$, otherwise returns a $\F$.
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -356,21 +371,21 @@ The types, short descriptions and examples of the other streamable operations ar
 \end{itemize}
 
 
-
-\begin{figure}[H]\large
-	\begin{example}\emph{A user-defined function  written in \mysnesl to compute the multiplication of a square matrix and its transpose.}
-	\end{example}
-	\begin{lstlisting}[style = nesl-style]
-	-- code desplay format changed for readability
-	function matmul(n:int) :{{int}} = 
-  	  let matA = {&n : _ in &n};
-	      matB = {{x : _ in &n} : x in &n} -- transposition of matA
-	  in {{ reducePlus({x*y : x in a, y in b}) : a in matA} : b in matB}
-	
-	> matmul(4)
-	{{0,0,0,0},{6,6,6,6},{12,12,12,12},{18,18,18,18}} :: {{int}}
-	\end{lstlisting}
-\end{figure}
+%
+%\begin{figure}[H]\large
+%	\begin{example}\emph{A user-defined function  written in \mysnesl to compute the multiplication of a square matrix and its transpose.}
+%	\end{example}
+%	\begin{lstlisting}[style = nesl-style]
+%	-- code desplay format changed for readability
+%	function matmul(n:int) :{{int}} = 
+%  	  let matA = {&n : _ in &n};
+%	      matB = {{x : _ in &n} : x in &n} -- transposition of matA
+%	  in {{ reducePlus({x*y : x in a, y in b}) : a in matA} : b in matB}
+%	
+%	> matmul(4)
+%	{{0,0,0,0},{6,6,6,6},{12,12,12,12},{18,18,18,18}} :: {{int}}
+%	\end{lstlisting}
+%\end{figure}
 
 
 \section{Value representation} \label{sec:valrep}
