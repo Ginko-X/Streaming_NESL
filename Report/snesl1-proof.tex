@@ -405,13 +405,7 @@ After abstracting the general semantics, the remaining work of formalizing the s
 		\end{center}
 	\end{example}
 	
-	\item $\usumf{\b}$ transforms an $\F$ to a unit, or a $\T$ to nothing. It is the only Xducer that can generate a unit vector,
-	so it is mainly used when we need to replace the control stream.
-	\begin{example} \emph{$\usumf{\<\F,\T,\F,\F,\T\'>}$:}\\
-		\begin{center}
-			\includegraphics[width=0.6\textwidth]{fig/usum.png}
-		\end{center}
-	\end{example}
+	
 	
 	\item $\scan_{n_0}(\b,\a)$ performs an exclusive scan of the binary operation plus on $\a$, segmented by $\b$, with a starting element $n_0$.
 	\begin{example} \emph{$\scan_{0}(\<\F,\F,\F,\T,\F,\T\'>, \< 2,5,3,6 \'>)$}\\

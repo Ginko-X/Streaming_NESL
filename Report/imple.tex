@@ -513,9 +513,7 @@ to demonstrate how the freshness property is guaranteed.
 In the practical implementation, we simply identify each stream with a natural number, a smaller one always defined earlier than a greater one. 
 
 
-\subsection{Control stream}
-
-\subsection{Xducers and dataflow}
+\subsection{Xducers and control stream}
 
 Transducers or $Xducers$ are the primitive functions performing transformation on streams in SVCODE. 
 Each Xducer consumes a number of streams and transforms them into another. 
@@ -529,16 +527,6 @@ the element-wise addition result $\<4, 3\'>$.
 	\end{center}
 \end{example}
 
-
-%the Xducer $\constaf{a}$ outputs the const $a$ until the control stream reaches EOS.
-%
-%\begin{example} \emph{$\constaf{3}$ with control stream $\c = \<(),()\'>$:}\\
-%	\begin{center}
-%		\includegraphics[width=0.6\textwidth]{fig/const3.png}
-%	\end{center}
-%\end{example}
-
-	
 
 As we have mentioned before, the dataflow of an SVCODE program is basically a DAG, where each Xducer stands for one node. 
 The \wc block is only a subgraph that may be added to the DAG at runtime,  
@@ -574,113 +562,320 @@ Figure~\ref{fig-svcode-eg1} shows an example program, with its DAG in Figure~\re
 When we talk about two Xducers $A$ and $B$ connected by an arrow from $A$ to $B$ in the DAG, we call $A$ a $producer$ or a $supplier$ to $B$, and $B$ a $consumer$ or a $client$ of $A$. 
 As an Xducer can have multiple suppliers, we distinguish these suppliers by giving each of them an index, called a $channel \ number$. 
 In Figure~\ref{fig-svcode-dag1}, the channel number is labeled above each edge. 
-For example, the Xducer S2 has two clients, S3 and S5, for both of whom it is the No.0 channel;  Xducer S5 has two suppliers: S2 the No.0 channel and S3 the No.1. 
+For example, the Xducer S2 has two clients, S3 and S5, for both of whom it is the No.0 channel;  Xducer S5 has two suppliers: S2 the No.0 channel and S3 the No.1. \\
 
 
+An issue here is dealing with runtime errors of Xducers. 
+For instance, the $\map{+}$ Xducer can consume a) the stream $\<3,2\'>$ with $\< 1,1,5\'>$, or b) the stream $\<3,2,5\'>$ with $\< 1,1\'>$ , and outputs the same result $\<4, 3\'>$. 
+But apparently there is a runtime error, since the two input streams are expected to be the same length, and we can not decide whether the correct length should be two or three, or maybe none of them.
+Another special case is the Xducer $\constaf{a}$, which outputs some number of constants $a$, even takes no argument stream. 
+ 
 
+In the implementation of \cite{Fphd}, a special stream of unit type, called the $control \ stream$, is used at the compiling time basically for replicating constants, and it has nothing to do with the runtime.
+
+In our implementation, we move it to the runtime, so that it will not only control constants replication, but more importantly, dominate all the Xducers' behavior. 
+Our observation is that the parallel degree throughout the whole computation is expressed by this control stream, and all the Xducers should behave correspondingly to this parallel degree, or in other words, the parallel degree propagates through the dataflow DAG.
+
+In practice, a Xducer can first consume the control stream to ``read" the parallel degree it should compute, then it consumes its normal input streams and outputs the expected number of elements. 
+There can be three benefits by doing so.
+
+First, Xducers now can easily check a runtime error. 
+For example, when the parallel degree is two, i.e., the control stream is $\< (),() \'>$, the Xducer $\map{+}$ will know that it only needs to consume two elements from each input stream, and output two as well; all the other cases will be reported as runtime errors.  
+And the Xducer $\consta{a}$ just outputs the equal number of elements to the length of the control stream.
+
+Another benefit is that all the Xducers will behave in a more uniform and regular way, which is easier for reason about and formalization, as we will show in the next chapter.
+
+Finally, the functionality of Xducers can be completely independent or separated from the scheduling in the streaming execution model,  which makes the Xducer easier to be extended or changed,
+and the implementation model more flexible and easier to debug. 
 
 
 
 \section{Translating \mysnesl to SVCODE}
-In Section~\ref{sec:valrep}, we have seen the idea of how a high-level value of \mysnesl can be represented as a binary tree of low-level stream values.
+In Chapter~\ref{sec:valrep}, we have seen the idea of how a high-level value of \mysnesl can be represented as a binary tree of low-level stream values.
 At the compiling time, we use a structure $\STree$ (stream id tree) to generalize a binary tree of stream ids, so that the high-level variables and the low-level ones can be connected: 
 $$ \STree \ni \st ::= \s \ | \ (\st_1,\st_2) $$
-Thus the translation environment $\del$ is a mapping from high-level variables to stream trees:
+The translation environment $\del$ is a mapping from high-level variables to stream trees:
  $$\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $$ 
 
 Another important component maintained at the compiling time is a fresh stream id, which has not been used yet. 
-It will be assigned to the defined stream(s) of the next generated instruction.
+It will be assigned to the defined stream(s) of the newly generated instruction.
 
 We will use the symbol ``$\Ra$" superscripted with the fresh id to denote the translation relation. 
-Also, for clarity, we
+Also, a subscript may be used to denote the new fresh id after a certain piece of code has been generated.
 
 \subsection{Expression translation}
 
-A \mysnesl expression will be translated to a pair of an SVCODE program $p$ and a stream tree $\st$ whose stream values representing the high-level evaluation result.
 
-The translation for constants, variables and pairs are straightforward. For example, a pair $(x,4)$ will be translated to an instruction $s_0 := \constaf{4}$ with stream tree $(s,s_0)$, assuming in the context $x$ is bound to $s$ and $s_0$ is a fresh id:   
+An \mysnesl expression will be translated to a pair of an SVCODE program $p$ and a stream tree $\st$ whose stream values represents the high-level evaluation result:
+$$ \Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$$
+
+The translation for constants, variables and pairs are straightforward. For example, a pair $(x,4)$ will be translated to a program of only one instruction $s_0 := \constaf{4}$ and a stream tree $(s,s_0)$, assuming in the context $x$ is bound to $s$ and $s_0$ is a fresh id before the translation :   
 $$[x \|-> \s] \Env (x,4)  \Ra^{s_0} (s_0 := \constaf{4}, (s,s_0))$$ 
 
-For a let-binding  first adding a new binding to $\del$ and then translating the subexpression in the new environment.
+For a let-binding expression $\Let{x}{e_1}{e_2}$,  first $e_1$ gets translated to some code $p_1$ and a stream tree $st_1$ as usual; then the binding $[x \|-> \st_1]$ is added to $\del$, in which the body $e_2$ gets translated to $p_2$ with $\st_2$; the translation of the entire expression will be the concatenation of $p_1$ and $p_2$, i.e., $p_1;p_2$, and the stream tree is only $\st_2$.
 
-The most interesting case may be the general comprehension.
-$\Comp{e_1}{x}{y}{x_1,...,x_j}$, where 
+Translations for specific built-in functions and user-defined functions will be given later.
 
+Non-empty primitive sequence looks a little bit tricky to translate as it can have arbitrary  number ($\ge$ 1) of elements, but it is basically a general version of the function $\*{append}$.
+For the empty sequence $\{\}\tau$, the low-level streams are all empty streams except for the outermost descriptor $\oT$, and the number of those empty streams depends on the type $\tau$.
 
+The most interesting case may be the comprehensions. 
+For the general one, $\Comp{e_1}{x}{e_0}{x_1,...,x_j}$, first we need to translate $e_0$, whose type must be a sequence, and we obtain a program $p_0$ and a stream tree that must look like $(st_0,s_b)$ where $s_b$ is the outermost descriptor. 
+Recall that the number of $\F$s of a descriptor is equal to the length of the inner data stream, assuming it is $k$,  and the comprehension body $e_1$ will be evaluated $k$ times with $x$ being bound to different elements of the data stream $\st_0$, 
+thus the parallel degree of computing $e_1$ can be represented by employing a $\usum$ Xducer on $s_b$.
 
-\fig{
- \Jug{\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}}
+The Xducer $\usumf{\b}$ takes one boonlean stream as argument, and transforms an $\F$ to a unit, or a $\T$ to nothing. It is the only Xducer that can generate a unit vector in our instruction set,
+so it is mainly used when we need to replace the control stream.
+\begin{example} \emph{$\usumf{\<\F,\T,\F,\F,\T\'>}$ with the control stream = $\<(),() \'>$:} \\
+	\begin{center}
+		\includegraphics[width=0.6\textwidth]{fig/usum.png}
+	\end{center}
+\end{example}
 
+If there is no free variables in $e_1$, then the next step will be translating the comprehension body $e_1$ in the new environment $\del[x \|->\st_1]$, and we are done.
 
-	\PT{\AC{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
-		\AC{\Trans{\del[x \|-> {\st_1}]}{e_2}{\s_0'}{\s_1}{\sfun {p_2} {\st}}}
-		\BC{\Trans{\del}{\Let{x}{e_1}{e_2}}{\s_0}{\s_1}{\sfun {p_1;p_2} {\st}}}
-	}\\[3ex]
+For the case where $e_1$ uses some free variables $x_1,...,x_j$ defined earlier than this comprehension translation, we need to generate new streams, each of which is a $k$-replicate or a distribution of the stream of $x_1,...,x_j$ respectively. 
 
-%TODO: fix and add more 	
-	???! TODO:fix
+The translation will look like:\\[3ex]
 	\PT{
-		\AC{\Trans{[x \|-> {\st_1}, \j{x_i \|-> \st_i}]}{e}{\s_0+1+j}{\s_1}{\sfun{p_1}{\st}}}
-		\RiLa{\left(
-			\begin{aligned}
-				\del(y) = &  \ (\st_1,\s_b) \\
-				\j{\del(x_i) = & \ \st_i'} \\
-				p = & \ \sdef{\s_0}{\usum(\s_b)}; \\
-				& \ \j{\sdef{\s_i}{\distrf{\s_b}{\s_i'}};} \\
-				& \ \withctrl{\s_0}{p_1}{\Sin}{\Sout} \\
-				\Sin = &  \ \FV{p_1} \\
-				\Sout = & \ \overline{\st} \cap \dv{p_1} \\
-				\s_{i+1} = & \ \s_i + 1, \forall i \in \{0,...,j-1\} \\
-			\end{aligned}
-			\right)}
-		\UC{\Trans{\del}{\Comp{e}{x}{y}{\usevars}}{\s_0}{\s_1}
+		\AC{\Trans{\del}{e_1}{}{}{(p_1, (st_1,s_b))}}
+		\AC{\Trans{[x \|-> {\st_1}, \j{x_i \|-> \st'_i}]}{e}{s_1}{}{\sfun{p_2}{\st}}}
+		\RiLa{(\j{\del(x_i) = \ \st_i})}		
+		\BC{\Trans{\del}{\Comp{e_1}{x}{e_0}{\usevars}}{}{}
 			{ \sfun{p} {(\st,\s_b)}}}
-	}\\[10ex]	
-}{Translation rules for \mysnesl expressions \label{fig-trans-snesl1}}
+	}
+
+\def\Distr#1#2{\mathtt{distr}(#1,#2)}
+\def\Pack#1#2#3{\mathtt{pack}_{#3}(#1,#2)}
+
+in which $$ \begin{aligned}
+p = & \ p_1; \\
+    & \ \sdef{\s_1}{\usum(\s_b)}; \\
+	& \ \sdef{\st_1'}{\Distr{\s_b}{\st_1}}; \\
+	& \qquad \qquad \vdots \\
+	& \ \sdef{\st_j'}{\Distr{\s_b}{\st_j}}; \\
+	& \ \withctrl{\s_1}{p_2}{\Sin}{\Sout} \\
+\end{aligned}$$	
+
+Note that we put $p_2$ into a \wc block so that $p_2$ can be skipped when $s_1$ is tested to be an empty stream at runtime.
+$\Sin$ and $\Sout$  are some analysis results about the free stream variables and the defined ones of $p_2$, which can be easily obtained by traversing $p_2$. We will give more details about them in the next chapter.
+
+The function $\mathtt{distr}$ is responsible for replicating streams by employing the Xducer $\distr$. 
+We give its definition in a form close to the SVCODE style for more readability:
+\begin{align*}
+	s' := \Distr{s_b}{s}; \quad \equiv & \quad s' := \distrf{s_b}{s}; \\
+	(st'_1,st'_2)  := \Distr{s_b}{(st_1,st_2)}; \quad \equiv & \quad st_1' := \Distr{s_b}{st_1}; \\ 
+	&\quad st_2' := \Distr{s_b}{st_2};
+\end{align*}
+
+The Xducer $\distr$ consumes a boolean stream as a segment descriptor of the data stream, and replicates the constants of the data stream corresponding times to their segment lengths.
+\begin{example} \emph{$\distrf{\<\F,\F,\F,\T,\F,\T\'>}{\< 2,5 \'>}$ with control stream $\< (),() \'>$}\\
+	\begin{center}
+		\includegraphics[width=0.7\textwidth]{fig/distr.png}
+	\end{center}
+\end{example}
+
+
+
+The restricted comprehension is a little bit simpler compared to the general one, since there is no variable-bindings in $e_1$ and the parallel degree of the computation of $e_1$ is either one or zero, thus the free variables $x_1,...,x_j$ does not need to be distributed, but rather, $pack$ed. Its translation will look like:
+
+$$\PT{
+	\AC{\Trans{\del}{e_1}{}{}{(p_1,s_b)}}
+	\AC{\Trans{[\j{x_i \|-> \st'_i}]}{e}{s_1}{}{\sfun{p_2}{\st}}}
+	\RiLa{(\j{\del(x_i) = \ \st_i})}		
+	\BC{\Trans{\del}{\RComp{e_1}{e_0}{\usevars}}{}{}
+		{ \sfun{p} {(\st,\s_1)}}}
+}$$
+
+
+in which $$ \begin{aligned}
+p = & \ p_1; \\
+& \ \sdef{\s_1}{\bu(\s_b)}; \\
+& \ \sdef{\s_2}{\usum(\s_1)}; \\
+& \ \sdef{\st_1'}{\Pack{\s_b}{\st_1}{\tau_1}}; \\
+& \qquad \qquad \vdots \\
+& \ \sdef{\st_j'}{\Pack{\s_b}{\st_j}{\tau_j}}; \\
+& \ \withctrl{\s_2}{p_2}{\Sin}{\Sout} \\
+\end{aligned}$$
 	
-% Auxiliary 
+The Xducer $\bu$ simply transforms a boolean to a unary number, i.e.,  transforms $\oF$ to $\oT$, and $\oT$ to $\< \F, \T \'>$,.
+\begin{example} \emph{$\bu({\<\T,\F\'>})$ with control stream $\< (),() \'>$}\\
+	\begin{center}
+		\includegraphics[width=0.5\textwidth]{fig/b2uxducer.png}
+	\end{center}
+\end{example}
+
+The function $\mathtt{pack}_{\tau}$ annotated with the type of the packed variable will generate instructions using $\pack$ and possibly $\upack$ and $\distr$:
+\begin{align*}
+s' := \Pack{s_b}{s}{\pi}; \quad \equiv & \quad s' := \packf{s_b}{s}; \\
+\\
+(st'_1,st'_2)  := \Pack{s_b}{(st_1,st_2)}{(\tau_1,\tau_2)}; \quad \equiv & \quad st_1' := \Pack{s_b}{st_1}{\tau_1}; \\ 
+&\quad st_2' := \Pack{s_b}{st_2}{\tau_2};\\
+\\
+(st'_1,s_1')  := \Pack{s_b}{(st_1,s_1)}{\{\tau\}}; \quad \equiv & \quad s_1' := \upackf{s_b}{s_1}; \\ 
+&\quad s_2' := \distrf{s_1}{s_b};\\
+&\quad st_1' := \Pack{s_2'}{st_1}{\tau};
+\end{align*}
+
+$\pack$ throws the element of the second stream if the boolean of the corresponding position in the first stream is a $\F$. 
+
+\begin{example} \emph{$\pack({\<\T,\F,\T\'>}, \<2,3,4 \'>)$ with control stream $\< (),(), () \'>$}\\
+	\begin{center}
+		\includegraphics[width=0.6\textwidth]{fig/packxducer.png}
+	\end{center}
+\end{example}
+
+$\upack$ works similarly to $\pack$, but on data of boolean segments rather then primitive values.
+\begin{example} \emph{$\upack({\<\T,\F,\T\'>}, \< \F,\T, \F,\F,\T,\F,\F,\F, \T\'>)$ with control stream $\< (),(), () \'>$}\\
+	\begin{center}
+		\includegraphics[width=0.8\textwidth]{fig/upackxducer.png}
+	\end{center}
+\end{example}
 
 
 \subsection{Built-in function translation}
-The function call of a high-level built-in function will be translated to a few lines of SVCODE instuctions.
-
-	\PT{
-	\AC{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
-	\RiLa{((\del(x_i)=\st_i)^k_{i=1})}
-	\UC{\Trans{\del}{\hcall \Tupk{x}}{\s_0}{\s_1}{\sfun{p}{\st}}}
-}\\[5ex]
+A high-level built-in function call will be translated to a few lines of SVCODE instuctions.
+For example, 
 
 
-\fig{
-\Jug{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}} 
-			
-	\PT{
-		\Axiom{\Transf{\oplus}{\s_1,...,s_k}{\s_0}{\s_0+1}
-			\sfun{\sdef{\s_0}{\map{\oplus}(\s_1,...,\s_k)}}{\s_0}}
-	}\\[10ex]
-	\PT{
-		\AC{}
-		\RiLa{\left( \begin{aligned}
-				\s_{i+1} & = \s_i + 1, \forall i \in \{0,...,3\} \\
-				p= & \sdef{\s_0}{\toflag(\s)} ; \\ 
-				& \sdef{\s_1}{\usum(s_0)} ; \\
-				& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{[\s_1]}{[\s_2]}; \\
-				& \sdef{\s_3}{\scan_{0}(\s_0,s_2)}
-			\end{aligned}\right)
-		}
-		\UC{\Transf{\iotan}{\s}{\s_0}{\s_4}{\sfun{p} {(\s_3,\s_0)}}}
-	}\\[4ex]
-(will add more)
-%TODO add more
-}{Translation of built-in functions \label{fig-trans-builtin}}
+\begin{itemize}
+	\item Scalar operations, for instance $x_1 \oplus x_2$, will be translated to a single instruction $\map{\oplus}(s_1,s_2)$, assuming $\del(x_1) = s_1, \del(x_2) = \s_2$.
+	
+	\item The function $\iota(n)$  generates an integer sequence starting from 0 with the length of $n$.  
+	The translation will first use the instruction $\toflag$ to generate the descriptor of the return value, and then perform a scan operation on a stream of $n$ 1s to generate the data stream.
+	Its translation will look like: 
+	$$	\PT{
+		\Axiom{\Transf{\iotan}{\s}{\s_0}{}{\sfun{p} {(\s_3,\s_0)}}}
+	}$$
+	where 
+	\begin{align*}
+			p= & \sdef{\s_0}{\toflag(\s)} ; \\ 
+			& \sdef{\s_1}{\usum(s_0)} ; \\
+			& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{[]}{[\s_2]}; \\
+			& \sdef{\s_3}{\scan_{0}(\s_0,s_2)}
+		\end{align*}
+
+Given a stream $\singl{n}$, the Xducer $\toflag$ first outputs $n$ $\F$s, then one $\T$.
+
+\begin{example} \emph{$\toflagf{\<2,0\'>}$:}\\
+	\begin{center}
+		\includegraphics[width=0.6\textwidth]{fig/toflag.png}
+	\end{center}
+\end{example}
+
+$\scan_{}(s_b,s_d)$ performs an exclusive scan of  on the data stream $s_d$ with the descriptor $s_b$.
+\begin{example} \emph{$\scan_{}(\<\F,\F,\F,\T,\F,\T\'>, \< 2,5,3,6 \'>)$}\\
+	\begin{center}
+		\includegraphics[width=0.7\textwidth]{fig/scan.png}
+	\end{center}
+\end{example}
+
+
+
+\item The high-level function $\*{scan}_+$ has a corresponding low-level Xducer, $\scan_{}$, thus its translation is straightforward. 
+	$$	\PT{
+	\Axiom{\Transf{\*{scan}_+}{(s_d,s_b)}{\s_0}{}{\sfun{\sdef{s_0}{\scanf{s_b}{s_d}}} {(\s_0,\s_b)}}}
+}$$
+
+\item Translating $\*{reduce}_+$ is analogous to that of $\*{scan}_+$ by using the Xducer $\mathtt{ReducePlus}$.
+
+\item The translation of $\*{concat}$ is also one instruction using the Xducer $\segconcat$:
+$$	\PT{
+	\Axiom{\Transf{\*{concat}}{((st,s_1),s_2)}{\s_0}{}{\sfun{\sdef{s_0}{\segconcat(s_2,s_1)}} {(st,\s_0)}}}
+}$$
+
+
+The Xducer $\segconcat$ merges the second outermost descriptors, i.e., $s_1$, into a new one $s_0$ by removing unnecessary segment boundary $\T$s; the old outermost descriptor $s_2$ helps maintain the segmenting information.
+
+\begin{example} \emph{$\segconcat(\<\F,\T,\F,\F,\F,\T\'>,\< \F,\T, \F,\F,\T,\T, \F,\F, \F,\T \'>)$ with control stream $\<(),()\'>$. The second argument has 4 segments, and the first argument says that the first one will be merged as one segment, and the other three together as another.}\\
+	\begin{center}
+		\includegraphics[width=0.9\textwidth]{fig/segconcatxducer.png}
+	\end{center}
+\end{example}
+
+
+\item $\*{part}$ can be implemented straightforward by the Xducer $\usegcount$.
+
+
+\item Implementing the function $\*{append}$ at the low level may be the most tricky one, since it needs to recursively append subsequences at each depth of the argument sequences:
+$$	\PT{
+	\Axiom{\Transf{\*{append}}{(st_1,s_1),(st_2,s_2))}{\s_0}{}{\sfun{p} {(\st,\s_0)}}}
+}$$
+\def\mergeRecur#1{\mathtt{mergeRecur}_{#1}}
+where 
+\begin{align*}
+p = & \ \sdef{\s_0}{\intermerge([s_1,s_2])} ; \\ 
+    & \sdef{\st}{\mergeRecur{\{\tau\}}([(st_1,s_1),(st_2,s_2)])};
+\end{align*}
+
+The Xducer $\intermerge$ merges two descriptors by interleaving their segments. 
+%TODO
+
+The function $\mergeRecur{}$ annotated by the type of the argument merges the inner segments  recursively. Its definition is given below.
+The Xducer $\primseginter$ merges the given data streams according to their descriptors, similar to $\intermerge$ but working on primitive data instead of boolean segments.
+
+$\seginter$ merger the segments of a descriptor to segmented by the second argument.
+%TODO figure
+
+
+\begin{align*}
+& s := \mergeRecur{\{\pi\}}([(s_1',s_1),(s_2',s_2)]); \quad \equiv  \quad s := \primseginter([(s'_1,s_1), (s_2',s_2)]); \\
+\\
+&(st,st')  := \mergeRecur{\{(\tau_1,\tau_2)\}}([((st_1,st_1'),s_1),((st_2,st_2'),s_2)]); \quad \equiv \\ 
+& \qquad st := \mergeRecur{\{\tau_1\}}([(st_1,s_1),(st_2,s_2)]); \\ 
+& \qquad st' := \mergeRecur{\{\tau_2\}}([(st_1',s_1),(st_2',s_2)]);\\
+\\
+& (st,s_3)  := \mergeRecur{\{\{\tau\}\}}([((st_1,s_1),s_1'),((st_2,s_2),s_2')]); \quad \equiv \\
+& \qquad s_3 := \seginter([(s_1,s_1'),(s_2,s_2')]); \\ 
+& \qquad s_4 := \segconcat(s_1,s_1'); \\ 
+& \qquad s_5 := \segconcat(s_2,s_2'); \\ 
+&\qquad st := \mergeRecur{\{\tau\}}([(st_1,s_4),(st_2,s_5)]);
+\end{align*}
+Note that we make the argument of $\intermerge$, $\mergeRecur{}$, $\seginter$ and $\primseginter$  all a list of stream trees instead of exact two, thus they can be used to append $\ge 1$ number of sequences.
+
+\item Implementing the function $\*{the}$ needs runtime check on the length of the sequence, which is done by the Xducer $\check$; if the length satisfies the requirement, then the data stream can be returned.
+
+
+\item $\*{empty}$ also has a corresponding low-level Xducer $\isempty$.
+
+
+
+\end{itemize}
+
 
 
 \subsection{User-defined function translation}
-A user-defined function $function \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e $ will be translated to an SVCODE function
-$([\S_1], p, \ol{\st})$, where $\Trans{[x_1 \|-> st_1,..., x_k \|-> \st_k ]}{e}{0}{s_1}{\sfun{p}{\st}}$ and ...
-$$ tp2tree : \tau \ra \STree  $$ 
-%TODO 
 
+We first define the type of SVCODE functions $\*{SFun}$: a triple in the form $([s_1,...,s_m], p, [s_1',...,s_n'])$, where $s_1,...,s_m$ are the argument stream ids, $p$ the function body, and $s_1',...,s_n'$ the returne values, that is, 
+$$ sf ::= ([s_1,...,s_m], p, [s_1',...,s_n']) \in \*{SFun}$$
+
+The function $\bar{}$ \ returns a flat list of all the stream ids of the given stream tree:
+	\begin{align*}
+&\bar{}: \STree \-> [\SId] \\
+&\overline{\s} = [s] \\
+&\overline{(\st_1,st_2)} = \overline{st_1} {\++} \overline{st_2}
+\end{align*}
+
+
+Then a user-defined function $\*{function} \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e $ will be translated to an SVCODE function
+$([s_1,...,s_m], p, \ol{\st})$, 
+such that $$\Trans{[x_1 \|-> st_1,..., x_k \|-> \st_k ]}{e}{}{}{\sfun{p}{\st}}$$ 
+where argument trees $\st_1,...,\st_k$  are generated from their corresponding types $\tau_1,...,\tau_k$ (with all fresh ids), and
+$$[s_1,...,s_m] = \ol{st_1} \ {\++} \ ... \ {\++} \ \ol{st_k}$$
+
+%\def\treegene#1{\mathtt{treeGene}_{#1}}
+%\begin{align*}
+%& \treegene{\pi}(s_0) & = (s_0, s_0 + 1) \\
+%& \treegene{(\tau_1,\tau_2)}(s_0)  & =  ((st_1,st_2), st)\\
+%& \treegene{\tau_1}(s_0) = (st_1, s1) \\
+%\end{align*}
+
+
+
+The generated SVCODE function will be added to a user-defined function mapping $\Psi$ from function identifiers to $\*{SFun}$:
+$$ \Psi = [f_1 \|-> sf_1,...,f_n \|-> sf_n] $$
+
+And $\Psi$ will be used as a component of the runtime environment, so when we interpret the instruction $\scall{f}{[s_1,...,s_m]}{[s_1',...,s_n']}$, the function body can be unfolded by looking up $f$ in $\Psi$ and then passing the arguments.
 
 \section{Eager interpreter}
 Recall that an SVCODE program is a list of instructions each of which defines one or more streams. 

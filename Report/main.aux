@@ -55,39 +55,35 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{15}}
 \@writefile{lof}{\contentsline {figure}{\numberline {2.6}{\ignorespaces Abstract syntax of SVCODE \relax }}{16}}
 \newlabel{fig-svcode1-gram}{{2.6}{16}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.2}Control stream}{16}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.3}Xducers and dataflow}{16}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.2}Xducers and control stream}{16}}
+\citation{Fphd}
 \@writefile{lof}{\contentsline {figure}{\numberline {2.7}{\ignorespaces A small SVCODE program \relax }}{17}}
 \newlabel{fig-svcode-eg1}{{2.7}{17}}
 \@writefile{lof}{\contentsline {figure}{\numberline {2.8}{\ignorespaces  Dataflow DAG for the code in Figure\nobreakspace  {}2.7\hbox {} (assuming S3 is nonempty).  Note that, for simplicity, the control stream is added as an explicit supplier only to Xducer $\mathtt  {Const_{a}}$. \relax }}{17}}
 \newlabel{fig-svcode-dag1}{{2.8}{17}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.4}Translating $\mathrm  {SNESL_1} \ $to SVCODE}{17}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.4}Translating $\mathrm  {SNESL_1} \ $to SVCODE}{18}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.4.1}Expression translation}{18}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.9}{\ignorespaces Translation rules for $\mathrm  {SNESL_1} \ $expressions \relax }}{18}}
-\newlabel{fig-trans-snesl1}{{2.9}{18}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{18}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.10}{\ignorespaces Translation of built-in functions \relax }}{19}}
-\newlabel{fig-trans-builtin}{{2.10}{19}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{19}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.5}Eager interpreter}{19}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.1}Dataflow}{19}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.2}Cost model}{20}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.6}Streaming interpreter}{20}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.1}Processes}{20}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.11}{\ignorespaces A process S2 of Xducer $\mathtt  {Map}_{+}$. It reads a 2 from S0's buffer and a 1 from S1's buffers, then writes a 3 to its own buffer.\relax }}{21}}
-\newlabel{fig:process}{{2.11}{21}}
-\@writefile{lot}{\contentsline {table}{\numberline {2.1}{\ignorespaces Process actions. \relax }}{22}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.2}Scheduling}{22}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.3}Cost model}{23}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.4}Recursion}{24}}
-\@writefile{lol}{\contentsline {lstlisting}{code/fact1.svcode}{24}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.5}Deadlock}{25}}
-\newlabel{eg:deadlock1}{{2.16}{25}}
-\@writefile{lol}{\contentsline {lstlisting}{code/harddeadlock.snesl}{26}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.6}[optional] Evaluation}{26}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{22}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{24}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.5}Eager interpreter}{25}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.1}Dataflow}{25}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.2}Cost model}{25}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.6}Streaming interpreter}{26}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.1}Processes}{26}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.9}{\ignorespaces A process S2 of Xducer $\mathtt  {Map}_{+}$. It reads a 2 from S0's buffer and a 1 from S1's buffers, then writes a 3 to its own buffer.\relax }}{27}}
+\newlabel{fig:process}{{2.9}{27}}
+\@writefile{lot}{\contentsline {table}{\numberline {2.1}{\ignorespaces Process actions. \relax }}{28}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.2}Scheduling}{28}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.3}Cost model}{29}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.4}Recursion}{29}}
+\@writefile{lol}{\contentsline {lstlisting}{code/fact1.svcode}{30}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.5}Deadlock}{30}}
+\newlabel{eg:deadlock1}{{2.24}{31}}
+\@writefile{lol}{\contentsline {lstlisting}{code/harddeadlock.snesl}{32}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.6}[optional] Evaluation}{32}}
 \bibdata{thesis}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.7}[optional] Examples}{27}}
-\@writefile{lol}{\contentsline {lstlisting}{code/uc\textunderscore scanred.snesl}{27}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.7}[optional] Examples}{33}}
+\@writefile{lol}{\contentsline {lstlisting}{code/uc\textunderscore scanred.snesl}{33}}
 \bibcite{blel89scan}{Ble89}
 \bibcite{blel95nesl}{Ble95}
 \bibcite{blel96cost}{Ble96}

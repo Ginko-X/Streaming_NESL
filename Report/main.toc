@@ -14,20 +14,19 @@
 \contentsline {section}{\numberline {2.2}Value representation}{14}
 \contentsline {section}{\numberline {2.3}SVCODE}{15}
 \contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{15}
-\contentsline {subsection}{\numberline {2.3.2}Control stream}{16}
-\contentsline {subsection}{\numberline {2.3.3}Xducers and dataflow}{16}
-\contentsline {section}{\numberline {2.4}Translating $\mathrm {SNESL_1} \ $to SVCODE}{17}
+\contentsline {subsection}{\numberline {2.3.2}Xducers and control stream}{16}
+\contentsline {section}{\numberline {2.4}Translating $\mathrm {SNESL_1} \ $to SVCODE}{18}
 \contentsline {subsection}{\numberline {2.4.1}Expression translation}{18}
-\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{18}
-\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{19}
-\contentsline {section}{\numberline {2.5}Eager interpreter}{19}
-\contentsline {subsection}{\numberline {2.5.1}Dataflow}{19}
-\contentsline {subsection}{\numberline {2.5.2}Cost model}{20}
-\contentsline {section}{\numberline {2.6}Streaming interpreter}{20}
-\contentsline {subsection}{\numberline {2.6.1}Processes}{20}
-\contentsline {subsection}{\numberline {2.6.2}Scheduling}{22}
-\contentsline {subsection}{\numberline {2.6.3}Cost model}{23}
-\contentsline {subsection}{\numberline {2.6.4}Recursion}{24}
-\contentsline {subsection}{\numberline {2.6.5}Deadlock}{25}
-\contentsline {subsection}{\numberline {2.6.6}[optional] Evaluation}{26}
-\contentsline {subsection}{\numberline {2.6.7}[optional] Examples}{27}
+\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{22}
+\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{24}
+\contentsline {section}{\numberline {2.5}Eager interpreter}{25}
+\contentsline {subsection}{\numberline {2.5.1}Dataflow}{25}
+\contentsline {subsection}{\numberline {2.5.2}Cost model}{25}
+\contentsline {section}{\numberline {2.6}Streaming interpreter}{26}
+\contentsline {subsection}{\numberline {2.6.1}Processes}{26}
+\contentsline {subsection}{\numberline {2.6.2}Scheduling}{28}
+\contentsline {subsection}{\numberline {2.6.3}Cost model}{29}
+\contentsline {subsection}{\numberline {2.6.4}Recursion}{29}
+\contentsline {subsection}{\numberline {2.6.5}Deadlock}{30}
+\contentsline {subsection}{\numberline {2.6.6}[optional] Evaluation}{32}
+\contentsline {subsection}{\numberline {2.6.7}[optional] Examples}{33}
