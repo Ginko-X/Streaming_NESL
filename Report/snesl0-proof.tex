@@ -755,7 +755,7 @@ The following lemma says that a Xducer always knows how many elements it should 
 	\item Translation environment: $$\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $$ 
 \end{enumerate}
 	
-The translation judgments shown below can be read as: `` in the environment $\del$, the expression $e$ (or the function call $\hcall(st_1,...,st_k)$) will be translated to an \fmsvcode program $p$, whose stream ids starts from $s_0$ and ends at $s_1-1$ (both included), and the evaluation result is represented as the streams in $\st$". 
+The translation judgments shown below can be read as: `` in the environment $\del$, the expression $e$ (or the function call $\hcall(st_1,...,st_k)$) will be translated to an \fmsvcode program $p$ with $\dv{p} \subseteq \{s_0,...,s_1 -1\}$, and the evaluation result is represented as the streams in $\st$". 
 	
 \begin{itemize}	
 	
@@ -820,7 +820,7 @@ The translation judgments shown below can be read as: `` in the environment $\de
 				\s_{i+1} & = \s_i + 1, \forall i \in \{0,...,3\} \\
 				p= & \sdef{\s_0}{\toflag(\s)} ; \\ 
 				& \sdef{\s_1}{\usum(s_0)} ; \\
-				& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{[\s_1]}{\overline{\s_2}}; \\
+				& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{[ \ ]}{\overline{\s_2}}; \\
 				& \sdef{\s_3}{\scan_{0}(\s_0,s_2)}
 			\end{aligned}\right)
 		}
@@ -834,19 +834,19 @@ The translation judgments shown below can be read as: `` in the environment $\de
 \begin{enumerate}[(1)]
 	\item \fmsvcode values: $$\SvVal \ni \v ::= \a \ | \ (\v,\b) $$
 	
-	\item We extend the operation ${\++}$ from primitive stream concatenation to \fmsvcode values concatenation: 
+	\item We annotate the operation ${\++}$ with the high-level type to represent \fmsvcode values' concatenation: 
 	\begin{align*}
 	%TODO type fixes
 	&{\++}_{\tau}: \SvVal \->  \SvVal \-> \SvVal \\
-	&{\<\a_1,...,\a_i\'>} {\++}_{\int} \  {\<\a_1',...,\a_j'\'>} = \<\a_1,...,\a_i,\a_1',...,\a_j'\'> \\
-	&{(\v_1,\b_1)} {\++}_{\{\tau\}} \  {(\v_2,\b_2)} = ({\v_1} {\++}_{\tau} \ {\v_2}, {\b_1} \ {\++}_{\int} \ {\b_2})
+	& \a_1 \ {\++}_{\int}  \ \a_2 = \a_1 \ {\++} \ \a_2 \\
+	&{(w_1,\b_1)} \ {\++}_{\{\tau\}} \  {(w_2,\b_2)} = ({w_1} \ {\++}_{\tau} \ {w_2}, {\b_1} \ {\++} \ {\b_2})
 	\end{align*}
 	
-	\item \fmsvcode value construction from a stream tree:
+	\item A function for \fmsvcode value construction from a stream tree:
 	\begin{align*}
-	&\sgm : \STree \-> \SvVal \\
-	&\sgm(\s) = \a \\
-	&\sgm((\st,\s)) = (\sgm(\st), \sgm(\s)) 
+	&\sgm^* : \STree \-> \SvVal \\
+	&\sgm^*(\s) = \sgm(\s) \\
+	&\sgm^*((\st,\s)) = (\sgm^*(\st), \sgm(\s)) 
 	\end{align*}
 
 \item Value representation rules:
@@ -859,7 +859,7 @@ The translation judgments shown below can be read as: `` in the environment $\de
 		}
 		\PT{
 			\AC{(\ValRep{v_i}{\tau}{\v_i})^k_{i=1}}
-			\RiLa{(\v = \v_1 {\++} ... {\++} \v_k)}
+			\RiLa{(\v = \v_1 {\++}_{\tau} ... {\++}_{\tau} \v_k)}
 			\UC{\ValRep{\Seqk{v}}{\tseq{\tau}}{(\v,\langle \F_1,..., \F_k, \T \rangle)}}
 		}
 	\end{itemize}
@@ -900,7 +900,7 @@ The translation judgments shown below can be read as: `` in the environment $\de
 We first define a binary relation $\~\S$ on stores to denote that two stores are $similar$: they have identical domains, and their bound values by $\S$ are the same. 
 We call this $\S$ an $overlap$ of these two stores.
 
-\begin{defi}[\textbf{Stores similarity}]
+\begin{defi}[\textbf{Store similarity}]
 	\label{def-sgm-sim}
 	
 	$\sgm_1 {\~{\S}} \sgm_2 $
@@ -921,7 +921,7 @@ It is easy to show that this relation $\overset{\S}{\sim}$ is symmetric and tran
 We also define a binary operation $\x\S$ on stores to denote a kind of specical concatenation of two similar stores: 
 the $concatenation$ of two similar stores is a new store, in which the bound values by $\S$ are from any of the parameter stores, and 
 the others are the concatenation of the values from the two stores. 
-In other words, a $concatenation$ of two similar stores is only a concatenation of the bound values that $maybe$ different in these stores.
+In other words, a $concatenation$ of two similar stores is only a concatenation of the bound values that $may$ be different in these stores.
 \begin{defi}[\textbf{Store Concatenation}] \label{def-sgm-join}
 	For $\sgm_1 \~\S \sgm_2$,
 	$\sgm_1 \x{\S} \sgm_2 = \sgm$ where \\
@@ -932,102 +932,90 @@ In other words, a $concatenation$ of two similar stores is only a concatenation 
 	\end{cases} $
 \end{defi}
 
-\begin{lem} \label{lem-join1}
-	If $\sgm_1 \x{\S} \sgm_2 = \sgm$, 
+Clearly, if $\sgm_1 \x{\S} \sgm_2 = \sgm$, 
 	then $\sgm_1 \~{\S} \sgm$ and $\sgm_2 \~{\S} \sgm.$
-\end{lem}
-This lemma says that the concatenation result of two similar stores is still similar to each of them.
-%\begin{proof}
-%	According to Definition \ref{def-sgm-join}, it is clear that $dom(\sgm) = dom(\sgm_1)$, and $\forall s \in \S. \sgm(s) = \sgm_1(s)$. Then by Definiton \ref{def-sgm-sim}, $\sgm \~\S \sgm_1$
-%\end{proof}
+
 
 
 \begin{lem} \label{lem-psi-join}
 	If \begin{enumerate}[(i)]
-	 \item $\sevalfg{\lcall}{\a_{1},...,\a_{k}}{\c_1}{\a_0}$ by some derivation $\MP_1$
-	 \item $\sevalfg{\lcall}{\a'_{1},...,\a'_{k}}{\c_2}{\a_0'}$ by some $\MP_2$,
+	 \item $\sevalfg{\lcall}{\a_{1},...,\a_{k}}{\c}{\a}$ by some derivation $\MP$
+	 \item $\sevalfg{\lcall}{\a'_{1},...,\a'_{k}}{\c'}{\a'}$ by some derivation $\MP'$,
 	\end{enumerate}
-	then $\sevalfg{\lcall}{\a_{1} {\++} \a'_{1},...,\a_{k} {\++} \a'_{k}}{\c {\++} \c'}{\a {\++} \a'}$ by some $\MP_3$.
+	then $\sevalfg{\lcall}{\a_{1} {\++} \a'_{1},...,\a_{k} {\++} \a'_{k}}{\c {\++} \c'}{\a {\++} \a'}$ by some $\MP''$.
 \end{lem}
 
 \begin{proof}
-\def\cc{\c_1 {\++} \c_2}
+\def\cc{\c {\++} \c'}
 \def\aap#1{\a_{#1} {\++} \a_{#1}'}
-\def\zk#1{(#1)^k_{i=0}}
 
-	There are two possibilities: 
+	By induction on the structure of $\c$. 
 	\begin{itemize}
-		\item Case $\MP_1$ uses $\PName{X-Termi}$.\\
-		We must have $\zk{\a_i=\emptyv}$ and $\c_1 = \emptyv$.
-		Then $\zk{\aap{i} = \a_i'}$, and $\cc = \c_2 $. Take $\MP_3
-		= \MP_2$ and we are done. \\
+		\item Case $\c = \emptyv$. \\
+		Then $\MP$ must use $\PName{X-Termi}$:
+		$$\PT{\LeLa{\MP = }
+			  \Axiom{\sevalf{\emptyv}{\emptyv}{\c}{\emptyv}}
+		  }$$
 		
-		\item Case $\MP_1$ uses $\PName{X-Loop}$. \\
-	   Assume $\c_1 = \<() | \c_1' \'>$, then we have 
+		so $\k{\a_i=\emptyv}$ and $\a = \emptyv$.
+		Then $\k{\aap{i} = \a_i'}$, $\cc = \c' $ and $\a {\++} \a' = \a'$. Take $\MP''
+		= \MP'$ and we are done. 
+		
+		\item Case $\c = \< () | \c_0 \'>$. \\ 
+		Then $\MP$ must use $\PName{X-Loop}$: 
 		$$
 		\PT{
-			\UCN{\MP_{11}}{\block{\a_{11}}{\a_{k1}}{\a_{01}}}
-			\UCN{\MP_{12}}{\sevalf{\a_{12}}{\a_{k2}}{\c_1'}{\a_{02}}}
- 			\LeLa{\MP_1 = }
-			\BC{\sevalf{\a_1}{\a_k}{\< c_0 | \c_1' \'>}{\a_0}}
+			\UCN{\MP_1}{\block{\a_{11}}{\a_{k1}}{\a_{01}}}
+			\UCN{\MP_2}{\sevalf{\a_{12}}{\a_{k2}}{\c_0}{\a_{02}}}
+ 			\LeLa{\MP = }
+			\BC{\sevalf{\a_1}{\a_k}{\< () | \c_0 \'>}{\a}}
 		}$$
-	    with $\zk{\a_i = \vapp{\a_{i1}}{\a_{i2}}}$.\\
+	    with $\k{\a_i = \vapp{\a_{i1}}{\a_{i2}}}$, and $\a = \a_{01} {\++} \a_{02}$.\\
 	    
-	    By IH on $\MP_{12}$ with $\MP_2$, we get a derivation $\MP_4$ of 
-	    $$\sevalfg{\lcall}{\a_{12} {\++} \a_1',...,\a_{k2} {\++} \a_k'}{\c_1' {\++} \c_2 }{\a_{02} {\++} \a_0'}$$
+	    By IH on $\c_0$ with $\MP_2$ and $\MP'$, we get a derivation $\MP'_2$ of 
+	    $$\sevalfg{\lcall}{\a_{12} {\++} \a_1',...,\a_{k2} {\++} \a_k'}{\c_0 {\++} \c' }{\a_{02} {\++} \a'}$$
 	    
-	    Then using the rule $\PName{X-Loop}$ we can build a derivation $\MP_5$ as follows:
+	    Then using the rule $\PName{X-Loop}$ we can build a derivation $\MP'''$ as follows:
 	    	$$
 	    \PT{
-	    	\UCN{\MP_{11}}{\block{\a_{11}}{\a_{k1}}{\a_{01}}}
-	    	\UCN{\MP_{4}}{\sevalfg{\lcall}{\a_{12} {\++} \a_1',...,\a_{k2} {\++} \a_k'}{\c_1' {\++} \c_2 }{\a_{02} {\++} \a_0'}}
+	    	\UCN{\MP_{1}}{\block{\a_{11}}{\a_{k1}}{\a_{01}}}
+	    	\UCN{\MP'_{2}}{\sevalfg{\lcall}{\a_{12} {\++} \a_1',...,\a_{k2} {\++} \a_k'}{\c_0 {\++} \c' }{\a_{02} {\++} \a'}}
 	    	\BC{\sevalf{\a_{11} {\++} {(\a_{12} {\++} \a_1')}}
 	    		        {\a_{k1} {\++} {(\a_{k2} {\++} \a_k')}}
-	    		        {\< () | \c_1' {\++} \c_2 \'>}
-	    		        {\a_{01} {\++} {(\a_{02} {\++} \a_0')}}}
+	    		        {\< () | \c_0 {\++} \c' \'>}
+	    		        {\a_{01} {\++} {(\a_{02} {\++} \a')}}}
 	    }$$
 	    Since it is clear that 
-	    $$\forall i \in \{0,...,k\}. \ \a_{i1} {\++} (\a_{i2} {\++} \a_i') = (\a_{i1} {\++} \a_{i2}) {\++} \a_i' = \a_i {\++} \a_i' $$
+	    $$\forall i \in \{1,...,k\}. \ \a_{i1} {\++} (\a_{i2} {\++} \a_i') = (\a_{i1} {\++} \a_{i2}) {\++} \a_i' = \a_i {\++} \a_i' $$
 	    $$ \< () | \c_1' {\++} \c_2 \'> = \< () | \c_1' \'> {\++} \c_2 = \c_1 {\++} \c_2 $$
-	    so take $\MP_3 = \MP_5$ and we are done. 
+	    $$ \a_{01} {\++} (\a_{02} {\++} \a') = (\a_{01} {\++} \a_{02}) {\++} \a' = \a {\++}  \a' $$
+	    so  $\MP'' = \MP'''$, and we are done. 
 	    
 	\end{itemize}
 	
 \end{proof}
 
+
+\begin{lem}\label{lem-}
+	If $\seval{p}{\sgm}{\c}{\sgm'}$, then $\forall s \ in \FV{p}. \sgm'(s) = \sgm(s)$.
+\end{lem}
+
 \begin{lem} \label{lem-emp-join}
 	If 
 	\begin{enumerate} [(i)]
-		\item $\sgm_1 \~{S} \sgm_2$
-		\item $\seval{p}{\sgm_1}{\c}{\sgm}$
-		\item $\FV{p} \cap \S = \emptyset$
-		\item $\forall s \in \FV{p}. \sgm_2(s) = \emptyv$
+		\item $\seval{p}{\sgm_1}{\c}{\sgm_1'}$
+		\item $\forall s \in \FV{p}. \sgm_2(s) = \sgm_1(s)$
 	\end{enumerate}
 	then 
 	\begin{enumerate}[(i)]
-		\setcounter{enumi}{4}
-		\item $\seval{p}{\sgm_1 \x{\S} \sgm_2}{\c}{\sgm'}$
-		\item $\forall s' \in \dv{p}. \sgm(s') = \sgm'(s')$
+		\setcounter{enumi}{3}
+		\item $\seval{p}{\sgm_2}{\c}{\sgm_2'}$
+		\item $\forall s \in \dv{p}. \sgm_2'(s) = \sgm_1'(s)$
 	\end{enumerate}
 \end{lem}
 
-\begin{lem} \label{lem-emp-join-sym}
-	If 
-	\begin{enumerate} [(i)]
-		\item $\sgm_1 \~{S} \sgm_2$
-		\item $\seval{p}{\sgm_2}{\c}{\sgm}$
-		\item $\FV{p} \cap \S = \emptyset$
-		\item $\forall s \in \FV{p}. \sgm_1(s) = \emptyv$
-	\end{enumerate}
-	then 
-	\begin{enumerate}[(i)]
-		\setcounter{enumi}{4}
-		\item $\seval{p}{\sgm_1 \x{\S} \sgm_2}{\c}{\sgm'}$
-		\item $\forall s' \in \dv{p}. \sgm(s') = \sgm'(s')$
-	\end{enumerate}
-\end{lem}
 
-\begin{lem} [\textbf{Stores concatenation lemma}] \label{lem-sgm-join}
+\begin{lem} [\textbf{Store concatenation lemma}] \label{lem-sgm-join}
 	If 
 	\begin{enumerate}[(i)]
 		\item $\sgm_1 \~{\S} \sgm_2$
@@ -1035,17 +1023,19 @@ This lemma says that the concatenation result of two similar stores is still sim
 		\item $	\seval{p}{\sgm_2} {\c_2} {\sgm_2'}$ (by some derivation $\MP_2$)
 		\item $\FV{p} \cap \S = \emptyset $
 	\end{enumerate}
-	then $\seval{p}{\sgm_1 \x\S \sgm_2}{\c_1 {\++} \c_2}{ \sgm_1' \x\S \sgm_2' }$ (by $\MP$).
+	then $\sgm_1' \~\S \sgm_2'$ and $\seval{p}{\sgm_1 \x\S \sgm_2}{\c_1 {\++} \c_2}{ \sgm_1' \x\S \sgm_2' }$ (by $\MP$).
 \end{lem}
 
-We need this lemma to prove that the results of single computations inside a comprehension body (i.e. $p$ in the lemma) can be concatenated to express a parallel computation. From the other direction, we can consider this process as distributing or splitting the compuation $p$ on even smaller degree of parallel computations, in which all the supplier streams, i.e., $\FV{p}$, are splitted to
-feed the transducers. The splitted parallel degrees are specified by the
-control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s in all $\sgm$s (i.e., $\S$) have no change throughout the process.\\
+We will need this lemma to prove that the concatenation of the results of partial computations inside a comprehension body (i.e. $p$ in the lemma) is equivalent to the result of the entire parallel computation. 
+From the other direction, it can be considered as splitting the computation of $p$ into subcomputations with smaller parallel degrees; all the supplier streams, i.e., $\FV{p}$, are split correspondingly to
+feed the Xducers of $p$. 
+These smaller parallel degrees are specified by the control streams, i.e., $\c_1$ and $\c_2$ in the lemma. 
+Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this process.\\
 
 \begin{proof}
 	By induction on the syntax of $p$.
-\def\sgmx{\sgm_1 \x{\S} \sgm_2}
-\def\sgmpx{\sgm_1' \x{\S} \sgm_2'}
+\def\sgmx{(\sgm_1 \x{\S} \sgm_2)}
+\def\sgmpx{(\sgm_1' \x{\S} \sgm_2')}
 \def\cc{\c_1 {\++} \c_2}
 
  
@@ -1053,7 +1043,7 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 	\item Case $p = \epsilon$. \\
 	$\MP_1$ must be $\overline{\seval{\epsilon}{\sgm_1}{\c_1}{\sgm_1}}$, and
 	$\MP_2$ must be $\overline{\seval{\epsilon}{\sgm_2}{\c_2}{\sgm_2}}$. \\
-	So $\sgm_1' = \sgm_1$, and $\sgm_2' = \sgm_2$, thus $\sgm_1' \x{\S} \sgm_2' = \sgm_1 \x{\S} \sgm_2$. \\
+	So $\sgm_1' = \sgm_1$, and $\sgm_2' = \sgm_2$, thus $\sgm_1' \~{\S} \sgm'_2$, and $\sgm_1' \x{\S} \sgm_2' = \sgm_1 \x{\S} \sgm_2$. \\
 	
 	By $\PName{Empty}$, we take $\MP$ = $\overline{\seval{\epsilon}{\sgmx}{\c_1 {\++} \c_2}{\sgmx}}$ and we are done. 
 	
@@ -1077,7 +1067,7 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 	and we have
 	\eq{eq-lem24-c2-2}{(\sgm_2(\s_i) = \a_i')^k_{i=1}}
 	
-	So  $\sgm_1' = \sgm_1[\s_l \|-> \a], \sgm_2' = \sgm_2[\s_l \|-> \a']$. \\
+	So  $\sgm_1' = \sgm_1[\s_l \|-> \a], \sgm_2' = \sgm_2[\s_l \|-> \a']$, and clearly, $\sgm_1' \~\S \sgm_2'$. \\
 	
 	From assumption $(iv)$ we have $\FV{\casetwo} \cap \S = \emptyset$,
     that is, 
@@ -1105,11 +1095,8 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
     } $$
    
    
-    Replacing $\sgmx[\s_l \|-> \a {\++} \a']$ in $\MP''$ with the left-hand side of $\eqref{\eqnumtwo{4}}$ gives us $\MP$ 
-   	$$\PT{\UCN{\MP'}{\sevalfg{\lcall}{\a_1  {\++} \a_1',...,\a_k {\++} \a_k' } 
-   			{\c_1 {\++} \c_2} {\a {\++} \a'}}
-   		\UC{\seval{\casetwo}{\sgmx}{\c_1 {\++} \c_2}{\sgm_1[\s_l \|-> \a] \x{\S} \sgm_2[\s_l \|-> \a']}}
-   	} $$ as required.
+    With $\eqref{\eqnumtwo{4}}$, we take $\MP$  = $\MP''$, as required.
+ 
    	
 
 \item Case $p = \withctrl{\s_c}{p_0}{\Sin}{\Sout}$ where  
@@ -1173,16 +1160,12 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
    			\sgmbe1 \x{\S} \sgmbe2 = \sgmx[\j{\s_i \|-> \emptyv}]
    		}
    	
-    Using $\PName{Wc-Emp}$ with $\eqref{\eqnumthree{8}}$, we build $\MP'$ as follows
+    Using $\PName{Wc-Emp}$ with $\eqref{\eqnumthree{8}}$, we can build a derivation $\MP'$ as follows
    		$$\PT{
-   			\Axiom{\seval{\casethree}{\sgmx}{\cc}{(\sgmx)[\j{\s_i \|-> \emptyv}]}}
+   			\Axiom{\seval{\casethree}{\sgmx}{\cc}{\sgmx[\j{\s_i \|-> \emptyv}]}}
    		}$$
    	
-   	Then replcaing $\sgmx[\j{\s_i \|-> \emptyv}]$ in $\MP'$ with the left-hand side of $\eqref{\eqnumthree{7}}$ gives us $\MP$ of \\
-   \makebox[0.9\textwidth][c]{		$$\PT{
-   			\Axiom{\seval{\casethree}{\sgmx}{\cc}{\sgmbe1 \x{\S} \sgmbe2}}
-   		}$$}
-   		as required. \\
+   	With $\eqref{\eqnumthree{7}}$, we take $\MP = \MP'$, as requierd.
    
    	\item Subcase $\MP_1$ uses  $\PName{Wc-Nomemp}$, $\MP_2$ uses $\PName{Wc-Emp}$. \\
   \def\sgmbpp#1{\sgm_{#1}[\j{\s_i \|-> \sgm_{#1}''(\s_i)}]}   	
@@ -1192,7 +1175,7 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
    			\UC{\seval{\casethree}{\sgm_1}{\c_1}{\sgmbpp1}}
    	}$$
     and we have 
-    \eq{\eqnumthree{20}}{\sgm_1(\s_c)= \c_1' = \< () | ...\'>}
+    \eq{\eqnumthree{20}}{\sgm_1(\s_c)= \c_1' \neq \emptyv}
    	
    	$\MP_2$ must look like	
    	$$\PT{
@@ -1203,59 +1186,57 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
    thus
 	\eq{\eqnumthree{21}}{\sgm_2(s_c) = \emptyv}
 	\eq{\eqnumthree{22}}{\forall s \in \FV{p_0}. \sgm_2(s) = \emptyv}   	
- 
-
-
-	
+ 	
 	So $\sgm_1' = \sgmbpp{1}$, $\sgm_2' = \sgmbe{2}$.
-
-    By Lemma \ref{lem-emp-join} on $\sgm_1 \~{\S} \sgm_2$ with $\MP_1'$, \eqref{\eqnumthree{22}}, \eqref{eq-lem24-c3-6}, we obtain a derivation $\MP_0$
+	
+	Since $\sgm_1 \~\S \sgm_2$, it is easy to show that 
+	 \eq{\eqnumthree{23}}
+	 { \forall s \in \FV{p_0}. \sgmx(s) = \sgm_1(s) {\++} \sgm_2(s) = \sgm_1(s)}
+	
+	Then by Lemma \ref{lem-emp-join} on  $\MP_1'$ with \eqref{\eqnumthree{23}}, we obtain a derivation $\MP_0$
     of 
     $$\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}$$ for some $\sgm_0$, and 
-    $$\forall s \in dv(p_0). \sgm_0(s) = \sgm_1''(s), $$
-    thus,  with \eqref{eq-lem24-c3-2}, we have
+    $$\forall s \in \dv{p_0}. \sgm_0(s) = \sgm_1''(s), $$
+    Then, with \eqref{eq-lem24-c3-2}, we have
     \eq{\eqnumthree{25}} {(\sgm_0(s_i) = \sgm_1''(s_i))^j_{i=1}}
     
-
-%   		
+ 		
    	Since $\sgm_1 \~\S \sgm_2$,	by Definition \ref{def-sgm-join} with $\eqref{\eqnumthree{20}}$, $\eqref{\eqnumthree{21}}$, we have \eq{\eqnumthree{27}}{
-   		\sgmx(s_c) = \sgm_1(s_c) {\++} \sgm_2(s_c) = \c_1' =  \<()| ...\'>}
+   		\sgmx(s_c) = \sgm_1(s_c) {\++} \sgm_2(s_c) = \c_1' \neq \emptyv}
    	
-   	and it is also easy to prove $\sgmbpp{1} \~\S \sgmbe{2}$ and \eq{\eqnumthree{26}}{
-   		\sgmbpp{1} \x{\S} \sgmbe{2} =  
+   	and it is also easy to show $\sgm'_1 \~\S \sgm'_2$ and \eq{\eqnumthree{26}}{
+   		\sgmpx =  
    		 \sgmx[\j{\s_i \|-> \sgm_{1}''(\s_1)}]
    	}	
+    
+    With $\eqref{\eqnumthree{25}}$, we replace $\sgm''_1(s_i)$ with $\sgm_0(s_i)$ for $\forall i \in \{1,...,j\}$ in $\eqref{\eqnumthree{26}}$, giving us
+    \eq{\eqnumthree{28}}{
+    	\sgmpx =  
+    	\sgmx[\j{\s_i \|-> \sgm_0(\s_1)}]
+    }	
    
      Using the rule $\PName{Wc-Nonemp}$ with $\eqref{\eqnumthree{27}}$ we can build a derivation $\MP'$ as follows 	
   		$$\PT{
   			\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}}
-  			\UC{\seval{\casethree}{\sgmx}{\cc}{(\sgmx) [\j{\s_i \|-> \sgm_0(\s_i)}]}}
+  			\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmx [\j{\s_i \|-> \sgm_0(\s_i)}]}}
   		}$$ 
-  	
-  	With $\eqref{\eqnumthree{25}}$, we replace $\sgm_0(s_i)$ with $\sgm_1''(s_i)$ for $ \forall i \in \{1,...,j\}$ in $\MP'$, obtaining  
-  		$$\PT{
-  		\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}}
-  		\UC{\seval{\casethree}{\sgmx}{\cc}{(\sgmx) [\j{\s_i \|-> \sgm_1''(\s_i)}]}}
-  	}$$ 
-  		
-  	Then replacing $(\sgmx) [\j{\s_i \|-> \sgm_1''(\s_i)}]$ in $\MP'$ with the left-hand side of $\eqref{\eqnumthree{26}}$, we get $\MP$ of \\
-  	 \makebox[0.9\textwidth][c]{\PT{
-  	 	\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}}
-  	 	\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmbpp{1} \x{\S} \sgmbe{2}}}
-  	 }}
-    as required. \\
+
+	Then with $\eqref{\eqnumthree{28}}$, we take $\MP$ = $\MP'$, as required.
   
 	\item Subcase $\MP_1$ uses  $\PName{Wc-Emp}$ and $\MP_2$ uses $\PName{Wc-Nonemp}$. \\	
-	This subcase is symmetric to the second one, so the proof is analogous except that this subcase uses Lemma $\ref{lem-emp-join-sym}$ rather than  Lemma $\ref{lem-emp-join}$.\\
+	This subcase is analogous to the previous one. \\
  		
-	\item Subcase both $\MP_1$ and $\MP_2$ use $\PName{Wc-Nonemp}$. \\
+\item Subcase both $\MP_1$ and $\MP_2$ use $\PName{Wc-Nonemp}$. \\
+
+\def\sgmxpp{(\sgm_1'' \x{\S} \sgm_2'')}    
+
  	$\MP_1$ must look like
  	$$\PT{
  		\UCN{\MP_1'}{\seval{p_0}{\sgm_1}{\c_1'}{\sgm_1''}}
  		\UC{\seval{\casethree}{\sgm_1}{\c_1}{\sgmbpp1}}
  	}$$
  	and 
- 	\eq{\eqnumthree{30}}{\sgm_1(\s_c)= \c_1' = \< () | ...\'>}
+ 	\eq{\eqnumthree{30}}{\sgm_1(\s_c)= \c_1' \neq \emptyv}
  	
  	Similarly, $\MP_2$ must look like
  	$$\PT{
@@ -1263,7 +1244,7 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
  		\UC{\seval{\casethree}{\sgm_2}{\c_2}{\sgmbpp2}}
  	}$$
  	and 
- 	\eq{\eqnumthree{31}}{\sgm_2(\s_c)= \c_2' = \< () | ...\'>}
+ 	\eq{\eqnumthree{31}}{\sgm_2(\s_c)= \c_2' \neq \emptyv}
     
     So $\sgm_1' = \sgmbpp{1}, \sgm_2' = \sgmbpp{2}.$
     
@@ -1272,35 +1253,27 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
     
     Since $ \forall i \in \{1,...,j\}. s_i \notin \S$ ,
     then by Definition $\ref{def-sgm-join}$, we know
-    \eq{\eqnumthree{32}}{\sgm_1'' \x{\S} \sgm_2''(\s_i) = \sgm_1''(\s_i) {\++} \sgm_2''(\s_i)}
+    \eq{\eqnumthree{32}}{\sgmxpp(s_i) = \sgm_1''(\s_i) {\++} \sgm_2''(\s_i)}
     
-    Also, it is easy to show that $\sgmbpp{1} \~{\S} \sgmbpp{2}$,
+    Also, it is easy to show that $\sgm'_{1} \~{\S} \sgm'_{2}$,
     and
    \eq{\eqnumthree{34}}
-   	{\begin{split}
-    	 \sgmbpp{1} \x{\S} \sgmbpp{2}  \\ 
-    	 = \sgmx[\j{\s_i \|-> \sgm_1''(\s_i) {\++} \sgm_2''(\s_i)}] 
-    \end{split}}  
-    thus, with  \eqref{\eqnumthree{32}},  
+   	{\sgmpx = \sgmx[\j{\s_i \|-> \sgm_1''(\s_i) {\++} \sgm_2''(\s_i)}] 
+    }  
+    Then, with  \eqref{\eqnumthree{32}}, we replace $\sgm_1''(s_i) {\++} \sgm_2''(s_i)$ with $\sgmxpp(s_i)$ 
+    for $\forall i \in \{1,...,j\}$ in \eqref{\eqnumthree{34}}, giving us
     \eq{\eqnumthree{35}}{
-    	\begin{split}
-    	 \sgmbpp{1} \x{\S} \sgmbpp{2} \\
-    		= \sgmx[\j{\s_i \|-> \sgm_1'' \x{\S} \sgm_2''(\s_i)}] 
-    	\end{split}
+        \sgmpx 	= \sgmx[\j{\s_i \|->  \sgmxpp(\s_i)}] 
    }  	
 
-   	Since $\eqref{eq-lem24-c3-3}$ with $\eqref{\eqnumthree{30}}$,  $\eqref{\eqnumthree{31}}$, we know $\sgmx(\s_c)$ = $\c_1' {\++}  \c_2' = \<()|...\'>$,
+   	Since $\eqref{eq-lem24-c3-3}$ with $\eqref{\eqnumthree{30}}$,  $\eqref{\eqnumthree{31}}$, we know $\sgmx(\s_c)$ = $\c_1' {\++}  \c_2'\neq \emptyv $,
    	therefore we can use the rule $\PName{Wc-Nonemp}$ to build a derivation $\MP'$ as follows:
    	$$\PT{
    		\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}}
-   		\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmx[\j{\s_i \|-> \sgm_1'' \x{\S} \sgm_2''(\s_i)}]}}
+   		\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmx[\j{\s_i \|-> \sgmxpp(\s_i)}]}}
    	}$$.
    
-    Then replacing $\sgmx[\j{\s_i \|-> \sgm_1''\x{\S} \sgm_2''(s_j)}]$ with the left-hand side of $\eqref{\eqnumthree{35}}$, we obtain $\MP$ of
-   	 	$$\PT{
-   		\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}}
-   		\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmbpp{1} \x{\S} \sgmbpp{2}}}
-   	}$$ as required.
+    Therefore, with $\eqref{\eqnumthree{35}}$, we take $\MP = \MP'$, as required.
    
     \end{itemize}
 
@@ -1328,12 +1301,12 @@ control streams, i.e., $\c_1$ and $\c_2$ in the lemma. Other untouched $\SId$s i
 
 \def\sgmxpp{\sgm_1'' \x{\S} \sgm_2''}    
 
-    By IH on $\MP_1'$, $\MP_2'$, \eqref{\eqnumfour{1}}, we get $\MP'$ of
+    By IH on $\MP_1'$, $\MP_2'$, \eqref{\eqnumfour{1}}, we get \eq{\eqnumfour{3}}{\sgm_1'' \~\S \sgm_2''}
+    and a derivation $\MP'$ of
     $$\seval{p_1}{\sgmx}{\cc}{\sgmxpp}$$
+   
     
-    By Definition \ref{def-sgm-join}, we must have $\sgm_1'' \~\S \sgm_2''$.
-    
-    Then by IH on $\MP_1''$, $\MP_2''$ with \eqref{\eqnumfour{2}}, we get $\MP''$ of $$\seval{p_2}{\sgmxpp}{\cc}{\sgmpx}$$
+    Likewise, by IH on \eqref{\eqnumfour{3}} with $\MP_1''$, $\MP_2''$ and \eqref{\eqnumfour{2}}, we get $\sgm_1' \~\S \sgm_2'$, and a derivation $\MP''$ of $$\seval{p_2}{\sgmxpp}{\cc}{\sgmpx}$$
     
     Therefore, we use the rule $\PName{Seq}$ to build $\MP$ as follows:
     	 $$ \PT{
@@ -1476,6 +1449,130 @@ By inducntion on the syntax of $\hcall$.
 	By induction on the syntax of $e$.
 	
 	\begin{itemize}
+	
+% case variable 
+\item Case $e = x$.\\
+We must have 
+$$\MT = \PT{
+	\AxiomC{}
+	\RiLa{(\Gam(x) = \tau)}
+	\UC{\Type{\Gam}{x}{\tau}}
+}$$
+$$ \ME = 
+\PT{
+	\AxiomC{}
+	\RiLa{(\rho(x)=v)}
+	\UC{\Eval{\rho}{x}{v}}
+}$$
+$$ \MC = 
+\PT{\AC{}
+	\RiLa{(\del(x)= \st)}
+	\UC{\Trans{\del}{x}{\s_0}{\s_0}{\sfun{\epsilon}{\st}}}
+}
+$$
+So $p= \epsilon$. 
+
+Immediately we have $\MP$ =
+$\PT{\Axiom{\seval{\epsilon}{\sgm}{\vunit}{\sgm}}}$\\
+So $\sgm' = \sgm$, which implies $\sgm'  \ConEq{\s_0} \sgm$.\\
+From the assumptions (iv),(v) and(vi) we already have $\ValRep{v}{\tau}{\sgm(\st)}$,
+and $\ol{\st} \.< \s_0$. \\
+Finally it's clear that $\s_0 \le \s_0$, and we are done.
+
+
+% case let-binding 
+\item \label{case-let} Case $e = \Let{x}{e_1}{e_2}$. \\[1ex]
+We must have:
+$$\PT{
+	\UCN{\MT_1}{\Type{\Gam}{e_1}{\tau_1}}
+	\UCN{\MT_2}{\Type{\Gam[\Map{x}{\tau_1}]}{e_2}{\tau}}
+	\LeLa{\MT =} 
+	\BC{\Type{\Gam}{\Let{x}{e_1}{e_2}}{\tau}}
+}$$
+
+$$\PT{	
+	\UCN{\ME_1}{\Eval{\rho}{e_1}{v_1}}
+	\UCN{\ME_2}{\Eval{\rho[\Map{x}{v_1}]}{e_2}{v}}
+	\LeLa{\ME =} 
+	\BC{\Eval{\rho}{\Let{x}{e_1}{e_2}}{v}}
+}$$ 
+$$\PT{\UCN{\MC_1}{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
+	\UCN{\MC_2}{\Trans{\del[x \|-> {\st_1}]}{e_2}{\s_0'}{\s_1}{\sfun {p_2} {\st}}}
+	\LeLa{\MC = }
+	\BC{\Trans{\del}{\Let{x}{e_1}{e_2}}{\s_0}{\s_1}{\sfun {p_1;p_2} {\st}}}
+}$$\\[1ex]
+
+So $p = p_1;p_2$. \\
+
+By IH on $\MT_1$ with $\ME_1,\MC_1$, we get 
+\begin{enumerate}[(a)]
+	\item $\MP_1$ of $\seval{p_1}{\sgm}{\vunit}{\sgm_1}$
+	\item $\MR_1$ of $\ValRep{v_1}{\tau_1}{\sgm_1(\st_1)}$
+	\item $\sgm_1 \ConEq{s_0} \sgm$ 
+	\item $\s_0 \le \s_0'$
+	\item $\ol{\st_1} \.< {s_0'}$
+\end{enumerate}
+
+From (b), we know $\rho[\Map{x}{v_1}](x) : \Gamma[\Map{x}{\tau_1}](x)$ and  $\ValRep{\rho[\Map{x}{v_1}](x)}{\Gamma[\Map{x}{\tau_1}](x)}{\sgm_1(\delta[\Map{x}{\st_1}](x))}$ must hold. 
+From (e), we have $\ol{\delta[\Map{x}{\st_1}](x)} \.< s_0'$. 
+
+Then by IH on  $\MT_2$ with $\ME_2,\MC_2$, we get
+\begin{enumerate}	[(a)]
+	\setcounter{enumi}{5}
+	\item $\MP_2$ of $\seval{p_2}{\sgm_1}{\vunit}{\sgm_2}$ 
+	\item $\MR_2$ of $ \ValRep{\sgm_2}{\tau}{\sgm_2(\st)}$
+	\item $\sgm_2 \ConEq{\s_0'} \sgm_1$
+	\item $\s_0' \le \s_1$
+	\item $\ol{\st} \.< {s_1}$
+\end{enumerate}
+
+So we can construct:  
+$$\PT{
+	\UCN{\MP_1}{\seval{p_1}{\sgm}{\vunit}{\sgm_1}}
+	\UCN{\MP_2}{\seval{p_2}{\sgm_1}{\vunit}{\sgm_2}}
+	\LeLa{\MP = }	
+	\BC{\seval{p_1;p_2}{\sgm}{\vunit}{\sgm_2}}
+}$$
+
+From (c), (d) and (h), it is clear that $\sgm_2 \ConEq{s_0} \sgm_1 \ConEq{s_0} \sgm$.
+From (d) and (i), $\s_0 \le \s_1$.
+
+Take $\sgm' = \sgm_2$ (thus $\MR$ = $\MR_2$)  and we are done. 
+
+
+\item Case $e = \hcall\Tupk{x}$ \\
+We must have  
+$$\PT{
+	\UCN{\MT_1}{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
+	\LeLa{\MT = }
+	\RiLa{((\Gam(x_i)= \tau_i)^k_{i=1})}
+	\UC{\Type{\Gam}{\hcall{\Tupk{x}}}{\tau}}
+}$$
+$$\PT{
+	\UCN{\ME_1}{\Eval{}{\EvalF{\Tupk{v}}}{v}}
+	\LeLa{\ME = }
+	\RiLa{((\rho(x_i)=v_i)^k_{i=1})}
+	\UC{\Eval{\rho}{\hcall{\Tupk{x}}}{v}}
+}$$
+$$\PT{
+	\UCN{\MC_1}{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
+	\LeLa{\MC =}
+	\RiLa{((\del(x_i)=\st_i)^k_{i=1})}
+	\UC{\Trans{\del}{\hcall \Tupk{x}}{\s_0}{\s_1}{\sfun{p}{\st}}}
+}$$
+
+From the assumptions (iv),(v) and (vi), for all $i \in \{1,...,k\}$:
+\begin{enumerate}[(i)]
+	\setcounter{enumi}{3}
+	\item $\Type{}{\rho(x_i)}{\Gam(x_i)}$, that is, $\Type{}{v_i}{\tau_i}$
+	\item $\ol{\del(x_i)} \.< \s_0$, that is, $\ol{\st_i} \.< \s_0$
+	\item $\ValRep{\rho(x_i)}{\Gam(x_i)}{\sgm(\st_i)}$, that is,
+	$\ValRep{v_i}{\tau_i}{\sgm(\st_i)}$
+\end{enumerate}
+
+So using Lemma \ref{function-correctness} on $\MT_1,\ME_1, \MC_1, (a),(b)$ and (c) gives us exactly what we shall show.
+
+		
 		\item Case $e = \Comp{e_1}{x}{y}{\usevars}$. \\
 \def\eqnum#1{eq-mainproof-#1}  
 
@@ -1720,7 +1817,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 		
 		 and it is clear that 
 		 \begin{align*}
-		 	\ValRep{\rho_i(x_1)}{\Gam_1(x_1)}{& \sgm_{ji}(\del_1(x_j))} \\
+		 	\ValRep{\rho_i(x_1)}{\Gam_1(x_1)}{& \sgm_{ji}(\del_1(x_1))} \\
 		 	& \vdots \\
 		 	\ValRep{\rho_i(x_j)}{\Gam_1(x_j)}{& \sgm_{ji}(\del_1(x_j))}
 		 \end{align*}
@@ -1744,9 +1841,9 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 %subcase k= 0
 	\item 
 	Subcase $\sgm_j(\s_0) = \emptyv$, i.e., $k = 0$.\\
-	Then $\j{\sgm_j(\s_i) = \emptyv}$. Also, with (3.4) and (3.5), we have 
+	Then $\j{\sgm_j(\s_i) = \emptyv}$. Also, with \eqref{comp-ass-valrep} and \eqref{comp-ass-sgmst1}, we have 
 	$\forall s \in \ol{\st_1}. \sgm_j(\s) = \emptyv$; 
-	with (3.6), $\sgm_j(\s_b) = \oT $.
+	with $\eqref{comp-ass-sgms2}$, $\sgm_j(\s_b) = \oT $.
 	Thus $$\forall s \in (\{\s_0\} \cup \Sin). \sgm_j(\s) = \emptyv$$ 
 	
 	Then we can use the rule $\PName{Wc-Emp}$ to build $\MP$ as follows:
@@ -1777,7 +1874,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	\item \label{subcase-2} 
 	Subcase $\sgm_j(\s_0) = \<()|...\'>$, i.e., $k > 0$.
 	
-    Since we have $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and  $\FV(p_1) \cap \S = \emptyset$ from $\eqref{\eqnum{33}}$,
+    Since we have $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and  $\FV{p_1} \cap \S = \emptyset$ from $\eqref{\eqnum{33}}$,
 	it is easy to show that using Lemma \ref{lem-sgm-join} at most (k-1) times we can obtain
 	\eq{p1-sgms-sgms'}{
 		\seval{p_1}{(\x{\S} \sgm_{ji})^k_{i=1}}{\kunit}{(\x{\S} \sgm_{ji}')^k_{i=1}}
@@ -1807,13 +1904,13 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	Let $\sgm'(\st_2) = w'$, and $\sgm_{ji}'(\st_2) = w'_i$. 
 	 
 	For $\forall i \in \{1,...,k\}$, by Definition \ref{def-sgm-join} with $\eqref{\eqnum{4}}$, we get
-	$$w' = \sgm''(\st_2) = w'_1 {\++} ... {\++} w'_k$$
+	$$w' = \sgm''(\st_2) = w'_1 {\++}_{\tau_2} ... {\++}_{\tau_2} w'_k$$
 	Also, $\sgm'(\s_b) = \sgm(\s_b) = \stwo$,
 	we now have $\sgm'((\st_2,\s_b)) = (\sgm'(\st_2),\sgm'(\s_b)) = (w',\stwo)$. 
 	With \eqref{compIH2}, we can construct $\MR$ as follows:
 	$$\PT{
 		\AC{(\ValRep{v'_i}{\tau_2}{w'_i})^k_{i=1}}
-		\UC{\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{(w',\stwo)}}
+		\UC{\ValRep{\Seqk{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_b))}}
 	}$$ as required. \\
 
 	\end{itemize}
@@ -1837,128 +1934,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	
 	\end{enumerate}
 
-% case variable 
- \item Case $e = x$.\\
- We must have 
- $$\MT = \PT{
- 	\AxiomC{}
- 	\RiLa{(\Gam(x) = \tau)}
- 	\UC{\Type{\Gam}{x}{\tau}}
- }$$
- $$ \ME = 
- \PT{
- 	\AxiomC{}
- 	\RiLa{(\rho(x)=v)}
- 	\UC{\Eval{\rho}{x}{v}}
- }$$
- $$ \MC = 
- \PT{\AC{}
- 	\RiLa{(\del(x)= \st)}
- 	\UC{\Trans{\del}{x}{\s_0}{\s_0}{\sfun{\epsilon}{\st}}}
- }
- $$
- So $p= \epsilon$. 
- 
- Immediately we have $\MP$ =
- $\PT{\Axiom{\seval{\epsilon}{\sgm}{\vunit}{\sgm}}}$\\
- So $\sgm' = \sgm$, which implies $\sgm'  \ConEq{\s_0} \sgm$.\\
- From the assumptions (iv),(v) and(vi) we already have $\ValRep{v}{\tau}{\sgm(\st)}$,
- and $\ol{\st} \.< \s_0$. \\
- Finally it's clear that $\s_0 \le \s_0$, and we are done.
- 
- 
-% case let-binding 
- \item \label{case-let} Case $e = \Let{x}{e_1}{e_2}$. \\[1ex]
- We must have:
- $$\PT{
- 	\UCN{\MT_1}{\Type{\Gam}{e_1}{\tau_1}}
- 	\UCN{\MT_2}{\Type{\Gam[\Map{x}{\tau_1}]}{e_2}{\tau}}
- 	\LeLa{\MT =} 
- 	\BC{\Type{\Gam}{\Let{x}{e_1}{e_2}}{\tau}}
- }$$
- 
- $$\PT{	
- 	\UCN{\ME_1}{\Eval{\rho}{e_1}{v_1}}
- 	\UCN{\ME_2}{\Eval{\rho[\Map{x}{v_1}]}{e_2}{v}}
- 	\LeLa{\ME =} 
- 	\BC{\Eval{\rho}{\Let{x}{e_1}{e_2}}{v}}
- }$$ 
- $$\PT{\UCN{\MC_1}{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
- 	\UCN{\MC_2}{\Trans{\del[x \|-> {\st_1}]}{e_2}{\s_0'}{\s_1}{\sfun {p_2} {\st}}}
- 	\LeLa{\MC = }
- 	\BC{\Trans{\del}{\Let{x}{e_1}{e_2}}{\s_0}{\s_1}{\sfun {p_1;p_2} {\st}}}
- }$$\\[1ex]
- 
- So $p = p_1;p_2$. \\
- 
- By IH on $\MT_1$ with $\ME_1,\MC_1$, we get 
- \begin{enumerate}[(a)]
- 	\item $\MP_1$ of $\seval{p_1}{\sgm}{\vunit}{\sgm_1}$
- 	\item $\MR_1$ of $\ValRep{v_1}{\tau_1}{\sgm_1(\st_1)}$
- 	\item $\sgm_1 \ConEq{s_0} \sgm$ 
- 	\item $\s_0 \le \s_0'$
- 	\item $\ol{\st_1} \.< {s_0'}$
- \end{enumerate}
- 
-  From (b), we know $\rho[\Map{x}{v_1}](x) : \Gamma[\Map{x}{\tau_1}](x)$ and  $\ValRep{\rho[\Map{x}{v_1}](x)}{\Gamma[\Map{x}{\tau_1}](x)}{\sgm_1(\delta[\Map{x}{\st_1}](x))}$ must hold. 
-  From (e), we have $\ol{\delta[\Map{x}{\st_1}](x)} \.< s_0'$. 
- 
- Then by IH on  $\MT_2$ with $\ME_2,\MC_2$, we get
- \begin{enumerate}	[(a)]
- 	\setcounter{enumi}{5}
- 	\item $\MP_2$ of $\seval{p_2}{\sgm_1}{\vunit}{\sgm_2}$ 
- 	\item $\MR_2$ of $ \ValRep{\sgm_2}{\tau}{\sgm_2(\st)}$
-    \item $\sgm_2 \ConEq{\s_0'} \sgm_1$
-    \item $\s_0' \le \s_1$
-    \item $\ol{\st} \.< {s_1}$
-\end{enumerate}
 
- So we can construct:  
- $$\PT{
- 	\UCN{\MP_1}{\seval{p_1}{\sgm}{\vunit}{\sgm_1}}
- 	\UCN{\MP_2}{\seval{p_2}{\sgm_1}{\vunit}{\sgm_2}}
- 	\LeLa{\MP = }	
- 	\BC{\seval{p_1;p_2}{\sgm}{\vunit}{\sgm_2}}
- }$$
-
- From (c), (d) and (h), it is clear that $\sgm_2 \ConEq{s_0} \sgm_1 \ConEq{s_0} \sgm$.
- From (d) and (i), $\s_0 \le \s_1$.
- 
- Take $\sgm' = \sgm_2$ (thus $\MR$ = $\MR_2$)  and we are done. 
- 
- 
- \item Case $e = \hcall\Tupk{x}$ \\
- We must have  
- $$\PT{
- 	\UCN{\MT_1}{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
- 	\LeLa{\MT = }
- 	\RiLa{((\Gam(x_i)= \tau_i)^k_{i=1})}
- 	\UC{\Type{\Gam}{\hcall{\Tupk{x}}}{\tau}}
- }$$
- $$\PT{
- 	\UCN{\ME_1}{\Eval{}{\EvalF{\Tupk{v}}}{v}}
- 	\LeLa{\ME = }
- 	\RiLa{((\rho(x_i)=v_i)^k_{i=1})}
- 	\UC{\Eval{\rho}{\hcall{\Tupk{x}}}{v}}
- }$$
- $$\PT{
- 	\UCN{\MC_1}{\Transf{\hcall}{\replc{k}{st}}{\s_0}{\s_1}{\sfun{p}{\st}}}
-    \LeLa{\MC =}
- 	\RiLa{((\del(x_i)=\st_i)^k_{i=1})}
- 	\UC{\Trans{\del}{\hcall \Tupk{x}}{\s_0}{\s_1}{\sfun{p}{\st}}}
- }$$
- 
- From the assumptions (iv),(v) and (vi), for all $i \in \{1,...,k\}$:
- \begin{enumerate}[(i)]
- 	\setcounter{enumi}{3}
- 	\item $\Type{}{\rho(x_i)}{\Gam(x_i)}$, that is, $\Type{}{v_i}{\tau_i}$
- 	\item $\ol{\del(x_i)} \.< \s_0$, that is, $\ol{\st_i} \.< \s_0$
- 	\item $\ValRep{\rho(x_i)}{\Gam(x_i)}{\sgm(\st_i)}$, that is,
- 	$\ValRep{v_i}{\tau_i}{\sgm(\st_i)}$
- \end{enumerate}
- 
- So using Lemma \ref{function-correctness} on $\MT_1,\ME_1, \MC_1, (a),(b)$ and (c) gives us exactly what we shall show.
- 	
 	\end{itemize}	
 \end{proof}
 
