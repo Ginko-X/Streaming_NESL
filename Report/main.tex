@@ -116,11 +116,11 @@
 
 % special font
 
-\def\MC{\mathcal{C}} 
-\def\ME{\mathcal{E}} 
-\def\MP{\mathcal{P}} 
-\def\MT{\mathcal{T}} 
-\def\MR{\mathcal{R}}
+\def\MC{\mathcal{C}}  % translation
+\def\ME{\mathcal{E}}  % snesl evaluation
+\def\MP{\mathcal{P}}  % svcode semantics
+\def\MT{\mathcal{T}}  % typing rules
+\def\MR{\mathcal{R}}  % value representation
 
 
 % Judgment
@@ -146,6 +146,7 @@
 \def\ERule#1#2{$\textsc{E-#1} : {#2}$}
 \def\CRule#1#2{$\textsc{C-#1} : {#2}$}
 \def\PRule#1#2{$\textsc{P-#1} : {#2}$}
+
 
 % only rule name
 \def\EName#1{\textsc{E-#1}}
@@ -329,10 +330,9 @@
 
 
 
-\input{intro.tex}
-\input{imple.tex}
-%\input{trans.tex}
-%\input{snesl1-proof.tex}
+%\input{intro.tex}
+%\input{imple.tex}
+\input{snesl0-proof.tex}
 %\input{concl.tex}
 
 

@@ -1,6 +1,6 @@
 \clearpage
 
-\def\PRName#1{\textsc{Pre-#1}}
+
 \newcommand\tr{\triangleright}
 \newcommand{\proc}{\*{Proc}}
 \newcommand{\bufst}{\*{BufState}}
@@ -123,7 +123,7 @@ $$\Sigma = [f_1 \|-> \tau_1 \times ... \times \tau_k  \ra \tau, ..., f_i \|-> \t
 	\PT{
 		\AC{\Type{\Gam}{e_0}{\{\tau_0\}}}
 		\AC{\Type{[x \|-> \tau_0, \j{x_i \|-> \tau_i}]}{e_1}{\tau}}
-		\RiLa{(\j{\Gam(x_i) = \tau_i \in \{\pi, (\pi,\pi)\}})}
+		\RiLa{(\j{\Gam(x_i) = \tau_i \in \{\pi, (\pi_1,\pi_2)\}})}
 		\BC{\Type{\Gam}{\Comp{e_1}{x}{e_0}{\usevars}}{\tseq{\tau}}}
 	}\\[4ex]
 	\PT{
@@ -165,11 +165,11 @@ $$\Sigma = [f_1 \|-> \tau_1 \times ... \times \tau_k  \ra \tau, ..., f_i \|-> \t
 }{Typing rules of \mysnesl values \label{fig-snesl1-values}}
 
 
-The type rules of \mysnesl should be straightforward except those for comprehensions. 
+The typing rules of \mysnesl should be straightforward except those for comprehensions. 
 For the general comprehension, the types of free variables of the comprehension body $e_1$ in the rules, i.e., $x_1,...,x_j$, are all required 
 to be non-sequence, i.e., only primitive types or pair of primitive types.
 This is because the values of these variables will be repeatedly used $k$ times ($k \ge 0$) to evaluate the $k$ elements of the comprehension,
-so they are not allowed to be streams as streams can only be traversed once. \\
+so they are not allowed to be streams, since streams can only be traversed once. \\
 
 
 The semantics of \mysnesl is given in Figure~\ref{fig:mysnesl-semantics} with the evaluation environment in the form $ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$ \\
@@ -237,12 +237,12 @@ The semantics of \mysnesl is given in Figure~\ref{fig:mysnesl-semantics} with th
 }{Semantics of \mysnesl \label{fig:mysnesl-semantics}}
 
 Again, the evaluation rules are also straightforward except for the comprehensions.
-In the general comprehension, the bound sequence $e_0$ gets evaluated first, then its $k$ elements are used to substitute the bound variable $x$ in the comprehension body $e_1$; so $e_1$ will be evaluated $k$ times with different substitutions of $x$.
+In the general comprehension, the $bound \ sequence$ $e_0$ gets evaluated first, then its $k$ elements are used to substitute the bound variable $x$ in the comprehension body $e_1$; so $e_1$ will be evaluated $k$ times with different substitutions of $x$.
 
-For the restricted comprehension, the guard expression $e_0$ first gets evaluated: if it is a $\T$, then $e_1$ will be evaluated, generating a singleton sequence; otherwise, $e_1$ will not be evaluated, and the comprehension only returns an empty sequence. \\
+For the restricted comprehension, the $guard$ expression $e_0$ first gets evaluated: if it is a $\T$, then $e_1$ will be evaluated, generating a singleton sequence; otherwise, $e_1$ will not be evaluated, and the comprehension only returns an empty sequence. \\
 
 
-The built-in functions of \mysnesl correspond to a subset of SNESL's shown in Figure~\ref{fig-snesl-func} but without the vector-related ones and $\*{mqseq}$. 
+The built-in functions of \mysnesl correspond to a subset of SNESL's ones shown in Figure~\ref{fig-snesl-func} but without the vector-related ones, $\*{mqseq}$ and $\*{zip}$. 
 In addition, the function $\*{scan}$ and $\*{reduce}$ are also
 taken a specific verison: picked $+$ from $\otimes$, for simplicity, as shown in Figure~\ref{fig-mysnesl-func}. 
 
@@ -250,7 +250,7 @@ taken a specific verison: picked $+$ from $\otimes$, for simplicity, as shown in
 \begin{figure}[H]\large
 	\begin{alignat*}{2} 
 	&\hcall && ::= \oplus \ | \  \ \*{append} \ | \ \*{concat}  \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_+ \ | \ \*{reduce}_{+} \ | \ \*{the}  \ | \ \*{empty} \\	
-	& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | <= \ | \ == \ | \  \*{not} \ | \ ... \tag{scalar operations} \\
+	& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | <= \ | \ == \ | \  \*{not} \ | \ ... \tag{scalar operations} 
 	\end{alignat*}
 	\caption{Primitive functions in \mysnesl \label{fig-mysnesl-func}}
 \end{figure}
@@ -302,7 +302,7 @@ The types and semantics of these built-in functions remain the same as they are 
 	\end{figure}
 	
 	\item $\*{part: \{\tau\} \times \{\bool\} \ra  \{\{\tau\}\}}$, partitions a sequence into subsequences according to the second boolean sequence, where a $\F$ corresponds to one element of the first argument and a $\T$ indicates a segment separation; so the number of $\F$s is equal to length of the first argument, and the number of $\T$s is equal to the length of the returned value, and it must end with a $\T$. 
-	If the second argument does not satisfy the requirement, a runtime error will be reported.
+	If the second argument does not satisfy these requirements, a runtime error will be reported.
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -315,7 +315,7 @@ The types and semantics of these built-in functions remain the same as they are 
 	\end{lstlisting}
 	\end{figure}
 	
-	\item $\*{scan_+}: \{\int\} \ra \{\int\}$, performs an exclusive scan of addition operation on the given sequence, that is, assuming the argument is $\{n_1,n_2,..,n_{k-1},n_k\}$, to compute $\{0, n_1,n_1+n_2,...,n_1+...+n_{k-1}\}$. This scan operation has its general form in full SNESL, where it supports more associative binary operations with a specified identity element $e_0$  such that $e_0 \otimes e_0 = e_0$.
+	\item $\*{scan_+}: \{\int\} \ra \{\int\}$, performs an exclusive scan of addition operation on the given sequence, that is, assuming the argument is $\{n_1,n_2,..,n_{k-1},n_k\}$, to compute $\{0, n_1,n_1+n_2,...,n_1+...+n_{k-1}\}$. This scan operation has its general form in full SNESL, where it supports more associative binary operations with a specific identity element $e_0$  such that $e_0 \otimes e_0 = e_0$.
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -568,13 +568,14 @@ For example, the Xducer S2 has two clients, S3 and S5, for both of whom it is th
 An issue here is dealing with runtime errors of Xducers. 
 For instance, the $\map{+}$ Xducer can consume a) the stream $\<3,2\'>$ with $\< 1,1,5\'>$, or b) the stream $\<3,2,5\'>$ with $\< 1,1\'>$ , and outputs the same result $\<4, 3\'>$. 
 But apparently there is a runtime error, since the two input streams are expected to be the same length, and we can not decide whether the correct length should be two or three, or maybe none of them.
-Another special case is the Xducer $\constaf{a}$, which outputs some number of constants $a$, even takes no argument stream. 
- 
+Another special case is the Xducer $\constaf{a}$, which outputs some number of constant $a$, even takes no argument stream. 
+So there should be some strategy to guarantee they all work correctly or report runtime errors if not.
 
 In the implementation of \cite{Fphd}, a special stream of unit type, called the $control \ stream$, is used at the compiling time basically for replicating constants, and it has nothing to do with the runtime.
 
-In our implementation, we move it to the runtime, so that it will not only control constants replication, but more importantly, dominate all the Xducers' behavior. 
-Our observation is that the parallel degree throughout the whole computation is expressed by this control stream, and all the Xducers should behave correspondingly to this parallel degree, or in other words, the parallel degree propagates through the dataflow DAG.
+In our implementation, we move the control stream to the runtime, and let it not only control constants replication, but more importantly, dominate all the Xducers' behavior. 
+Our observation is that the parallel degree throughout the whole computation is expressed by this control stream, and all the Xducers should behave correspondingly to this parallel degree. 
+In other words, the parallel degree propagates through the dataflow DAG.
 
 In practice, a Xducer can first consume the control stream to ``read" the parallel degree it should compute, then it consumes its normal input streams and outputs the expected number of elements. 
 There can be three benefits by doing so.
@@ -590,7 +591,7 @@ and the implementation model more flexible and easier to debug.
 
 
 
-\section{Translating \mysnesl to SVCODE}
+\section{Translating $\*{SNESL_1}$ to SVCODE}
 In Chapter~\ref{sec:valrep}, we have seen the idea of how a high-level value of \mysnesl can be represented as a binary tree of low-level stream values.
 At the compiling time, we use a structure $\STree$ (stream id tree) to generalize a binary tree of stream ids, so that the high-level variables and the low-level ones can be connected: 
 $$ \STree \ni \st ::= \s \ | \ (\st_1,\st_2) $$
@@ -600,14 +601,14 @@ The translation environment $\del$ is a mapping from high-level variables to str
 Another important component maintained at the compiling time is a fresh stream id, which has not been used yet. 
 It will be assigned to the defined stream(s) of the newly generated instruction.
 
-We will use the symbol ``$\Ra$" superscripted with the fresh id to denote the translation relation. 
-Also, a subscript may be used to denote the new fresh id after a certain piece of code has been generated.
+We will use the symbol ``$\Ra$" to denote the translation relation. 
+Also, we may use a superscript to denote a fresh id before the translation, and a subscript the fresh id after.
 
 \subsection{Expression translation}
 
 
-An \mysnesl expression will be translated to a pair of an SVCODE program $p$ and a stream tree $\st$ whose stream values represents the high-level evaluation result:
-$$ \Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$$
+An \mysnesl expression will be translated to a pair of an SVCODE program $p$ and a stream tree $\st$ whose stream values represent the high-level evaluation result:
+$$ \Trans{\del}{e}{}{}{\sfun{p}{\st}}$$
 
 The translation for constants, variables and pairs are straightforward. For example, a pair $(x,4)$ will be translated to a program of only one instruction $s_0 := \constaf{4}$ and a stream tree $(s,s_0)$, assuming in the context $x$ is bound to $s$ and $s_0$ is a fresh id before the translation :   
 $$[x \|-> \s] \Env (x,4)  \Ra^{s_0} (s_0 := \constaf{4}, (s,s_0))$$ 
@@ -741,7 +742,7 @@ For example,
 \begin{itemize}
 	\item Scalar operations, for instance $x_1 \oplus x_2$, will be translated to a single instruction $\map{\oplus}(s_1,s_2)$, assuming $\del(x_1) = s_1, \del(x_2) = \s_2$.
 	
-	\item The function $\iota(n)$  generates an integer sequence starting from 0 with the length of $n$.  
+	\item The function $\iota{n}$  generates an integer sequence starting from 0 with the length of $n$.  
 	The translation will first use the instruction $\toflag$ to generate the descriptor of the return value, and then perform a scan operation on a stream of $n$ 1s to generate the data stream.
 	Its translation will look like: 
 	$$	\PT{
@@ -795,6 +796,16 @@ The Xducer $\segconcat$ merges the second outermost descriptors, i.e., $s_1$, in
 
 
 \item $\*{part}$ can be implemented straightforward by the Xducer $\usegcount$.
+$$	\PT{
+	\Axiom{\Transf{\*{part}}{(st_1,s_1),(s_2,s_2'))}{\s_0}{}{\sfun{\sdef{s_0}{\usegcount(s_2,s_2')}} {((\st_1,\s_2),s_0)}}}
+}$$
+
+$\usegcount$ counts the number of the segments of its second argument, represented in unary and segmented according to the second argument,  which is the descriptor of the first argument.
+\begin{example} \emph{$\usegcount(\< \F,\F,\F,\F,\F,\T,\F,\F, \F,\T \'>, \<\F,\T,\F,\F,\T,\F,\F,\T\'>)$ with control stream $\<(),()\'>$. The first argument indicates that the first 5 elements of the second argument are in the same segment, which has two $\T$s, and the last 3 another segment, which includes only one $\T$. So the unary form of the counting result (with segmenting) is $\<\F,\F,\T,\F, \T \'>$ }\\
+	\begin{center}
+		\includegraphics[width=0.9\textwidth]{fig/usegcountxducer.png}
+	\end{center}
+\end{example}
 
 
 \item Implementing the function $\*{append}$ at the low level may be the most tricky one, since it needs to recursively append subsequences at each depth of the argument sequences:
@@ -970,40 +981,39 @@ a \done \ action can be added where we want to shut down the Xducer:
 $$[\pin_0, \pin_1, \pout, \pin_0, \pin_1, \pout,... ,\done]$$
  where the subscripts of \pin indicates reading different suppliers.
 
-In our practical implementation, we use a strategy to make the Xducer self-shutdown: we add an extra input stream, the control stream, to each Xducer,
-and the Xducer will shut itself down when its read-cursor on the control stream reaches the end, i.e., it reads an EOS (end of stream) from the control stream.
+As discussed before, the Xducer knows when to shut itself down, that is, when it reads an EOS (end of stream) from the control stream. 
+A process is responsible for proving the Xducer with the data and arranging its generated data into the buffer. 
 
-
-A process is responsible for managing its buffer and Xducer. 
-The activity of a process can be described as follows:
+The activities of a process is described as the following table shows.
 
 
  \begin{table}[H]\large
+ 	\renewcommand\arraystretch{1.5}
  	\centering
- 	\begin{tabular}{|l|p{0.25\columnwidth}|p{0.25\columnwidth}|l|}  
+ 	\begin{tabular}{|l|p{0.3\columnwidth}|p{0.3\columnwidth}|l|}  
  		\hline
  		 \diagbox{Xducer \\ action}{Buffer \\ state} & \filling & \draining \texttt{F} & \draining \texttt{T} \\ \hline
- 		\pin  & Process read  &  Process read  & impossible \\
+ 		\pin  & \texttt{process-read}  & \texttt{process-read}; \texttt{allread-check}  & impossible \\
  		\hline
  		\pout &  write one element to buffer;
- 		if buffer is full, switch to \draining \texttt{F}    &    enter write-block     & impossible \\ 
+ 		if buffer is full, switch to \draining \texttt{F}    &    enter write-block; \texttt{allread-check}   & impossible \\ 
  		\hline
  		\done &  switch to \draining \texttt{T}      & switch to \draining \texttt{T}   & \skip  \\ 
  		\hline
  	\end{tabular}
- \caption{Process actions. }
+ \caption{Process actions}
  \end{table}
 
-Process read:
+\texttt{process-read}:
 
 \begin{itemize}
-	\item if the supplier's buffer state is \draining, and the read-cursor shows the process has not yet read all the data, then the process reads one element successfully
+	\item if the supplier's buffer state is \draining, and the read-cursor shows the process has not yet read all the data, then the process reads one element successfully and increases the read-cursor by one
 	\item if the supplier's buffer state is \draining, but the read-cursor shows the process has read all the data, or the supplier's buffer state is \filling, then the process enters a read-block state
 \end{itemize}
 
-full-check: if the buffer is full, switch it to \draining \texttt{F} state.
+%full-check: if the buffer is full, switch it to \draining \texttt{F} state.
 
-allread-check: if all the clients have read all the data of the buffer, switch it to \filling state.
+\texttt{allread-check}: if all the clients have read all the data of the buffer, switch it to \filling state.
 
 
 \subsection{Scheduling}
