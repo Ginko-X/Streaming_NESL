@@ -22,7 +22,7 @@ An example program of NESL for splitting a string into words is shown in Figure~
 \begin{figure}
 \lstinputlisting[style=nesl-style]{code/wordpart.nesl} 
 \begin{lstlisting}[style=nesl-style]
--- a test example
+-- a running example
 $> str2wds("A   NESL  program . ")
 [['A'], ['N', 'E', 'S', 'L'], ['p', 'r', 'o', 'g', 'r', 'a', 'm'], ['.']] :: [[char]]
 \end{lstlisting}
@@ -34,7 +34,8 @@ The low-level language of NESL's implementation is VCODE.
 (some more about vcode)
 
 \subsection{Work-depth cost model}
-Another important idea of NESL is its language-based cost model \cite{blel96cost}.  \cite{prins93}. 
+Another important idea of NESL is its language-based cost model \cite{blel96cost}. 
+% \cite{prins93}. 
 (some more)
 % TODO 
 
@@ -49,7 +50,7 @@ This idea is similar to the concept $piecewise \ execution$ in \cite{palm95}, bu
 
 \subsection{Types}
 
-The types of a minimalistic version of SNESL defined in \cite{Fphd} are:
+The types of a minimalistic version of SNESL defined in \cite{Fphd} are as follows:
 \begin{align*} 
 & \pi ::= \bool \ | \ \int \ | \ ...  \\
 & \tau ::= \pi \ | \ (\tau_1,...,\tau_k) \ | \ [\tau]  \\
@@ -74,7 +75,7 @@ The values of SNESL are as follows:
 & v ::=  a \ | \ (v_1,...,v_k) \ | \ [v_1,...,v_k] \ | \ \{v_1,...,v_k\} 
 \end{align*}
 where $a$ is the atomic values or constants of types $\pi$, and $v$ are
- general values which can be a constant, a tuple, a vector or a sequence with $k$ elements.  
+ general values which can be a constant, a tuple, a vector or a sequence of $k$ elements.  
 
 The expressions of SNESL are shown in the following figure.
 
@@ -92,17 +93,17 @@ The expressions of SNESL are shown in the following figure.
 \end{figure}
 
 As an extension of NESL, SNESL keeps a similar programming style of NESL. 
-Basic expressions, such as the first five in Figure~\ref{fig-snesl-exps}, are the same as in NESL. 
+Basic expressions, such as the first five in Figure~\ref{fig-snesl-exps}, are the same as they are in NESL. 
 The apply-to-each construct in its general form splits into the general and the restricted comprehensions:
-the general one now is only responsible for performing parallel computation,
-and the restricted one can decide if a computation is necessary to do, working as the only conditional in SNESL.
+the general one now is only responsible for expressing parallel computation,
+and the restricted one can decide if a computation is necessary or not, working as the only conditional in SNESL.
 Also, these comprehensions extend the semantics of the apply-to-each from evaluating to vectors (i.e., type $[\tau]$) to evaluating to sequences (i.e., type $\{\sigma\}$). 
 A notable difference between them is that the free variables of $e_1$ in the general comprehension can only be of concrete types, while they can be of any types in the restricted one.
 
 \subsection{Primitive functions}
 
 SNESL also extends the primitive functions of NESL non-trivially.
-The primitive functions of SNESL is shown in Figure~\ref{fig-snesl-func}.
+The primitive functions of SNESL are shown in Figure~\ref{fig-snesl-func}.
 
 \begin{figure}[h]\large
 \begin{alignat}{2} 
@@ -117,7 +118,7 @@ The primitive functions of SNESL is shown in Figure~\ref{fig-snesl-func}.
 \end{figure}
 
 The scalar functions of $\oplus$ and $\otimes$ should be self-explanatory from their conventional symbols. 
-The types of the other functions and their brief description are given in Table~\ref{tab:snesl-funcs}.
+The types of the other functions and their brief descriptions are given in Table~\ref{tab:snesl-funcs}.
 
 The functions listed in (1.1) and (1.2) of Figure~\ref{fig-snesl-func} are original supported in NESL, doing transformations on scalars and vectors.
 In SNESL, list (1.1) are adapted to streaming versions with slight changes of parameter types where necessary.
@@ -130,10 +131,10 @@ A similar reason applies to the element-indexing function $\*{elt}$.
 
 List (1.3) are new primitives in SNESL.  
 The function $\*{the}$, returning the sole element of a singleton sequence, can be used to simulate an if-then-else expression together with restricted comprehensions:
-$$\*{if} \ e_0 \ \*{then} \ e_1 \ \*{else} \ e_2 \equiv \*{the}(\RComp{e_1}{e_0}{...} {\++} \RComp{e_2}{\*{not}(e_0)}{...}) $$
-The function $\*{empty}$, which tests whether a sequence is empty or not, only needs to check at most one element of the sequence instead of materializing all the element. Therefore, it works in a fairly efficient way with a constant complexity both in time and space.
+$$\*{if} \ e_0 \ \*{then} \ e_1 \ \*{else} \ e_2 \equiv \*{the}(\{e_1 \ | \ e_0 \} {\++} \{e_2 \ | \ \*{not}(e_0)\}) $$
+The function $\*{empty}$, which tests whether a sequence is empty or not, only needs to check at most one element of the sequence instead of materializing all the elements. Therefore, it works in a fairly efficient way with a constant complexity both in time and space.
 
-Finally, functions in list (1.4) connects the concrete types and streams, allowing SNESL to be flexible enough to not only write programs as NESL can do but also provide a streaming execution possibility. 
+Finally, functions in list (1.4) connects the concrete types and streams, allowing SNESL to be flexible enough to not only write programs as NESL can do but also provide a choice of streaming execution. 
 
 \begin{table}\large
 	\renewcommand\arraystretch{1.5}
@@ -142,21 +143,21 @@ Finally, functions in list (1.4) connects the concrete types and streams, allowi
 		\hline
 		Function type & Brief description  \\ \hline
 		$\*{append : \{\sgm\} \times \{\sgm\} \ra \{\sgm\}}$ & append two sequences; syntactic sugar: infix symbol ``${\++}$" \\ \hline
-		$\*{concat: \{\{\sgm\}\} \rightarrow \{\sgm\} }$ &  concatenates a sequence of sequences into one                    \\ \hline
-		$\*{zip}: \{\sgm_1\} \times ... \times \{\sgm_k\}  \ra \{(\sgm_1,...,\sgm_k)\}$ & convert $k$ sequences into a sequence of $k$-component tuples \\ \hline
+		$\*{concat: \{\{\sgm\}\} \rightarrow \{\sgm\} }$ &  decrease the dimension or nesting-depth by one                    \\ \hline
+		$\*{zip}: \{\sgm_1\} \times ... \times \{\sgm_k\}  \ra \{(\sgm_1,...,\sgm_k)\}$ & convert $k$ sequences into a sequence of $k$-component tuple \\ \hline
 		$\*{iota: \int \ra \{\int\}}$  &  generate an integer sequence starting from 0 to the given argument minus one; syntactic sugar: symbol ``\&"    \\ \hline
-		$\*{part: \{\sgm\} \times \{\bool\} \ra  \{\{\sgm\}\}}$   & partitions a sequence into subsequences segmented by $\T$s in the second argument; e.g., $\*{part}(\{3,1,4\}, \{\F,\F,\T,\F,\T,\T\}) = \{\{3,1\},\{4\},\{\}\}$                \\ \hline
+		$\*{part: \{\sgm\} \times \{\bool\} \ra  \{\{\sgm\}\}}$   & partition a sequence into subsequences segmented by $\T$s in the second argument; e.g., $\*{part}(\{3,1,4\}, \{\F,\F,\T,\F,\T,\T\}) = \{\{3,1\},\{4\},\{\}\}$                \\ \hline
 		$\*{scan_\otimes}: \{\int\} \ra \{\int\}$     &  performs an exclusive scan of $\otimes$ operation on the given sequence.    \\ \hline
 		$\*{reduce_\otimes: \{\int\} \ra \int }$     &   performs a reduction of $\otimes$ operation on the given sequence             \\ \hline
 		$\*{mkseq}: (\overbrace{\sgm,...,\sgm}^{k}) \ra \{\sgm\}$  & make a $k$-component tuple to a sequence of length $k$ \\ \hline  
 	    $\*{length}$: $[\tau] \ra \int$ & return the length of a vector; syntactic sugar: symbol ``\#" \\ \hline  
-	    $\*{elt}$: $[\tau] \times \int \ra \tau$  & return the  element of a vector with the given index;syntactic sugar: infix symbol ``!" \\ \hline  
+	    $\*{elt}$: $[\tau] \times \int \ra \tau$  & return the  element of a vector with the given index; syntactic sugar: infix symbol ``!" \\ \hline  
 	    $\*{the:  \{\sgm\} \ra \sgm}$     &     return the element of a singleton sequence           \\ \hline
 	    $\*{empty:  \{\sgm\} \ra \bool}$       & test if the given sequence is empty.             \\ \hline  
 	    $\*{seq}: [\tau] \ra \{\tau\} $  & convert a vector into a sequence \\ \hline  
 	    $\*{tab}: \{\tau\} \ra [\tau] $  & tabulate a sequence into a vector\\ \hline  
 	\end{tabular}
-	\caption{SNESL primitive functions with types}
+	\caption{SNESL primitive functions}
 	\label{tab:snesl-funcs}
 \end{table}
 
@@ -178,7 +179,7 @@ Based on the work-depth model, SNESL develops a third component of complexity me
 (% TODO 
 more)
 
-\section{Mathematical background and notations}
+%\section{Mathematical background and notations}
 %\begin{itemize}
 %	\item Set difference: \\
 %	For two sets $A$ and $B$, 
