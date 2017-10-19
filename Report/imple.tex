@@ -388,14 +388,12 @@ The types and semantics of these built-in functions remain the same as they are 
 
 
 \section{Value representation} \label{sec:valrep}
-At the low level, a value of \mysnesl is represented as either a primitive $stream \ \a$, a collection of primitive values,
-or a binary tree structure $w$ with stream leaves.
-We use $\<a_1,...,a_k\'>$ to denote a primitive stream of $k$ elements $a_1,...,a_k$. Thus,
+At the low level, a value of \mysnesl is represented as either a primitive $stream$ (i.e., a collection of primitive values),
+or a binary tree structure with stream leaves. 
+The idea of this representation comes from \cite{Blel90vecmod}. 
+The primitive stream $\a$ of $k$ elements $a_1,...,a_k$ and the stream tree $w$ have the following form: 
 $$ \a ::= \<a_1,...,a_k\'>$$
 $$ w ::= \a \ | \ (w_1,w_2) $$
-
-%TODO add cite from 
-%TODO The idea of this representation is from ...
 
 The representation also relies on the high-level type of the value. 
 We use the infix symbol ``$ \tr$" subscripted by a type $\tau$ to denote a type-depended representation relation.
@@ -444,7 +442,7 @@ We use the infix symbol ``$ \tr$" subscripted by a type $\tau$ to denote a type-
 In \cite{Fmaster} a streaming target language for a minimal SNESL was defined.
 With trivial changes in the instruction set, this language, named as SVCODE (Streaming VCODE), has been implemented on a multicore system in \cite{Fphd}; the various experiment results
 have demonstrated single-core performance similar to sequential C code for some simple 
-text-processing tasks and near-linear scales on multi cores.
+text-processing tasks and near-linear scales for multiple cores.
 
 In this thesis, we put emphasis on the formalization of this low-level language's semantics.
 Also, to support recursion in the high-level language at the same time preserve the cost, non-trivial extension of this language is needed. 

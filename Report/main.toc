@@ -1,47 +1,46 @@
 \contentsline {chapter}{\numberline {1}Introduction}{3}
 \contentsline {section}{\numberline {1.1}Background}{3}
-\contentsline {subsection}{\numberline {1.1.1}Nested data parallelism}{3}
-\contentsline {section}{\numberline {1.2}NESL}{3}
-\contentsline {subsection}{\numberline {1.2.1}Work-depth cost model}{3}
-\contentsline {section}{\numberline {1.3}SNESL}{4}
-\contentsline {subsection}{\numberline {1.3.1}Types}{4}
-\contentsline {subsection}{\numberline {1.3.2}Values and expressions}{5}
-\contentsline {subsection}{\numberline {1.3.3}Primitive functions}{5}
-\contentsline {subsection}{\numberline {1.3.4}Cost model}{8}
-\contentsline {chapter}{\numberline {2}Implementation}{9}
-\contentsline {section}{\numberline {2.1}High-level interpreter}{9}
-\contentsline {section}{\numberline {2.2}Value representation}{15}
-\contentsline {section}{\numberline {2.3}SVCODE}{16}
-\contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{16}
-\contentsline {subsection}{\numberline {2.3.2}Xducers and control stream}{17}
-\contentsline {section}{\numberline {2.4}Translating $\mathbf {SNESL_1}$ to SVCODE}{19}
-\contentsline {subsection}{\numberline {2.4.1}Expression translation}{20}
-\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{23}
-\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{26}
-\contentsline {section}{\numberline {2.5}Eager interpreter}{26}
-\contentsline {subsection}{\numberline {2.5.1}Dataflow}{27}
-\contentsline {subsection}{\numberline {2.5.2}Cost model}{27}
-\contentsline {section}{\numberline {2.6}Streaming interpreter}{27}
-\contentsline {subsection}{\numberline {2.6.1}Processes}{27}
-\contentsline {subsection}{\numberline {2.6.2}Scheduling}{29}
-\contentsline {subsection}{\numberline {2.6.3}Cost model}{30}
-\contentsline {subsection}{\numberline {2.6.4}Recursion}{31}
-\contentsline {subsection}{\numberline {2.6.5}Deadlock}{32}
-\contentsline {subsection}{\numberline {2.6.6}[optional] Examples}{34}
-\contentsline {chapter}{\numberline {3}Formalization}{35}
-\contentsline {section}{\numberline {3.1}$\mathbf {SNESL_0}$}{35}
-\contentsline {subsection}{\numberline {3.1.1}Syntax}{35}
-\contentsline {subsection}{\numberline {3.1.2}Typing rules}{36}
-\contentsline {subsection}{\numberline {3.1.3}Semantics}{37}
-\contentsline {section}{\numberline {3.2}$\mathbf {SVCODE_0}$}{37}
-\contentsline {subsection}{\numberline {3.2.1}Syntax}{37}
-\contentsline {subsection}{\numberline {3.2.2}Instruction semantics}{39}
-\contentsline {subsection}{\numberline {3.2.3}Xducer semantics}{40}
-\contentsline {subsection}{\numberline {3.2.4}$\mathbf {SVCODE_0}$ determinism}{41}
-\contentsline {section}{\numberline {3.3}Translation}{45}
-\contentsline {section}{\numberline {3.4}Value representation}{46}
-\contentsline {section}{\numberline {3.5}Correctness}{47}
-\contentsline {subsection}{\numberline {3.5.1}Definitions}{47}
-\contentsline {subsection}{\numberline {3.5.2}Correctness proof}{55}
-\contentsline {section}{\numberline {3.6}Scaling up}{64}
-\contentsline {chapter}{\numberline {4}Conclusion}{65}
+\contentsline {section}{\numberline {1.2}Nested data parallelism}{3}
+\contentsline {section}{\numberline {1.3}NESL}{4}
+\contentsline {section}{\numberline {1.4}SNESL}{5}
+\contentsline {subsection}{\numberline {1.4.1}Types}{6}
+\contentsline {subsection}{\numberline {1.4.2}Values and expressions}{6}
+\contentsline {subsection}{\numberline {1.4.3}Primitive functions}{7}
+\contentsline {subsection}{\numberline {1.4.4}Cost model}{8}
+\contentsline {chapter}{\numberline {2}Implementation}{11}
+\contentsline {section}{\numberline {2.1}High-level interpreter}{11}
+\contentsline {section}{\numberline {2.2}Value representation}{17}
+\contentsline {section}{\numberline {2.3}SVCODE}{18}
+\contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{18}
+\contentsline {subsection}{\numberline {2.3.2}Xducers and control stream}{19}
+\contentsline {section}{\numberline {2.4}Translating $\mathbf {SNESL_1}$ to SVCODE}{21}
+\contentsline {subsection}{\numberline {2.4.1}Expression translation}{22}
+\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{25}
+\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{28}
+\contentsline {section}{\numberline {2.5}Eager interpreter}{28}
+\contentsline {subsection}{\numberline {2.5.1}Dataflow}{29}
+\contentsline {subsection}{\numberline {2.5.2}Cost model}{29}
+\contentsline {section}{\numberline {2.6}Streaming interpreter}{29}
+\contentsline {subsection}{\numberline {2.6.1}Processes}{29}
+\contentsline {subsection}{\numberline {2.6.2}Scheduling}{31}
+\contentsline {subsection}{\numberline {2.6.3}Cost model}{32}
+\contentsline {subsection}{\numberline {2.6.4}Recursion}{33}
+\contentsline {subsection}{\numberline {2.6.5}Deadlock}{34}
+\contentsline {subsection}{\numberline {2.6.6}[optional] Examples}{36}
+\contentsline {chapter}{\numberline {3}Formalization}{37}
+\contentsline {section}{\numberline {3.1}$\mathbf {SNESL_0}$}{37}
+\contentsline {subsection}{\numberline {3.1.1}Syntax}{37}
+\contentsline {subsection}{\numberline {3.1.2}Typing rules}{38}
+\contentsline {subsection}{\numberline {3.1.3}Semantics}{39}
+\contentsline {section}{\numberline {3.2}$\mathbf {SVCODE_0}$}{39}
+\contentsline {subsection}{\numberline {3.2.1}Syntax}{39}
+\contentsline {subsection}{\numberline {3.2.2}Instruction semantics}{41}
+\contentsline {subsection}{\numberline {3.2.3}Xducer semantics}{42}
+\contentsline {subsection}{\numberline {3.2.4}$\mathbf {SVCODE_0}$ determinism}{43}
+\contentsline {section}{\numberline {3.3}Translation}{47}
+\contentsline {section}{\numberline {3.4}Value representation}{48}
+\contentsline {section}{\numberline {3.5}Correctness}{49}
+\contentsline {subsection}{\numberline {3.5.1}Definitions}{49}
+\contentsline {subsection}{\numberline {3.5.2}Correctness proof}{57}
+\contentsline {section}{\numberline {3.6}Scaling up}{66}
+\contentsline {chapter}{\numberline {4}Conclusion}{67}

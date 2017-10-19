@@ -1,9 +1,30 @@
-\begin{thebibliography}{PPCF95}
+\newcommand{\etalchar}[1]{$^{#1}$}
+\begin{thebibliography}{BHC{\etalchar{+}}93}
+
+\bibitem[BG96]{Blel96-proof}
+Guy~E. Blelloch and John Greiner.
+\newblock A provable time and space efficient implementation of nesl.
+\newblock In {\em Proceedings of the First ACM SIGPLAN International Conference
+  on Functional Programming}, ICFP '96, pages 213--225, New York, NY, USA,
+  1996. ACM.
+
+\bibitem[BHC{\etalchar{+}}93]{Blel-imp}
+Guy~E. Blelloch, Jonathan~C. Hardwick, Siddhartha Chatterjee, Jay Sipelstein,
+  and Marco Zagha.
+\newblock Implementation of a portable nested data-parallel language.
+\newblock In {\em Proceedings of the Fourth ACM SIGPLAN Symposium on Principles
+  and Practice of Parallel Programming}, PPOPP '93, pages 102--111, New York,
+  NY, USA, 1993. ACM.
 
 \bibitem[Ble89]{blel89scan}
 Guy~E Blelloch.
 \newblock Scans as primitive parallel operations.
 \newblock {\em IEEE Transactions on Computers}, 38(11):1526--1538, 1989.
+
+\bibitem[Ble90]{Blel90vecmod}
+Guy~E. Blelloch.
+\newblock {\em Vector Models for Data-parallel Computing}.
+\newblock MIT Press, Cambridge, MA, USA, 1990.
 
 \bibitem[Ble95]{blel95nesl}
 Guy~E Blelloch.
@@ -15,6 +36,12 @@ Guy~E Blelloch.
 Guy~E Blelloch.
 \newblock Programming parallel algorithms.
 \newblock {\em Communications of the ACM}, 39(3):85--97, 1996.
+
+\bibitem[BS90]{Blel-flatten}
+Guy~E. Blelloch and Gary~W. Sabot.
+\newblock Compiling collection-oriented languages onto massively parallel
+  computers.
+\newblock {\em J. Parallel Distrib. Comput.}, 8(2):119--134, February 1990.
 
 \bibitem[Mad13]{Fmaster}
 Frederik~M. Madsen.
@@ -28,6 +55,13 @@ Frederik~M. Madsen.
 \newblock PhD thesis, Department of Computer Science (DIKU), University of
   Copenhagen, September 2016.
 
+\bibitem[MF13]{MadFil13}
+Frederik~M. Madsen and Andrzej Filinski.
+\newblock Towards a streaming model for nested data parallelism.
+\newblock In {\em Proceedings of the 2Nd ACM SIGPLAN Workshop on Functional
+  High-performance Computing}, FHPC '13, pages 13--24, New York, NY, USA, 2013.
+  ACM.
+
 \bibitem[PP93]{prins93}
 Jan~F Prins and Daniel~W Palmer.
 \newblock Transforming high-level data-parallel programs into vector
@@ -40,5 +74,12 @@ Daniel~W Palmer, Jan~F Prins, Siddhartha Chatterjee, and Rickard~E Faith.
 \newblock Piecewise execution of nested data-parallel programs.
 \newblock In {\em International Workshop on Languages and Compilers for
   Parallel Computing}, pages 346--361. Springer, 1995.
+
+\bibitem[PPW95]{Ppw95-workeff}
+D.~W. Palmer, J.~F. Prins, and S.~Westfold.
+\newblock Work-efficient nested data-parallelism.
+\newblock In {\em Proceedings of the Fifth Symposium on the Frontiers of
+  Massively Parallel Computation (Frontiers'95)}, FRONTIERS '95, pages 186--,
+  Washington, DC, USA, 1995. IEEE Computer Society.
 
 \end{thebibliography}

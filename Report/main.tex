@@ -42,6 +42,7 @@
 \definecolor{gray}{rgb}{0.3,0.3,0.3}
 \definecolor{blue(munsell)}{rgb}{0.0, 0.5, 0.69}
 \definecolor{darkred}{rgb}{0.5, 0.0, 0.13}
+\definecolor{auburn}{rgb}{0.43, 0.21, 0.1}
 
 \input{lang-style.tex}
 
@@ -316,11 +317,14 @@
 \maketitle
 
 \begin{abstract}
- Streaming NESL (SNESL) is a first-order functional, nested data-parallel language, employing a streaming execution model and integrating with a cost model that can predict both time and space complexity.
- The experimentation has demonstrated good performance of SNESL's implementation and positive empirical evidence of the validity of the code model.
- In this thesis, we first present non-trivial extension to SNESL's target language, SVCODE, which enables SNESL to support recursion at the same time preserve the cost.
- Then the formalization of the semantics of this low-level streaming language is given. 
- Finally, we present the proof of the correctness of SNESL's implementation model.
+ Streaming NESL (SNESL) is an experimental first-order functional, nested data-parallel language, employing a streaming execution model and integrating with a cost model that can predict both time and space complexity.
+ Practical experiments have demonstrated good performance of SNESL's implementation and provided empirical evidence of the validity of the cost model.
+ 
+ In this thesis, we first extend SNESL to support recursive functions at the same time preserve the cost.
+ This requires non-trivial extension to SNESL's target language, SVCODE, and the flow graph of its streaming dataflow model to be dynamically completed at runtime.
+ Two execution models of the extended SVCODE, the traditional eager one and the streaming one, are given and discussed.
+ 
+ Then, for a subset of SNESL, we show the formalization of the semantics of the source and target languages, and the proof of the translation correctness and work cost preservation.
  
 \end{abstract}
 
