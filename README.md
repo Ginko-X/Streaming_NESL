@@ -1,4 +1,8 @@
 # Working Progress
++ Week 51 (17~ 24 Oct)
+    + fixed and completed chapter 1
+    + fixed chapter 2 (to Page 34, not finished)
+    
 + Week 50 (10 ~ 16 Oct)
     + Fixes and complements to chapter 1 and 2,  [main.pdf](https://github.com/Ginko-X/Streaming_NESL/blob/master/Report/main.pdf)  
     + proof fixed in chapter 3, except for the last main theorem proof (but should mainly be symbol updates or clean-ups)
