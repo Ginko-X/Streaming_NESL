@@ -13,7 +13,7 @@
 \contentsline {section}{\numberline {2.3}SVCODE}{19}
 \contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{19}
 \contentsline {subsection}{\numberline {2.3.2}Xducers and control stream}{21}
-\contentsline {section}{\numberline {2.4}Translating $\mathbf {SNESL_1}$ to SVCODE}{22}
+\contentsline {section}{\numberline {2.4}Translating SNESL\textsubscript {1}to SVCODE}{22}
 \contentsline {subsection}{\numberline {2.4.1}Expression translation}{23}
 \contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{26}
 \contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{29}

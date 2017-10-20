@@ -1,6 +1,6 @@
 -- partition a string to words (delimited by spaces)
 -- SNESL version
 function str2wds_snesl(str) =
-   let flags = {ord(x) == 32 : x in str};
-       nonsps =  concat({{x | ord(x) != 32} : x in v})
+   let flags = { x == ' ' : x in str};
+       nonsps =  concat({{x | x != ' '} : x in v})
     in concat({{x | not(empty(x))}: x in part(nonsps, flags ++ {T})})

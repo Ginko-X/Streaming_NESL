@@ -13,6 +13,8 @@
 
 \newcommand{\ftype}{\varphi}
 
+\newcommand\mysnesl{SNESL\textsubscript{1}}
+
 \def\interT#1#2{\vdash_{#1} #2}
 \def\conc#1{#1 \ \underline{\mathtt{concrete}}}
 
@@ -30,7 +32,8 @@ Finally, two interpreters of SVCODE, an eager one and a streaming one, will be d
 
 \section{High-level interpreter}
 
-In this thesis, the high-level language we have experimented with is close to the SNESL introduced in the last chapter but without vectors, and we will call this language \mysnesl.
+
+In this thesis, the high-level \mysnesl language we have experimented with is close to the SNESL introduced in the last chapter but without vectors, and we will call this language \mysnesl.
 As our first goal is to extend SNESL with user-defined (recursive) functions,
 it is safe to do so because removing vectors should not affect the complexity of the problem too much; we believe that if the solution works with streams, the general type in SNESL, it should work with vectors as well. 
 
@@ -604,7 +607,7 @@ and the implementation model more flexible and easier to debug.
 
 
 
-\section{Translating $\*{SNESL_1}$ to SVCODE}
+\section{Translating \mysnesl to SVCODE}
 In Chapter~\ref{sec:valrep}, we have seen the idea of how a high-level value of \mysnesl \ can be represented as a binary tree of low-level stream values.
 At the compiling time, we use a structure $\STree$ (stream id tree) to connect the high-level variables and the low-level ones: 
 $$ \STree \ni \st ::= \s \ | \ (\st_1,\st_2) $$
