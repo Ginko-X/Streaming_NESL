@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  19 OCT 2017 15:08
+This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  20 OCT 2017 07:43
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -655,55 +655,16 @@ Package: fp-eval 1995/04/03
 \diagbox@sepl=\dimen210
 \diagbox@sepr=\dimen211
 )
-\c@thm=\count171
-\c@example=\count172
+(/usr/local/texlive/2015/texmf-dist/tex/latex/pdfpages/pdfpages.sty
+Package: pdfpages 2015/05/11 v0.4x Insert pages of external PDF documents (AM)
 
-(/usr/local/texlive/2015/texmf-dist/tex/latex/listings/listings.sty
-\lst@mode=\count173
-\lst@gtempboxa=\box65
-\lst@token=\toks33
-\lst@length=\count174
-\lst@currlwidth=\dimen212
-\lst@column=\count175
-\lst@pos=\count176
-\lst@lostspace=\dimen213
-\lst@width=\dimen214
-\lst@newlines=\count177
-\lst@lineno=\count178
-\lst@maxwidth=\dimen215
-
-(/usr/local/texlive/2015/texmf-dist/tex/latex/listings/lstmisc.sty
-File: lstmisc.sty 2014/09/06 1.5e (Carsten Heinz)
-\c@lstnumber=\count179
-\lst@skipnumbers=\count180
-\lst@framebox=\box66
+(/usr/local/texlive/2015/texmf-dist/tex/latex/base/ifthen.sty
+Package: ifthen 2014/09/29 v1.1c Standard LaTeX ifthen package (DPC)
 )
-(/usr/local/texlive/2015/texmf-dist/tex/latex/listings/listings.cfg
-File: listings.cfg 2014/09/06 1.5e listings configuration
-))
-Package: listings 2014/09/06 1.5e (Carsten Heinz)
-Package color Info: Redefining color blue on input line 35.
-
-(./lang-style.tex) (./main.aux
-
-LaTeX Warning: Label `eq-lem24-c3-{8}' multiply defined.
-
+(/usr/local/texlive/2015/texmf-dist/tex/latex/eso-pic/eso-pic.sty
+Package: eso-pic 2015/04/20 v2.0e eso-pic (RN)
 )
-\openout1 = `main.aux'.
-
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 316.
-LaTeX Font Info:    ... okay on input line 316.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 316.
-LaTeX Font Info:    ... okay on input line 316.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 316.
-LaTeX Font Info:    ... okay on input line 316.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 316.
-LaTeX Font Info:    ... okay on input line 316.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 316.
-LaTeX Font Info:    ... okay on input line 316.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 316.
-LaTeX Font Info:    ... okay on input line 316.
- (/usr/local/texlive/2015/texmf-dist/tex/latex/graphics/graphicx.sty
+(/usr/local/texlive/2015/texmf-dist/tex/latex/graphics/graphicx.sty
 Package: graphicx 2014/10/28 v1.0g Enhanced LaTeX Graphics (DPC,SPQR)
 
 (/usr/local/texlive/2015/texmf-dist/tex/latex/graphics/graphics.sty
@@ -714,9 +675,69 @@ File: graphics.cfg 2010/04/23 v1.9 graphics configuration of TeX Live
 )
 Package graphics Info: Driver file: xetex.def on input line 94.
 )
-\Gin@req@height=\dimen216
-\Gin@req@width=\dimen217
+\Gin@req@height=\dimen212
+\Gin@req@width=\dimen213
 )
+\AM@pagewidth=\dimen214
+\AM@pageheight=\dimen215
+
+(/usr/local/texlive/2015/texmf-dist/tex/latex/pdfpages/ppxetex.def
+File: ppxetex.def 2015/05/11 v0.4x Pdfpages driver for XeTeX (AM)
+)
+\AM@pagebox=\box65
+\AM@toc@title=\toks33
+\c@AM@survey=\count171
+\AM@templatesizebox=\box66
+)
+\c@thm=\count172
+\c@example=\count173
+
+(/usr/local/texlive/2015/texmf-dist/tex/latex/listings/listings.sty
+\lst@mode=\count174
+\lst@gtempboxa=\box67
+\lst@token=\toks34
+\lst@length=\count175
+\lst@currlwidth=\dimen216
+\lst@column=\count176
+\lst@pos=\count177
+\lst@lostspace=\dimen217
+\lst@width=\dimen218
+\lst@newlines=\count178
+\lst@lineno=\count179
+\lst@maxwidth=\dimen219
+
+(/usr/local/texlive/2015/texmf-dist/tex/latex/listings/lstmisc.sty
+File: lstmisc.sty 2014/09/06 1.5e (Carsten Heinz)
+\c@lstnumber=\count180
+\lst@skipnumbers=\count181
+\lst@framebox=\box68
+)
+(/usr/local/texlive/2015/texmf-dist/tex/latex/listings/listings.cfg
+File: listings.cfg 2014/09/06 1.5e listings configuration
+))
+Package: listings 2014/09/06 1.5e (Carsten Heinz)
+Package color Info: Redefining color blue on input line 36.
+
+(./lang-style.tex) (./main.aux
+
+LaTeX Warning: Label `eq-lem24-c3-{8}' multiply defined.
+
+)
+\openout1 = `main.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 318.
+LaTeX Font Info:    ... okay on input line 318.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 318.
+LaTeX Font Info:    ... okay on input line 318.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 318.
+LaTeX Font Info:    ... okay on input line 318.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 318.
+LaTeX Font Info:    ... okay on input line 318.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 318.
+LaTeX Font Info:    ... okay on input line 318.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 318.
+LaTeX Font Info:    ... okay on input line 318.
+
 *geometry* driver: auto-detecting
 *geometry* detected driver: xetex
 *geometry* verbose mode - [ preamble ] result:
@@ -751,35 +772,53 @@ Package graphics Info: Driver file: xetex.def on input line 94.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-\AtBeginShipoutBox=\box67
+\AtBeginShipoutBox=\box69
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: float package is loaded.
 Package caption Info: listings package is loaded.
 Package caption Info: End \AtBeginDocument code.
-\c@lstlisting=\count181
-LaTeX Font Info:    Try loading font information for U+msa on input line 317.
+\c@lstlisting=\count182
+File: thesis-frontpage.pdf Graphic file (type QTm)
+<use  "thesis-frontpage.pdf" >
+File: thesis-frontpage.pdf Graphic file (type QTm)
+ <use  "thesis-frontpage.pdf" >
+File: thesis-frontpage.pdf Graphic file (type QTm)
+
+<use  "thesis-frontpage.pdf"  page1>
+File: thesis-frontpage.pdf Graphic file (type QTm)
+ <use  "thesis-frontpage.pdf"  page1>
+File: thesis-frontpage.pdf Graphic file (type QTm)
+
+<use  "thesis-frontpage.pdf"  page1>
+File: thesis-frontpage.pdf Graphic file (type QTm)
+ <use  "thesis-frontpage.pdf"  page1>
+File: thesis-frontpage.pdf Graphic file (type QTm)
+
+<use  "thesis-frontpage.pdf"  page1> [1
+
+] [1] (./main.toc
+LaTeX Font Info:    Try loading font information for U+msa on input line 2.
+
 (/usr/local/texlive/2015/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 317.
+LaTeX Font Info:    Try loading font information for U+msb on input line 2.
 
 (/usr/local/texlive/2015/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1
 
-] [1]
-(./main.toc [1
-
 ])
 \tf@toc=\write3
 \openout3 = `main.toc'.
 
- (./intro.tex [2]
+
+(./intro.tex [2]
 Chapter 1.
 [3
 
 ]
-Underfull \hbox (badness 10000) in paragraph at lines 45--47
+Underfull \hbox (badness 10000) in paragraph at lines 46--48
 
  []
 
@@ -787,19 +826,19 @@ Underfull \hbox (badness 10000) in paragraph at lines 45--47
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10> not available
 (Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 3.
 ) [4]
-Underfull \hbox (badness 10000) in paragraph at lines 72--73
+Underfull \hbox (badness 10000) in paragraph at lines 73--74
 
  []
 
 [5] [6] [7]
-Underfull \hbox (badness 2027) in paragraph at lines 189--189
+Underfull \hbox (badness 2027) in paragraph at lines 190--190
 []$[] \OT1/cmr/m/n/12 : \OMS/cmsy/m/n/12 f\OML/cmm/m/it/12 ^^[[]\OMS/cmsy/m/n/1
 2 g ^^B \OML/cmm/m/it/12 ::: \OMS/cmsy/m/n/12 ^^B f\OML/cmm/m/it/12 ^^[[]\OMS/c
 msy/m/n/12 g !
  []
 
 
-Underfull \hbox (badness 5036) in paragraph at lines 191--191
+Underfull \hbox (badness 5036) in paragraph at lines 192--192
 \OT1/cmr/m/n/12 e.g., $[](\OMS/cmsy/m/n/12 f\OT1/cmr/m/n/12 3\OML/cmm/m/it/12 ;
  \OT1/cmr/m/n/12 1\OML/cmm/m/it/12 ; \OT1/cmr/m/n/12 4\OMS/cmsy/m/n/12 g\OML/cm
 m/m/it/12 ; \OMS/cmsy/m/n/12 f\OT1/cmtt/m/n/12 F\OML/cmm/m/it/12 ; \OT1/cmtt/m/
@@ -810,149 +849,160 @@ F\OML/cmm/m/it/12 ; \OT1/cmtt/m/n/12 T\OML/cmm/m/it/12 ; \OT1/cmtt/m/n/12 T\OMS
 
 (./code/wordpart.snesl) [8] [9]) (./imple.tex [10]
 Chapter 2.
+
+Underfull \hbox (badness 10000) in paragraph at lines 56--56
+
+ []
+
+\myBox1=\box70
+\myScoreStart1=\dimen220
+\myCenter1=\dimen221
+\myScoreEnd1=\dimen222
+\myBox2=\box71
+\myScoreStart2=\dimen223
+\myCenter2=\dimen224
+\myScoreEnd2=\dimen225
 [11
 
 ]
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 72.
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 91.
  (/usr/local/texlive/2015/texmf-dist/tex/latex/base/omscmr.fd
 File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 72.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 91.
 
-Underfull \hbox (badness 10000) in paragraph at lines 141--141
+Underfull \hbox (badness 10000) in paragraph at lines 158--158
 
  []
 
-\myBox1=\box68
-\myScoreStart1=\dimen218
-\myCenter1=\dimen219
-\myScoreEnd1=\dimen220
-\myBox2=\box69
-\myScoreStart2=\dimen221
-\myCenter2=\dimen222
-\myScoreEnd2=\dimen223
-\myBox3=\box70
-\myScoreStart3=\dimen224
-\myCenter3=\dimen225
-\myScoreEnd3=\dimen226
-
-Underfull \hbox (badness 10000) in paragraph at lines 141--141
-[]
- []
-
+\myBox3=\box72
+\myScoreStart3=\dimen226
+\myCenter3=\dimen227
+\myScoreEnd3=\dimen228
 [12]
-Underfull \hbox (badness 10000) in paragraph at lines 163--163
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 166--171
+Underfull \hbox (badness 10000) in paragraph at lines 189--189
 
  []
 
 [13]
-Underfull \hbox (badness 10000) in paragraph at lines 175--177
+Underfull \hbox (badness 10000) in paragraph at lines 203--203
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 236--236
+Underfull \hbox (badness 10000) in paragraph at lines 213--246
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 241--242
+Overfull \hbox (60.52477pt too wide) in paragraph at lines 251--272
+[]
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 251--272
 
  []
 
-[14] [15] [16] [17]
 
-LaTeX Warning: `!h' float specifier changed to `!ht'.
-
-[18]
-Underfull \hbox (badness 10000) in paragraph at lines 519--520
+Underfull \hbox (badness 10000) in paragraph at lines 251--272
 
  []
 
-[19]
+
+Underfull \hbox (badness 10000) in paragraph at lines 281--282
+
+ []
+
+[14] [15] [16] [17] [18] [19] [20]
+Underfull \hbox (badness 10000) in paragraph at lines 539--540
+
+ []
+
 File: fig/map.png Graphic file (type QTm)
- <use  "fig/map.png" >
-Underfull \hbox (badness 10000) in paragraph at lines 530--531
+<use  "fig/map.png" >
+Underfull \hbox (badness 10000) in paragraph at lines 550--551
 
  []
 
 File: fig/xducerDag2.png Graphic file (type QTm)
 <use  "fig/xducerDag2.png" >
-Overfull \hbox (42.68173pt too wide) in paragraph at lines 554--554
+Overfull \hbox (42.68173pt too wide) in paragraph at lines 574--574
 [][] 
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 557--561
+[21]
+Underfull \hbox (badness 10000) in paragraph at lines 577--581
 
  []
 
-[20] [21]
-Underfull \hbox (badness 10000) in paragraph at lines 625--626
+
+Overfull \hbox (36.03314pt too wide) in paragraph at lines 588--589
+[]\OT1/cmr/m/n/12 In the im-ple-men-ta-tion of [[]], a spe-cial stream of unit 
+type, called the $\OML/cmm/m/it/12 control stream$\OT1/cmr/m/n/12 ,
+ []
+
+[22] [23]
+Underfull \hbox (badness 10000) in paragraph at lines 648--649
 
  []
 
 File: fig/usum.png Graphic file (type QTm)
 <use  "fig/usum.png" >
-Overfull \hbox (24.04619pt too wide) in paragraph at lines 635--643
+Overfull \hbox (20.69904pt too wide) in paragraph at lines 658--666
 []
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 635--643
+Underfull \hbox (badness 10000) in paragraph at lines 658--666
 
  []
 
-[22]
-Underfull \hbox (badness 10000) in paragraph at lines 668--669
+
+Underfull \hbox (badness 10000) in paragraph at lines 691--692
 
  []
 
 File: fig/distr.png Graphic file (type QTm)
-<use  "fig/distr.png" > [23]
-Underfull \hbox (badness 10000) in paragraph at lines 698--699
+<use  "fig/distr.png" > [24]
+Underfull \hbox (badness 10000) in paragraph at lines 721--722
 
  []
 
 File: fig/b2uxducer.png Graphic file (type QTm)
-<use  "fig/b2uxducer.png" >
-Underfull \hbox (badness 10000) in paragraph at lines 718--719
+<use  "fig/b2uxducer.png" > [25]
+Underfull \hbox (badness 10000) in paragraph at lines 741--742
 
  []
 
 File: fig/packxducer.png Graphic file (type QTm)
 <use  "fig/packxducer.png" >
-Overfull \hbox (0.65643pt too wide) in paragraph at lines 725--726
+Overfull \hbox (11.10077pt too wide) in paragraph at lines 748--749
 []\OT1/cmr/bx/n/12 Example 2.19. []$[]\OT1/cmr/m/n/12 ([]\OML/cmm/m/it/12 ; \OM
 S/cmsy/m/n/12 h\OT1/cmtt/m/n/12 F\OML/cmm/m/it/12 ; \OT1/cmtt/m/n/12 T\OML/cmm/
-m/it/12 ; \OT1/cmtt/m/n/12 F\OML/cmm/m/it/12 ; \OT1/cmtt/m/n/12 F\OML/cmm/m/it/
-12 ; \OT1/cmtt/m/n/12 T\OML/cmm/m/it/12 ; \OT1/cmtt/m/n/12 F\OML/cmm/m/it/12 ; 
-\OT1/cmtt/m/n/12 F\OML/cmm/m/it/12 ; \OT1/cmtt/m/n/12 F\OML/cmm/m/it/12 ; \OT1/
-cmtt/m/n/12 T\OMS/cmsy/m/n/12 i\OT1/cmr/m/n/12 )$ with con-trol stream $\OMS/cm
-sy/m/n/12 h\OT1/cmr/m/n/12 ()\OML/cmm/m/it/12 ; \OT1/cmr/m/n/12 ()\OML/cmm/m/it
-/12 ; \OT1/cmr/m/n/12 ()\OMS/cmsy/m/n/12 i$ 
+m/it/12 ;   \OT1/cmtt/m/n/12 F\OML/cmm/m/it/12 ; \OT1/cmtt/m/n/12 F\OML/cmm/m/i
+t/12 ; \OT1/cmtt/m/n/12 T\OML/cmm/m/it/12 ;   \OT1/cmtt/m/n/12 F\OML/cmm/m/it/1
+2 ; \OT1/cmtt/m/n/12 F\OML/cmm/m/it/12 ; \OT1/cmtt/m/n/12 F\OML/cmm/m/it/12 ; \
+OT1/cmtt/m/n/12 T\OMS/cmsy/m/n/12 i\OT1/cmr/m/n/12 )$ with con-trol stream $\OM
+S/cmsy/m/n/12 h\OT1/cmr/m/n/12 ()\OML/cmm/m/it/12 ; \OT1/cmr/m/n/12 ()\OML/cmm/
+m/it/12 ; \OT1/cmr/m/n/12 ()\OMS/cmsy/m/n/12 i$ 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 725--726
+Underfull \hbox (badness 10000) in paragraph at lines 748--749
 
  []
 
 File: fig/upackxducer.png Graphic file (type QTm)
-<use  "fig/upackxducer.png" > [24]
-Underfull \hbox (badness 10000) in paragraph at lines 754--755
+<use  "fig/upackxducer.png" >
+Underfull \hbox (badness 10000) in paragraph at lines 777--778
 
  []
 
 File: fig/toflag.png Graphic file (type QTm)
-<use  "fig/toflag.png" >
-Overfull \hbox (9.4648pt too wide) in paragraph at lines 761--762
+<use  "fig/toflag.png" > [26]
+Overfull \hbox (9.4648pt too wide) in paragraph at lines 784--785
 []\OT1/cmr/bx/n/12 Example 2.21. []$[][]\OT1/cmr/m/n/12 (\OMS/cmsy/m/n/12 h\OT1
 /cmtt/m/n/12 F\OML/cmm/m/it/12 ; \OT1/cmtt/m/n/12 F\OML/cmm/m/it/12 ; \OT1/cmtt
 /m/n/12 F\OML/cmm/m/it/12 ; \OT1/cmtt/m/n/12 T\OML/cmm/m/it/12 ; \OT1/cmtt/m/n/
@@ -964,88 +1014,88 @@ m/it/12 ; \OT1/cmr/m/n/12 3\OML/cmm/m/it/12 ; \OT1/cmr/m/n/12 6\OMS/cmsy/m/n/12
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 761--762
-
- []
-
-File: fig/scan.png Graphic file (type QTm)
-<use  "fig/scan.png" > [25]
 Underfull \hbox (badness 10000) in paragraph at lines 784--785
 
  []
 
+File: fig/scan.png Graphic file (type QTm)
+<use  "fig/scan.png" >
+Underfull \hbox (badness 10000) in paragraph at lines 807--808
+
+ []
+
 File: fig/segconcatxducer.png Graphic file (type QTm)
-<use  "fig/segconcatxducer.png" >
-Underfull \hbox (badness 10000) in paragraph at lines 797--798
+<use  "fig/segconcatxducer.png" > [27]
+Underfull \hbox (badness 10000) in paragraph at lines 820--821
 
  []
 
 File: fig/usegcountxducer.png Graphic file (type QTm)
-<use  "fig/usegcountxducer.png" > [26] [27]
-Overfull \hbox (4.45636pt too wide) in paragraph at lines 867--869
+<use  "fig/usegcountxducer.png" > [28]
+Overfull \hbox (4.45636pt too wide) in paragraph at lines 892--894
 \OT1/cmr/m/n/12 where ar-gu-ment trees $[][]\OML/cmm/m/it/12 ; :::; [][]$ \OT1/
 cmr/m/n/12 are gen-er-ated from their cor-re-spond-ing types $\OML/cmm/m/it/12 
 ^^\[]; :::; ^^\[]$
  []
 
-[28]
+[29] [30]
 Missing character: There is no 　 in font cmr12!
- [29]
+ [31]
 File: fig/process.png Graphic file (type QTm)
- <use  "fig/process.png" > [30]
-Underfull \hbox (badness 10000) in paragraph at lines 991--991
+ <use  "fig/process.png" > [32]
+Underfull \hbox (badness 10000) in paragraph at lines 1050--1050
 []\OT1/cmtt/m/n/12 process-read\OT1/cmr/m/n/12 ;
  []
 
 
-Underfull \hbox (badness 5696) in paragraph at lines 993--994
+Underfull \hbox (badness 5696) in paragraph at lines 1052--1053
 []\OT1/cmr/m/n/12 write one el-e-ment to
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 994--994
+Underfull \hbox (badness 10000) in paragraph at lines 1053--1053
 []\OT1/cmr/m/n/12 enter write-block;
  []
 
 
-Overfull \hbox (26.44917pt too wide) in paragraph at lines 988--999
+Overfull \hbox (26.44917pt too wide) in paragraph at lines 1047--1058
  [][] 
  []
 
-[31]
-Overfull \hbox (0.96353pt too wide) in paragraph at lines 1030--1034
+[33]
+Overfull \hbox (0.96353pt too wide) in paragraph at lines 1089--1093
 \OT1/cmr/m/n/12 places the func-tion's for-mal ar-gu-ments with the ac-tual pa-
 ram-e-ters $[\OML/cmm/m/it/12 s[]; :::; s[]\OT1/cmr/m/n/12 ]$,
  []
 
-[32] (./code/fact1.svcode [33])
-Underfull \hbox (badness 10000) in paragraph at lines 1120--1121
+[34] (./code/fact1.svcode) [35]
+Underfull \hbox (badness 10000) in paragraph at lines 1179--1180
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1131--1133
+Underfull \hbox (badness 10000) in paragraph at lines 1202--1205
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1141--1145
+Underfull \hbox (badness 10000) in paragraph at lines 1219--1221
 
  []
 
-[34]
-Underfull \hbox (badness 10000) in paragraph at lines 1166--1169
+[36]
+Underfull \hbox (badness 10000) in paragraph at lines 1227--1231
 
  []
 
 (./code/harddeadlock.snesl)
-Underfull \hbox (badness 10000) in paragraph at lines 1180--1182
+Underfull \hbox (badness 10000) in paragraph at lines 1239--1241
 
  []
 
-[35] (./code/uc_scanred.snesl)) (./snesl0-proof.tex [36]
+(./code/uc_scanred.snesl [37])) (./snesl0-proof.tex [38]
 Chapter 3.
-[37
+[39
 
 ]
 Underfull \hbox (badness 10000) in paragraph at lines 69--70
@@ -1097,12 +1147,12 @@ Underfull \hbox (badness 10000) in paragraph at lines 109--110
 
  []
 
-[38]
+
 Underfull \hbox (badness 10000) in paragraph at lines 125--136
 
  []
 
-
+[40]
 Underfull \hbox (badness 10000) in paragraph at lines 141--142
 
  []
@@ -1127,7 +1177,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 153--157
 
  []
 
-[39]
+[41]
 Underfull \hbox (badness 10000) in paragraph at lines 225--226
 
  []
@@ -1147,7 +1197,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 250--251
 
  []
 
-[40]
+[42]
 Overfull \hbox (23.03923pt too wide) in paragraph at lines 273--274
 []\OT1/cmr/bx/n/12 Notation 3.4 \OT1/cmr/m/n/12 (\OT1/cmr/bx/n/12 Stream con-ca
 te-na-tion\OT1/cmr/m/n/12 )\OT1/cmr/bx/n/12 . []$\OMS/cmsy/m/n/12 h\OML/cmm/m/i
@@ -1196,7 +1246,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 306--316
 
  []
 
-[41]
+[43]
 Underfull \hbox (badness 10000) in paragraph at lines 345--346
 
  []
@@ -1256,7 +1306,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 411--413
 
  []
 
-[42]
+[44]
 Underfull \hbox (badness 10000) in paragraph at lines 516--517
 
  []
@@ -1271,14 +1321,14 @@ Underfull \hbox (badness 10000) in paragraph at lines 521--528
 
  []
 
-[43]
+[45]
 Overfull \hbox (0.79301pt too wide) in paragraph at lines 566--572
 \OT1/cmr/m/n/12 Since both $[]$ and $[]$ are nonempty, $\OMS/cmsy/m/n/12 I[]$ \
 OT1/cmr/m/n/12 and $\OMS/cmsy/m/n/12 I[]$ \OT1/cmr/m/n/12 must both use the rul
 e $[]$,
  []
 
-[44] [45] [46]
+[46] [47] [48]
 Underfull \hbox (badness 10000) in paragraph at lines 772--773
 
  []
@@ -1303,7 +1353,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 790--791
 
  []
 
-[47]
+[49]
 Overfull \hbox (25.00003pt too wide) in paragraph at lines 792--812
 [][]
  []
@@ -1334,12 +1384,12 @@ Underfull \hbox (badness 10000) in paragraph at lines 838--839
  []
 
 
-Overfull \hbox (23.65555pt too wide) in paragraph at lines 847--848
+Overfull \hbox (21.04446pt too wide) in paragraph at lines 847--848
 []\OT1/cmr/m/n/12 We an-no-tate the op-er-a-tion $[]$ with the high-level type 
-to rep-re-sent $[] $values'
+to rep-re-sent $[]$values'
  []
 
-[48]
+[50]
 Underfull \hbox (badness 10000) in paragraph at lines 865--866
 
  []
@@ -1349,12 +1399,12 @@ Underfull \hbox (badness 10000) in paragraph at lines 916--920
 
  []
 
-[49]
+[51]
 Underfull \hbox (badness 10000) in paragraph at lines 982--984
 
  []
 
-[50]
+[52]
 Underfull \hbox (badness 10000) in paragraph at lines 1039--1044
 
  []
@@ -1369,12 +1419,12 @@ Underfull \hbox (badness 10000) in paragraph at lines 1080--1081
 
  []
 
-[51]
+[53]
 Underfull \hbox (badness 10000) in paragraph at lines 1138--1139
 
  []
 
-[52]
+[54]
 Underfull \hbox (badness 10000) in paragraph at lines 1163--1164
 
  []
@@ -1384,7 +1434,7 @@ Overfull \hbox (19.94879pt too wide) detected at line 1176
 [] 
  []
 
-[53]
+[55]
 Overfull \hbox (39.37672pt too wide) detected at line 1232
 [] 
  []
@@ -1399,7 +1449,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 1239--1240
 
  []
 
-[54]
+[56]
 Overfull \hbox (77.94368pt too wide) detected at line 1284
 [] 
  []
@@ -1409,12 +1459,12 @@ Underfull \hbox (badness 10000) in paragraph at lines 1290--1292
 
  []
 
-[55] [56]
+[57] [58]
 Underfull \hbox (badness 10000) in paragraph at lines 1401--1404
 
  []
 
-[57]
+[59]
 Underfull \hbox (badness 10000) in paragraph at lines 1405--1409
 
  []
@@ -1438,7 +1488,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 1430--1431
 
  []
 
-[58]
+[60]
 Underfull \hbox (badness 10000) in paragraph at lines 1513--1514
 
  []
@@ -1448,12 +1498,12 @@ Underfull \hbox (badness 10000) in paragraph at lines 1515--1516
 
  []
 
-[59]
+[61]
 Underfull \hbox (badness 10000) in paragraph at lines 1586--1588
 
  []
 
-[60]
+[62]
 Underfull \hbox (badness 10000) in paragraph at lines 1635--1636
 
  []
@@ -1463,7 +1513,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 1638--1639
 
  []
 
-[61]
+[63]
 Underfull \hbox (badness 10000) in paragraph at lines 1712--1713
 
  []
@@ -1506,7 +1556,7 @@ Overfull \hbox (4.31828pt too wide) in paragraph at lines 1755--1771
 [][] 
  []
 
-[62]
+[64]
 Underfull \hbox (badness 10000) in paragraph at lines 1774--1775
 
  []
@@ -1521,12 +1571,12 @@ Underfull \hbox (badness 10000) in paragraph at lines 1792--1793
 
  []
 
-[63]
+[65]
 Underfull \hbox (badness 10000) in paragraph at lines 1847--1848
 
  []
 
-[64]
+[66]
 Underfull \hbox (badness 10000) in paragraph at lines 1877--1879
 
  []
@@ -1558,29 +1608,29 @@ Underfull \hbox (badness 10000) in paragraph at lines 1929--1934
 
  []
 
-[65]
+[67]
 Underfull \hbox (badness 10000) in paragraph at lines 1936--1938
 
  []
 
-) (./concl.tex [66]
+) (./concl.tex [68]
 Chapter 4.
-) (./main.bbl [67
+) (./main.bbl [69
 
-] [68
+] [70
 
-]) [69] (./main.aux)
+]) [71] (./main.aux)
 
 LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 14723 strings out of 493706
- 249046 string characters out of 6145768
- 376276 words of memory out of 5000000
- 17818 multiletter control sequences out of 15000+600000
- 20441 words of font info for 77 fonts, out of 8000000 for 9000
+ 15345 strings out of 493706
+ 258822 string characters out of 6145768
+ 392074 words of memory out of 5000000
+ 18423 multiletter control sequences out of 15000+600000
+ 20142 words of font info for 76 fonts, out of 8000000 for 9000
  1328 hyphenation exceptions out of 8191
- 39i,20n,50p,10438b,1548s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 39i,20n,50p,10438b,1578s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on main.pdf (71 pages).
+Output written on main.pdf (73 pages).

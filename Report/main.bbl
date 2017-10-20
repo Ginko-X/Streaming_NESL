@@ -43,6 +43,11 @@ Guy~E. Blelloch and Gary~W. Sabot.
   computers.
 \newblock {\em J. Parallel Distrib. Comput.}, 8(2):119--134, February 1990.
 
+\bibitem[Hoa61]{Hoare1961}
+C.~A.~R. Hoare.
+\newblock Algorithm 64: Quicksort.
+\newblock {\em Commun. ACM}, 4(7):321--, July 1961.
+
 \bibitem[Mad13]{Fmaster}
 Frederik~M. Madsen.
 \newblock A streaming model for nested data parallelism.
@@ -61,6 +66,13 @@ Frederik~M. Madsen and Andrzej Filinski.
 \newblock In {\em Proceedings of the 2Nd ACM SIGPLAN Workshop on Functional
   High-performance Computing}, FHPC '13, pages 13--24, New York, NY, USA, 2013.
   ACM.
+
+\bibitem[MF16]{MF16}
+Frederik~M. Madsen and Andrzej Filinski.
+\newblock Streaming nested data parallelism on multicores.
+\newblock In {\em Proceedings of the 5th International Workshop on Functional
+  High-Performance Computing}, FHPC 2016, pages 44--51, New York, NY, USA,
+  2016. ACM.
 
 \bibitem[PP93]{prins93}
 Jan~F Prins and Daniel~W Palmer.

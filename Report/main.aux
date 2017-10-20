@@ -44,167 +44,173 @@
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
 \@writefile{toc}{\contentsline {section}{\numberline {2.1}High-level interpreter}{11}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.1}{\ignorespaces Abstract syntax of $\mathrm  {SNESL_1} \ $\relax }}{12}}
-\newlabel{fig-mysnesl}{{2.1}{12}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.2}{\ignorespaces Typing rules of $\mathrm  {SNESL_1} \ $expressions \relax }}{13}}
-\newlabel{fig-snesl1-typing}{{2.2}{13}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.3}{\ignorespaces Typing rules of $\mathrm  {SNESL_1} \ $values \relax }}{13}}
-\newlabel{fig-snesl1-values}{{2.3}{13}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.4}{\ignorespaces Semantics of $\mathrm  {SNESL_1} \ $\relax }}{14}}
-\newlabel{fig:mysnesl-semantics}{{2.4}{14}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.5}{\ignorespaces Primitive functions in $\mathrm  {SNESL_1} \ $\relax }}{15}}
-\newlabel{fig-mysnesl-func}{{2.5}{15}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.1}{\ignorespaces Concrete types\relax }}{11}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.2}{\ignorespaces Abstract syntax of $\mathrm  {SNESL_1}$\ \relax }}{12}}
+\newlabel{fig-mysnesl}{{2.2}{12}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.3}{\ignorespaces Typing rules of $\mathrm  {SNESL_1}$\ expressions \relax }}{13}}
+\newlabel{fig-snesl1-typing}{{2.3}{13}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.4}{\ignorespaces Typing rules of $\mathrm  {SNESL_1}$\ values \relax }}{14}}
+\newlabel{fig-snesl1-values}{{2.4}{14}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.5}{\ignorespaces Well-typed top-level terms \relax }}{14}}
+\newlabel{fig:type-check}{{2.5}{14}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.7}{\ignorespaces Primitive functions in $\mathrm  {SNESL_1}$\relax }}{14}}
+\newlabel{fig-mysnesl-func}{{2.7}{14}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.6}{\ignorespaces Semantics of $\mathrm  {SNESL_1}$\relax }}{15}}
+\newlabel{fig:mysnesl-semantics}{{2.6}{15}}
 \citation{Blel90vecmod}
-\@writefile{toc}{\contentsline {section}{\numberline {2.2}Value representation}{17}}
-\newlabel{sec:valrep}{{2.2}{17}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.2}Value representation}{18}}
+\newlabel{sec:valrep}{{2.2}{18}}
 \citation{Fmaster}
-\citation{Fphd}
-\@writefile{toc}{\contentsline {section}{\numberline {2.3}SVCODE}{18}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{18}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.6}{\ignorespaces Abstract syntax of SVCODE \relax }}{19}}
-\newlabel{fig-svcode1-gram}{{2.6}{19}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.2}Xducers and control stream}{19}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.7}{\ignorespaces A small SVCODE program \relax }}{20}}
-\newlabel{fig-svcode-eg1}{{2.7}{20}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.8}{\ignorespaces  Dataflow DAG for the code in Figure\nobreakspace  {}2.7\hbox {} (assuming S3 is nonempty).  Note that, for simplicity, the control stream is added as an explicit supplier only to Xducer $\mathtt  {Const_{a}}$. \relax }}{20}}
-\newlabel{fig-svcode-dag1}{{2.8}{20}}
-\citation{Fphd}
-\@writefile{toc}{\contentsline {section}{\numberline {2.4}Translating $\mathbf  {SNESL_1}$ to SVCODE}{21}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.1}Expression translation}{22}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{25}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{28}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.5}Eager interpreter}{28}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.1}Dataflow}{29}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.2}Cost model}{29}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.6}Streaming interpreter}{29}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.1}Processes}{29}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2.9}{\ignorespaces A process S2 of Xducer $\mathtt  {Map}_{+}$. It has read a 2 from S0's buffer and a 1 from S1's buffers, and it is writing a 3 to its own buffer.\relax }}{30}}
-\newlabel{fig:process}{{2.9}{30}}
-\@writefile{lot}{\contentsline {table}{\numberline {2.1}{\ignorespaces Process actions\relax }}{31}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.2}Scheduling}{31}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.3}Cost model}{32}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.4}Recursion}{33}}
-\@writefile{lol}{\contentsline {lstlisting}{code/fact1.svcode}{33}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.5}Deadlock}{34}}
-\newlabel{eg:deadlock1}{{2.25}{34}}
-\@writefile{lol}{\contentsline {lstlisting}{code/harddeadlock.snesl}{35}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.6}[optional] Examples}{36}}
-\@writefile{lol}{\contentsline {lstlisting}{code/uc\textunderscore scanred.snesl}{36}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {3}Formalization}{37}}
+\citation{MF16}
+\@writefile{toc}{\contentsline {section}{\numberline {2.3}SVCODE}{19}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{19}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.8}{\ignorespaces Abstract syntax of SVCODE \relax }}{20}}
+\newlabel{fig-svcode1-gram}{{2.8}{20}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.2}Xducers and control stream}{21}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.9}{\ignorespaces A small SVCODE program \relax }}{21}}
+\newlabel{fig-svcode-eg1}{{2.9}{21}}
+\citation{MF16}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.10}{\ignorespaces  Dataflow DAG for the code in Figure\nobreakspace  {}2.9\hbox {} (assuming S3 is nonempty).  Note that, for simplicity, the control stream is added as an explicit supplier only to Xducer $\mathtt  {Const_{a}}$. \relax }}{22}}
+\newlabel{fig-svcode-dag1}{{2.10}{22}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.4}Translating $\mathbf  {SNESL_1}$ to SVCODE}{22}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.1}Expression translation}{23}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{26}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{29}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.5}Eager interpreter}{29}}
+\citation{Hoare1961}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.1}Dataflow}{30}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.2}Cost model}{30}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.6}Streaming interpreter}{30}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.1}Streamability}{30}}
+\newlabel{eg:reduce}{{2.24}{31}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.2}Processes}{31}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.11}{\ignorespaces A process S2 of Xducer $\mathtt  {Map}_{+}$. It has read a 2 from S0's buffer and a 1 from S1's buffers, and it is writing a 3 to its own buffer.\relax }}{32}}
+\newlabel{fig:process}{{2.11}{32}}
+\@writefile{lot}{\contentsline {table}{\numberline {2.1}{\ignorespaces Process actions\relax }}{33}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.3}Scheduling}{33}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.4}Cost model}{34}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.5}Recursion}{35}}
+\@writefile{lol}{\contentsline {lstlisting}{code/fact1.svcode}{35}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.6}Deadlock}{36}}
+\newlabel{eg:deadlock1}{{2.27}{36}}
+\@writefile{lol}{\contentsline {lstlisting}{code/harddeadlock.snesl}{37}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.7}Examples}{37}}
+\@writefile{lol}{\contentsline {lstlisting}{code/uc\textunderscore scanred.snesl}{37}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {3}Formalization}{39}}
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {3.1}$\mathbf  {SNESL_0}$}{37}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.1}Syntax}{37}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3.1}{\ignorespaces $\mathrm  {SNESL_0} \ $expressions and built-in functions \relax }}{38}}
-\newlabel{fig:fmsnesl-exps}{{3.1}{38}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.2}Typing rules}{38}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.3}Semantics}{39}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.2}$\mathbf  {SVCODE_0}$}{39}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.1}Syntax}{39}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3.2}{\ignorespaces Abstract syntax of $\mathrm  {SVCODE_0} \ $\relax }}{40}}
-\newlabel{fig-svcode-grammar}{{3.2}{40}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.2}Instruction semantics}{41}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3.3}{\ignorespaces $\mathrm  {SVCODE_0} \ $semantics\relax }}{41}}
-\newlabel{fig-svcode-semantics}{{3.3}{41}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.3}Xducer semantics}{42}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3.4}{\ignorespaces General semantics of $\mathrm  {SVCODE_0} \ $Xducers \relax }}{42}}
-\newlabel{fig-xducer-semantics}{{3.4}{42}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3.5}{\ignorespaces Block semantics of Xducers \relax }}{43}}
-\newlabel{fig:xducer-bl-seman}{{3.5}{43}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.4}$\mathbf  {SVCODE_0}$ determinism}{43}}
-\newlabel{lem-app2pre}{{3.6}{44}}
-\newlabel{lem-block-unique}{{3.7}{44}}
-\newlabel{eq-scan-determ-1}{{3.1}{45}}
-\newlabel{eq-scan-determ-2}{{3.2}{45}}
-\newlabel{lem-xducer-determ}{{3.8}{45}}
-\newlabel{eq-xdu-1}{{3.3}{46}}
-\newlabel{eq-xdu-2}{{3.4}{46}}
-\newlabel{eq-xdu-3}{{3.5}{46}}
-\newlabel{eq-xdu-4}{{3.6}{46}}
-\newlabel{eq-xdu-5}{{3.7}{46}}
-\newlabel{eq-xdu-6}{{3.8}{46}}
-\newlabel{eq-xdu-7}{{3.9}{46}}
-\newlabel{eq-xdu-8}{{3.10}{46}}
-\newlabel{eq-xdu-9}{{3.11}{46}}
-\newlabel{thm-svcode-determ}{{3.9}{46}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.3}Translation}{47}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.4}Value representation}{48}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.5}Correctness}{49}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.5.1}Definitions}{49}}
-\newlabel{def-sgm-sim}{{3.11}{49}}
-\newlabel{def-sgm-join}{{3.12}{49}}
-\newlabel{lem-psi-join}{{3.13}{49}}
-\newlabel{lem-}{{3.14}{50}}
-\newlabel{lem-emp-join}{{3.15}{50}}
-\newlabel{lem-sgm-join}{{3.16}{50}}
-\newlabel{eq-lem24-c2-1}{{3.12}{51}}
-\newlabel{eq-lem24-c2-2}{{3.13}{51}}
-\newlabel{eq-lem24-c2-3}{{3.14}{52}}
-\newlabel{eq-lem24-c2-{5}}{{3.15}{52}}
-\newlabel{eq-lem24-c2-{4}}{{3.16}{52}}
-\newlabel{eq-lem24-c3-1}{{3.17}{52}}
-\newlabel{eq-lem24-c3-2}{{3.18}{52}}
-\newlabel{eq-lem24-c3-3}{{3.19}{52}}
-\newlabel{eq-lem24-c3-4}{{3.20}{52}}
-\newlabel{eq-lem24-c3-6}{{3.21}{52}}
-\newlabel{eq-lem24-c3-5}{{3.22}{53}}
-\newlabel{eq-lem24-c3-7}{{3.23}{53}}
-\newlabel{eq-lem24-c3-{8}}{{3.24}{53}}
-\newlabel{eq-lem24-c3-9}{{3.25}{53}}
-\newlabel{eq-lem24-c3-10}{{3.26}{53}}
-\newlabel{eq-lem24-c3-{11}}{{3.27}{53}}
-\newlabel{eq-lem24-c3-{8}}{{3.28}{53}}
-\newlabel{eq-lem24-c3-{7}}{{3.29}{53}}
-\newlabel{eq-lem24-c3-{20}}{{3.30}{53}}
-\newlabel{eq-lem24-c3-{21}}{{3.31}{54}}
-\newlabel{eq-lem24-c3-{22}}{{3.32}{54}}
-\newlabel{eq-lem24-c3-{23}}{{3.33}{54}}
-\newlabel{eq-lem24-c3-{25}}{{3.34}{54}}
-\newlabel{eq-lem24-c3-{27}}{{3.35}{54}}
-\newlabel{eq-lem24-c3-{26}}{{3.36}{54}}
-\newlabel{eq-lem24-c3-{28}}{{3.37}{54}}
-\newlabel{eq-lem24-c3-{30}}{{3.38}{55}}
-\newlabel{eq-lem24-c3-{31}}{{3.39}{55}}
-\newlabel{eq-lem24-c3-{32}}{{3.40}{55}}
-\newlabel{eq-lem24-c3-{34}}{{3.41}{55}}
-\newlabel{eq-lem24-c3-{35}}{{3.42}{55}}
-\newlabel{eq-lem24-c4-{1}}{{3.43}{56}}
-\newlabel{eq-lem24-c4-{2}}{{3.44}{56}}
-\newlabel{eq-lem24-c4-{3}}{{3.45}{56}}
-\newlabel{lem-join2}{{3.17}{56}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.5.2}Correctness proof}{57}}
-\newlabel{function-correctness}{{3.18}{57}}
-\newlabel{thm-case-const}{{3.5.2}{57}}
-\newlabel{thm-case-plus}{{3.5.2}{57}}
-\newlabel{thm-case-iota}{{3.5.2}{58}}
-\newlabel{mainthm-correctness}{{3.19}{58}}
-\newlabel{mainthm-assum-env}{{iv}{58}}
-\newlabel{case-let}{{3.5.2}{59}}
-\newlabel{eq-mainproof-1}{{3.46}{61}}
-\newlabel{eq-mainproof-20}{{3.47}{61}}
-\newlabel{eq-mainproof-2}{{3.48}{61}}
-\newlabel{eq-mainproof-21}{{3.49}{61}}
-\newlabel{comp-ass-valrep}{{3.50}{61}}
-\newlabel{comp-ass-sgmst1}{{3.51}{62}}
-\newlabel{comp-ass-sgms2}{{3.52}{62}}
-\newlabel{eq-mainproof-3}{{3.53}{62}}
-\newlabel{comp-5}{{vii}{62}}
-\newlabel{eq-mainproof-34}{{3.54}{64}}
-\newlabel{eq-mainproof-32}{{3.55}{64}}
-\newlabel{eq-mainproof-33}{{3.56}{64}}
-\newlabel{eq-mainproof-4}{{3.57}{64}}
-\newlabel{compIH1}{{3.58}{64}}
-\newlabel{compIH2}{{3.59}{64}}
-\newlabel{compIH3}{{3.60}{64}}
-\newlabel{compIH4}{{3.61}{64}}
-\newlabel{compIH5}{{3.62}{64}}
-\newlabel{eq-mainproof-5}{{3.63}{65}}
-\newlabel{subcase-2}{{viii}{65}}
-\newlabel{p1-sgms-sgms'}{{3.64}{65}}
-\newlabel{eq-mainproof-6}{{3.65}{65}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.6}Scaling up}{66}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.1}$\mathbf  {SNESL_0}$}{39}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.1}Syntax}{39}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.1}{\ignorespaces $\mathrm  {SNESL_0}$expressions and built-in functions \relax }}{40}}
+\newlabel{fig:fmsnesl-exps}{{3.1}{40}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.2}Typing rules}{40}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.3}Semantics}{40}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.2}$\mathbf  {SVCODE_0}$}{41}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.1}Syntax}{41}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.2}{\ignorespaces Abstract syntax of $\mathrm  {SVCODE_0}$\relax }}{42}}
+\newlabel{fig-svcode-grammar}{{3.2}{42}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.2}Instruction semantics}{43}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.3}{\ignorespaces $\mathrm  {SVCODE_0}$semantics\relax }}{43}}
+\newlabel{fig-svcode-semantics}{{3.3}{43}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.3}Xducer semantics}{44}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.4}{\ignorespaces General semantics of $\mathrm  {SVCODE_0}$Xducers \relax }}{44}}
+\newlabel{fig-xducer-semantics}{{3.4}{44}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.5}{\ignorespaces Block semantics of Xducers \relax }}{45}}
+\newlabel{fig:xducer-bl-seman}{{3.5}{45}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.4}$\mathbf  {SVCODE_0}$ determinism}{45}}
+\newlabel{lem-app2pre}{{3.6}{46}}
+\newlabel{lem-block-unique}{{3.7}{46}}
+\newlabel{eq-scan-determ-1}{{3.1}{47}}
+\newlabel{eq-scan-determ-2}{{3.2}{47}}
+\newlabel{lem-xducer-determ}{{3.8}{47}}
+\newlabel{eq-xdu-1}{{3.3}{48}}
+\newlabel{eq-xdu-2}{{3.4}{48}}
+\newlabel{eq-xdu-3}{{3.5}{48}}
+\newlabel{eq-xdu-4}{{3.6}{48}}
+\newlabel{eq-xdu-5}{{3.7}{48}}
+\newlabel{eq-xdu-6}{{3.8}{48}}
+\newlabel{eq-xdu-7}{{3.9}{48}}
+\newlabel{eq-xdu-8}{{3.10}{48}}
+\newlabel{eq-xdu-9}{{3.11}{48}}
+\newlabel{thm-svcode-determ}{{3.9}{48}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.3}Translation}{49}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.4}Value representation}{50}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.5}Correctness}{51}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5.1}Definitions}{51}}
+\newlabel{def-sgm-sim}{{3.11}{51}}
+\newlabel{def-sgm-join}{{3.12}{51}}
+\newlabel{lem-psi-join}{{3.13}{51}}
+\newlabel{lem-}{{3.14}{52}}
+\newlabel{lem-emp-join}{{3.15}{52}}
+\newlabel{lem-sgm-join}{{3.16}{52}}
+\newlabel{eq-lem24-c2-1}{{3.12}{53}}
+\newlabel{eq-lem24-c2-2}{{3.13}{53}}
+\newlabel{eq-lem24-c2-3}{{3.14}{54}}
+\newlabel{eq-lem24-c2-{5}}{{3.15}{54}}
+\newlabel{eq-lem24-c2-{4}}{{3.16}{54}}
+\newlabel{eq-lem24-c3-1}{{3.17}{54}}
+\newlabel{eq-lem24-c3-2}{{3.18}{54}}
+\newlabel{eq-lem24-c3-3}{{3.19}{54}}
+\newlabel{eq-lem24-c3-4}{{3.20}{54}}
+\newlabel{eq-lem24-c3-6}{{3.21}{54}}
+\newlabel{eq-lem24-c3-5}{{3.22}{55}}
+\newlabel{eq-lem24-c3-7}{{3.23}{55}}
+\newlabel{eq-lem24-c3-{8}}{{3.24}{55}}
+\newlabel{eq-lem24-c3-9}{{3.25}{55}}
+\newlabel{eq-lem24-c3-10}{{3.26}{55}}
+\newlabel{eq-lem24-c3-{11}}{{3.27}{55}}
+\newlabel{eq-lem24-c3-{8}}{{3.28}{55}}
+\newlabel{eq-lem24-c3-{7}}{{3.29}{55}}
+\newlabel{eq-lem24-c3-{20}}{{3.30}{55}}
+\newlabel{eq-lem24-c3-{21}}{{3.31}{56}}
+\newlabel{eq-lem24-c3-{22}}{{3.32}{56}}
+\newlabel{eq-lem24-c3-{23}}{{3.33}{56}}
+\newlabel{eq-lem24-c3-{25}}{{3.34}{56}}
+\newlabel{eq-lem24-c3-{27}}{{3.35}{56}}
+\newlabel{eq-lem24-c3-{26}}{{3.36}{56}}
+\newlabel{eq-lem24-c3-{28}}{{3.37}{56}}
+\newlabel{eq-lem24-c3-{30}}{{3.38}{57}}
+\newlabel{eq-lem24-c3-{31}}{{3.39}{57}}
+\newlabel{eq-lem24-c3-{32}}{{3.40}{57}}
+\newlabel{eq-lem24-c3-{34}}{{3.41}{57}}
+\newlabel{eq-lem24-c3-{35}}{{3.42}{57}}
+\newlabel{eq-lem24-c4-{1}}{{3.43}{58}}
+\newlabel{eq-lem24-c4-{2}}{{3.44}{58}}
+\newlabel{eq-lem24-c4-{3}}{{3.45}{58}}
+\newlabel{lem-join2}{{3.17}{58}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5.2}Correctness proof}{59}}
+\newlabel{function-correctness}{{3.18}{59}}
+\newlabel{thm-case-const}{{3.5.2}{59}}
+\newlabel{thm-case-plus}{{3.5.2}{59}}
+\newlabel{thm-case-iota}{{3.5.2}{60}}
+\newlabel{mainthm-correctness}{{3.19}{60}}
+\newlabel{mainthm-assum-env}{{iv}{60}}
+\newlabel{case-let}{{3.5.2}{61}}
+\newlabel{eq-mainproof-1}{{3.46}{63}}
+\newlabel{eq-mainproof-20}{{3.47}{63}}
+\newlabel{eq-mainproof-2}{{3.48}{63}}
+\newlabel{eq-mainproof-21}{{3.49}{63}}
+\newlabel{comp-ass-valrep}{{3.50}{63}}
+\newlabel{comp-ass-sgmst1}{{3.51}{64}}
+\newlabel{comp-ass-sgms2}{{3.52}{64}}
+\newlabel{eq-mainproof-3}{{3.53}{64}}
+\newlabel{comp-5}{{vii}{64}}
+\newlabel{eq-mainproof-34}{{3.54}{66}}
+\newlabel{eq-mainproof-32}{{3.55}{66}}
+\newlabel{eq-mainproof-33}{{3.56}{66}}
+\newlabel{eq-mainproof-4}{{3.57}{66}}
+\newlabel{compIH1}{{3.58}{66}}
+\newlabel{compIH2}{{3.59}{66}}
+\newlabel{compIH3}{{3.60}{66}}
+\newlabel{compIH4}{{3.61}{66}}
+\newlabel{compIH5}{{3.62}{66}}
+\newlabel{eq-mainproof-5}{{3.63}{67}}
+\newlabel{subcase-2}{{viii}{67}}
+\newlabel{p1-sgms-sgms'}{{3.64}{67}}
+\newlabel{eq-mainproof-6}{{3.65}{67}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.6}Scaling up}{68}}
 \bibdata{thesis}
-\@writefile{toc}{\contentsline {chapter}{\numberline {4}Conclusion}{67}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {4}Conclusion}{69}}
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
 \bibcite{Blel96-proof}{BG96}
@@ -214,9 +220,11 @@
 \bibcite{blel95nesl}{Ble95}
 \bibcite{blel96cost}{Ble96}
 \bibcite{Blel-flatten}{BS90}
+\bibcite{Hoare1961}{Hoa61}
 \bibcite{Fmaster}{Mad13}
 \bibcite{Fphd}{Mad16}
 \bibcite{MadFil13}{MF13}
+\bibcite{MF16}{MF16}
 \bibcite{prins93}{PP93}
 \bibcite{palm95}{PPCF95}
 \bibcite{Ppw95-workeff}{PPW95}

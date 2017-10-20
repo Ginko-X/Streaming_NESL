@@ -16,6 +16,7 @@
 \usepackage[font=large,labelfont=bf]{caption}
 \usepackage{float}
 \usepackage{diagbox}
+\usepackage{pdfpages}
 
 \geometry{left=3cm,right=3cm,top=3cm,bottom=3cm}
 
@@ -69,9 +70,9 @@
 
 
 \def\*#1{\mathbf{#1}}
-\def\mysnesl{$\mathrm{SNESL_1} \ $}
-\def\fmsnesl{$\mathrm{SNESL_0} \ $}
-\def\fmsvcode{$\mathrm{SVCODE_0} \ $}
+\def\mysnesl{$\mathrm{SNESL_1}$}
+\def\fmsnesl{$\mathrm{SNESL_0}$}
+\def\fmsvcode{$\mathrm{SVCODE_0}$}
 
 %source language syntax
 \def\Let#1#2#3{\*{let} \ #1 = #2 \ \*{in} \ #3}
@@ -81,6 +82,7 @@
 \def\hcall{\phi} 
 
 \def\usevars{x_1,...,x_j}
+\def\usevarsk{x_1,...,x_k}
 \def\j#1{(#1)^j_{i=1}}
 \def\k#1{(#1)^k_{i=1}}
 \def\l#1{(#1)^l_{i=1}}
@@ -314,7 +316,9 @@
 
 
 \begin{document}\large
-\maketitle
+%\maketitle
+
+\includepdf[pages={1}]{thesis-frontpage.pdf}
 
 \begin{abstract}
  Streaming NESL (SNESL) is an experimental first-order functional, nested data-parallel language, employing a streaming execution model and integrating with a cost model that can predict both time and space complexity.
@@ -324,7 +328,7 @@
  This requires non-trivial extension to SNESL's target language, SVCODE, and the flow graph of its streaming dataflow model to be dynamically completed at runtime.
  Two execution models of the extended SVCODE, the traditional eager one and the streaming one, are given and discussed.
  
- Then, for a subset of SNESL, we show the formalization of the semantics of the source and target languages, and the proof of the translation correctness and work cost preservation.
+ Then we show the formalization of the semantics of the source and target languages, followed by the proof of the translation correctness and work cost preservation, for a subset of SNESL,.
  
 \end{abstract}
 

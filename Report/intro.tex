@@ -4,13 +4,13 @@
 \section{Background}
 
 Parallel computing has drawn increasing attention in the field of high-performance computing.
-Today, it is widely accepted that Moore's law will be broken down due to physical constraints, and future performance increase must heavily reply on increasing the number of cores, rather than making a single core run faster. 
+Today, it is widely accepted that Moore's law will be broken down due to physical constraints, and future performance increase must heavily rely on increasing the number of cores, rather than making a single core run faster. 
 
-Typically, a parallel computation can be completed by splitting it into multiple subcomputations executing independently,
+Typically, a parallel computation can be completed by splitting it into multiple subcomputations executing independently.
 The theoretical maximum number of these subcomputations is called the parallel degree. 
 In practice, it is common that this theoretical parallel degree cannot be achieved because of the limitation of physical resources.
 
-Parallelism can be expressed or employed in different aspects, such as algorithms, programming languages or hardwares, which all have made tremendous progress in recent decades.
+Parallelism can be expressed or employed in different aspects, such as algorithms, programming languages or hardware, which all have made tremendous progress in recent decades.
 
 
 \section{Nested data parallelism}
@@ -22,7 +22,7 @@ Nested data parallelism (NDP) places emphasis on parallel computations on nested
 In nested data-parallel languages, function calls can be applied to a set of data that can be not only flat or one-dimension arrays, but also multi-dimension, irregular or recursive structures. 
 So these languages can implement parallel algorithms, including nested loops and recursive ones, more expressively and closer to the programmer's intuition.
 
-On the other hand, at such a high level, compilation becomes more complicated to achieve a close performance to the code written in low-level ones. 
+On the other hand, at such a high level, compilation becomes more complicated to achieve a performance close to the code written directly in low-level ones. 
 Also, predicting the performance are more difficult because the details of the concrete parallel execution are usually implicit or hidden to the programmer.
 
 Some languages, such as NESL \cite{blel95nesl,Blel-imp,Blel96-proof} and Proteus \cite{prins93,Ppw95-workeff}, have pioneered NDP significantly and demonstrated its advantages and importance.
@@ -40,6 +40,7 @@ Continuing with the example above, the adding-1 operation can also be performed 
 $$\{\{y+1: y \ \*{in} \ x\}: x \ \*{in} \ [[1,2,3],[4],[5,6]]\}$$
 and if we want to compute the sum of each subsequence, we can write:
 $$\{\*{sum}(x) : x \ \*{in} \ [[1,2,3],[4],[5,6]]\}$$
+
 
 
 The low-level language of NESL's implementation model is VCODE \cite{Blel-imp}, which uses vectors (i.e., flat arrays of atomic values such as integers or booleans) as the primitive type, and its instruction set performs operations on vectors as a whole, such as summing. 
@@ -100,7 +101,7 @@ fully allocated or $materialized$ in memory at once for random access.
 $(\tau_1,...,\tau_k)$ are tuples with $k$ components that may be of different types.
 
 The novel extension is the $streamable$ types $\sigma$, which generalizes the types of data that are not necessarily entirely materialized at once, but rather in a streaming fashion. 
-In particular, the type $\{\sigma\}$, called $sequences$ in SNESL, represents collections of data computed in terms of time.
+In particular, the type $\{\sigma\}$, called $sequences$ in SNESL, represents collections of data computed in terms of time, which means the elements of a sequence are collected over time.
 So, even with a small size of memory, SNESL could execute programs which are impossible in NESL due to space limitation or more space efficiently than in NESL. 
 
 For clarity, from now on, we will use the terms consistent with SNESL.

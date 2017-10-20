@@ -11,13 +11,17 @@
 \newcommand{\pout}{\texttt{Pout}}
 \newcommand{\done}{\texttt{Done}}
 
+\newcommand{\ftype}{\varphi}
+
+\def\interT#1#2{\vdash_{#1} #2}
+\def\conc#1{#1 \ \underline{\mathtt{concrete}}}
 
 \chapter{Implementation}
 
 \def\Type#1#2#3{#1 \vdash_{\Sigma} \ #2 : #3 } 
 \def\Eval#1#2#3{#1 \vdash_{\Phi} #2 \Eva #3 } 
 
-In this chapter, we will first talk about the high-level interpreter of a minimal SNESL language but with extension of user-defined functions to give the reader a more concrete feeling about SNESL. 
+In this chapter, we will first talk about the high-level interpreter of a minimal SNESL language but with the extension of user-defined functions to give the reader a more concrete feeling about SNESL. 
 Then we introduce the streaming target language, SVCODE, with respect to its grammar, semantics and primitive operations.
 Translation from the source language to the target one will be explained to show their connections.
 Finally, two interpreters of SVCODE, an eager one and a streaming one, will be described and compared, with emphasis on the latter to demonstrate the streaming mechanism.
@@ -26,29 +30,44 @@ Finally, two interpreters of SVCODE, an eager one and a streaming one, will be d
 
 \section{High-level interpreter}
 
-In this thesis, the high-level language we have experimented with is a subset of SNESL introduced in the last chapter but without vectors, and we will call this language \mysnesl.
+In this thesis, the high-level language we have experimented with is close to the SNESL introduced in the last chapter but without vectors, and we will call this language \mysnesl.
 As our first goal is to extend SNESL with user-defined (recursive) functions,
-it is safe to do so because removing vectors should not affect the complexity of the problem too much; we believe that if the solution works with streams, the general type in SNESL, it should be nearly trivial to extend it to support vectors. 
+it is safe to do so because removing vectors should not affect the complexity of the problem too much; we believe that if the solution works with streams, the general type in SNESL, it should work with vectors as well. 
 
 Besides, only two primitive types of SNESL, $\int$ and $\bool$, are retained in \mysnesl. 
-Tuples are also simplified to pairs. 
-Thus the type structure for \mysnesl is as follows.
+Tuples are also simplified to pairs.  
+
+The types of \mysnesl \ are as follows.
 \begin{align*} 
 & \pi ::= \bool \ | \ \int \\
-& \tau ::= \pi \ | \ (\tau_1,\tau_2) \ | \ \tseq{\tau}  
-\end{align*}
-And the values in \mysnesl are:
-\begin{align*}
-& a ::=  \T \ | \ \F \ | \ n  \\
-& v ::=  a \ | \ (v_1,v_2) \ | \ \{v_1,...,v_k\} 
+& \tau ::= \pi \ | \ (\tau_1,\tau_2) \ | \ \tseq{\tau}  \\
+& \ftype :: = (\tau_1,...,\tau_k) \ra \tau 
 \end{align*}
 
-The abstract syntax of \mysnesl is given in Figure~\ref{fig-mysnesl}. 
+In \mysnesl, concrete types are either primitive types, or binary trees (i.e., nested pairs) of primitive types. 
+We give its definition as follows:
+\fig{
+	\Jug{\conc{\tau}}
+	
+	\PT{\Axiom{\conc{\pi}}}
+	\PT{\AC{\conc{\tau_1}}
+		\AC{\conc{\tau_2}}
+		\BC{\conc{(\tau_1,\tau_2)}}
+}}{Concrete types}
+
+
+The values in \mysnesl \ are:
+\begin{align*}
+& a ::=  \T \ | \ \F \ | \ n  \\
+& v ::=  a \ | \ (v_1,v_2) \ | \ \{v_1,...,v_l\} 
+\end{align*}
+
+The abstract syntax of \mysnesl \ is given in Figure~\ref{fig-mysnesl}. 
  
 
 \begin{figure}[H]\large
 	\begin{alignat*}{2}
-	& t &&::= e \ | \ d  \tag{top-level term} \\
+	& t &&::= e \ | \ d \ t  \tag{top-level term} \\
 	\\
 	& e &&::=  a \     \tag{constant} \\
 	&   && \quad | \ x  \tag{variable} \\
@@ -57,29 +76,29 @@ The abstract syntax of \mysnesl is given in Figure~\ref{fig-mysnesl}.
 	&   && \quad | \ \{ \}\tau			\tag{empty sequence of type $\tau$} \\
 	&   && \quad | \ \Let{x}{e_1}{e_2} \tag{let-binding}\\
 	&   && \quad | \ \hcall{\Tupk{e}}  \tag{built-in function call} \\
-	&   && \quad | \ \Comp{e_1}{x}{e_0}{\usevars} \tag{general comprehension} \\
-	&   && \quad | \ \RComp{e_1}{e_0}{\usevars} \tag {restricted comprehension} \\
+	&   && \quad | \ \Comp{e_1}{x}{e_0}{\usevarsk} \tag{general comprehension} \\
+	&   && \quad | \ \RComp{e_1}{e_0}{\usevarsk} \tag {restricted comprehension} \\
 	&   && \quad | \ f(e_1,...,e_k)  \tag {user-defined function call} \\
 	\\
 	& d &&::= \*{function} \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e  \tag{user-defined function}
 	\end{alignat*}
-	\caption{Abstract syntax of \mysnesl \label{fig-mysnesl}}
+	\caption{Abstract syntax of \mysnesl \ \label{fig-mysnesl}}
 \end{figure}
 
 In addition to the simplifications mentioned before, we also made the following changes or extensions on expressions from SNESL:
 
 \begin{itemize}
-	\item For comprehension expressions, the free variables of the comprehension body $e_1$ are collected as a list added after the keyword $\*{using}$. This task can simply be done by the compiler; we do this for presenting the details of implementation more conveniently.
+	\item For comprehension expressions, the free variables of the comprehension body $e_1$ are collected as a list added after the keyword $\*{using}$. This task can simply be done by the front end of the compiler; we do this for presenting the details of implementation more conveniently.
 	
-	\item Added primitive sequence expression (including the empty one with its type explicitly given). They work as a replacement of the function $\*{mkseq}$ and $\*{seq}$.
+	\item Added primitive sequence expression (including the empty one with its type explicitly given). They work as a replacement of the function $\*{mkseq}$.
 	
 	\item Added user-defined functions which allow recursions. Since type inference is not incorporated in the interpreter, the types of  parameters and return values need to be provided when the user defines a function.
 \end{itemize}
 
 
-The typing rules of \mysnesl are given in Figure~\ref{fig-snesl1-typing} and Figure~\ref{fig-snesl1-values}. The type environment $\Gam$ is a mapping from variables to types: $$\Gamma = [x_1 \|-> \tau_1, ..., x_i \|-> {\tau_i} ]$$
-and $\Sigma$ from the function identities to their types: 
-$$\Sigma = [f_1 \|-> \tau_1 \times ... \times \tau_k  \ra \tau, ..., f_i \|-> \tau_1' \times ... \times \tau_m'  \ra \tau' ]$$
+The typing rules for the expressions of \mysnesl \ are given in Figure~\ref{fig-snesl1-typing}. The type environment $\Gam$ is a mapping from variables to types: $$\Gamma = [x_1 \|-> \tau_1, ..., x_k \|-> {\tau_k} ]$$
+and $\Sigma$ from the identifiers of user-defined functions  to their types: 
+$$\Sigma = [f_1 \|-> \ftype_1,..., f_k  \|-> \ftype_k ]$$
 
 \fig{
 	\Jug{\Type{\Gam}{e}{\tau}}
@@ -101,8 +120,8 @@ $$\Sigma = [f_1 \|-> \tau_1 \times ... \times \tau_k  \ra \tau, ..., f_i \|-> \t
 	\PT{
 		\AC{\Type{\Gam}{e_1}{\tau}}
 		\AC{...}
-		\AC{\Type{\Gam}{e_k}{\tau}}
-		\TC{\Type{\Gam}{\{e_1,...,e_k\}}{\{\tau\}}}
+		\AC{\Type{\Gam}{e_l}{\tau}}
+		\TC{\Type{\Gam}{\{e_1,...,e_l\}}{\{\tau\}}}
 	}
 	\PT{\Axiom{\Type{\Gam}{\{\}\tau}{\{\tau}\}}}
 	\\[4ex]
@@ -112,36 +131,43 @@ $$\Sigma = [f_1 \|-> \tau_1 \times ... \times \tau_k  \ra \tau, ..., f_i \|-> \t
 		\BC{\Type{\Gam}{\Let{x}{e_1}{e_2}}{\tau}}
 	}\\[4ex]
 	\PT{
-		\AC{\Type{\Gam}{e_1}{\tau_1}}
-		\AC{...}
-		\AC{\Type{\Gam}{e_k}{\tau_k}}
-		\RiLa{(\Sigma(\hcall) = \tau_1 \times ... \times \tau_k \ra \tau)}
-		\TC{\Type{\Gam}{\hcall{\Tupk{e}}}{\tau}}
+		\AC{\k{\Type{\Gam}{e_i}{\tau_i}} }
+		\AC{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
+		\BC{\Type{\Gam}{\hcall{\Tupk{e}}}{\tau}}
 	}\\[4ex]	
 	\PT{
 		\AC{\Type{\Gam}{e_0}{\{\tau_0\}}}
-		\AC{\Type{[x \|-> \tau_0, \j{x_i \|-> \tau_i}]}{e_1}{\tau}}
-		\RiLa{(\j{\Gam(x_i) = \tau_i \in \{\pi, (\pi_1,\pi_2)\}})}
-		\BC{\Type{\Gam}{\Comp{e_1}{x}{e_0}{\usevars}}{\tseq{\tau}}}
+		\AC{\Type{[x \|-> \tau_0, \k{x_i \|-> \tau_i}]}{e_1}{\tau}}
+		\RiLa{(\k{\Gam(x_i) = \conc{\tau_i}})}
+		\BC{\Type{\Gam}{\Comp{e_1}{x}{e_0}{\usevarsk}}{\tseq{\tau}}}
 	}\\[4ex]
 	\PT{
 		\AC{\Type{\Gam}{e_0}{\bool}}
-		\AC{\Type{[\j{x_i \|-> \tau_i}]}{e_1}{\tau}}
-		\RiLa{(\j{\Gam(x_i) = \tau_i})}
-		\BC{\Type{\Gam}{\RComp{e_1}{e_0}{\usevars}}{\tseq{\tau}}}
+		\AC{\Type{[\k{x_i \|-> \tau_i}]}{e_1}{\tau}}
+		\RiLa{(\k{\Gam(x_i) = \tau_i})}
+		\BC{\Type{\Gam}{\RComp{e_1}{e_0}{\usevarsk}}{\tseq{\tau}}}
 	}\\[4ex]
 	\PT{
 		\AC{\Type{\Gam}{e_1}{\tau_1}}
 		\AC{...}
 		\AC{\Type{\Gam}{e_k}{\tau_k}}
-		\RiLa{(\Sigma(f) = \tau_1 \times ... \times \tau_k \ra \tau)}
+		\RiLa{(\Sigma(f) = (\tau_1, ... , \tau_k) \ra \tau)}
 		\TC{\Type{\Gam}{f(e_1,...,e_k)}{\tau}}
 	}
 
-}{Typing rules of \mysnesl  expressions \label{fig-snesl1-typing}}
+}{Typing rules of \mysnesl  \ expressions \label{fig-snesl1-typing}}
 
 
+The typing rules for built-in operations (using the judgment $\boxed{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}$) are given in their detailed descriptions later.
 
+
+The typing rules of \mysnesl \ should be straightforward except those for comprehensions. 
+For the general comprehension, the $input$ sequence $e_0$, as well as the whole expression, must be a sequence.
+The types of the free variables of the $ comprehension \ body$ $e_1$, i.e., $x_1,...,x_k$, are all required to be concrete. That is, they cannot be sequences.
+We will explain this later.
+ 
+ 
+Figure~\ref{fig-snesl1-values} shows the typing rules for \mysnesl \ values, and Figure~\ref{fig:type-check} gives the rules for checking whether a top-level term is well-typed.
 
 \fig{
 \Jug{\TypeV{v}{\tau}}
@@ -157,25 +183,33 @@ $$\Sigma = [f_1 \|-> \tau_1 \times ... \times \tau_k  \ra \tau, ..., f_i \|-> \t
 \PT{
 	\AC{\TypeV{v_1}{\tau}}
 	\AC{...}
-	\AC{\TypeV{v_k}{\tau}}
-	\TC{\TypeV{\Seqk{v}}{\{\tau\}}}
+	\AC{\TypeV{v_l}{\tau}}
+	\TC{\TypeV{\{\replc{l}{v}\}}{\{\tau\}}}
 }
-}{Typing rules of \mysnesl values \label{fig-snesl1-values}}
+}{Typing rules of \mysnesl \ values \label{fig-snesl1-values}}
 
-
-The typing rules of \mysnesl should be straightforward except those for comprehensions. 
-For the general comprehension, the types of free variables of the comprehension body $e_1$, i.e., $x_1,...,x_j$, are all required 
-to be non-sequence, i.e., only primitive types or pair of primitive types.
-This is because the values of these variables will be repeatedly used $k$ times ($k \ge 0$) to evaluate the $k$ elements of the comprehension,
-so they are not allowed to be streams, since streams can only be traversed once. \\
-
-
-The semantics of \mysnesl is given in Figure~\ref{fig:mysnesl-semantics}. The evaluation environment  $\rho$ is in the form $$ \rho = [x_1 \|-> v_1,...,x_i \|-> v_i]$$ and $$\Phi = [f \|-> (v_1,...,v_k) \Env v]$$
-
- (??TODO: add cost) \\
- %TODO: add cost??
 
 \fig{
+\Jug{\interT{\Sigma}{t}} \\
+	\PT{
+		\AC{\Type{[ \ ]}{e}{\tau}}
+		\UC{\interT{\Sigma}{e}}
+	}
+	\PT{
+		\AC{\Type{[x\|->\tau_1,..., x_k \|-> \tau_k]}{e}{\tau}}
+		\AC{\interT{\Sigma[f \|-> (\tau_1,...,\tau_k) \ra \tau]}{t}}
+		\BC{\interT{\Sigma}{\*{function} \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e \ t}}
+	 }
+}{Well-typed top-level terms \label{fig:type-check}}
+
+\hspace{1cm}
+
+The semantics of \mysnesl \ is given in Figure~\ref{fig:mysnesl-semantics}. The evaluation environment  $\rho$ is in the form $$ \rho ::= [x_1 \|-> v_1,...,x_k \|-> v_k]$$ and the context for looking up user-defined functions $$\Phi ::= [f \|-> d_1,..., f_k\|-> d_k]$$
+
+ %TODO: add cost??
+
+\begin{figure}\large
+
  \Jug{\Eval{\rho}{e}{v}}
 	 \PT{
 	 	\Axiom{\Eval{\rho}{a}{a}}
@@ -193,8 +227,8 @@ The semantics of \mysnesl is given in Figure~\ref{fig:mysnesl-semantics}. The ev
 	\PT{
 		\AC{\Eval{\rho}{e_1}{v_1}}
 		\AC{...}
-		\AC{\Eval{\rho}{e_k}{v_k}}
-		\TC{\Eval{\rho}{\{e_1,...,e_k\}}{\{v_1,...,v_k\}}}	
+		\AC{\Eval{\rho}{e_l}{v_l}}
+		\TC{\Eval{\rho}{\{e_1,...,e_l\}}{\{v_1,...,v_l\}}}	
 	}
 	\PT{
 		\Axiom{\Eval{\rho}{\{\}\tau}{\{\}}}
@@ -205,50 +239,56 @@ The semantics of \mysnesl is given in Figure~\ref{fig:mysnesl-semantics}. The ev
 		\BC{\Eval{\rho}{\Let{e_1}{x}{e_2}}{v}}	
 	}\\[4ex]
 	\PT{
-		\AC{\Eval{\rho}{e_1}{v_1}}
-		\AC{...}
-		\AC{\Eval{\rho}{e_k}{v_k}}
-		\RiLa{((\Phi(\hcall)=(v_1,...,v_k) \Eva v)}
-		\TC{\Eval{\rho}{\hcall{\Tupk{e}}}{v}}
+		\AC{\k{\Eval{\rho}{e_i}{v_k}}}
+		\AC{\hcall(v_1,...,v_k) \Eva v}
+		\BC{\Eval{\rho}{\hcall{\Tupk{e}}}{v}}
 	}\\[4ex]
 	
 	\PT{
-		\AC{\Eval{\rho}{e_0}{\{v_1,...,v_k\}}}
-		\AC{(\Eval{\rho[x \|-> {v_i}]}{e_1}{v_i'})^k_{i=1}}
-		\BC{\Eval{\rho}{\Comp{e_1}{x}{e_0}{\usevars}}{\Seqk{v'}}}
+		\AC{\Eval{\rho}{e_0}{\{v_1,...,v_l\}}}
+		\AC{(\Eval{[x_1 \|-> \rho(x_1),...,x_k \|-> \rho(x_k), x \|-> {v_i},]}{e_1}{v_i'})^l_{i=1}}
+		\BC{\Eval{\rho}{\Comp{e_1}{x}{e_0}{\usevarsk}}{\{\replc{l}{v'}}\}}
 	}\\[4ex]	
 	\PT{
 		\AC{\Eval{\rho}{e_0}{\F}}
-		\UC{\Eval{\rho}{\RComp{e_1}{e_0}{\usevars}}{\{\}}}
+		\UC{\Eval{\rho}{\RComp{e_1}{e_0}{\usevarsk}}{\{\}}}
 	}
 	\PT{
 		\AC{\Eval{\rho}{e_0}{\T}}
 		\AC{\Eval{\rho}{e_1}{v_1}}
-		\BC{\Eval{\rho}{\RComp{e_1}{x}{\usevars}}{\{v_1\}}}
+		\BC{\Eval{\rho}{\RComp{e_1}{x}{\usevarsk}}{\{v_1\}}}
 	}\\[4ex]
 	\PT{
-		\AC{\Eval{\rho}{e_1}{v_1}}
-		\AC{...}
-		\AC{\Eval{\rho}{e_k}{v_k}}
-		\RiLa{((\Phi(f)=(v_1,...,v_k) \Eva v)}
-		\TC{\Eval{\rho}{f{\Tupk{e}}}{v}}
-	}
-}{Semantics of \mysnesl \label{fig:mysnesl-semantics}}
+		\AC{\k{\Eval{\rho}{e_1}{v_1}}}
+		\AC{\Eval{[x_1 \|-> v_1,...,x_k \|-> v_k]}{e_0}{v}}
+		\RiLa{\left(
+			\begin{aligned}
+			 \Phi(f)=  \*{function} \  & f(x_1: \tau_1, ..., x_k: \tau_k) \\
+			 & : \tau = e_0
+			\end{aligned}
+		\right)}
+		\BC{\Eval{\rho}{f{\Tupk{e}}}{v}}
+	}\\
+\caption{Semantics of \mysnesl \label{fig:mysnesl-semantics}}
+\end{figure}
 
 The evaluation rules are also straightforward except for the comprehensions.
-In the general comprehension, the $bound \ sequence$ $e_0$ gets evaluated first, then its $k$ elements are used to substitute the bound variable $x$ in the comprehension body $e_1$; so $e_1$ will be evaluated $k$ times with different substitutions of $x$.
+In the general comprehension, the input sequence $e_0$ gets evaluated first, generating a sequence of $l$ elements.
+These $l$ elements are used to substitute the bound variable $x$ in the comprehension body $e_1$; so $e_1$ will be evaluated $l$ times with different substitutions of $x$ but with the same value of its free variables $x_1,...,x_k$.
+As mentioned before, these free variables $x_1,..., x_k$ can only be of concrete types, because their values are repeatedly used $l$ times here, which requires these values must be already materialized. 
+If any of them is a stream, then there is no guarantee that this stream is already computed completely when the evaluation of $e_1$ starts, which may cause problems, such as a deadlock.
 
-For the restricted comprehension, the $guard$ expression $e_0$ first gets evaluated: if it is a $\T$, then $e_1$ will be evaluated, generating a singleton sequence; otherwise, $e_1$ will not be evaluated, and the comprehension only returns an empty sequence. \\
+For the restricted comprehension, the $guard$ expression $e_0$ first gets evaluated: if it is a $\T$, $e_1$ will be evaluated, generating a singleton sequence; otherwise, $e_1$ will not be evaluated, and the comprehension only returns an empty sequence. \\
 
 
-The built-in functions of \mysnesl correspond to a subset of SNESL's ones shown in Figure~\ref{fig-snesl-func} but without the vector-related ones, $\*{mqseq}$ and $\*{zip}$. 
+The built-in functions of \mysnesl \ correspond to a subset of SNESL's ones shown in Figure~\ref{fig-snesl-func} but without $\*{mqseq}$, $\*{zip}$ (can be desugared as nested pairs), and the vector-related ones. 
 In addition, the function $\*{scan}$ and $\*{reduce}$ are also
 taken a specific verison: picked $+$ from $\otimes$, for simplicity, as shown in Figure~\ref{fig-mysnesl-func}. 
 
 
 \begin{figure}[H]\large
 	\begin{alignat*}{2} 
-	&\hcall && ::= \oplus \ | \  \ \*{append} \ | \ \*{concat}  \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_+ \ | \ \*{reduce}_{+} \ | \ \*{the}  \ | \ \*{empty} \\	
+	&\hcall && ::= \oplus \ | \  \ \*{append}_{\tau} \ | \ \*{concat}_{\tau}  \ | \ \*{iota}  \ | \ \*{part}_{\tau}  \ | \ \*{scan}_+ \ | \ \*{reduce}_{+} \ | \ \*{the}_{\tau}  \ | \ \*{empty}_{\tau} \\	
 	& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | <= \ | \ == \ | \  \*{not} \ | \ ... \tag{scalar operations} 
 	\end{alignat*}
 	\caption{Primitive functions in \mysnesl \label{fig-mysnesl-func}}
@@ -258,7 +298,7 @@ The types and semantics of these built-in functions remain the same as they are 
 
 \begin{itemize}
 
-	\item $\*{append : \{\tau\} \times \{\tau\} \ra \{\tau\}}$ , 
+	\item $\*{append_{\tau} : \{\tau\} \times \{\tau\} \ra \{\tau\}}$ , 
 	appends one sequence to the end of another; syntactic-sugared as the infix symbol {\++}.
 
 	\begin{figure}[H]
@@ -274,7 +314,7 @@ The types and semantics of these built-in functions remain the same as they are 
 	\end{figure}
 
 
-	\item $\*{concat: \{\{\tau\}\} \rightarrow \{\tau\} }$, concatenates a sequence of sequences into one, that is, decreases the nesting-depth by one.
+	\item $\*{concat_{\tau}: \{\{\tau\}\} \rightarrow \{\tau\} }$, concatenates a sequence of sequences into one, that is, decreases the nesting-depth by one.
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -300,7 +340,7 @@ The types and semantics of these built-in functions remain the same as they are 
 	\end{lstlisting}
 	\end{figure}
 	
-	\item $\*{part: \{\tau\} \times \{\bool\} \ra  \{\{\tau\}\}}$, partitions a sequence into subsequences according to the second boolean sequence where a $\F$ corresponds to one element of the first argument and a $\T$ indicates a segment separation; so the number of $\F$s is equal to length of the first argument, and the number of $\T$s is equal to the length of the returned value, and it must end with a $\T$. 
+	\item $\*{part_{\tau}: \{\tau\} \times \{\bool\} \ra  \{\{\tau\}\}}$, partitions a sequence into subsequences according to the second boolean sequence where a $\F$ corresponds to one element of the first argument and a $\T$ indicates a segment separation; so the number of $\F$s is equal to length of the first argument, and the number of $\T$s is equal to the length of the returned value, and this argument must end with a $\T$. 
 	If the second argument does not satisfy these requirements, a runtime error will be reported.
 	\begin{figure}[H]
 	\begin{example}
@@ -309,12 +349,12 @@ The types and semantics of these built-in functions remain the same as they are 
 	> part({3,1,4,1,5,9}, {F,F,T,F,T,T,F,F,F,T})
 	{{3,1},{4},{},{1,5,9}} :: {{int}}
 	
-	> part({{F,T},{T},{}bool, {F,F}}, {F,F,T,F,F,T})
-	{{{F,T},{T}},{{},{F,F}}} :: {{{bool}}}
+	> part({{3,1},{4},{}int, {1,5}}, {F,F,T,F,F,T})
+	{{{3,1},{4}},{{},{1,5}}} :: {{{int}}}
 	\end{lstlisting}
 	\end{figure}
 	
-	\item $\*{scan_+}: \{\int\} \ra \{\int\}$, performs an exclusive scan of addition operation on the given sequence, that is, assuming the argument is $\{n_1,n_2,..,n_{k-1},n_k\}$, to compute $\{0, n_1,n_1+n_2,...,n_1+...+n_{k-1}\}$. This scan operation has its general form in full SNESL, where it supports more associative binary operations with a specific identity element $a_0$  such that $a_0 \otimes a_0 = a_0$.
+	\item $\*{scan_+}: \{\int\} \ra \{\int\}$, performs an exclusive scan of addition operation on the given sequence, that is, assuming the argument is $\{n_1,n_2,..,n_k\}$, to compute $\{0, n_1,n_1+n_2,...,n_1+...+n_{k-1}\}$. This scan operation has its general form in full SNESL, where it supports more associative binary operations with a specific identity element $a_0$  such that $a_0 \otimes a = a \otimes a_0 = a$ for all $a$.
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -342,7 +382,7 @@ The types and semantics of these built-in functions remain the same as they are 
 	\end{figure}
 
 
-	\item $\*{the:  \{\tau\} \ra \tau}$, returns the element of a singleton sequence; if the length of the argument is not exact one, reports a runtime error. 
+	\item $\*{the_{\tau}:  \{\tau\} \ra \tau}$, returns the element of a singleton sequence; if the length of the argument is not exactly one, reports a runtime error. 
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -355,7 +395,7 @@ The types and semantics of these built-in functions remain the same as they are 
 	\end{lstlisting}
 	\end{figure}
 	
-	\item $\*{empty:  \{\tau\} \ra \bool}$, tests if the given sequence is empty; if it is empty, returns a $\T$, otherwise returns a $\F$.
+	\item $\*{empty_{\tau}:  \{\tau\} \ra \bool}$, tests if the given sequence is empty; if it is empty, returns a $\T$, otherwise returns a $\F$.
 	\begin{figure}[H]
 	\begin{example}
 	\end{example}
@@ -370,29 +410,13 @@ The types and semantics of these built-in functions remain the same as they are 
 \end{itemize}
 
 
-%
-%\begin{figure}[H]\large
-%	\begin{example}\emph{A user-defined function  written in \mysnesl to compute the multiplication of a square matrix and its transpose.}
-%	\end{example}
-%	\begin{lstlisting}[style = nesl-style]
-%	-- code desplay format changed for readability
-%	function matmul(n:int) :{{int}} = 
-%  	  let matA = {&n : _ in &n};
-%	      matB = {{x : _ in &n} : x in &n} -- transposition of matA
-%	  in {{ reducePlus({x*y : x in a, y in b}) : a in matA} : b in matB}
-%	
-%	> matmul(4)
-%	{{0,0,0,0},{6,6,6,6},{12,12,12,12},{18,18,18,18}} :: {{int}}
-%	\end{lstlisting}
-%\end{figure}
-
 
 \section{Value representation} \label{sec:valrep}
-At the low level, a value of \mysnesl is represented as either a primitive $stream$ (i.e., a collection of primitive values),
+At the low level, a value of \mysnesl \ is represented as either a primitive $stream$ (i.e., a collection of primitive values),
 or a binary tree structure with stream leaves. 
 The idea of this representation comes from \cite{Blel90vecmod}. 
-The primitive stream $\a$ of $k$ elements $a_1,...,a_k$ and the stream tree $w$ have the following form: 
-$$ \a ::= \<a_1,...,a_k\'>$$
+The primitive stream $\a$ of $l$ elements $a_1,...,a_l$ and the stream tree $w$ have the following form: 
+$$ \a ::= \<a_1,...,a_l\'>$$
 $$ w ::= \a \ | \ (w_1,w_2) $$
 
 The representation also relies on the high-level type of the value. 
@@ -429,7 +453,7 @@ We use the infix symbol ``$ \tr$" subscripted by a type $\tau$ to denote a type-
 		$$(\{\T,\F\},2) \tr_{(\{\bool\},\int)} ((\< \T, \F \'>, \< \F,\F,\T \'>),\singl{2})$$
 	\end{example} 
 	
-	\item A sequence of pair can be regarded as a pair of sequences sharing one descriptor at the low level:
+	\item A sequence of pairs can be regarded as a pair of sequences sharing one descriptor at the low level:
 	\begin{example}
 		$$\{(1,\T),(2,\F),(3,\F)\} \tr_{\{(\int,\bool)\}} ((\<1,2,3\'>, \<\T,\F, \F\'>), \< \F,\F,\F,\T \'>)$$
 	\end{example}
@@ -440,34 +464,31 @@ We use the infix symbol ``$ \tr$" subscripted by a type $\tau$ to denote a type-
 
 \section{SVCODE}
 In \cite{Fmaster} a streaming target language for a minimal SNESL was defined.
-With trivial changes in the instruction set, this language, named as SVCODE (Streaming VCODE), has been implemented on a multicore system in \cite{Fphd}; the various experiment results
+With trivial changes in the instruction set, this language, named as SVCODE (Streaming VCODE), has been implemented on a multicore system in \cite{MF16}; the various experiment results
 have demonstrated single-core performance similar to sequential C code for some simple 
-text-processing tasks and near-linear scales for multiple cores.
+text-processing tasks and near-linear scaling on modern	 multiple cores.
 
 In this thesis, we put emphasis on the formalization of this low-level language's semantics.
 Also, to support recursion in the high-level language at the same time preserve the cost, non-trivial extension of this language is needed. 
 
 \subsection{SVCODE Syntax}
-%The primitive data structure that SVCODE manipulates,  $stream$, is be collected through not only a piece of memory, but also a period of time. 
-%
-
 
 The abstract syntax of SVCODE is given in Figure~\ref{fig-svcode1-gram}.
 An SVCODE program $p$ is basically a list of commands or instructions each of which defines one or more streams. 
-We use $s$ to range over stream variables, also called stream $id$s, and $\S$ a bunch of stream ids.
+We use $s$ to range over stream variables, also called stream $id$s, and $\S$ a set of stream ids.
 As a general rule of reading an SVCODE instruction, the stream ids on the left-hand side of a symbol ``:=" are the defined streams of the instruction.
 
 
-\begin{figure}[!h] \large
+\begin{figure}[H] \large
 	\begin{alignat*}{2}
 	&p  && :: = \ \epsilon \tag{empty program}\\ 
 	&   && \quad | \ \sdef{\s}{\psi(s_1,...,s_k)}  \tag{single stream definition}\\
 	&   && \quad | \ \withctrl{\s}{p_1}{\Sin}{\Sout}  \tag{\wc block}\\
-	&   && \quad | \ \scall{f}{s_1,...,s_m}{(s_1',...,s_n')} \tag{SVCODE function call}\\
+	&   && \quad | \ \scall{f}{s_1,...,s_k}{(s_1',...,s_{k'}')} \tag{SVCODE function call}\\
 	&   && \quad | \ p_1;p_2  \\
 	\\
 	&\s && ::= 0 \ | \ 1 \ ... \in \SId  = \mathbb{N}   \tag{stream ids}\\
-	&  \S && ::= \{\s_1,..., \s_i\} \in \sset  \tag{set of stream ids}\\
+	&  \S && ::= \{\s_1,..., \s_k\} \in \sset  \tag{set of stream ids}\\
 	\\
 	& \psi \ && ::= \consta{a} \ | \ \toflag  
 	\ | \ \usum \ | \ \map{\oplus} \ | \ \genscan_{\otimes} \ | \ \genreduce_{\otimes} \ | \ \distr  \tag{Xducers}  \\
@@ -481,22 +502,21 @@ As a general rule of reading an SVCODE instruction, the stream ids on the left-h
 
 The instructions in SVCODE that define only one stream are in the form
 $$\sdef{\s}{\psi(s_1,...,s_k)} $$  
-where $\lcall$ is a primitive function, called a $Xducer$(transducer), taking the stream $s_1,...,s_k$ as parameters and returning $s$. 
-More detailed descriptions for specific Xducers are given in the next subsection.
+where $\lcall$ is a primitive function, called a \emph{Xducer}(transducer), taking the stream $s_1,...,s_k$ as parameters and returning \emph{s}. More detailed descriptions for specific Xducers are given in the next subsection.
 
 
 The only essential control struture in this language is the \wc instruction 
 $$\withctrl{\s}{p_1}{\Sin}{\Sout} $$
-which may or may not execute a piece of SVCODE program $p_1$, but always defines a bunch of stream ids $\Sout$.
+which may or may not execute a piece of SVCODE program $p_1$, but always defines a set of stream ids $\Sout$.
 The definition instructions for all the stream ids in $\Sout$ are included in the code block $p_1$. 
-Whether to execute $p_1$ or not depends on the value of the stream $\s$, the $new \ control \ stream$, at runtime:
+Whether to execute $p_1$ or not depends on the value of the stream $\s$. We will call this special stream the $new \ control \ stream$, and we will give the explanation of the concept $control \ stream$ later, but here we only care about if $s$ is empty:
 \begin{itemize}
-	\item If $s$ is an empty stream, then execute $p_1$ and generate the streams of $\Sout$ as usual
+	\item If $s$ is non-empty, then execute $p_1$ and generate the streams of $\Sout$ as usual
 	\item Otherwise, skip $p_1$ and assign $\Sout$ all empty streams 
 \end{itemize}
 Thus the new control stream is the most important role here, because it decides whether or not to execute $p_1$, which is the key to avoiding infinite unfolding of recursive functions.  
 $\Sin$ is a variable set including all the streams that are referred to by $p_1$;
-it will only affect the streaming execution model of SVCODE, while in the eager model it can be totally ignored.
+it will only affect the streaming execution model of SVCODE, while in the eager model it can be ignored.
 
 The instruction $\scall{f}{\replc{m}{s}}{(\replc{n}{s'})}$ can be read as: ``calling function $f$ with arguments $\replc{m}{s}$ returns $\replc{n}{s'}$". 
 The function body of $f$ is merely another piece of SVCODE program, but without the definition instructions of its argument streams.
@@ -510,7 +530,7 @@ In the practical implementation, we simply identify each stream with a natural n
 
 \subsection{Xducers and control stream}
 
-Transducers or $Xducers$ are the primitive functions performing transformation on streams in SVCODE. 
+Transducers or Xducers are the primitive functions performing transformation on streams in SVCODE. 
 Each Xducer consumes a number of streams and transforms them into another. 
 
 For example, the Xducer $\map{+}(\<3,2\'>, \< 1,1\'>)$ consumes the stream $\<3,2\'>$ and $\< 1,1\'>$, then outputs 
@@ -560,13 +580,12 @@ In Figure~\ref{fig-svcode-dag1}, the channel number is labeled above each edge.
 For example, the Xducer S2 has two clients, S3 and S5, for both of whom it is the No.0 channel;  Xducer S5 has two suppliers: S2 the No.0 channel and S3 the No.1. \\
 
 
-An issue here for Xducers is dealing with runtime errors. 
-For instance, the $\map{+}$ Xducer can consume a) the stream $\<3,2\'>$ with $\< 1,1,5\'>$, or b) the stream $\<3,2,5\'>$ with $\< 1,1\'>$ , and outputs the same result $\<4, 3\'>$. 
-But apparently there is a runtime error, since the two input streams are expected to be the same length, and we can not decide whether the correct length should be two or three, or maybe none of them.
-Another special case is the Xducer $\constaf{a}$, which outputs some number of constant $a$, even takes no argument. 
-So there should be some strategy to guarantee they all work correctly or report runtime errors if not.
 
-In the implementation of \cite{Fphd}, a special stream of unit type, called the $control \ stream$, is used at the compiling time for replicating constants, and it has nothing to do with the runtime.
+Among all the Xducers, $\constaf{a}$ is a special one, because it outputs some number of constant $a$ but takes no argument.  
+At the high level, it corresponds to the evaluation of constants.
+Some strategy must be taken here to tell this Xducer how many elements it should produce.
+
+In the implementation of \cite{MF16}, a special stream of unit type, called the $control \ stream$, is used at compiling time for replicating constants.
 
 In our implementation, we move the control stream to the runtime, and let it not only control constants replication, but more importantly, dominate all the Xducers' behavior. 
 Our observation is that the parallel degree throughout the whole computation can be expressed by this control stream, and all the Xducers can behave correspondingly to this parallel degree. 
@@ -586,82 +605,86 @@ and the implementation model more flexible and easier to debug.
 
 
 \section{Translating $\*{SNESL_1}$ to SVCODE}
-In Chapter~\ref{sec:valrep}, we have seen the idea of how a high-level value of \mysnesl can be represented as a binary tree of low-level stream values.
+In Chapter~\ref{sec:valrep}, we have seen the idea of how a high-level value of \mysnesl \ can be represented as a binary tree of low-level stream values.
 At the compiling time, we use a structure $\STree$ (stream id tree) to connect the high-level variables and the low-level ones: 
 $$ \STree \ni \st ::= \s \ | \ (\st_1,\st_2) $$
 The translation environment $\del$ is a mapping from high-level variables to stream trees:
- $$\del = [x_1 \|-> \st_1,..., x_i \|-> {\st_i}] $$ 
+ $$\del = [x_1 \|-> \st_1,..., x_k \|-> {\st_k}] $$ 
 
-Another important component maintained at the compiling time is a fresh stream id, which has not been used yet. 
-It will be assigned to the defined stream(s) of the newly generated instruction.
+Another important component maintained at the compiling time is a fresh-stream allocation counter. 
+It will be assigned to the defined stream(s) of the generated instruction by the translation.
 
 We will use the symbol ``$\Ra$" to denote the translation relation. 
-Also, a stream id may be superscripted to denote a fresh id before the translation, or subscripted as the one after the translation.
+To avoid clutter, in this section we assume the defined stream id(s) of the new instructions are all fresh.
 
+ 
 \subsection{Expression translation}
 
 
-An \mysnesl expression will be translated to a pair of an SVCODE program $p$ and a stream tree $\st$ whose stream values represent the high-level evaluation result:
+A \mysnesl \ expression will be translated to a pair of an SVCODE program $p$ and a stream tree $\st$ whose stream values represent the high-level evaluation result:
 $$ \Trans{\del}{e}{}{}{\sfun{p}{\st}}$$
 
 The translation for constants, variables and pairs are straightforward. For example, a pair $(x,4)$ will be translated to a program of only one instruction $s_0 := \constaf{4}$ and a stream tree $(s,s_0)$, assuming in the context $x$ is bound to $s$ and $s_0$ is a fresh id before the translation :   
-$$[x \|-> \s] \Env (x,4)  \Ra^{s_0} (s_0 := \constaf{4}, (s,s_0))$$ 
+$$[x \|-> \s] \Env (x,4)  \Ra (s_0 := \constaf{4}, (s,s_0))$$ 
 
 For a let-binding expression $\Let{x}{e_1}{e_2}$,  first $e_1$ gets translated to some code $p_1$ with a stream tree $st_1$ as usual; then the binding $[x \|-> \st_1]$ is added to $\del$, in which the body $e_2$ gets translated to some $p_2$ with $\st_2$; the translation of the entire expression will be the concatenation of $p_1$ and $p_2$, i.e., $p_1;p_2$, and the stream tree is only $\st_2$.
 
 Translations for specific built-in functions and user-defined functions will be given later.
 
-Non-empty primitive sequence looks a little bit tricky to translate as it can have arbitrary  number ($\ge$ 1) of elements, but it is basically a general version of the function $\*{append}$.
+%TODO explain or example
+Non-empty primitive sequence looks a little bit tricky to translate as it can have arbitrary  number $n$ ($ n \ge$ 1) of elements, but it is basically a $n$-argument version of the function $\*{append}$.
 For the empty sequence $\{\}\tau$, the low-level streams are all empty streams except for the outermost descriptor $\oT$, and the number of those empty streams depends on the type $\tau$.
 
 The most interesting case may be the comprehensions. 
-For the general one, $\Comp{e_1}{x}{e_0}{x_1,...,x_j}$, first we need to translate $e_0$, whose type must be a sequence, and we obtain a program $p_0$ and a stream tree that must look like $(st_0,s_b)$ where $s_b$ is the outermost descriptor. 
+For the general one, $\Comp{e_1}{x}{e_0}{x_1,...,x_k}$, first we need to translate $e_0$, whose type must be a sequence, and we obtain a program $p_0$ and a stream tree that must look like $(st_0,s_b)$ where $s_b$ is the outermost descriptor. 
+That is,
+$$ \Trans{\del}{e_0}{}{}{(p_0,(st_0,s_b))}$$
 Recall that the number of $\F$s of a descriptor is equal to the length of the inner data stream. 
-We assume the length is $k$. 
-The comprehension body $e_1$ will be evaluated $k$ times with $x$ being bound to different elements of the data stream $\st_0$, 
-thus the parallel degree of computing $e_1$ can be represented by employing a $\usum$ Xducer on $s_b$.
+We assume the length is $l$. 
+The comprehension body $e_1$ will be evaluated $l$ times with $x$ being bound to different elements of the data stream $\st_0$, 
+thus the parallel degree of computing $e_1$ will be $l$, and the control stream needs to be changed to represent the new parallel degree. 
 
-The Xducer $\usumf{\b}$ consumes one boonlean stream and transforms an $\F$ to a unit, or a $\T$ to nothing.
+Here we use the Xducer $\usum$ working on $s_b$ to generate the new control stream. The Xducer $\usumf{\b}$ consumes one boonlean stream and transforms an $\F$ to a unit, or a $\T$ to nothing.
 \begin{example} \emph{$\usumf{\<\F,\T,\F,\F,\T\'>}$ with the control stream = $\<(),() \'>$:} \\
 	\begin{center}
 		\includegraphics[width=0.6\textwidth]{fig/usum.png}
 	\end{center}
 \end{example}
 
-If there is no free variables in $e_1$, then the next step of translating a general comprehension will be translating the comprehension body $e_1$ in the new environment $\del[x \|->\st_0]$, and the translation is finished.
+If there is no free variables in $e_1$ (i.e., the list after $\*{using}$ is empty), then the next step of translating a general comprehension will be translating the comprehension body $e_1$ in the new environment $\del[x \|->\st_0]$, and the translation is finished.
 
-For the case where $e_1$ uses some free variables $x_1,...,x_j$, we need to generate new streams, each of which is a $k$-replicate of the stream of $x_1,...,x_j$ respectively. 
+For the case where $e_1$ uses some free variables $x_1,...,x_k$, we need to generate new streams, each of which is a $l$-replicate of the stream of $x_1,...,x_k$ respectively. 
 
 So the translation will look like:\\[3ex]
 	\PT{
-		\AC{\Trans{\del}{e_1}{}{}{(p_1, (st_0,s_b))}}
-		\AC{\Trans{[x \|-> {\st_0}, \j{x_i \|-> \st'_i}]}{e}{s_1}{}{\sfun{p_2}{\st}}}
-		\RiLa{(\j{\del(x_i) = \ \st_i})}		
-		\BC{\Trans{\del}{\Comp{e_1}{x}{e_0}{\usevars}}{}{}
+		\AC{\Trans{\del}{e_0}{}{}{(p_0, (st_0,s_b))}}
+		\AC{\Trans{[x \|-> {\st_0}, \k{x_i \|-> \st'_i}]}{e_1}{}{}{\sfun{p_1}{\st}}}
+		\RiLa{(\k{\del(x_i) = \ \st_i})}		
+		\BC{\Trans{\del}{\Comp{e_1}{x}{e_0}{\usevarsk}}{}{}
 			{ \sfun{p} {(\st,\s_b)}}}
 	}
 
-\def\Distr#1#2{\mathtt{distr}(#1,#2)}
+\def\Distr#1#2#3{\mathtt{distr}_{#3}(#1,#2)}
 \def\Pack#1#2#3{\mathtt{pack}_{#3}(#1,#2)}
 
 in which $$ \begin{aligned}
-p = & \ p_1; \\
+p = ( & \ p_0; \\
     & \ \sdef{\s_1}{\usum(\s_b)}; \\
-	& \ \sdef{\st_1'}{\Distr{\s_b}{\st_1}}; \\
+	& \ \sdef{\st_1'}{\Distr{\s_b}{\st_1}{\tau_1}}; \\
 	& \qquad \qquad \vdots \\
-	& \ \sdef{\st_j'}{\Distr{\s_b}{\st_j}}; \\
-	& \ \withctrl{\s_1}{p_2}{\Sin}{\Sout} \\
+	& \ \sdef{\st_k'}{\Distr{\s_b}{\st_k}{\tau_k}}; \\
+	& \ \withctrl{\s_1}{p_1}{\Sin}{\Sout} ) \\
 \end{aligned}$$	
 
-Note that we put $p_2$ into a \wc block so that $p_2$ can be skipped when $s_1$ is tested to be an empty stream at runtime.
-$\Sin$ and $\Sout$  are some analysis results about the free stream variables and the defined ones of $p_2$, which can be easily obtained by traversing $p_2$. We will give more details about them in the next chapter.
+Note that we put $p_1$ into a \wc block so that $p_1$ can be skipped when $s_1$, the new control stream, is tested to be an empty stream at runtime.
+$\Sin$ and $\Sout$  are some analysis results about the free stream variables and the defined ones of $p_1$, which can be easily obtained by traversing $p_1$. We will give more details about them in the next chapter.
 
-The function $\mathtt{distr}$ is responsible for replicating streams by using the Xducer $\distr$. 
+The function $\mathtt{distr}_{\tau}$ is responsible for replicating streams by using the Xducer $\distr$. 
 We give its definition in a form close to the SVCODE style for more readability:
 \begin{align*}
-	s' := \Distr{s_b}{s}; \quad \equiv & \quad s' := \distrf{s_b}{s}; \\
-	(st'_1,st'_2)  := \Distr{s_b}{(st_1,st_2)}; \quad \equiv & \quad st_1' := \Distr{s_b}{st_1}; \\ 
-	&\quad st_2' := \Distr{s_b}{st_2};
+	s' := \Distr{s_b}{s}{\pi}; \quad \equiv & \quad s' := \distrf{s_b}{s}; \\
+	(st'_1,st'_2)  := \Distr{s_b}{(st_1,st_2)}{(\tau_1,\tau_2)}; \quad \equiv & \quad st_1' := \Distr{s_b}{st_1}{\tau_1}; \\ 
+	&\quad st_2' := \Distr{s_b}{st_2}{\tau_2};
 \end{align*}
 
 The Xducer $\distr$ consumes a boolean stream as a segment descriptor of the data stream, and replicates the constants of the data stream corresponding times to their segment lengths.
@@ -697,7 +720,7 @@ p = & \ p_1; \\
 The Xducer $\bu$ simply transforms a boolean to a unary number, i.e.,  transforms $\oF$ to $\oT$, and $\oT$ to $\< \F, \T \'>$.
 \begin{example} \emph{$\bu({\<\T,\F\'>})$ with control stream $\< (),() \'>$}\\
 	\begin{center}
-		\includegraphics[width=0.5\textwidth]{fig/b2uxducer.png}
+		\includegraphics[width=0.6\textwidth]{fig/b2uxducer.png}
 	\end{center}
 \end{example}
 
@@ -722,7 +745,7 @@ The Xducer $\pack$ throws away the element of the second stream if the boolean o
 \end{example}
 
 $\upack$ works in a way similar to $\pack$, but on data of boolean segments rather than primitive values.
-\begin{example} \emph{$\upack({\<\T,\F,\T\'>}, \< \F,\T, \F,\F,\T,\F,\F,\F, \T\'>)$ with control stream $\< (),(), () \'>$}\\
+\begin{example} \emph{$\upack({\<\T,\F,\T\'>}, \< \F,\T,\ \ \F,\F,\T, \ \ \F,\F,\F, \T\'>)$ with control stream $\< (),(), () \'>$}\\
 	\begin{center}
 		\includegraphics[width=0.8\textwidth]{fig/upackxducer.png}
 	\end{center}
@@ -850,8 +873,10 @@ Note that we make the argument of $\intermerge$, $\mergeRecur{}$, $\seginter$ an
 
 \subsection{User-defined function translation}
 
+\def\sf{\mathit{sf}}
+
 We first introduce the type of SVCODE functions $\*{SFun}$: a triple in the form $([s_1,...,s_m], p, [s_1',...,s_n'])$, where $s_1,...,s_m$ are the argument stream ids, $p$ the function body, and $s_1',...,s_n'$ the return values:
-$$ sf ::= ([s_1,...,s_m], p, [s_1',...,s_n']) \in \*{SFun}$$
+$$ \sf ::= ([s_1,...,s_m], p, [s_1',...,s_n']) \in \*{SFun}$$
 
 The function $\bar{}$ \ flattens a stream tree to a list of stream ids:
 	\begin{align*}
@@ -878,7 +903,7 @@ $$[s_1,...,s_m] = \ol{st_1} \ {\++} \ ... \ {\++} \ \ol{st_k}$$
 
 
 The generated SVCODE function will be added to a user-defined function mapping $\Psi$ from function identifiers to $\*{SFun}$:
-$$ \Psi = [f_1 \|-> sf_1,...,f_n \|-> sf_n] $$
+$$ \Psi ::= [f_1 \|-> \sf_1,...,f_i \|-> \sf_i] $$
 
 And $\Psi$ will be used as a component of the runtime environment. So when we interpret the instruction $\scall{f}{[s_1,...,s_m]}{[s_1',...,s_n']}$, the function body can be unfolded by looking up $f$ in $\Psi$ and then passing the arguments.
 
@@ -898,7 +923,7 @@ So the eager version can be used as a baseline to compare with the streaming one
 
 
 \subsection{Dataflow}
-In the eage model, a Xducer consumes the entire input streams at once and outputs the whole result immediately. 
+In the eager model, a Xducer consumes the entire input streams at once and outputs the whole result immediately. 
 The dataflow DAG is established gradually as Xducers are activated one by one.   
 %TODO An example ?
 
@@ -906,9 +931,12 @@ The dataflow DAG is established gradually as Xducers are activated one by one.
 The low-level work cost in the eager model is the total number of consumed and produced elements of all Xducers, and the step is merely the number of activated Xducers. 
 By activated we mean the executed stream definitions, because those inside a \wc block may be skipped, thus we will not count their steps. 
 
+%TODO space cost??
+
 
 \section{Streaming interpreter}
-The execution model of streaming interpreter does not assume an infinite memory; instead, it only uses a limited size of memory as a buffer. 
+
+The execution model of the streaming interpreter does not assume an infinite memory; instead, it only uses a limited size of memory as a buffer. 
 If the buffer size is relatively small, then most of the streams cannot be materialized entirely at once. 
 As a result, the SVCODE program will be traversed multiple times, or there will be more scheduling rounds. 
 The dataflow of the streaming execution model is still a DAG, but the difference from the eager one is that each Xducer maintains a small buffer, whose data is updated each round. 
@@ -916,11 +944,38 @@ The final result will be collected from all these scheduling rounds.
 
 Since in most cases we will have to execute more than one rounds, some extra setting-up and overhead seem to be inevitable.
 On the other hand, exploiting only a limited buffer increases the efficiency of space usage. 
-In particular, for some streamable cases, such as an exclusive scan, the buffer size can be as small as one.
+In particular, for some properly streamable SNESL programs, the buffer size can be as small as one.
+
+
+\subsection{Streamability}
+
+So far we have mentioned $streamable$ for a few times, but not given a further explanation.
+
+We consider an algorithm to be streamable if it can be executed in constant space, and particularly, in linear space to the recursion depth for recursive ones.
+
+We should point out that not all algorithms are streamable. 
+The situation where an algorithm is not streamable can be various.
+The first case easy to think about may be that the order of processing the data is random, not in the same direction of time, or in other words, it requires random access.
+For instance, most sorting algorithms, such as $QuickSort$ \cite{Hoare1961}, are not suitable to be streamed, since most of them involve element permutation or indexing. There are also some computations that look streamable, but can still be possible to fail, as Example~\ref{eg:reduce} shows.
+
+Static analysis for streamability is still an open problem.
+
+\begin{example}\label{eg:reduce}
+	\emph{The first expression are not properly streamable: after the stream $s$ has been entirely consumed by $\mathtt{reducePlus}$, it is used to append to the end of the reduction result, which requires to traversing it again; the second expression is properly streamable, since outputting $s$ can be executed at the same time of computing the reduction.}
+\end{example}
+\begin{lstlisting}[style=nesl-style]
+-- Buffer size: 1
+>
+> let s = &4 in {reducePlus(s)} ++ s
+Deadlock!
+>
+> let s = &4 in s ++ {reducePlus(s)}
+{0,1,2,3,6} :: {int}
+\end{lstlisting}
 
 
 \subsection{Processes}
-In the streaming execution model, the buffer of a Xducer can be written only by the Xducer itself, but can be read by many other Xducers. 
+In the streaming execution model, the output buffer of a Xducer can be written only by the Xducer itself, but can be read by many other Xducers. 
 We define two states for a buffer:
 \begin{itemize}
 	\item \filling state　: the buffer is not full, and the Xducer is producing or writing data to it; any other trying to read it has to wait, or more precisely, enters a read-block state.
@@ -935,7 +990,11 @@ But the other switching direction takes a bit more work to detect: all the reade
 A notable special case is when the Xducer produces its last chunk, whose size may be less than the buffer size thus can never turn the buffer to a draining mode.
 To deal with this case, we add a flag to the draining state to indicate if it is the last chunk of the stream. 
 Thus, we have the definition of a buffer state as follows:
-$$\bufst = \{\filling \ \a, \ \draining \ \a' \ b \} $$
+\begin{align*}
+	\bufst :: & = \filling \ \a \\
+	          & \ \ | \ \draining \ \a' \ b \
+\end{align*}
+
 where $\a$ is the data in the buffer.
 
 In addition to maintaining the buffer state, a Xducer also has to remember its suppliers so that it is not necessary to specify the suppliers repeatedly each round. 
@@ -948,7 +1007,7 @@ Also, it is possible that a Xducer reads from the same supplier multiple times b
 Thus we need a third component, the channel number, as we have shown in Figure~\ref{fig-svcode-dag1}.
 As a result, we have a client list $\clis$ of type $[(\SId, \int, \int)]$.
 
-Now we use a structure $process$, a tuple of four components including a Xducer, to stand for one node on the streaming DAG:
+Now we use a structure $process$, a tuple of four components including a Xducer, to stand for one node on the streaming DAG, with the type:
 
 $$ \proc  =  (\bufst, \S, \clis, \xducer) $$
 
@@ -1036,7 +1095,7 @@ In this phase, the interpreter establishes the initial DAG by traversing the SVC
 	\item initialize a \wc block $\withctrl{\s_c}{p}{\Sin}{\Sout}$ \\
 	At the initialization phase, the interpreter does not unfold $p$; instead, it mainly does the following two tasks:	
 	\begin{itemize}
-		\item prevents all the import streams of $\Sin$ from producing one more chunk (a full buffer) of data before the interpreter knows whether $s_c$ is an empty stream or not.
+		\item prevents all the import streams of $\Sin$ from producing one more chunk (a full buffer) of data before the interpreter knows whether $s_c$ is an empty stream or not, i.e., add all of them a dummy client that never reads the buffer 
 		\item initializes all the export streams of $\Sout$ as dummy processes that do not produce any data
 	\end{itemize}
 
@@ -1051,12 +1110,12 @@ The active process acts as we have seen in Table~\ref{fig:process} shows, until 
 The results collected from each round consist the entire streams of the final result.
 
 As long as a real (not dummy) process has been set up, it will keep working until its Xducer shutdown (although it may pause for some rounds due to read or write block). 
-The crucial task in each round is to judge whether to unfold a \wc block or not. The judgment depends on the buffer state of the new control stream.
+The crucial task in each round is to judge whether to unfold a \wc block or not. The judgment depends on the buffer state of the new control stream:
 
 \begin{itemize}
 	\item \filling$\emptyv$: the new control process has not produce any data yet, so the decision cannot be made in this round, thus delayed to the next round
 	\item \draining$\emptyv \ \T$ : the new control stream is empty, thus no need to unfold the code, just set the export list streams also empty, and performs some other necessary clean-up job  
-	\item other cases: the new control stream must be nonempty, thus the interpreter can unfold the code now
+	\item other cases: the new control stream must be nonempty, thus the interpreter can unfold the code block now
 \end{itemize}
 
 
@@ -1078,7 +1137,8 @@ Since we have defined the atomic actions of Xducers, it is now easy to define th
 
 \subsection{Recursion}
 
-In SVOCDE, a recursive function call happens when the function body of $f$ from the instruction $\scall{f}{[s_1,...,s_m]}{[s_1',...,s_n']}$ includes another \sc of  $f$.
+In SVCODE, a recursive function call happens when the function body of $f$ from the instruction $\scall{f}{s_1,...,s_k}{(s_1',...,s'_{k'})}$ includes another \sc of  $f$.
+
 
 For a non-recursive \sc, the effect of interpreting this instruction is almost transparent. 
 For a recursive one, there is not much difference except one crucial point: the recursive \sc must be wrapped by a \wc block, otherwise it can never terminate.
@@ -1092,8 +1152,6 @@ so a recursion that can terminate at the high level will also terminate at the l
 \begin{example}
 \end{example}
 \begin{lstlisting}[style=nesl-style]
-  -- buffer size 1
-  
   -- define a function to compute factorial
   > function fact(x:int):int = if x <= 1 then 1 else x*fact(x-1)
   
@@ -1106,7 +1164,8 @@ so a recursion that can terminate at the high level will also terminate at the l
 % The function body of  \texttt{fact}:
 %\lstinputlisting[style=svcode-style]{code/fact.svcode}
 
-[?? Optional] The translated SVCODE of the expression:
+%TODO fix code
+The translated SVCODE of the expression:
 \lstinputlisting[style=svcode-style]{code/fact1.svcode}
 
 
@@ -1119,32 +1178,7 @@ In general, we classify deadlock situations into two types: soft deadlock, which
 
 \item Soft deadlock: \\
 
-One case of soft deadlock can be caused by trying to traverse the same sequence multiple times. 
-
-\begin{example} \emph{A soft deadlock caused by travesing the sequence $x$ two times.} \label{eg:deadlock1}
-\end{example}
-	\begin{lstlisting}[style=nesl-style]
-  > let x = {1} in x ++ x
-  Deadlock!
-\end{lstlisting}
-
-There are at least two feasible solutions to this case.
-One is manually rewriting the code to define new variables for the same sequence, as the following code shows :\\
-
-\begin{lstlisting}[style=nesl-style]
-  > let x = {1}; y = {1} in x ++ y
-  {1,1} :: {int}
-\end{lstlisting}
-
-%Or, for the full SNESL supporting vectors, the 
-
-The other can be done by optimizing the compiler to support multi-traversing check and automatic 
-redefinition of retraversed sequences, or other possible methods. 
-As the code grows more complicated, locating the problem can become much harder, thus a smarter compiler is definitely necessary. 
-This is worth some future investigation.\\
-
-
-Another case of soft deadlock can be due to the different data rates of processes that leads to a situation where some buffer(s) of $\filling$ state can never turn to \draining. 
+One case of soft deadlock can be due to the different data rates of processes that leads to a situation where some buffer(s) of $\filling$ state can never turn to \draining. 
 For example, the following expression tries to negate the elements that can be divided by 5 exactly of a sequence.
 \begin{example}\emph{ A soft deadlock that can be broken by stealing}
 \end{example}
@@ -1154,6 +1188,8 @@ For example, the following expression tries to negate the elements that can be d
  {0,1,2,3,4,-5,6,7,8,9} :: {int}
 \end{lstlisting}
 
+% TODO draw picture 
+% text not good
 In this example, the argument sequence contains elements from 0 to 9; the subsequence of the negated numbers, containing only 0 and -5, are concatenated with the one of the other eight numbers. 
 Since these two subsequences are generated at different rates,
 the buffer for holding the shorter subsequence cannot get full when the other for the longer subsequence is already full to drain.
@@ -1170,6 +1206,29 @@ Some future work can be further investigation about the effect of this stealing 
 
 \item Hard deadlock: \\
 This type of deadlock is mainly because of insufficient space.
+
+One case of soft deadlock can be caused by trying to traverse the same sequence multiple times. 
+
+\begin{example} \emph{A soft deadlock caused by travesing the sequence $x$ two times.} \label{eg:deadlock1}
+\end{example}
+\begin{lstlisting}[style=nesl-style]
+> let x = {1} in x ++ x
+Deadlock!
+\end{lstlisting}
+
+There are at least two feasible solutions to this case.
+One is manually rewriting the code to define new variables for the same sequence, as the following code shows :\\
+
+\begin{lstlisting}[style=nesl-style]
+> let x = {1}; y = {1} in x ++ y
+{1,1} :: {int}
+\end{lstlisting}
+
+The other can be done by optimizing the compiler to support multi-traversing check and automatic 
+redefinition of retraversed sequences, or other possible methods. 
+As the code grows more complicated, locating the problem can become much harder, thus a smarter compiler is definitely necessary. 
+This is worth some future investigation.\\
+
 
 \begin{example} \emph{The following SNESL function {\ttfamily oeadd} risks a hard deadlock. Given an integer sequence with an equal number of odd and even elements, this function will try to perform addition on a pair of odd and even number with the same index in their respective subsequences.} 
 \end{example}
@@ -1190,7 +1249,7 @@ But if there is a relatively large distance between any odd-even pair, the code 
 Deadlock!
 \end{lstlisting}
 
-
+% TODO or recalculation
 This type of deadlock may only be broken by enlarging the buffer size. 
 
 
@@ -1209,7 +1268,13 @@ This type of deadlock may only be broken by enlarging the buffer size.
 
 %\end{itemize}
 
-\subsection{[optional] Examples}
+\subsection{Examples}
+
 
 \lstinputlisting[style=nesl-style]{code/uc_scanred.snesl}
 
+\begin{lstlisting}[style=nesl-style]
+-- buffer size 1
+> scanred(&16,16)
+({0,0,1,3,6,10,15,21,28,36,45,55,66,78,91,105},120) :: ({int},int)
+\end{lstlisting}
