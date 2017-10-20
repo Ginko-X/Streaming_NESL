@@ -128,12 +128,10 @@ The expressions of SNESL are shown in the following figure.
 & e &&::=  a \     \tag{constant} \\
 &   && \quad | \ x  \tag{variable} \\
 &   && \quad | \ (e_1,...,e_k) \tag{tuple}\\
-&   && \quad | \ \Let{p}{e_1}{e_2} \tag{let-binding}\\
+&   && \quad | \ \Let{x}{e_1}{e_2} \tag{let-binding}\\
 &   && \quad | \ \hcall{\Tupk{e}}  \tag{built-in function call} \\
-&   && \quad | \ \{e_1: \ p \ \*{in} \ e_0 \} \tag{general comprehension} \\
-&   && \quad | \ \{e_1 \ | \ e_0 \}\tag {restricted comprehension}\\
-\\
-& p &&::= x \ | \ (p_1,...,p_k) \tag{pattern matching}  
+&   && \quad | \ \{e_1: \ x \ \*{in} \ e_0 \} \tag{general comprehension} \\
+&   && \quad | \ \{e_1 \ | \ e_0 \}\tag {restricted comprehension} 
 \end{alignat*}
 \caption{Syntax of SNESL expressions \label{fig-snesl-exps}}
 \end{figure}
@@ -144,7 +142,7 @@ The apply-to-each construct in its general form splits into the general and the 
 the general one now is only responsible for expressing parallel computation,
 and the restricted one can decide if a computation is necessary or not, working as the only conditional in SNESL.
 Also, these comprehensions extend the semantics of the apply-to-each from evaluating to vectors (i.e., type $[\tau]$) to evaluating to sequences (i.e., type $\{\sigma\}$). 
-A notable difference between them is that the free variables of $e_1$ (except for those bound by $p$) in the general comprehension can only be of concrete types, while they can be of any types in the restricted one.
+A notable difference between them is that the free variables of $e_1$ (except $x$) in the general comprehension can only be of concrete types, while they can be of any types in the restricted one.
 
 Note that SNESL, as described in \cite{Fphd}, does not include programmer-defined functions. 
 In the implementation, functions can be defined, but effectively treated as macros during compilation.

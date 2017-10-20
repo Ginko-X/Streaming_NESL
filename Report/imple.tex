@@ -15,15 +15,15 @@
 
 \newcommand\mysnesl{SNESL\textsubscript{1}}
 
-\def\interT#1#2{\vdash_{#1} #2}
-\def\conc#1{#1 \ \underline{\mathtt{concrete}}}
+\def\interT#1#2#3{\vdash_{#1} #2 : #3}
+\def\conc#1{#1 \ {\mathbf{concrete}}}
 
 \chapter{Implementation}
 
 \def\Type#1#2#3{#1 \vdash_{\Sigma} \ #2 : #3 } 
 \def\Eval#1#2#3{#1 \vdash_{\Phi} #2 \Eva #3 } 
 
-In this chapter, we will first talk about the high-level interpreter of a minimal SNESL language but with the extension of user-defined functions to give the reader a more concrete feeling about SNESL. 
+In this chapter, we will first talk about the high-level interpreter of a simplified SNESL language but with the extension of user-defined functions to give the reader a more concrete feeling about SNESL. 
 Then we introduce the streaming target language, SVCODE, with respect to its grammar, semantics and primitive operations.
 Translation from the source language to the target one will be explained to show their connections.
 Finally, two interpreters of SVCODE, an eager one and a streaming one, will be described and compared, with emphasis on the latter to demonstrate the streaming mechanism.
@@ -70,12 +70,12 @@ The abstract syntax of \mysnesl \ is given in Figure~\ref{fig-mysnesl}.
 
 \begin{figure}[H]\large
 	\begin{alignat*}{2}
-	& t &&::= e \ | \ d \ t  \tag{top-level term} \\
+	& t &&::= \*{eval} \ e \ | \ d \ t  \tag{top-level term} \\
 	\\
 	& e &&::=  a \     \tag{constant} \\
 	&   && \quad | \ x  \tag{variable} \\
 	&   && \quad | \ (e_1,e_2) \tag{pair}\\
-	&   && \quad | \ \{e_1,...,e_k \}_{\qquad k \ge 1}	\tag{primitive sequence} \\
+	&   && \quad | \ \{e_1,...,e_k \}_{\qquad (k \ge 1)}	\tag{primitive sequence} \\
 	&   && \quad | \ \{ \}\tau			\tag{empty sequence of type $\tau$} \\
 	&   && \quad | \ \Let{x}{e_1}{e_2} \tag{let-binding}\\
 	&   && \quad | \ \hcall{\Tupk{e}}  \tag{built-in function call} \\
@@ -83,7 +83,7 @@ The abstract syntax of \mysnesl \ is given in Figure~\ref{fig-mysnesl}.
 	&   && \quad | \ \RComp{e_1}{e_0}{\usevarsk} \tag {restricted comprehension} \\
 	&   && \quad | \ f(e_1,...,e_k)  \tag {user-defined function call} \\
 	\\
-	& d &&::= \*{function} \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e  \tag{user-defined function}
+	& d &&::= \*{function} \  f(x_1\colon{\tau_1}, ..., x_k\colon\tau_k)\colon{\tau} = e  \tag{user-defined function}
 	\end{alignat*}
 	\caption{Abstract syntax of \mysnesl \ \label{fig-mysnesl}}
 \end{figure}
@@ -91,7 +91,7 @@ The abstract syntax of \mysnesl \ is given in Figure~\ref{fig-mysnesl}.
 In addition to the simplifications mentioned before, we also made the following changes or extensions on expressions from SNESL:
 
 \begin{itemize}
-	\item For comprehension expressions, the free variables of the comprehension body $e_1$ are collected as a list added after the keyword $\*{using}$. This task can simply be done by the front end of the compiler; we do this for presenting the details of implementation more conveniently.
+	\item For comprehension expressions, the free variables (except $x$) of the comprehension body $e_1$  are collected as a list added after the keyword $\*{using}$. This task can simply be done by the front end of the compiler; we do this for presenting the details of implementation more conveniently.
 	
 	\item Added primitive sequence expression (including the empty one with its type explicitly given). They work as a replacement of the function $\*{mkseq}$.
 	
@@ -99,9 +99,9 @@ In addition to the simplifications mentioned before, we also made the following 
 \end{itemize}
 
 
-The typing rules for the expressions of \mysnesl \ are given in Figure~\ref{fig-snesl1-typing}. The type environment $\Gam$ is a mapping from variables to types: $$\Gamma = [x_1 \|-> \tau_1, ..., x_k \|-> {\tau_k} ]$$
+The typing rules for the expressions of \mysnesl \ are given in Figure~\ref{fig-snesl1-typing}. The type environment $\Gam$ is a mapping from variables to types: $$\Gamma ::= [x_1 \|-> \tau_1, ..., x_k \|-> {\tau_k} ]$$
 and $\Sigma$ from the identifiers of user-defined functions  to their types: 
-$$\Sigma = [f_1 \|-> \ftype_1,..., f_k  \|-> \ftype_k ]$$
+$$\Sigma ::= [f_1 \|-> \ftype_1,..., f_k  \|-> \ftype_k ]$$
 
 \fig{
 	\Jug{\Type{\Gam}{e}{\tau}}
@@ -123,8 +123,8 @@ $$\Sigma = [f_1 \|-> \ftype_1,..., f_k  \|-> \ftype_k ]$$
 	\PT{
 		\AC{\Type{\Gam}{e_1}{\tau}}
 		\AC{...}
-		\AC{\Type{\Gam}{e_l}{\tau}}
-		\TC{\Type{\Gam}{\{e_1,...,e_l\}}{\{\tau\}}}
+		\AC{\Type{\Gam}{e_k}{\tau}}
+		\TC{\Type{\Gam}{\{e_1,...,e_k\}}{\{\tau\}}}
 	}
 	\PT{\Axiom{\Type{\Gam}{\{\}\tau}{\{\tau}\}}}
 	\\[4ex]
@@ -135,13 +135,13 @@ $$\Sigma = [f_1 \|-> \ftype_1,..., f_k  \|-> \ftype_k ]$$
 	}\\[4ex]
 	\PT{
 		\AC{\k{\Type{\Gam}{e_i}{\tau_i}} }
-		\AC{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
-		\BC{\Type{\Gam}{\hcall{\Tupk{e}}}{\tau}}
+		\RiLa{(\Typef {\hcall} {\replc{k}{\tau}} {\tau})}
+		\UC{\Type{\Gam}{\hcall{\Tupk{e}}}{\tau}}
 	}\\[4ex]	
 	\PT{
 		\AC{\Type{\Gam}{e_0}{\{\tau_0\}}}
 		\AC{\Type{[x \|-> \tau_0, \k{x_i \|-> \tau_i}]}{e_1}{\tau}}
-		\RiLa{(\k{\Gam(x_i) = \conc{\tau_i}})}
+		\RiLa{(\k{\Gam(x_i) = \tau_i, \conc{\tau_i}})}
 		\BC{\Type{\Gam}{\Comp{e_1}{x}{e_0}{\usevarsk}}{\tseq{\tau}}}
 	}\\[4ex]
 	\PT{
@@ -166,7 +166,9 @@ The typing rules for built-in operations (using the judgment $\boxed{\Typef {\hc
 
 The typing rules of \mysnesl \ should be straightforward except those for comprehensions. 
 For the general comprehension, the $input$ sequence $e_0$, as well as the whole expression, must be a sequence.
-The types of the free variables of the $ comprehension \ body$ $e_1$, i.e., $x_1,...,x_k$, are all required to be concrete. That is, they cannot be sequences.
+The types of the free variables of the $ comprehension \ body$ $e_1$, i.e., $x_1,...,x_k$, are all required to be concrete. 
+That is, they cannot be sequences.
+However, they can be of any types in restricted comprehension.
 We will explain this later.
  
  
@@ -193,21 +195,24 @@ Figure~\ref{fig-snesl1-values} shows the typing rules for \mysnesl \ values, and
 
 
 \fig{
-\Jug{\interT{\Sigma}{t}} \\
+\Jug{\interT{\Sigma}{t}{\tau}} \\
 	\PT{
 		\AC{\Type{[ \ ]}{e}{\tau}}
-		\UC{\interT{\Sigma}{e}}
-	}
+		\UC{\interT{\Sigma}{\*{eval} \ e}{\tau}}
+	}\\[3ex]
+
 	\PT{
-		\AC{\Type{[x\|->\tau_1,..., x_k \|-> \tau_k]}{e}{\tau}}
-		\AC{\interT{\Sigma[f \|-> (\tau_1,...,\tau_k) \ra \tau]}{t}}
-		\BC{\interT{\Sigma}{\*{function} \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e \ t}}
+		\AC{[x\|->\tau_1,..., x_k \|-> \tau_k  
+			 \vdash_{\Sigma[f \|-> (\tau_1,...,\tau_k) \ra \tau_0]} \ e : \tau_0 }
+		\AC{\interT{\Sigma[f \|-> (\tau_1,...,\tau_k) \ra \tau_0]}{t}{\tau}}
+		\BC{\interT{\Sigma}{\*{function} \  f(x_1\colon\tau_1,...,x_k\colon\tau_k)\colon\tau_0 = e \ t}
+		{\tau}}
 	 }
 }{Well-typed top-level terms \label{fig:type-check}}
 
 \hspace{1cm}
 
-The semantics of \mysnesl \ is given in Figure~\ref{fig:mysnesl-semantics}. The evaluation environment  $\rho$ is in the form $$ \rho ::= [x_1 \|-> v_1,...,x_k \|-> v_k]$$ and the context for looking up user-defined functions $$\Phi ::= [f \|-> d_1,..., f_k\|-> d_k]$$
+The high-level semantics of \mysnesl \ is given in Figure~\ref{fig:mysnesl-semantics}. The evaluation environment  $\rho$ is in the form $$ \rho ::= [x_1 \|-> v_1,...,x_k \|-> v_k]$$ and the context for looking up user-defined functions $$\Phi ::= [f \|-> d_1,..., f_k\|-> d_k]$$
 
  %TODO: add cost??
 
@@ -255,19 +260,19 @@ The semantics of \mysnesl \ is given in Figure~\ref{fig:mysnesl-semantics}. The 
 	\PT{
 		\AC{\Eval{\rho}{e_0}{\F}}
 		\UC{\Eval{\rho}{\RComp{e_1}{e_0}{\usevarsk}}{\{\}}}
-	}
+	}\\[4ex]
 	\PT{
 		\AC{\Eval{\rho}{e_0}{\T}}
-		\AC{\Eval{\rho}{e_1}{v_1}}
-		\BC{\Eval{\rho}{\RComp{e_1}{x}{\usevarsk}}{\{v_1\}}}
+		\AC{\Eval{[x_1 \|-> \rho(x_1),...,x_k \|-> \rho(x_k)]}{e_1}{v_1}}
+		\BC{\Eval{\rho}{\RComp{e_1}{e_0}{\usevarsk}}{\{v_1\}}}
 	}\\[4ex]
 	\PT{
 		\AC{\k{\Eval{\rho}{e_1}{v_1}}}
 		\AC{\Eval{[x_1 \|-> v_1,...,x_k \|-> v_k]}{e_0}{v}}
 		\RiLa{\left(
 			\begin{aligned}
-			 \Phi(f)=  \*{function} \  & f(x_1: \tau_1, ..., x_k: \tau_k) \\
-			 & : \tau = e_0
+			 \Phi(f)=  \ &  \*{function} \\ 
+			 &  f(x_1\colon\tau_1, ..., x_k\colon\tau_k)\colon \tau = e_0
 			\end{aligned}
 		\right)}
 		\BC{\Eval{\rho}{f{\Tupk{e}}}{v}}
@@ -282,11 +287,11 @@ As mentioned before, these free variables $x_1,..., x_k$ can only be of concrete
 If any of them is a stream, then there is no guarantee that this stream is already computed completely when the evaluation of $e_1$ starts, which may cause problems, such as a deadlock.
 
 For the restricted comprehension, the $guard$ expression $e_0$ first gets evaluated: if it is a $\T$, $e_1$ will be evaluated, generating a singleton sequence; otherwise, $e_1$ will not be evaluated, and the comprehension only returns an empty sequence. \\
+Here, since $e_1$ will be evaluated at most once, there will be no problem if any free variables of $e_1$ is a stream.
 
-
-The built-in functions of \mysnesl \ correspond to a subset of SNESL's ones shown in Figure~\ref{fig-snesl-func} but without $\*{mqseq}$, $\*{zip}$ (can be desugared as nested pairs), and the vector-related ones. 
+The built-in functions of \mysnesl \ correspond to a subset of SNESL's ones shown in Figure~\ref{fig-snesl-func} but without $\*{mkseq}$, $\*{zip}$ (), and the vector-related ones. 
 In addition, the function $\*{scan}$ and $\*{reduce}$ are also
-taken a specific verison: picked $+$ from $\otimes$, for simplicity, as shown in Figure~\ref{fig-mysnesl-func}. 
+taken a specific verison: restricted $\otimes$ to +, for simplicity, as shown in Figure~\ref{fig-mysnesl-func}. 
 
 
 \begin{figure}[H]\large
@@ -301,7 +306,7 @@ The types and semantics of these built-in functions remain the same as they are 
 
 \begin{itemize}
 
-	\item $\*{append_{\tau} : \{\tau\} \times \{\tau\} \ra \{\tau\}}$ , 
+	\item $\*{append_{\tau} : (\{\tau\}, \{\tau\}) \ra \{\tau\}}$ , 
 	appends one sequence to the end of another; syntactic-sugared as the infix symbol {\++}.
 
 	\begin{figure}[H]
@@ -343,7 +348,7 @@ The types and semantics of these built-in functions remain the same as they are 
 	\end{lstlisting}
 	\end{figure}
 	
-	\item $\*{part_{\tau}: \{\tau\} \times \{\bool\} \ra  \{\{\tau\}\}}$, partitions a sequence into subsequences according to the second boolean sequence where a $\F$ corresponds to one element of the first argument and a $\T$ indicates a segment separation; so the number of $\F$s is equal to length of the first argument, and the number of $\T$s is equal to the length of the returned value, and this argument must end with a $\T$. 
+	\item $\*{part_{\tau}: (\{\tau\}, \{\bool\}) \ra  \{\{\tau\}\}}$, partitions a sequence into subsequences according to the second boolean sequence where a $\F$ corresponds to one element of the first argument and a $\T$ indicates a segment separation; so the number of $\F$s is equal to length of the first argument, and the number of $\T$s is equal to the length of the returned value, and this argument must end with a $\T$. 
 	If the second argument does not satisfy these requirements, a runtime error will be reported.
 	\begin{figure}[H]
 	\begin{example}
@@ -423,7 +428,7 @@ $$ \a ::= \<a_1,...,a_l\'>$$
 $$ w ::= \a \ | \ (w_1,w_2) $$
 
 The representation also relies on the high-level type of the value. 
-We use the infix symbol ``$ \tr$" subscripted by a type $\tau$ to denote a type-depended representation relation.
+We use the infix symbol ``$ \tr$" subscripted by a type $\tau$ to denote a type-dependent representation relation.
 
 
 \begin{itemize}
@@ -469,7 +474,7 @@ We use the infix symbol ``$ \tr$" subscripted by a type $\tau$ to denote a type-
 In \cite{Fmaster} a streaming target language for a minimal SNESL was defined.
 With trivial changes in the instruction set, this language, named as SVCODE (Streaming VCODE), has been implemented on a multicore system in \cite{MF16}; the various experiment results
 have demonstrated single-core performance similar to sequential C code for some simple 
-text-processing tasks and near-linear scaling on modern	 multiple cores.
+text-processing tasks and near-linear scaling on moderate multicores.
 
 In this thesis, we put emphasis on the formalization of this low-level language's semantics.
 Also, to support recursion in the high-level language at the same time preserve the cost, non-trivial extension of this language is needed. 
@@ -494,10 +499,9 @@ As a general rule of reading an SVCODE instruction, the stream ids on the left-h
 	&  \S && ::= \{\s_1,..., \s_k\} \in \sset  \tag{set of stream ids}\\
 	\\
 	& \psi \ && ::= \consta{a} \ | \ \toflag  
-	\ | \ \usum \ | \ \map{\oplus} \ | \ \genscan_{\otimes} \ | \ \genreduce_{\otimes} \ | \ \distr  \tag{Xducers}  \\
+	\ | \ \usum \ | \ \map{\oplus} \ | \ \genscan_{+} \ | \ \genreduce_{+} \ | \ \distr  \tag{Xducers}  \\
     &   && \quad | \ \pack \ | \ \upack \ | \ \bu \ | \ \segconcat \ | \ \usegcount \ | \ \intermerge \ | \ ...  \\
-    & \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | <= \ | \ == \ | \  \*{not} \ | \ ... \tag{scalar operations} \\
-    & \otimes \ && :: = + \ | \ \times  \ | \ ...  \tag{associative binary operations} \\
+    & \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | <= \ | \ == \ | \  \*{not} \ | \ ... \tag{scalar operations}
 	\end{alignat*}
 	\caption{Abstract syntax of SVCODE \label{fig-svcode1-gram}}
 \end{figure}
@@ -525,7 +529,7 @@ The instruction $\scall{f}{\replc{m}{s}}{(\replc{n}{s'})}$ can be read as: ``cal
 The function body of $f$ is merely another piece of SVCODE program, but without the definition instructions of its argument streams.
 
 
-It is worth noting that a well-formed SVCODE instruction should always assign $fresh$ (never used) stream ids to the defined streams, in which way the dataflow of an SVCODE program can construct a DAG (directed acyclic graph). 
+It is worth noting that a well-formed SVCODE instruction should always assign \emph{fresh} (never previously used) stream ids to the defined streams, in which way the dataflow of an SVCODE program can construct a DAG (directed acyclic graph). 
 We will give more formal definitions of this language in the next chapter
 to demonstrate how the freshness property is guaranteed. 
 In the practical implementation, we simply identify each stream with a natural number, a smaller one always defined earlier than a greater one. 
@@ -541,54 +545,16 @@ the element-wise addition result $\<4, 3\'>$.
 
 \begin{example} \emph{$\map{+}(\<3,2\'>, \< 1,1\'>)$:}\\
 	\begin{center}
-		\includegraphics[width=0.6\textwidth]{fig/map.png}
+		\includegraphics[width=0.6\textwidth]{fig/mapxducer.png}
 	\end{center}
 \end{example}
-
-
-As we have mentioned before, the dataflow of an SVCODE program is a DAG, where each Xducer stands for one node. 
-The \wc block is only a subgraph that may be added to the DAG at runtime,  
-and \sc another that will be unfolded dynamically.
-
-Figure~\ref{fig-svcode-eg1} shows an example program, with its DAG in Figure~\ref{fig-svcode-dag1}. \\
-
-\begin{figure}[H]
-	\begin{lstlisting}[style=svcode-style]
-	S1 := Const_3();
-	S2 := ToFlags(S1);
-	S3 := Usum(S2);
-	[S4] := WithCtrl(S3,[], 
-	          S4 := Const_1();
-	        )
-	S5 := ScanPlus(S2, S4);
-	\end{lstlisting}	
-	\caption{A small SVCODE program \label{fig-svcode-eg1}}
-\end{figure}
-%	S6 := Usum(S2);
-%	[S7] := WithCtrl(S6, [S5], 
-%	[S7] := SCall(plus1, [S5])
-%	)
-\hspace{1cm}
-
-\fig{\includegraphics[width=1.1\textwidth]{fig/xducerDag2.png}}{
-	Dataflow DAG for the code in Figure~\ref{fig-svcode-eg1} (assuming S3 is nonempty).
-	\label{fig-svcode-dag1}
-	Note that, for simplicity, the control stream is added as an explicit supplier only to Xducer $\consta{a}$.
-}
-
-
-When we talk about two Xducers $A$ and $B$ connected by an arrow from $A$ to $B$ in the DAG, we call $A$ a $producer$ or a $supplier$ to $B$, and $B$ a $consumer$ or a $client$ of $A$. 
-As an Xducer can have multiple suppliers, we distinguish these suppliers by giving each of them an index, called a $channel \ number$. 
-In Figure~\ref{fig-svcode-dag1}, the channel number is labeled above each edge. 
-For example, the Xducer S2 has two clients, S3 and S5, for both of whom it is the No.0 channel;  Xducer S5 has two suppliers: S2 the No.0 channel and S3 the No.1. \\
-
 
 
 Among all the Xducers, $\constaf{a}$ is a special one, because it outputs some number of constant $a$ but takes no argument.  
 At the high level, it corresponds to the evaluation of constants.
 Some strategy must be taken here to tell this Xducer how many elements it should produce.
 
-In the implementation of \cite{MF16}, a special stream of unit type, called the $control \ stream$, is used at compiling time for replicating constants.
+In the implementation of \cite{MF16}, a special stream of unit type, called \emph{control stream}, is used at compiling time for replicating constants.
 
 In our implementation, we move the control stream to the runtime, and let it not only control constants replication, but more importantly, dominate all the Xducers' behavior. 
 Our observation is that the parallel degree throughout the whole computation can be expressed by this control stream, and all the Xducers can behave correspondingly to this parallel degree. 
@@ -606,12 +572,49 @@ Finally, the functionality of the Xducer can be completely independent or separa
 and the implementation model more flexible and easier to debug. 
 
 
+As we have mentioned before, the dataflow of an SVCODE program is a DAG, where each Xducer stands for one node. 
+The \wc block is only a subgraph that may be added to the DAG at runtime,  
+and \sc another that will be unfolded dynamically.
+
+Figure~\ref{fig-svcode-eg1} shows an example program, with its DAG in Figure~\ref{fig-svcode-dag1}. \\
+
+\begin{figure}[H]
+	\begin{lstlisting}[style=svcode-style]
+	S1 := Const_3();
+	S2 := ToFlags(S1);
+	S3 := Usum(S2);
+	[S4] := WithCtrl(S3,[], 
+	S4 := Const_1();
+	)
+	S5 := ScanPlus(S2, S4);
+	\end{lstlisting}	
+	\caption{A small SVCODE program \label{fig-svcode-eg1}}
+\end{figure}
+%	S6 := Usum(S2);
+%	[S7] := WithCtrl(S6, [S5], 
+%	[S7] := SCall(plus1, [S5])
+%	)
+\hspace{1cm}
+
+\fig{\includegraphics[width=0.85\textwidth]{fig/dataflow.png}}{
+	Dataflow DAG for the code in Figure~\ref{fig-svcode-eg1} (assuming S3 is nonempty).
+	\label{fig-svcode-dag1}
+	Note that, for simplicity, the control stream is added as an explicit supplier only to Xducer $\consta{a}$.
+}
+
+
+When we talk about two Xducers $A$ and $B$ connected by an arrow from $A$ to $B$ in the DAG, we call $A$ a \emph{producer} or a \emph{supplier} to $B$, and $B$ a \emph{consumer} or a \emph{client} of $A$. 
+As an Xducer can have multiple suppliers, we distinguish these suppliers by giving each of them an index, called a \emph{channel number}. 
+In Figure~\ref{fig-svcode-dag1}, the channel number is labeled above each edge. 
+For example, the Xducer S2 has two clients, S3 and S5, for both of whom it is the No.0 channel;  Xducer S5 has two suppliers: S2 the No.0 channel and S3 the No.1. \\
+
+
 
 \section{Translating \mysnesl to SVCODE}
-In Chapter~\ref{sec:valrep}, we have seen the idea of how a high-level value of \mysnesl \ can be represented as a binary tree of low-level stream values.
+In Section~\ref{sec:valrep}, we have seen the idea of how a high-level value of \mysnesl \ can be represented as a binary tree of low-level stream values.
 At the compiling time, we use a structure $\STree$ (stream id tree) to connect the high-level variables and the low-level ones: 
 $$ \STree \ni \st ::= \s \ | \ (\st_1,\st_2) $$
-The translation environment $\del$ is a mapping from high-level variables to stream trees:
+The translation symbol table $\del$ is a mapping from high-level variables to stream trees:
  $$\del = [x_1 \|-> \st_1,..., x_k \|-> {\st_k}] $$ 
 
 Another important component maintained at the compiling time is a fresh-stream allocation counter. 
@@ -634,8 +637,10 @@ For a let-binding expression $\Let{x}{e_1}{e_2}$,  first $e_1$ gets translated t
 
 Translations for specific built-in functions and user-defined functions will be given later.
 
-%TODO explain or example
-Non-empty primitive sequence looks a little bit tricky to translate as it can have arbitrary  number $n$ ($ n \ge$ 1) of elements, but it is basically a $n$-argument version of the function $\*{append}$.
+
+Non-empty primitive sequence looks a little bit tricky to translate as it can have arbitrary  number $n$ ($ n \ge$ 1) of elements, but it is basically a $n$-argument version of the function $\*{append}$,
+i.e.,  $\{e_1,...,e_k\}$ is compiled as $\*{append}(\{e_1\},...,\{e_k\})$. 
+More details about translating $\*{append}$ is given later. 
 For the empty sequence $\{\}\tau$, the low-level streams are all empty streams except for the outermost descriptor $\oT$, and the number of those empty streams depends on the type $\tau$.
 
 The most interesting case may be the comprehensions. 
@@ -654,9 +659,9 @@ Here we use the Xducer $\usum$ working on $s_b$ to generate the new control stre
 	\end{center}
 \end{example}
 
-If there is no free variables in $e_1$ (i.e., the list after $\*{using}$ is empty), then the next step of translating a general comprehension will be translating the comprehension body $e_1$ in the new environment $\del[x \|->\st_0]$, and the translation is finished.
+If there is no free variables in $e_1$ (i.e., the list after $\*{using}$ is empty), then the next step of translating a general comprehension will be translating the comprehension body $e_1$ in the new symbol table $[x \|->\st_0]$, and the translation is finished.
 
-For the case where $e_1$ uses some free variables $x_1,...,x_k$, we need to generate new streams, each of which is a $l$-replicate of the stream of $x_1,...,x_k$ respectively. 
+For the case where $e_1$ uses some free variables $x_1,...,x_k$, we need to generate new streams, each of which is a $l$-wise replicate of the stream of $x_1,...,x_k$ respectively. 
 
 So the translation will look like:\\[3ex]
 	\PT{
