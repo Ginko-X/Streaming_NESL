@@ -35,6 +35,9 @@
 \def\PRName#1{\textsc{I-#1}}
 \def\MI{\mathcal{I}}  % prefix rule
 
+% well-formedness rules
+\def\WName#1{\textsc{W-#1}}
+\def\MW{\mathcal{W}}
 
 \def\ConEq#1{\xlongequal{#1}}  % Sgm conditional equation
 
@@ -285,16 +288,11 @@ We now consider a well-formed program $p$ should be in a form $\wf{p}{S}{S'}$, w
     			& s \notin \S'
     		\end{aligned}
     		 \right)} 
-    	\UC{\wf{\withctrl{s}{p_1}{\Sin}{\Sout}}{\Sin \cup \{s\}}{\Sout}}  
+    	\UC{\wf{\withctrl{s}{p_1}{\Sin}{\Sout}}{\Sin \cup \{s\}}{\S'}}  
    	}\\[3ex]
    
    \PT{\AC{\wf{p_1}{\S}{\S_1}}
    	   \AC{\wf{p_2}{\S \cup \S_1} {\S_2}}
-%   	   \RiLa{\left(
-%   	   	\begin{aligned}
-%   	   		(\FV{p_1} \cup \dv{p_1}) \cap \dv{p_2} = \emptyset \\
-%   	   	\end{aligned}
-%      	\right)}  	  
        \BC{\wf{(p_1;p_2)}{\S}{\S_1 \cup \S_2}}
    }\\[3ex]
 
@@ -1087,18 +1085,18 @@ Clearly, if $\sgm_1 \x{\S} \sgm_2 = \sgm$,
 	\end{enumerate}
 \end{lem}
 \begin{proof}
-	The proof is by induction on the derivation of $\seval{p}{\sgm_1}{\c}{\sgm_1'}{W}$.
+	The proof is by induction on the derivation of $\seval{p}{\sgm_1}{\c}{\sgm_1'}{W}$. 
 \end{proof}
 
 
 \begin{lem} [\textbf{Store concatenation}] \label{lem-sgm-join}
 	If 
 	\begin{enumerate}[(i)]
-		\item $\wf{p}{\S_1}{\S_2}$
+		\item $\wf{p}{\S_1}{\S_2}$ (by some derivation $\MW$)
 		\item $\sgm_1 \~{\S} \sgm_2$
 		\item $\seval{p}{\sgm_1}{\c_1}{\sgm_1'}{W_1}$ (by some derivation $\MP_1$)
 		\item $	\seval{p}{\sgm_2} {\c_2} {\sgm_2'}{W_2}$ (by some derivation $\MP_2$)
-		\item $\S_1 \cap \S = \emptyset $
+		\item $(\S_1 \cup \S_2) \cap \S = \emptyset $
 	\end{enumerate}
 	then 
 	\begin{enumerate}[(i)]
@@ -1130,12 +1128,12 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
 	
 	By $\PName{Empty}$, we take $\MP$ = $\overline{\seval{\epsilon}{\sgmx}{\c_1 {\++} \c_2}{\sgmx}{0}}$ and it's clear $W= 0 \le 0+0$, as required. 
 	
-\item Case $p = \sdef{\s_l}{\lcall(s_1,...,s_k)}.$ \\
-\def\casetwo{\sdef{\s_l}{\lcall\Tupk\s}}	
+\item Case $p = \sdef{\s}{\lcall(s_1,...,s_k)}.$ \\
+\def\casetwo{\sdef{\s}{\lcall\Tupk\s}}	
 \def\eqnumtwo#1{eq-lem24-c2-{#1}}
 	$\MP_1$ must look like 
 	$$\PT{\UCN{\MP'_{1}}{\sevalf{\a_1}{\a_k}{\c_1}{\a}}
-			\UC{\seval{\sdef{\s_l}{\lcall\Tupk\s}}{\sgm_1}{\c_1}{\sgm_1[\s_l \|-> \a]}{(\sum_{i=1}^{k}|\a_i|) + |\a|}}
+			\UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm_1}{\c_1}{\sgm_1[\s \|-> \a]}{(\sum_{i=1}^{k}|\a_i|) + |\a|}}
 	} $$
 
 	and we have 
@@ -1144,15 +1142,16 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
 	
     Similarly, $\MP_2$ must look like 
 	$$\PT{\UCN{\MP'_{2}}{\sevalf{\a_1'}{\a_k'}{\c_2}{\a'}}
-		\UC{\seval{\sdef{\s_l}{\lcall\Tupk\s}}{\sgm_2}{\c_2}{\sgm_2[\s_l \|-> \a']}{(\sum_{i=1}^{k}|\a'_i|) + |\a'|}}
+		\UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm_2}{\c_2}{\sgm_2[\s \|-> \a']}{(\sum_{i=1}^{k}|\a'_i|) + |\a'|}}
 	} $$
 	
 	and we have
 	\eq{eq-lem24-c2-2}{(\sgm_2(\s_i) = \a_i')^k_{i=1}}
 	
-	So  $\sgm_1' = \sgm_1[\s_l \|-> \a], \sgm_2' = \sgm_2[\s_l \|-> \a']$, $W_1 = (\sum_{i=1}^{k}|\a_i|) + |\a|$, $W_2 = (\sum_{i=1}^{k}|\a'_i|) + |\a'|$, and clearly, $\sgm_1' \~\S \sgm_2'$. \\
+	So  $\sgm_1' = \sgm_1[\s \|-> \a], \sgm_2' = \sgm_2[\s \|-> \a']$, and $W_1 = (\sum_{i=1}^{k}|\a_i|) + |\a|$, $W_2 = (\sum_{i=1}^{k}|\a'_i|) + |\a'|$. 
+	Clearly, $\sgm_1' \~\S \sgm_2'$. \\
 	
-	From assumption $(iv)$ we have $\FV{\casetwo} \cap \S = \emptyset$,
+	From assumption $(i)$ and $(v)$ we have $\{s_1,...,s_k\} \subseteq \S_1 \cap \S = \emptyset$,
     that is, 
 	\eq{eq-lem24-c2-3}{\{s_1,...,s_k\} \cap \S = \emptyset}
 
@@ -1168,14 +1167,14 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
 	    \forall i \in \{1,...,k\}.\sgmx(\s_i) = \sgm_1(\s_i) {\++} \sgm_2(\s_i) = \a_i {\++} \a_i'}
  	Also, it is easy to prove 
  	 \eq{\eqnumtwo{4}}{
- 		\sgm_1[\s_l \|-> \a] \x{\S} \sgm_2[\s_l \|-> \a'] = 
- 		\sgmx[\s_l \|-> \a {\++} \a']
+ 		\sgm_1[\s \|-> \a] \x{\S} \sgm_2[\s \|-> \a'] = 
+ 		\sgmx[\s \|-> \a {\++} \a']
  	}
  
     Using the rule $\PName{Xducer}$ with $\eqref{\eqnumtwo{5}}$, we can build $\MP''$ as follows
    	$$\PT{\UCN{\MP'}{\sevalfg{\lcall}{\a_1  {\++} \a_1',...,\a_k {\++} \a_k' } 
    			{\c_1 {\++} \c_2} {\a {\++} \a'}}
-    	\UC{\seval{\casetwo}{\sgmx}{\c_1 {\++} \c_2}{\sgmx[\s_l \|-> \a {\++} \a']}{(\sum_{i=1}^{k}|\a_i{\++}\a'_i|) + |\a{\++} \a'|}}
+    	\UC{\seval{\casetwo}{\sgmx}{\c_1 {\++} \c_2}{\sgmx[\s \|-> \a {\++} \a']}{(\sum_{i=1}^{k}|\a_i{\++}\a'_i|) + |\a{\++} \a'|}}
     } $$
    
    
@@ -1184,32 +1183,28 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
  
    	
 
-\item Case $p = \withctrl{\s_c}{p_0}{\Sin}{\Sout}$ where  
+\item Case $p = \withctrl{\s_c}{p_0}{\Sin}{\Sout}$.\\
 \def\eqnumthree#1{eq-lem24-c3-{#1}}
+	We must have  
+	$$
+		\PT{\UCN{\MW_0}{\wf{p_0}{\Sin}{S'}}
+			\LeLa{\MW = }		
+			\UC{\wf{\withctrl{s_c}{p_0}{\Sin}{\Sout}}{\Sin \cup \{s_c\}}{\S'}}  
+	}$$
 
- \eq{eq-lem24-c3-1}{\FV{p_0} \subseteq \Sin}
- \eq {eq-lem24-c3-2}{\Sout \subseteq \dv{p_0}}
-
+where  
+ \eq {eq-lem24-c3-2}{\Sout \subseteq \S'}
+ 
+From $(v)$ we have $(\{\s_c\} \cup \Sin) \cap \S = \emptyset$, that is,
+ 	\eq{eq-lem24-c3-3}{\{\s_c\} \cap \S = \emptyset}
+	\eq{eq-lem24-c3-4}{\Sin \cap \S = \emptyset}
+		
 \def\casethree{\withctrl{\s_c}{p_0}{\Sin}{\Sout}}
 
-	From the assumption ($iv$), we have 
-	\begin{align*}
-	\FV{\casethree} \cap \S & = \emptyset \\
-	(\{\s_c\} \cup \Sin) \cap \S & = \emptyset \tag{by definition of $\FV{}$} 
-	\end{align*}
-	thus 
-	\eq{eq-lem24-c3-3}{\{\s_c\} \cap \S = \emptyset}
-	\eq{eq-lem24-c3-4}{\Sin \cap \S = \emptyset}
-	
-    Since \eqref{eq-lem24-c3-1} with \eqref{eq-lem24-c3-4}, we also have 
-    	\eq{eq-lem24-c3-6}{\FV{p_0} \cap \S = \emptyset}
-    
     Assume $\Sout = [s_1,...,s_j]$. \\	
     There are four possibilities: 
    
     \begin{itemize}
-
-
     	\item Subcase both $\MP_1$ and $\MP_2$ use $\PName{Wc-Emp}$. \\
     	
     	So $\MP_1$ must look like 
@@ -1219,20 +1214,14 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
     	}$$
     	and we have   \eq{eq-lem24-c3-5}{  	
     		\forall s \in \{\s_c\} \cup \Sin. \sgm_1(s) = \emptyv}
-        thus
-    		\eq{eq-lem24-c3-7}{\sgm_1(s_c) = \emptyv}
-    	  	\eq{\eqnumthree{8}}{\forall s \in \FV{p_0}. \sgm_1(s) = \emptyv}
     	
     	Similarly,$\MP_2$ must look like  	
     	$$\PT{
     		\Axiom{\seval{\casethree}{\sgm_2}{\c_2}{\sgm_2[\s_1 \|-> \emptyv, ..., \s_j \|-> \emptyv]}{1}}
     	}$$
-    	and we have   \eq{eq-lem24-c3-9}{  	
+    	and \eq{eq-lem24-c3-9}{  	
     		\forall s \in \{\s_c\} \cup \Sin. \sgm_2(s) = \emptyv}
-    	thus
-    	\eq{eq-lem24-c3-10}{\sgm_2(s_c) = \emptyv}
-    	\eq{\eqnumthree{11}}{\forall s \in \FV{p_0}. \sgm_2(s) = \emptyv}
-
+    	
  \def\sgmbe#1{\sgm_#1[\j{\s_i \|-> \emptyv}]}
     	
     	So $\sgm_1' = \sgmbe{1}$, $\sgm_2' = \sgmbe{2}, W_1 = 1, W_2 =1 $. \\
@@ -1240,9 +1229,9 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
  	Since $\sgm_1 \~{\S} \sgm_2$, by Definition $\ref{def-sgm-join}$ with \eqref{eq-lem24-c3-3}, \eqref{eq-lem24-c3-4}, and  \eqref{eq-lem24-c3-5}, \eqref{eq-lem24-c3-9}, we have    		
    		\eq{\eqnumthree{8}}{\forall s \in \{\s_c\} \cup \Sin. \sgmx(\s) = \sgm_1(\s) {\++} \sgm_2(s) =  \emptyv}
    		
-   		Also, it is easy to show that $\sgmbe1 \~{\S} \sgmbe2$ and 
+   		Also, it is easy to show that $\sgm'_1 \~{\S} \sgm'_2$ and 
    		\eq{\eqnumthree{7}}{
-   			\sgmbe1 \x{\S} \sgmbe2 = \sgmx[\j{\s_i \|-> \emptyv}]
+   			\sgm'_1 \x{\S} \sgm'_2 = \sgmx[\j{\s_i \|-> \emptyv}]
    		}
    	
     Using $\PName{Wc-Emp}$ with $\eqref{\eqnumthree{8}}$, we can build a derivation $\MP'$ as follows
@@ -1253,7 +1242,8 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
    	With $\eqref{\eqnumthree{7}}$, we take $\MP = \MP'$.
    	And $W = 1 \le W_1 + W_2$ as requierd.
    
-   	\item Subcase $\MP_1$ uses  $\PName{Wc-Nomemp}$, $\MP_2$ uses $\PName{Wc-Emp}$. \\
+\item Subcase $\MP_1$ uses  $\PName{Wc-Nomemp}$, $\MP_2$ uses $\PName{Wc-Emp}$. \\
+
   \def\sgmbpp#1{\sgm_{#1}[\j{\s_i \|-> \sgm_{#1}''(\s_i)}]}   	
    	$\MP_1$ must look like
    	$$\PT{
@@ -1271,18 +1261,18 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
    	$\forall s \in \{\s_c\} \cup \Sin. \sgm_2(s) = \emptyv$
    thus
 	\eq{\eqnumthree{21}}{\sgm_2(s_c) = \emptyv}
-	\eq{\eqnumthree{22}}{\forall s \in \FV{p_0}. \sgm_2(s) = \emptyv}   	
+	\eq{\eqnumthree{22}}{\forall s \in \Sin. \sgm_2(s) = \emptyv}   	
  	
 	So $\sgm_1' = \sgmbpp{1}$, $W_1 = W_0 +1$, $\sgm_2' = \sgmbe{2}$ and $W_2 = 1$.
 	
 	Since $\sgm_1 \~\S \sgm_2$, it is easy to show that 
 	 \eq{\eqnumthree{23}}
-	 { \forall s \in \FV{p_0}. \sgmx(s) = \sgm_1(s) {\++} \sgm_2(s) = \sgm_1(s)}
+	 { \forall s \in \Sin. \sgmx(s) = \sgm_1(s) {\++} \sgm_2(s) = \sgm_1(s)}
 	
-	Then by Lemma \ref{lem-emp-join} on  $\MP_1'$ with \eqref{\eqnumthree{23}}, we obtain a derivation $\MP_0$
+	Then by Lemma \ref{lem-emp-join} on $\MW_0$ with $\MP_1'$ with \eqref{\eqnumthree{23}}, we obtain a derivation $\MP_0$
     of 
     $$\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}{W_0}$$ for some $\sgm_0$, and 
-    $$\forall s \in \dv{p_0}. \sgm_0(s) = \sgm_1''(s), $$
+    $$ \sgm_0 \ConEq{\S'} \sgm_1''$$
     Then, with \eqref{eq-lem24-c3-2}, we have
     \eq{\eqnumthree{25}} {(\sgm_0(s_i) = \sgm_1''(s_i))^j_{i=1}}
     
@@ -1301,14 +1291,14 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
     	\sgmx[\j{\s_i \|-> \sgm_0(\s_1)}]
     }	
    
-     Using the rule $\PName{Wc-Nonemp}$ with $\eqref{\eqnumthree{27}}$ we can build a derivation $\MP'$ as follows 	
+    Since $\eqref{\eqnumthree{27}}$, we can use the rule $\PName{Wc-Nonemp}$ to build a derivation $\MP'$ as follows 	
   		$$\PT{
   			\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}{W_0}}
   			\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmx [\j{\s_i \|-> \sgm_0(\s_i)}]}{W_0+1}}
   		}$$ 
 
 	Then with $\eqref{\eqnumthree{28}}$, we take $\MP$ = $\MP'$, 
-	and it is clear $W = W_1  \le W_1 + 1 =  W_1 + W_2$ as required.
+	and it is clear $W = W_0+ 1 = W_1  \le W_1 + 1 =  W_1 + W_2$ as required.
   
 	\item Subcase $\MP_1$ uses  $\PName{Wc-Emp}$ and $\MP_2$ uses $\PName{Wc-Nonemp}$. \\	
 	This subcase is analogous to the previous one. \\
@@ -1335,7 +1325,8 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
     
     So $\sgm_1' = \sgmbpp{1}, W_1 = W_1'+1, \sgm_2' = \sgmbpp{2}$ and $W_2 = W_2'+1$.
     
-    By IH on $\MP_1'$, $\MP_2'$ with \eqref{eq-lem24-c3-6}, we get a derivation $\MP_0$ of 
+    By IH on $\MW_0$ with $\MP_1'$, $\MP_2'$, we get 
+    $\sgm_1'' \~\S \sgm_2''$, a derivation $\MP_0$ of 
     $$\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}{W'}$$
     and $W' \le W_1' + W_2'$.
     
@@ -1368,8 +1359,12 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
 
 	\item Case $p = p_1;p_2$ \\
 \def\eqnumfour#1{eq-lem24-c4-{#1}}
-
 	 We must have 
+	 $$ \PT{\UCN{\MW_1}{\wf{p_1}{\S_0}{\S_1}}
+	 		\UCN{\MW_2}{\wf{p_2}{\S_0 \cup \S_1} {\S_2}}
+	 		\LeLa{\MW=}
+	 		\BC{\wf{(p_1;p_2)}{\S_0}{\S_1 \cup \S_2}}
+	 }$$
 	$$	\PT{
 			\UCN{\MP_1'}{\seval{p_1}{\sgm_1}{\c_1}{\sgm_1''}{W'_1}}
 			\UCN{\MP_1''}{\seval{p_2}{\sgm_1''}{\c_1}{\sgm_1'}{W''_1}}	
@@ -1383,28 +1378,29 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
 	  		\LeLa{\MP_2 = }
 	  		\BC{\seval{p_1;p_2}{\sgm_2}{\c_1}{\sgm_2'}{W'_2+W''_2}}
 	  }	$$
-	
-	Since $\FV{p_1;p_2} \cap \S = \emptyset$, we have $(\FV{p_1} \cup \FV{p_2} - \dv{p_1}) \cap \S = \emptyset$, thus 
-	\eq{\eqnumfour{1}}{\FV{p_1} \cap \S = \emptyset}
-    \eq{\eqnumfour{2}}{\FV{p_2} \cap \S = \emptyset}
+	From $(v)$ it is easy to show that  
+	\eq{\eqnumfour{1}}{\S_0 \cap \S = \emptyset}
+    \eq{\eqnumfour{2}}{\S_1 \cap \S = \emptyset}
+    \eq{\eqnumfour{0}}{\S_2 \cap \S = \emptyset}
 
 \def\sgmxpp{\sgm_1'' \x{\S} \sgm_2''}    
 
-    By IH on $\MP_1'$, $\MP_2'$, \eqref{\eqnumfour{1}}, we get \eq{\eqnumfour{3}}{\sgm_1'' \~\S \sgm_2''}
-    and a derivation $\MP'$ of
-    $$\seval{p_1}{\sgmx}{\cc}{\sgmxpp}{W_1'+W_2'}$$
-   
+    Then by IH on $\MW_1$ with $\MP_1'$, $\MP_2'$, \eqref{\eqnumfour{1}}, we get \eq{\eqnumfour{3}}{\sgm_1'' \~\S \sgm_2''}
+     a derivation $\MP'$ of
+    $$\seval{p_1}{\sgmx}{\cc}{\sgmxpp}{W'}$$
+    where $W' \le W_1' + W_2'$.
     
-    Likewise, by IH on \eqref{\eqnumfour{3}} with $\MP_1''$, $\MP_2''$ and \eqref{\eqnumfour{2}}, we get $\sgm_1' \~\S \sgm_2'$, and a derivation $\MP''$ of $$\seval{p_2}{\sgmxpp}{\cc}{\sgmpx}{W''_1 + W''_2}$$
+    Likewise, by IH on $\MW_2$ with \eqref{\eqnumfour{3}}, $\MP_1''$, $\MP_2''$, we get $\sgm_1' \~\S \sgm_2'$, and a derivation $\MP''$ of $$\seval{p_2}{\sgmxpp}{\cc}{\sgmpx}{W''}$$
+    where $W'' \le W_1'' + W_2''$.
     
     Therefore, we use the rule $\PName{Seq}$ to build $\MP$ as follows:\\
     \makebox[0.6\textheight]{
     	  \PT{
-    		\UCN{\MP'}{\seval{p_1}{\sgmx}{\cc}{\sgmxpp}{W_1'+W_2'}}
-    		\UCN{\MP''}{\seval{p_2}{\sgmxpp}{\cc}{\sgmpx}{W_1''+W_2''}}	
+    		\UCN{\MP'}{\seval{p_1}{\sgmx}{\cc}{\sgmxpp}{W'}}
+    		\UCN{\MP''}{\seval{p_2}{\sgmxpp}{\cc}{\sgmpx}{W''}}	
     		\BC{\seval{p_1;p_2}{\sgmx}{\cc}{\sgmpx}{W}}
     	}	}
-     and it is clear $W = W_1'+W_2' + W_1''+W_2'' = W_1 + W_2$, as required.
+     and it is clear $W = W' + W'' \le W_1'+W_2' + W_1''+W_2'' = W_1 + W_2$, as required.
 	\end{itemize}
 \end{proof}
 
@@ -1416,18 +1412,46 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
 %	then $\sgm_1 \x{\S_1} \sgm_1' \ConEq{s} \sgm_2 \x{\S_2} \sgm'_2$. 
 %\end{lem}
 
+
+\subsection{Correctness proof}
+
 \begin{nota}
 	Let $\S \.< s$ denote $\forall s' \in \S. s' < s$.
 \end{nota}
 
 
-
-\subsection{Correctness proof}
-
 \begin{lem}
-	%TODO
-	
+	If 
+	\begin{enumerate}[(i)]
+		\item $\Transf{\hcall}{\replc k {\st}} {\s_0} {\s_1} {\sfun{p}{\st}}$ (by $\MC$)
+		\item $\ol{\st_1} {\++} ... {\++} \ol{\st_k} \.< \s_0$
+	\end{enumerate}
+	then 
+	\begin{enumerate}[(i)]
+		\setcounter{enumi}{3}
+		\item $\wf{p}{\FV{p}}{\dv{p}}$
+		\item $\FV{p} \.< \s_0$
+		\item $\dv{p} \subseteq \{s_0,...,s_1\!-\!1\} $
+		\item $\ol{\st} \.< \s_1$	
+	\end{enumerate}
 \end{lem}
+
+\begin{thm}
+	\textbf{If} 
+	\begin{enumerate}[(i)]
+		\item $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$ (by some $\MC$)
+		\item $\forall x \in dom(\Gam). \ol{\del(x)} \.< \s_0  $
+	\end{enumerate}
+	then
+	\begin{enumerate}[(i)]
+		\setcounter{enumi} {2}
+		\item $\wf{p}{\FV{p}}{\dv{p}}$
+		\item $\FV{p} \.< s_0$
+		\item $\dv{p} = \{s_0,...,s_1\!-\!1\}$
+		\item  $\ol{\st} \.< \s_1$
+	\end{enumerate} 
+\end{thm}
+
 
 \begin{lem}
 	\label{function-correctness}
@@ -1495,7 +1519,6 @@ By inducntion on the syntax of $\hcall$.
 	 $\infer{\ValRep{n_2}{\int}{\sgm(\s_2)}}{}$, which implies
 	 $\sgm(\s_1) = \singl{n_1}$ and $\sgm(\s_2) = \singl{n_2}$ respectively. 
 	 
-	 For (v) we have $\s_1 < \s_0$ and $\s_2 < \s_0$. 
 	 
 	 Then using $\PName{Xducer}$ with $\sgm(\s_1)= \singl{n_1}$ and $ \sgm(\s_2) = \singl{n_2}$, 
 	 and using $\PName{X-Loop}$ and $\PName{X-Termi}$, 

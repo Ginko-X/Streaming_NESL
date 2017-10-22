@@ -43,5 +43,5 @@
 \contentsline {section}{\numberline {3.5}Correctness}{53}
 \contentsline {subsection}{\numberline {3.5.1}Definitions}{53}
 \contentsline {subsection}{\numberline {3.5.2}Correctness proof}{60}
-\contentsline {section}{\numberline {3.6}Scaling up}{71}
+\contentsline {section}{\numberline {3.6}Scaling up}{72}
 \contentsline {chapter}{\numberline {4}Conclusion}{73}
