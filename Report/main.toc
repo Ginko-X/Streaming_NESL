@@ -29,19 +29,19 @@
 \contentsline {subsection}{\numberline {2.6.6}Deadlock}{36}
 \contentsline {subsection}{\numberline {2.6.7}Examples}{38}
 \contentsline {chapter}{\numberline {3}Formalization}{40}
-\contentsline {section}{\numberline {3.1}$\mathbf {SNESL_0}$}{40}
+\contentsline {section}{\numberline {3.1}SNESL\textsubscript {0}}{40}
 \contentsline {subsection}{\numberline {3.1.1}Syntax}{40}
 \contentsline {subsection}{\numberline {3.1.2}Typing rules}{41}
-\contentsline {subsection}{\numberline {3.1.3}Semantics}{41}
-\contentsline {section}{\numberline {3.2}$\mathbf {SVCODE_0}$}{42}
+\contentsline {subsection}{\numberline {3.1.3}Semantics}{42}
+\contentsline {section}{\numberline {3.2}SVCODE\textsubscript {0}}{42}
 \contentsline {subsection}{\numberline {3.2.1}Syntax}{42}
 \contentsline {subsection}{\numberline {3.2.2}Instruction semantics}{44}
 \contentsline {subsection}{\numberline {3.2.3}Xducer semantics}{45}
-\contentsline {subsection}{\numberline {3.2.4}$\mathbf {SVCODE_0}$ determinism}{46}
-\contentsline {section}{\numberline {3.3}Translation}{50}
-\contentsline {section}{\numberline {3.4}Value representation}{51}
-\contentsline {section}{\numberline {3.5}Correctness}{52}
-\contentsline {subsection}{\numberline {3.5.1}Definitions}{52}
+\contentsline {subsection}{\numberline {3.2.4}SVCODE\textsubscript {0}\ determinism}{47}
+\contentsline {section}{\numberline {3.3}Translation}{51}
+\contentsline {section}{\numberline {3.4}Value representation}{52}
+\contentsline {section}{\numberline {3.5}Correctness}{53}
+\contentsline {subsection}{\numberline {3.5.1}Definitions}{53}
 \contentsline {subsection}{\numberline {3.5.2}Correctness proof}{60}
-\contentsline {section}{\numberline {3.6}Scaling up}{69}
-\contentsline {chapter}{\numberline {4}Conclusion}{70}
+\contentsline {section}{\numberline {3.6}Scaling up}{71}
+\contentsline {chapter}{\numberline {4}Conclusion}{72}
