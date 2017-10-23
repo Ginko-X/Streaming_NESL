@@ -1,2 +1,25 @@
 \chapter{Conclusion}
-Aiming at solving two problems of , this thesis has put SNESL a step forward. 
+Aiming at addressing two problems with the highest priority of SNESL, this thesis has added more pieces to the puzzle of SNESL.
+
+The main contributions of this thesis are:
+\begin{itemize}
+	\item Extension of the dataflow model of streaming to account for recursion. \\
+	The challenge of supporting recursion is that it can cause an infinite increase on the dataflow network of the execution model.
+	Our solution is to extend the target language to make sure that the dataflow model of SNESL will not grow infinitely. 
+	In the implementation, the flow graph will be completed dynamically during execution, and any terminating high-level programs will be terminated in this low-level model as well.
+	The space usage for recursion will be proportional to the depth of the recursion. 
+\item A formalization of the source and target languages and the correctness of the translation and work cost preservation.  \\
+Formal semantics for the high-level NDP language can be found from previous related research, such as NESL and Proteus. However, none of them has given a formal semantics of the target language. 
+This thesis has not only provided the formalization of the target language for a core subset of full SNESL, but also presented a proof system for the correctness of the translation and cost preservation, as well as some other important properties of the language, such as determinism.
+The work we have done in this thesis paves the way for a formal validation for the full SNESL.
+\end{itemize}
+
+While investigating the solution to recursion, we have also touched some crucial, open problems in this streaming language,  such as streamability, scheduling, and deadlocks. 
+We have shown a possibility of scheduling that can be as efficient and light as the one used in the preivious work of SNESL, but also preserves the cost.
+
+The future work of SNESL related to the scope of this thesis can fall into the following two points.
+\begin{itemize}
+	\item Schedulability.  As a streaming language taking care of both the time and space efficiency,  SNESL suffers from deadlocks inherently inevitably. This is maybe the most challenging problem by thus far. We would expect a type system or some static/dynamic analysis that can prevent a measure of the problematic programs, instead of leaving the programmer confused with a sudden crash of a plausible streamable program.
+	
+	\item Formalization of the streaming semantics. The semantics we have shown in this thesis are only for the eager model of the target language. Formalizing the streaming semantics is also an area that has not been covered much yet.
+\end{itemize}

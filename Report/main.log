@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  23 OCT 2017 04:22
+This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  23 OCT 2017 12:22
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1655,17 +1655,17 @@ Underfull \hbox (badness 10000) in paragraph at lines 2153--2154
 
 [71]) (./concl.tex [72]
 Chapter 4.
-) (./main.bbl [73
+[73
 
-]
+]) (./main.bbl [74]
 Underfull \hbox (badness 1005) in paragraph at lines 30--34
 []\OT1/cmr/m/n/12 Guy E Blel-loch.  Nesl: A nested data-parallel lan-guage.(ver
 sion
  []
 
-[74
+[75
 
-]) [75] (./main.aux)
+]) [76] (./main.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
@@ -1679,4 +1679,4 @@ Here is how much of TeX's memory you used:
  1328 hyphenation exceptions out of 8191
  39i,20n,50p,10438b,1578s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on main.pdf (77 pages).
+Output written on main.pdf (78 pages).
