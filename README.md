@@ -4,10 +4,10 @@
     + fixed chapter 2
     + unfixed/unfinished parts:
         + chapter 2.6.1, 2.6.2, 2.6.7
-	+ chapter 3 fixed (with new well-formed rules) but maybe still buggy
-	+ scaling up
-	+ conclusion
-	+ bibliography
+        + chapter 3 fixed (with new well-formed rules) but maybe still buggy
+        + scaling up
+        + conclusion
+        + bibliography
 	
 + Week 50 (10 ~ 16 Oct)
     + Fixes and complements to chapter 1 and 2,  [main.pdf](https://github.com/Ginko-X/Streaming_NESL/blob/master/Report/main.pdf)  
