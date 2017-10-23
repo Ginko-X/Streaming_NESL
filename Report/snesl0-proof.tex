@@ -912,7 +912,7 @@ The following Lemma~\ref{lem-trans-prim-wf} and Theorem~\ref{thm-trans-wf} toget
 	\textbf{If} 
 	\begin{enumerate}[(i)]
 		\item $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$ 
-		\item $\forall x \in dom(\Gam). \olol{\del(x)} \subseteq \S$ 
+		\item $\forall x \in dom(\del). \olol{\del(x)} \subseteq \S$ 
 		\item  $\S \.< \s_0  $
 	\end{enumerate}
 	then for some $\S'$,
@@ -1060,7 +1060,7 @@ Clearly, if $\sgm_1 \x{\S} \sgm_2 = \sgm$,
 
 
 
-\begin{lem}\textbf{[Xducer concatenation}] \label{lem-psi-join}
+\begin{lem}[\textbf{Xducer concatenation}] \label{lem-psi-join}
 	If \begin{enumerate}[(i)]
 	 \item $\sevalfg{\lcall}{\a_{1},...,\a_{k}}{\c}{\a}$ by some derivation $\MP$
 	 \item $\sevalfg{\lcall}{\a'_{1},...,\a'_{k}}{\c'}{\a'}$ by some derivation $\MP'$,
@@ -1248,15 +1248,15 @@ Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this proc
 \def\eqnumthree#1{eq-lem24-c3-{#1}}
 	We must have  
 	$$
-		\PT{\UCN{\MW_0}{\wf{p_0}{\Sin}{S'}}
+		\PT{\UCN{\MW_0}{\wf{p_0}{\Sin}{\S_2}}
 			\LeLa{\MW = }		
-			\UC{\wf{\withctrl{s_c}{p_0}{\Sin}{\Sout}}{\Sin \cup \{s_c\}}{\S'}}  
+			\UC{\wf{\withctrl{s_c}{p_0}{\Sin}{\Sout}}{\S_1}{\S_2}}  
 	}$$
 
 where  
- \eq {eq-lem24-c3-2}{\Sout \subseteq \S'}
+ \eq {eq-lem24-c3-2}{(\Sin \cup \{s_c\}) \subseteq \S_1, \quad \Sout \subseteq \S_2}
  
-From $(v)$ we have $(\{\s_c\} \cup \Sin) \cap \S = \emptyset$, that is,
+From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, that is,
  	\eq{eq-lem24-c3-3}{\{\s_c\} \cap \S = \emptyset}
 	\eq{eq-lem24-c3-4}{\Sin \cap \S = \emptyset}
 		
@@ -1333,7 +1333,7 @@ From $(v)$ we have $(\{\s_c\} \cup \Sin) \cap \S = \emptyset$, that is,
 	Then by Lemma \ref{lem-emp-join} on $\MW_0$ with $\MP_1'$ with \eqref{\eqnumthree{23}}, we obtain a derivation $\MP_0$
     of 
     $$\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}{W_0}$$ for some $\sgm_0$, and 
-    $$ \sgm_0 \ConEq{\S'} \sgm_1''$$
+    $$ \sgm_0 \ConEq{\S_2} \sgm_1''$$
     Then, with \eqref{eq-lem24-c3-2}, we have
     \eq{\eqnumthree{25}} {(\sgm_0(s_i) = \sgm_1''(s_i))^j_{i=1}}
     
@@ -1391,7 +1391,7 @@ From $(v)$ we have $(\{\s_c\} \cup \Sin) \cap \S = \emptyset$, that is,
     $$\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}{W'}$$
     and $W' \le W_1' + W_2'$.
     
-    Since $ \forall i \in \{1,...,j\}. s_i \notin \S$ ,
+    Since $ \forall i \in \{1,...,j\}. s_i \in \S_2$ and $\S_2 \cap \emptyset$ ,
     then by Definition $\ref{def-sgm-join}$, we know
     \eq{\eqnumthree{32}}{\sgmxpp(s_i) = \sgm_1''(\s_i) {\++} \sgm_2''(\s_i)}
     
@@ -1513,7 +1513,7 @@ By inducntion on the syntax of $\hcall$.
 	So $\sgm' = \sgm[\s_0 \|-> \singl{n}]$.
 	
 	Then we take $\MR$ = $\PT{\Axiom{\ValRep{n}{\int}{\sgm'(\s_0)}}}$ \\
-	Also clearly, $ W = 1 = |v|$, and we take $C=1$, as required.
+	Also clearly, $ W = 1 = |v|$, and  $C$ can be any number $\ge 1$.
 	
 %	$\sgm' \ConEq{\s_0} \sgm$, $\s_0 \le \s_0 +1$, $\sids{\s_0} \.< \s_0 +1$, and we are done.
 		
@@ -1546,7 +1546,7 @@ By inducntion on the syntax of $\hcall$.
 	Therefore, $\sgm' = \sgm[\s_0 \|-> \singl{n_3}]$.\\
 	Now we can take $\MR = \infer{\ValRep{n_3}{\int}{\sgm'(\s_0)}}{}$,
 	and it is clear that
-	$W= 3 = |v_1| + |v_2| + |v| $ and we take $C = 1$, as required.
+	$W= 3 = |v_1| + |v_2| + |v| $ and  $C$ can be any number $\ge 1$.
 %	 $\sgm' \ConEq{\s_0} \sgm$, $\s_0 \le \s_0 +1$ 
 %	 and $\sids{\s_0} \.< \s_0+1$ as required. 
 	
@@ -1662,8 +1662,8 @@ By inducntion on the syntax of $\hcall$.
 	 	\TC{\ValRep{\{0,...,n\!-\!1\}}{\tseq{\int}}{(\<0,...,n\!-\!1\'>,\flagn)}}
 	 }$$
 	 Since $W = W_0+W_1+W_2+W_3 = 6n+3 + W_2$, and $|v_1|+|v| = n+1$,
-     for $n=0$, we have $W_2=1$, so $W = 4 $, and we take $C = 4$;
-     for $n \neq 0$, $W_2 = n+1$, so $W= 7n+4$,  we take $C=7$, as required.
+     for $n=0$, we have $W_2=1$, so $W = 4 $, and  $C$ can be any number $\ge 4$;
+     for $n \neq 0$, $W_2 = n+1$, so $W= 7n+4$, thus $C \ge 7$.
 	 	
 	
 \end{itemize}
@@ -1722,7 +1722,7 @@ So $p= \epsilon$.
 Immediately we have $\MP$ =
 $\PT{\Axiom{\seval{\epsilon}{\sgm}{\vunit}{\sgm}{0}}}$\\
 From the assumptions (iv),(v) and(vi) we already have $\ValRep{v}{\tau}{\sgm(\st)}$.
-Finally it's clear that $W^L = W^H = 0$, so $C$ can be taken any numbers. 
+Finally it's clear that $W^L = W^H = 0$, so $C$ can be any number. 
 
 
 % case let-binding 
@@ -1749,23 +1749,23 @@ $$\PT{\UCN{\MC_1}{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
 
 So $p = p_1;p_2$. 
 
-By IH on $\MT_1$ with $\ME_1,\MC_1$, for some $C_1$, we have
+By IH on $\MT_1$ with $\ME_1,\MC_1$, we have
 \begin{enumerate}[(a)]
 	\item $\MP_1$ of $\seval{p_1}{\sgm}{\vunit}{\sgm_1}{W^L_1}$
 	\item $\MR_1$ of $\ValRep{v_1}{\tau_1}{\sgm_1(\st_1)}$
-    \item $W^L_1 \le C_1 \cdot W^H_1 $ 
+    \item $W^L_1 \le C \cdot W^H_1 $ 
 \end{enumerate}
 
 From (b), we must have $\rho[\Map{x}{v_1}](x) : \Gamma[\Map{x}{\tau_1}](x)$, and  $\ValRep{\rho[\Map{x}{v_1}](x)}{\Gamma[\Map{x}{\tau_1}](x)}{\sgm_1^*(\delta[\Map{x}{\st_1}](x))}$ must hold. 
 By Theorem~\ref{thm-trans-wf} on $\MC_1$, 
 we get $\olol{\st_1} \.< s_0'$, hence $\olol{\delta[\Map{x}{\st_1}](x)} \.< s_0'$. 
 
-Then by IH on  $\MT_2$ with $\ME_2,\MC_2$, for some constant $C_2$, we get 
+Then by IH on  $\MT_2$ with $\ME_2,\MC_2$, we get 
 \begin{enumerate}	[(a)]
 	\setcounter{enumi}{3}
 	\item $\MP_2$ of $\seval{p_2}{\sgm_1}{\vunit}{\sgm_2}{W^L_2}$ 
 	\item $\MR_2$ of $ \ValRep{v}{\tau}{\sgm_2^*(\st)}$
-    \item $W^L_2 \le C_2 \cdot W^H_2 $
+    \item $W^L_2 \le C \cdot W^H_2 $
 \end{enumerate}
 
 So using $\PName{Seq}$ we can construct:  
@@ -1777,7 +1777,7 @@ $$\PT{
 }$$
 
 
-Take $\sgm' = \sgm_2$ (thus $\MR$ = $\MR_2$),  and take $C =\*{max}(C_1,C_2)$ so that we will have $W^L=W^L_1+W^L_2 \le C(W^H_1+W^H_2) = CW^H$, as required.
+Take $\sgm' = \sgm_2$ (thus $\MR$ = $\MR_2$),  and we have $W^L=W^L_1+W^L_2 \le C(W^H_1+W^H_2) = C \cdot W^H$, as required.
 
 
 
@@ -1810,7 +1810,7 @@ From the assumptions $(iv)$ and $(vi)$, for all $i \in \{1,...,k\}$:
 \end{enumerate}
 
 So $W^H = \sum_{i=1}^{k}|v_i| +|v|$. \\ 
-Using Lemma \ref{function-correctness} on $\MT_1$  with $\ME_1, \MC_1, (a),(b)$ and $C$, gives us exactly what we shall show.
+Using Lemma \ref{function-correctness} on $\MT_1$  with $\ME_1, \MC_1, (a),(b)$ will give us exactly what we shall show.
 
 		
 		\item Case $e = \Comp{e_1}{x}{y}{\usevars}$. \\
@@ -1940,7 +1940,7 @@ First we shall show:
 	\setcounter{enumi}{6}
 	\item \label{comp-5} $\seval{\compp}{\sgm}{\singl{()}}{\sgm'}{W^L}$
 	by some $\MP$
-	\item $\ValRep{\Seql{v'}}{\tseq{\tau_2}}{\sgm'((\st_2,\s_b))}$ by some $\MR$ \\
+	\item $\ValRep{\Seql{v'}}{\tseq{\tau_2}}{\sgm'^*((\st_2,\s_b))}$ by some $\MR$ \\
 
 Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 
@@ -2020,7 +2020,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 		Therefore, (b) holds.
 		
 	TS (c): For $\forall i \in \{1,..,l\}$, we take $\sgm_{ji} \~\S \sgm_j$
-		where $\S = dom(\sgm_j) - (\olol{\st_1} \cup \{\s_1,...,\s_j\})$,  
+		where $\S = dom(\sgm_j) - \S_1 $,  
 		such that 
 		\begin{align*}
 			\sgm^*_{ji}(\st_1) & = w_i \\
@@ -2058,8 +2058,9 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 % ----------- 	
 	By Theorem~\ref{thm-trans-wf} on $\MC_1$ and (b), we have 
 	\eq{well-form}{
-	 \wf{p_1}{\FV{p_1}}{\dv{p_1}}}
-
+	 \wf{p_1}{\S_1}{\S_2}}
+    for some $\S_1$ such that $(\olol{\st_1} \cup \{s_1,...,s_j\}) \subseteq \S_1 $, 
+    and some $\S_2$ such that $\S_2 \subseteq \{s_0\!+1\!+j,...,s_1\}$. \\
 	Assume $\Sout = \{\s_{j+1},...,\s_{j+k}\}$.(Note here $\s_{j+k}$ is not necessary equal to $\s_j + k$, but must be $\ge \s_j$). \\
 	
 	There are two possibilities for $\MP_{j+1}$:
@@ -2101,8 +2102,8 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	\item \label{subcase-2} 
 	Subcase $\sgm_j(\s_0) \neq \emptyv$, i.e., $l > 0$.
 	
-    Since we have $\eqref{well-form}$, $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and  $(\FV{p_1} \cup \dv{p_1}) \cap \S = \emptyset$ from $\eqref{\eqnum{33}}$,
-	it is easy to show that using Lemma \ref{lem-sgm-join} at most (l-1) times we can obtain
+    Since we have $\eqref{well-form}$, $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and  $(\S_1 \cup \S_2) \cap \S = \emptyset$ from $\eqref{\eqnum{33}}$,
+	it is easy to show that using Lemma \ref{lem-sgm-join} (the store concatenation lemma) at most (l-1) times we can obtain
 	\eq{p1-sgms-sgms'}{
 		\seval{p_1}{(\x{\S} \sgm_{ji})^l_{i=1}}{\lunit}{(\x{\S} \sgm_{ji}')^l_{i=1}}{W^L_{j+1}}
 	}
@@ -2146,7 +2147,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	TS: (ix) \\
 	As we have shown, $$W^L =  \sum_{i=0}^{j+1} W^L_i = W^L_0 + \sum_{i=1}^{j}W^L_i + W^L_{j+1} = (2l+1) +  j\cdot (2l+2) + W^L_{j+1} $$
 	$$W^H = 1 + j \cdot l + \sum_{i=1}^{l} W^H_i$$ 
-	For $l=0$, 	$W^L = 2 + 2j$; $W^H = 1$. Thus $C$ can be any number that $ \ge 2j+2$ (and $j$ is the number of free variables of $e_1$, which can be regarded as a constant).
+	For $l=0$, 	$W^L = 2 + 2j$; $W^H = 1$. Thus $C$ can be any number that $ \ge 2j+2$ (and $j$ is the number of free variables of $e_1$, so it can be regarded as a constant).
     	 
 	For $l>0$, $W^L \le (2l+1) + j\cdot (2l+2) + C \cdot \sum_{i=1}^{l}W^H_i $,
 	and $W^H = 1 + j \cdot l + \sum_{i=1}^{l}W^H_i$. Therefore, ignore the contants in $W^L$,  $C $ can be any number $\ge 2$.
