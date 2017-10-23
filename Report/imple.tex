@@ -214,7 +214,6 @@ Figure~\ref{fig-snesl1-values} shows the typing rules for \mysnesl \ values, and
 
 The high-level semantics of \mysnesl \ is given in Figure~\ref{fig:mysnesl-semantics}. The evaluation environment  $\rho$ is in the form $$ \rho ::= [x_1 \|-> v_1,...,x_k \|-> v_k]$$ and the context for looking up user-defined functions $$\Phi ::= [f \|-> d_1,..., f_k\|-> d_k]$$
 
- %TODO: add cost??
 
 \begin{figure}\large
 
@@ -580,13 +579,12 @@ Figure~\ref{fig-svcode-eg1} shows an example program, with its DAG in Figure~\re
 
 \begin{figure}[H]
 	\begin{lstlisting}[style=svcode-style]
-	S1 := Const_3();
-	S2 := ToFlags(S1);
-	S3 := Usum(S2);
-	[S4] := WithCtrl(S3,[], 
-	S4 := Const_1();
-	)
-	S5 := ScanPlus(S2, S4);
+	S1 := Const_3
+	S2 := ToFlags S1
+	S3 := Usum S2
+	[S4] := WithCtrl S3 []:
+	         S4 := Const_1()
+	S5 := ScanPlus S2 S4
 	\end{lstlisting}	
 	\caption{A small SVCODE program \label{fig-svcode-eg1}}
 \end{figure}
@@ -610,7 +608,7 @@ For example, the Xducer S2 has two clients, S3 and S5, for both of whom it is th
 
 
 
-\section{Translating \mysnesl to SVCODE}
+\section{Translating \mysnesl \ to SVCODE}
 In Section~\ref{sec:valrep}, we have seen the idea of how a high-level value of \mysnesl \ can be represented as a binary tree of low-level stream values.
 At the compiling time, we use a structure $\STree$ (stream id tree) to connect the high-level variables and the low-level ones: 
 $$ \STree \ni \st ::= \s \ | \ (\st_1,\st_2) $$
@@ -644,26 +642,24 @@ More details about translating $\*{append}$ is given later.
 For the empty sequence $\{\}\tau$, the low-level streams are all empty streams except for the outermost descriptor $\oT$, and the number of those empty streams depends on the type $\tau$.
 
 The most interesting case may be the comprehensions. 
-For the general one, $\Comp{e_1}{x}{e_0}{x_1,...,x_k}$, first we need to translate $e_0$, whose type must be a sequence, and we obtain a program $p_0$ and a stream tree that must look like $(st_0,s_b)$ where $s_b$ is the outermost descriptor. 
-That is,
-$$ \Trans{\del}{e_0}{}{}{(p_0,(st_0,s_b))}$$
-Recall that the number of $\F$s of a descriptor is equal to the length of the inner data stream. 
-We assume the length is $l$. 
-The comprehension body $e_1$ will be evaluated $l$ times with $x$ being bound to different elements of the data stream $\st_0$, 
-thus the parallel degree of computing $e_1$ will be $l$, and the control stream needs to be changed to represent the new parallel degree. 
+For the general one, $\Comp{e_1}{x}{e_0}{x_1,...,x_k}$, the key step is to bind the variable $x$ to the entire data stream of the input sequence $e_0$, then translate the body $e_1$ with this variable-binding, and put it into a \wc block. 
+It is also important here that the parallel degrees must be changed (to the length of the input sequence).
+The values of the free variables  $x_1,...,x_k$ will be used many times (depending on the length of the input sequence as well), so they need to be replicated.
 
-Here we use the Xducer $\usum$ working on $s_b$ to generate the new control stream. The Xducer $\usumf{\b}$ consumes one boonlean stream and transforms an $\F$ to a unit, or a $\T$ to nothing.
+For example, the first step to translate the comprehension in the expression $\Let{x}{1}{\Comp{i+x}{i}{\&5}{x}}$ is to translate $\&5$, which is represented as a data stream $\<0,1,2,3,4\'>$ with a flag steam $\<\F,\F,\F,\F,\F,\T\'>$.
+So $i$ will be bound to the data stream, and the flag is used to generate the new control stream, using the Xducer $\usum$.
+The free variable $x$ will be replicated 5 times, i.e., $\<1,1,1,1,1\'>$, which is done by the Xducer $\distr$.
+Then the adding operation in the comprehension body is translated to an instruction performing vector addition on the stream bound to $i$ and the replication stream of $x$, and executing the instruction will give us $\<1,2,3,4,5\'>$. 
+
+
+The Xducer $\usum$ working on a flag stream $s_b$ to generate the new control stream. It transforms an $\F$ to a unit, a $\T$ to nothing.
 \begin{example} \emph{$\usumf{\<\F,\T,\F,\F,\T\'>}$ with the control stream = $\<(),() \'>$:} \\
 	\begin{center}
-		\includegraphics[width=0.6\textwidth]{fig/usum.png}
+		\includegraphics[width=0.7\textwidth]{fig/usumxducer.png}
 	\end{center}
 \end{example}
 
-If there is no free variables in $e_1$ (i.e., the list after $\*{using}$ is empty), then the next step of translating a general comprehension will be translating the comprehension body $e_1$ in the new symbol table $[x \|->\st_0]$, and the translation is finished.
-
-For the case where $e_1$ uses some free variables $x_1,...,x_k$, we need to generate new streams, each of which is a $l$-wise replicate of the stream of $x_1,...,x_k$ respectively. 
-
-So the translation will look like:\\[3ex]
+The translation for a general comprehension will look like:\\[3ex]
 	\PT{
 		\AC{\Trans{\del}{e_0}{}{}{(p_0, (st_0,s_b))}}
 		\AC{\Trans{[x \|-> {\st_0}, \k{x_i \|-> \st'_i}]}{e_1}{}{}{\sfun{p_1}{\st}}}
@@ -684,7 +680,7 @@ p = ( & \ p_0; \\
 	& \ \withctrl{\s_1}{p_1}{\Sin}{\Sout} ) \\
 \end{aligned}$$	
 
-Note that we put $p_1$ into a \wc block so that $p_1$ can be skipped when $s_1$, the new control stream, is tested to be an empty stream at runtime.
+We put $p_1$ into a \wc block so that $p_1$ can be skipped when $s_1$, the new control stream, is tested to be an empty stream.
 $\Sin$ and $\Sout$  are some analysis results about the free stream variables and the defined ones of $p_1$, which can be easily obtained by traversing $p_1$. We will give more details about them in the next chapter.
 
 The function $\mathtt{distr}_{\tau}$ is responsible for replicating streams by using the Xducer $\distr$. 
@@ -698,7 +694,7 @@ We give its definition in a form close to the SVCODE style for more readability:
 The Xducer $\distr$ consumes a boolean stream as a segment descriptor of the data stream, and replicates the constants of the data stream corresponding times to their segment lengths.
 \begin{example} \emph{$\distrf{\<\F,\F,\F,\T,\F,\T\'>}{\< 2,5 \'>}$ with control stream $\< (),() \'>$}\\
 	\begin{center}
-		\includegraphics[width=0.7\textwidth]{fig/distr.png}
+		\includegraphics[width=0.7\textwidth]{fig/distrxducer.png}
 	\end{center}
 \end{example}
 
@@ -741,7 +737,8 @@ s' := \Pack{s_b}{s}{\pi}; \quad \equiv & \quad s' := \packf{s_b}{s}; \\
 \\
 (st'_1,s_1')  := \Pack{s_b}{(st_1,s_1)}{\{\tau\}}; \quad \equiv & \quad s_1' := \upackf{s_b}{s_1}; \\ 
 &\quad s_2' := \distrf{s_1}{s_b};\\
-&\quad st_1' := \Pack{s_2'}{st_1}{\tau};
+&\quad s_c := \usumf{s_1}; \\
+&\quad \withctrl{s_c}{st_1' :=  \Pack{s_2'}{st_1}{\tau}}{[s_2'] {\++} \ol{st_1}}{st'_1} \\
 \end{align*}
 
 The Xducer $\pack$ throws away the element of the second stream if the boolean of the corresponding position in the first stream is a $\F$. 
@@ -784,14 +781,14 @@ Given a stream $\singl{n}$, the Xducer $\toflag$ first outputs $n$ $\F$s, then o
 
 \begin{example} \emph{$\toflagf{\<2,0\'>}$  with control stream $\<(),()\'>$:}\\
 	\begin{center}
-		\includegraphics[width=0.6\textwidth]{fig/toflag.png}
+		\includegraphics[width=0.7\textwidth]{fig/toflagsxducer.png}
 	\end{center}
 \end{example}
 
 $\scan_{}(s_b,s_d)$ performs an exclusive scan on the data stream $s_d$ segmented by $s_b$.
 \begin{example} \emph{$\scan_{}(\<\F,\F,\F,\T,\F,\T\'>, \< 2,5,3,6 \'>)$  with control stream $\<(),()\'>$: }\\
 	\begin{center}
-		\includegraphics[width=0.7\textwidth]{fig/scan.png}
+		\includegraphics[width=0.7\textwidth]{fig/scanxducer.png}
 	\end{center}
 \end{example}
 
@@ -814,7 +811,7 @@ The Xducer $\segconcat$ merges the second outermost descriptors of the high-leve
 
 \begin{example} \emph{$\segconcat(\<\F,\T,\F,\F,\F,\T\'>,\< \F,\T, \F,\F,\T,\T, \F,\F, \F,\T \'>)$ with control stream $\<(),()\'>$. The second argument has 4 segments, and the first argument says that the first one will be merged as one segment, and the other three together as another.}\\
 	\begin{center}
-		\includegraphics[width=0.9\textwidth]{fig/segconcatxducer.png}
+		\includegraphics[width=0.9\textwidth]{fig/segconcat.png}
 	\end{center}
 \end{example}
 
@@ -910,13 +907,13 @@ $$[s_1,...,s_m] = \ol{st_1} \ {\++} \ ... \ {\++} \ \ol{st_k}$$
 
 
 
-The generated SVCODE function will be added to a user-defined function mapping $\Psi$ from function identifiers to $\*{SFun}$:
+The generated SVCODE function will be added to a user-defined function environment $\Psi$ mapping from function identifiers to $\*{SFun}$s:
 $$ \Psi ::= [f_1 \|-> \sf_1,...,f_i \|-> \sf_i] $$
 
 And $\Psi$ will be used as a component of the runtime environment. So when we interpret the instruction $\scall{f}{[s_1,...,s_m]}{[s_1',...,s_n']}$, the function body can be unfolded by looking up $f$ in $\Psi$ and then passing the arguments.
 
-\section{Eager interpreter}
-Recall that an SVCODE program is a list of instructions each of which defines one or more streams. 
+\section{Eager SVCODE interpreter}
+Recall that an SVCODE program is a list of instructions, each of which defines one or more streams. 
 The eager interpreter executes the instructions sequentially, assuming the available memory is infinitely large, which is the critical difference between the execution models of the eager and streaming interpreters.
 
 For an eager interpreter, since there is always enough space, a  new stream can be entirely allocated in memory immediately after its definition instruction is executed.
@@ -933,13 +930,12 @@ So the eager version can be used as a baseline to compare with the streaming one
 \subsection{Dataflow}
 In the eager model, a Xducer consumes the entire input streams at once and outputs the whole result immediately. 
 The dataflow DAG is established gradually as Xducers are activated one by one.   
-%TODO An example ?
+
 
 \subsection{Cost model}
 The low-level work cost in the eager model is the total number of consumed and produced elements of all Xducers, and the step is merely the number of activated Xducers. 
 By activated we mean the executed stream definitions, because those inside a \wc block may be skipped, thus we will not count their steps. 
 
-%TODO space cost??
 
 
 \section{Streaming interpreter}
@@ -952,7 +948,7 @@ The final result will be collected from all these scheduling rounds.
 
 Since in most cases we will have to execute more than one rounds, some extra setting-up and overhead seem to be inevitable.
 On the other hand, exploiting only a limited buffer increases the efficiency of space usage. 
-In particular, for some properly streamable SNESL programs, the buffer size can be as small as one.
+In particular, for properly streamable SNESL programs, the buffer size can be as small as one.
 
 
 \subsection{Streamability}
@@ -1021,9 +1017,9 @@ $$ \proc  =  (\bufst, \S, \clis, \xducer) $$
 
 where $\S$ is the stream ids of the suppliers. An example process of Xducer $\map{+}$ can be found in Figure~\ref{fig:process}.
 
-\begin{figure}[H]
+\begin{figure}
 	\centering
-	\includegraphics[width=0.9\linewidth]{fig/process}
+	\includegraphics[width=1.0\textwidth]{fig/process}
 	\caption{A process S2 of Xducer $\map{+}$. 
 		It has read a 2 from S0's buffer and a 1 from S1's buffers, and it is writing a 3 to its own buffer.}
 	\label{fig:process}
@@ -1103,7 +1099,7 @@ In this phase, the interpreter establishes the initial DAG by traversing the SVC
 	\item initialize a \wc block $\withctrl{\s_c}{p}{\Sin}{\Sout}$ \\
 	At the initialization phase, the interpreter does not unfold $p$; instead, it mainly does the following two tasks:	
 	\begin{itemize}
-		\item prevents all the import streams of $\Sin$ from producing one more chunk (a full buffer) of data before the interpreter knows whether $s_c$ is an empty stream or not, i.e., add all of them a dummy client that never reads the buffer 
+		\item prevents all the import streams of $\Sin$ from producing more than one chunk (a full buffer) of data before the interpreter knows whether $s_c$ is an empty stream or not, i.e., add all of them a dummy client that never reads the buffer 
 		\item initializes all the export streams of $\Sout$ as dummy processes that do not produce any data
 	\end{itemize}
 
@@ -1123,7 +1119,7 @@ The crucial task in each round is to judge whether to unfold a \wc block or not.
 \begin{itemize}
 	\item \filling$\emptyv$: the new control process has not produce any data yet, so the decision cannot be made in this round, thus delayed to the next round
 	\item \draining$\emptyv \ \T$ : the new control stream is empty, thus no need to unfold the code, just set the export list streams also empty, and performs some other necessary clean-up job  
-	\item other cases: the new control stream must be nonempty, thus the interpreter can unfold the code block now
+	\item other cases: the new control stream must be nonempty, thus the interpreter can unfold the code block now, and replace the dummy clients/producers with actual clients/producers.
 \end{itemize}
 
 
@@ -1149,42 +1145,49 @@ In SVCODE, a recursive function call happens when the function body of $f$ from 
 
 
 For a non-recursive \sc, the effect of interpreting this instruction is almost transparent. 
-For a recursive one, there is not much difference except one crucial point: the recursive \sc must be wrapped by a \wc block, otherwise it can never terminate.
+For a recursive one, there is not much difference except one crucial point: the recursive \sc can only occur within a \wc block, otherwise it can never terminate.
 At each time of interpreting an inline \sc, the function body is unfolded, but the \wc instruction inside it will stop it from further unfolding, that is, the stack-frame number only increases by one. 
 
 At the high level, a SNESL program should use some conditional to decide when to terminate the recursion. 
-As the only conditional of SNESL is the restricted comprehension, which is always translated to a \wc block wrapping the expression body,
+As conditionals in SNESL are only comprehensions, which are all translated to a \wc block wrapping the expression body,
 so a recursion that can terminate at the high level will also terminate at the low level. 
 
 
-\begin{example}
+\begin{example} \emph{The recursive function \texttt{fact} computes the factorial for a given number.}
 \end{example}
 \begin{lstlisting}[style=nesl-style]
   -- define a function to compute factorial
   > function fact(x:int):int = if x <= 1 then 1 else x*fact(x-1)
   
-  -- running example
-  > {{fact(y): y in &x} : x in {5,10}}
-  {{1,1,2,6,24},{1,1,2,6,24,120,720,5040,40320,362880}} :: {{int}}
+  -- a running example
+  > let x = {3,7,0,4} in {fact(y): y in x }
+  {6,5040,1,24} :: {int}
 \end{lstlisting}
 
+\hspace{1cm}\\
+The translated SVCODE of the expression \texttt{let x = \{3,7,0,4\} in \{fact(y): y in x \}} is given in Figure~\ref{fig-fact-main} (omited some code for the sequence generation). After generating the sequence \texttt{\{3,7,0,4\}}, 
+the code only has two more instructions: a $\usum$ to replace a new control stream, and a \wc block only for controling the recursive function call. 
 
-% The function body of  \texttt{fact}:
-%\lstinputlisting[style=svcode-style]{code/fact.svcode}
-
-%TODO fix code
-The translated SVCODE of the expression:
+\fig{
 \lstinputlisting[style=svcode-style]{code/fact1.svcode}
+}{The SVCODE for the main function \label{fig-fact-main}}
 
+The code of the function body is shown in Figure~\ref{fig-fact-body}. 
+The comments show the streams when the function is unfolded at its first time, i.e, the argument stream \texttt{S1 = [3,7,0,4]}. 
+As the unfolding time increases, the graph of the dataflow grows dynamically. 
+The total unfolding time will depend on the maximal depth of the recursive call of all elements. 
+In our example, it is the number 7 that will unfold the function 6 times.\\
 
+\lstinputlisting[style=svcode-style]{code/fact.svcode}
+\fig{}{The SVCODE of \texttt{fact} function body \label{fig-fact-body}}
 
 \subsection{Deadlock}
-An inherent tough issue of the streaming execution model is the risk of deadlock, which is mainly due to the limitation of available memory and the irreversibility (maybe ?) of time.
-In general, we classify deadlock situations into two types: soft deadlock, which can be broken not necessarily by enlarging the buffer size, and hard deadlock, which can only be solved by enlarging the buffer size. 
+An inherent tough issue of the streaming execution model is the risk of deadlock, which is mainly due to the limitation of available memory and the irreversibility of time.
+In general, we classify deadlock situations into two types: soft deadlock, which can be broken not necessarily by enlarging the buffer size, and hard deadlock, which can only be solved by enlarging the buffer size or recomputation. 
 
 \begin{itemize}
 
-\item Soft deadlock: \\
+\item Soft deadlock: 
 
 One case of soft deadlock can be due to the different data rates of processes that leads to a situation where some buffer(s) of $\filling$ state can never turn to \draining. 
 For example, the following expression tries to negate the elements that can be divided by 5 exactly of a sequence.
@@ -1192,53 +1195,46 @@ For example, the following expression tries to negate the elements that can be d
 \end{example}
 \begin{lstlisting}[style=nesl-style]
   -- buffer size 4 
- > concat({{-x | x % 5 == 0} ++ {x | x %5 != 0} :  x in &10})
+ > {the({-x | x % 5 == 0} ++ {x | x %5 != 0}) :  x in &10})
  {0,1,2,3,4,-5,6,7,8,9} :: {int}
 \end{lstlisting}
 
-% TODO draw picture 
-% text not good
+
 In this example, the argument sequence contains elements from 0 to 9; the subsequence of the negated numbers, containing only 0 and -5, are concatenated with the one of the other eight numbers. 
 Since these two subsequences are generated at different rates,
 the buffer for holding the shorter subsequence cannot get full when the other for the longer subsequence is already full to drain.
 Then the Xducer for appending their elements deadlocks.
-But if we minimize the buffer size to 1, then the deadlock can be broken, since buffer of size one can always turn to \draining mode as long as there is one element generated. 
+But if we minimize the buffer size to 1, then the deadlock does not happen, since buffer of size one immediately turns to \draining mode as soon as there is one element generated. 
 
-In our implementation, we use a $stealing$ strategy to  automatically avoid this type of deadlock. 
-The idea is that when a deadlock is detected, we will first switch the smallest process with a \filling buffer into \draining mode to see if the deadlock can be broken; if not, we repeat this switch until the deadlock is broken; or otherwise, it may be a hard deadlock.
+In our implementation, we use a $stealing$ strategy to mitigate this type of deadlock. 
+The idea is that when a deadlock is detected, we will first switch the smallest process with a \filling state buffer into \draining mode to see if the deadlock can be broken; if not, we repeat this switch until the deadlock is broken; or otherwise, it may be a hard deadlock.
 
 Since the stealing strategy is basically a premature
-switch from \filling to \draining, the low-level step cost is possible to be affected and the effect depends on the concrete program and the buffer size. 
+switch from \filling to \draining, the low-level step cost may be affected and the effect depends on the concrete program and the buffer size. 
 Some future work can be further investigation about the effect of this stealing strategy on the cost model.\\
 
 
-\item Hard deadlock: \\
-This type of deadlock is mainly because of insufficient space.
+\item Hard deadlock: 
 
-One case of soft deadlock can be caused by trying to traverse the same sequence multiple times. 
+This type of deadlock is mainly caused by insufficient space or trying to traverse (use) the same sequence multiple times. 
 
-\begin{example} \emph{A soft deadlock caused by travesing the sequence $x$ two times.} \label{eg:deadlock1}
+\begin{example} \emph{A hard deadlock caused by traversing the sequence $s$ two times.} \label{eg:deadlock1}
 \end{example}
 \begin{lstlisting}[style=nesl-style]
-> let x = {1} in x ++ x
+> let s = {1+ x : x in &5} in s ++ &2 ++ s
 Deadlock!
 \end{lstlisting}
-
-There are at least two feasible solutions to this case.
-One is manually rewriting the code to define new variables for the same sequence, as the following code shows :\\
-
+As the appending operation is sequential, which means its arguments must come one by one, the same stream $s$ can not appear two times sequentially.
+One can solve the deadlock by recomputing the $s$ stream, that is, defining another stream doing the same task so they can be used at different time, for example, as the following code shows:\\
 \begin{lstlisting}[style=nesl-style]
-> let x = {1}; y = {1} in x ++ y
-{1,1} :: {int}
+> let s = {1+ x : x in &5} ; s2 = {1+ x : x in &5} in s ++ &2 ++ s2
+{1,2,3,4,5,0,1,1,2,3,4,5} :: {int}
 \end{lstlisting}
+Another solution is to tabulate the sequence (into a vector) so that it can be used multiple times. 
 
-The other can be done by optimizing the compiler to support multi-traversing check and automatic 
-redefinition of retraversed sequences, or other possible methods. 
-As the code grows more complicated, locating the problem can become much harder, thus a smarter compiler is definitely necessary. 
-This is worth some future investigation.\\
-
-
-\begin{example} \emph{The following SNESL function {\ttfamily oeadd} risks a hard deadlock. Given an integer sequence with an equal number of odd and even elements, this function will try to perform addition on a pair of odd and even number with the same index in their respective subsequences.} 
+\vspace{0.5cm}
+Another example of hard deadlock caused by memory source limitation:
+\begin{example} \emph{Given an integer sequence with an equal number of odd and even elements, the following function \texttt{oeadd} will try to perform addition on a pair of odd and even number with the same index in their respective subsequences.} 
 \end{example}
 
 \lstinputlisting[style=nesl-style]{code/harddeadlock.snesl} 
@@ -1250,15 +1246,14 @@ But if there is a relatively large distance between any odd-even pair, the code 
 \begin{lstlisting}[style=nesl-style]
 -- buffer size 1
 
-> oeadd(&30)
+> oeadd(&30) -- an odd and an even interleaved
 {1,5,9,13,17,21,25,29,33,37,41,45,49,53,57} :: {int}
 
-> oeadd({1,3,5,7,0,2,4,8})
+> oeadd({1,3,5,7,0,2,4,8})  -- distan
 Deadlock!
 \end{lstlisting}
 
-% TODO or recalculation
-This type of deadlock may only be broken by enlarging the buffer size. 
+Again, this type of deadlock can be broken by enlarging the buffer size, recalculation or fully materialization.
 
 
 \end{itemize}

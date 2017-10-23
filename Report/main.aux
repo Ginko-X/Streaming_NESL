@@ -75,11 +75,11 @@
 \newlabel{fig-svcode-eg1}{{2.9}{22}}
 \@writefile{lof}{\contentsline {figure}{\numberline {2.10}{\ignorespaces  Dataflow DAG for the code in Figure\nobreakspace  {}2.9\hbox {} (assuming S3 is nonempty).  Note that, for simplicity, the control stream is added as an explicit supplier only to Xducer $\mathtt  {Const_{a}}$. \relax }}{22}}
 \newlabel{fig-svcode-dag1}{{2.10}{22}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.4}Translating SNESL\textsubscript  {1}to SVCODE}{23}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.4}Translating SNESL\textsubscript  {1}\ to SVCODE}{23}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.4.1}Expression translation}{23}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{26}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{29}}
-\@writefile{toc}{\contentsline {section}{\numberline {2.5}Eager interpreter}{30}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.5}Eager SVCODE interpreter}{30}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.5.1}Dataflow}{30}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.5.2}Cost model}{30}}
 \@writefile{toc}{\contentsline {section}{\numberline {2.6}Streaming interpreter}{30}}
@@ -89,16 +89,21 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.6.2}Processes}{31}}
 \@writefile{lof}{\contentsline {figure}{\numberline {2.11}{\ignorespaces A process S2 of Xducer $\mathtt  {Map}_{+}$. It has read a 2 from S0's buffer and a 1 from S1's buffers, and it is writing a 3 to its own buffer.\relax }}{33}}
 \newlabel{fig:process}{{2.11}{33}}
-\@writefile{lot}{\contentsline {table}{\numberline {2.1}{\ignorespaces Process actions\relax }}{34}}
+\@writefile{lot}{\contentsline {table}{\numberline {2.1}{\ignorespaces Process actions\relax }}{33}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.6.3}Scheduling}{34}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.6.4}Cost model}{35}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.6.5}Recursion}{35}}
 \@writefile{lol}{\contentsline {lstlisting}{code/fact1.svcode}{36}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.6}Deadlock}{36}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.12}{\ignorespaces The SVCODE for the main function \relax }}{36}}
+\newlabel{fig-fact-main}{{2.12}{36}}
+\@writefile{lol}{\contentsline {lstlisting}{code/fact.svcode}{36}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.13}{\ignorespaces The SVCODE of \texttt  {fact} function body \relax }}{37}}
+\newlabel{fig-fact-body}{{2.13}{37}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.6}Deadlock}{37}}
 \newlabel{eg:deadlock1}{{2.27}{37}}
 \@writefile{lol}{\contentsline {lstlisting}{code/harddeadlock.snesl}{38}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.6.7}Examples}{38}}
-\@writefile{lol}{\contentsline {lstlisting}{code/uc\textunderscore scanred.snesl}{38}}
+\@writefile{lol}{\contentsline {lstlisting}{code/uc\textunderscore scanred.snesl}{39}}
 \@writefile{toc}{\contentsline {chapter}{\numberline {3}Formalization}{40}}
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}

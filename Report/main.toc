@@ -13,11 +13,11 @@
 \contentsline {section}{\numberline {2.3}SVCODE}{19}
 \contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{19}
 \contentsline {subsection}{\numberline {2.3.2}Xducers and control stream}{21}
-\contentsline {section}{\numberline {2.4}Translating SNESL\textsubscript {1}to SVCODE}{23}
+\contentsline {section}{\numberline {2.4}Translating SNESL\textsubscript {1}\ to SVCODE}{23}
 \contentsline {subsection}{\numberline {2.4.1}Expression translation}{23}
 \contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{26}
 \contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{29}
-\contentsline {section}{\numberline {2.5}Eager interpreter}{30}
+\contentsline {section}{\numberline {2.5}Eager SVCODE interpreter}{30}
 \contentsline {subsection}{\numberline {2.5.1}Dataflow}{30}
 \contentsline {subsection}{\numberline {2.5.2}Cost model}{30}
 \contentsline {section}{\numberline {2.6}Streaming interpreter}{30}
@@ -26,7 +26,7 @@
 \contentsline {subsection}{\numberline {2.6.3}Scheduling}{34}
 \contentsline {subsection}{\numberline {2.6.4}Cost model}{35}
 \contentsline {subsection}{\numberline {2.6.5}Recursion}{35}
-\contentsline {subsection}{\numberline {2.6.6}Deadlock}{36}
+\contentsline {subsection}{\numberline {2.6.6}Deadlock}{37}
 \contentsline {subsection}{\numberline {2.6.7}Examples}{38}
 \contentsline {chapter}{\numberline {3}Formalization}{40}
 \contentsline {section}{\numberline {3.1}SNESL\textsubscript {0}}{40}

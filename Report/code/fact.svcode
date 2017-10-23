@@ -1,27 +1,30 @@
 
-Parameters: [S1]
+Parameters: [S1]           -- <3,7,0,4>
 
-S3 := Const 1;
-S4 := MapTwo Leq 1 3;
-S5 := B2u 4;
-S6 := Usum 5;
-[S7] := WithCtrl S6 []:
-	  S7 := Const 1 
-S8 := Const 1;
-S9 := MapTwo Leq 1 8;
-S10 := MapOne Not 9;
-S11 := B2u 10;
-S12 := Pack 1 10;
-S13 := Usum 11;
-[S17] := WithCtrl S13 [12]:
-	   S14 := Const 1
-	   S15 := MapTwo Minus 12 14
-	   SCall fact [15] [16]
-	   S17 := MapTwo Times 12 16
- S18 := InterMergeS [5,11];
- S19 := PriSegInterS [(7,5),(17,11)];
- S20 := Const 1;
- S21 := ToFlags 20;
- S22 := Check 18 21
+-- compare with 1
+S3 := Const_1;             -- <1,1,1,1>
+S4 := MapTwo Leq S1 S3;    -- <F F T F>
+S5 := B2u S4;              -- <T T FT T>
 
-Return: (IStr 19)
+-- for elements <=1
+S6 := Usum S5;             -- <    ()  >
+[S7] := WithCtrl S6 []:   
+	  S7 := Const_1    -- <     1  >
+
+S8 := Const_1;             -- <1>
+S9 := MapTwo Leq S1 S8;    -- <F F T F>
+S10 := MapOne Not S9;      -- <T T F T>
+S11 := B2u S10;            -- <FT FT  FT>
+S12 := Pack S1 S10;        -- <3 7   4>
+
+-- for elementes >1
+S13 := Usum S11;           -- <()()  ()>
+[S17] := WithCtrl S13 [S12]:  
+	   S14 := Const_1  -- <1 1   1>
+	   S15 := MapTwo Minus S12 S14  -- <2 6   3>
+	   [S16] := SCall fact [S15]    -- <2 720   6> recursive call
+	   S17 := MapTwo Times S12 S16  -- <6 5040   24>
+...
+S19 := PriSegInterS [(S7,S5),(S17,S11)];  -- <6 5040 1 24>
+
+Return:  S19  
