@@ -62,7 +62,7 @@ Finally, we put emphasis on the proof of the translation correctness theorem of 
 \section{\fmsnesl}
 
 The language \fmsnesl \ we will formalize in this chapter is a subset of \mysnesl \ with its core semantics. 
-The simplifications we have made from \mysnesl \  to \fmsnesl \ is listed below:
+The simplifications we have made from \mysnesl \  to \fmsnesl \ are listed below:
 \begin{itemize}
 	\item only one primitive type $\int$ 
 	\item no pair types or zip-like comprehensions
@@ -104,7 +104,7 @@ For example, the expression $\Comp{x+y}{x}{\&5}{y}$ in a general form can be tur
 & \*{let} \ t_2 =  \iota{t_1} \ \*{in} \\
 & \qquad \{ \plus{x}{y} :  x \ \*{in} \ t_2 \ \*{using}  \ y \}
 \end{alignat*} 
-where $t_1, t_2$ are temporary variables used by the front end.
+where $t_1, t_2$ are temporary variables used by the front-end compiler.
 
 
 
@@ -253,7 +253,7 @@ The syntax of \fmsvcode \  is given in Figure~\ref{fig-svcode-grammar}.
 	\\
 	& \psi \ && ::= \consta{a} \ | \ \toflag  
 	\ | \ \usum \ | \ \maptwo{\oplus} \ | \ \scan_{n_0} \ | \ \distr  \tag{Xducers} \\
-	& \oplus \ && :: = + \ | \ - \ | \ \times \ | \ \div \ | \ \% \ | \ \cdots  \tag{binary integer operations}\\
+	& \oplus \ && :: = + \ | \ - \ | \ \times \ | \ / \ | \ \% \ | \ \cdots  \tag{binary integer operations}\\
 	\\
 	&  \S && ::= \{\s_1,..., \s_i\} \in \sset  \tag{a set of stream ids}
 	\end{alignat*}
@@ -495,7 +495,7 @@ As we have implemented more Xducers than shown here, we find that computations o
 For the scope of this thesis, the block semantics we have shown are already relatively clear and simple enough to reason about, and the formalization of the unary level parallelism can be investigated in future work. 
 
 
-Also note that the formalization for these Xducers we have shown here is only for theoretical analysis and reasoning about the computation, but not for what the real implementation of them should be. 
+The formalization for these Xducers' semantics we have shown here is only for theoretical analysis and reasoning about the computation, but not for what the real implementation of them should be. 
 In practice, most of the Xducers can be realized in a more efficient way to express parallelism by using a segmented scan operation \cite{blel89scan}. 
 
 %Or if we want to use $unary$ semantics maybe for later: \\
@@ -692,7 +692,7 @@ The following lemma says that a Xducer always knows how many elements it should 
 			}$$
 		so $\a_0 = \a_0' = \emptyv$, as required.
 		
-		\item Case $\c = \< () | \c_0 \'>$. \\		
+		\item Case $\c = \< () | \c_0 \'>$ for some $\c_0$. \\		
 		$\MP$ must use $\PName{X-Loop}$:
 		$$\PT{
 			\UCN{\MP_1}{\block{\a_{11}}{\a_{k1}}{\a_{01}}}
@@ -866,7 +866,7 @@ The translation judgments shown below can be read as: `` in the environment $\de
 				\s_{i+1} & = \s_i + 1, \forall i \in \{0,...,3\} \\
 				p= & \sdef{\s_0}{\toflag(\s)} ; \\ 
 				& \sdef{\s_1}{\usum(s_0)} ; \\
-				& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{[ \ ]}{[\s_2]}; \\
+				& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{\emptyset}{\{s_2\}}; \\
 				& \sdef{\s_3}{\scan_{0}(\s_0,s_2)}
 			\end{aligned}\right)
 		}
@@ -888,15 +888,15 @@ The following Lemma~\ref{lem-trans-prim-wf} and Theorem~\ref{thm-trans-wf} toget
 	If 
 	\begin{enumerate}[(i)]
 		\item $\Transf{\hcall}{\replc k {\st}} {\s_0} {\s_1} {\sfun{p}{\st}}$ 
-		\item $\bigcup_{i=1}^{k}\olol{\st_1} \subseteq \S$
+		\item $\bigcup_{i=1}^{k}\olol{\st_i} \subseteq \S$
 		\item $\S \.< \s_0$
 	\end{enumerate}
-	then for some $\S'$,
+	then, for some $\S'$,
 	\begin{enumerate}[(i)]
 		\setcounter{enumi}{3}
 		\item $\wf{p}{\S}{\S'}$
 		\item $\S' \subseteq \{s_0,...,s_1\!-\!1\} $
-		\item $\ol{\st} \subseteq (\S \cup \S')$
+		\item $\olol{\st} \subseteq (\S \cup \S')$
 	\end{enumerate}
 \end{lem}
 \begin{proof}
@@ -912,12 +912,12 @@ The following Lemma~\ref{lem-trans-prim-wf} and Theorem~\ref{thm-trans-wf} toget
 		\item $\forall x \in dom(\del). \olol{\del(x)} \subseteq \S$ 
 		\item  $\S \.< \s_0  $
 	\end{enumerate}
-	then for some $\S'$,
+	then, for some $\S'$,
 	\begin{enumerate}[(i)]
 		\setcounter{enumi} {3}
 		\item $\wf{p}{\S}{\S'}$
 		\item $\S' \subseteq \{s_0,...,s_1\!-\!1\}$
-		\item  $\ol{\st} \subseteq (\S \cup \S')$
+		\item  $\olol{\st} \subseteq (\S \cup \S')$
 	\end{enumerate} 
 \end{thm}
 \begin{proof}
@@ -960,15 +960,14 @@ The following Lemma~\ref{lem-trans-prim-wf} and Theorem~\ref{thm-trans-wf} toget
 		\PT{
 			\Axiom{\ValRep{n}{\int}{\singl{n}}}
 		}
-		\PT{ \Axiom{\ValRep{\{\}}{\tseq{\tau}}{(\emptyvtau{\tau},\oT)}}
-	}\\
-
 		\PT{
 			\AC{(\ValRep{v_i}{\tau}{\v_i})^l_{i=1}}
 			\RiLa{(\v = \v_1 {\++}_{\tau} ... {\++}_{\tau} w_l)}
 			\UC{\ValRep{\{v_1,...,v_l\}}{\tseq{\tau}}{(w,\langle \F_1,..., \F_l, \T \rangle)}}
 		}\\
 		
+	%		\PT{ \Axiom{\ValRep{\{\}}{\tseq{\tau}}{(\emptyvtau{\tau},\oT)}}
+	%	}\\
 	
 
 
@@ -1081,7 +1080,7 @@ Clearly, if $\sgm_1 \x{\S} \sgm_2 = \sgm$,
 		Then $\k{\aap{i} = \a_i'}$, $\cc = \c' $ and $\a {\++} \a' = \a'$. Take $\MP''
 		= \MP'$ and we are done. 
 		
-		\item Case $\c = \< () | \c_0 \'>$. \\ 
+		\item Case $\c = \< () | \c_0 \'>$ for some $\c_0$. \\ 
 		Then $\MP$ must use $\PName{X-Loop}$: 
 		$$
 		\PT{
@@ -1116,9 +1115,9 @@ Clearly, if $\sgm_1 \x{\S} \sgm_2 = \sgm$,
 \end{proof}
 
 \begin{nota}
-	For $\S \subseteq dom(\sigma) \subseteq dom(\sigma')$, let $\sgm \ConEq{\S} \sgm'$ denote: $\forall s \in \S. \sgm(s) = \sgm'(s)$.
+Let $\sgm \ConEq{\S} \sgm'$ denote: $\forall s \in \S. \sgm(s) = \sgm'(s)$.
 \end{nota}
-% TODO explain the relation with similarity 
+The relation $\sgm \ConEq{\S} \sgm'$ looks similar to $\sgm \~{\S} \sgm'$, but it does not require $\sgm$ and $\sgm'$ have the same domain.
 
 \begin{lem}\label{lem-}
 	If $\wf{p}{\S}{\S'}$, $\seval{p}{\sgm}{\c}{\sgm'}{W}$, then $\sgm' \ConEq{\S} \sgm$.
@@ -1561,7 +1560,7 @@ By inducntion on the syntax of $\hcall$.
 		\s_{i+1} & = \s_i + 1, \forall i \in \{0,...,3\} \\
 		p= \ & (\sdef{\s_0}{\toflag(\s)} ; \\ 
 		& \sdef{\s_1}{\usum(s_0)} ; \\
-		& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{[ \ ]}{[\s_2]}; \\
+		& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{\emptyset}{\{\s_2\}}; \\
 		& \sdef{\s_3}{\scan_{0}(\s_0,s_2)})
 	\end{align*}
 	 So $k=1, v_1= n, \tau = \{\int\}$ and $v = \{0,1,...,n\!-\!1\}$.
@@ -1650,7 +1649,7 @@ By inducntion on the syntax of $\hcall$.
 	 thus $\sgm' = \sgm[\s_0 \|-> \flagn, \s_1 \|-> \nunit, \s_2 \|-> \<1_1,...,1_n\'>, \s_3 \|-> \<0,...,n-1\'>]$ 
 	 and $W_3= 3n+1$. 
 	 
-	 Therefore we can build 
+	 Therefore, with $\sgm'^*((s_3,s_0)) = (\<0,...,n\!-\!1\'>,\flagn)$, we can build 
 	 $$\PT{
 	 	\Axiom{\ValRep{0}{\int}{\singl{0}}}
 	 	\AC{...}
@@ -1749,7 +1748,7 @@ So $p = p_1;p_2$.
 By IH on $\MT_1$ with $\ME_1,\MC_1$, we have
 \begin{enumerate}[(a)]
 	\item $\MP_1$ of $\seval{p_1}{\sgm}{\vunit}{\sgm_1}{W^L_1}$
-	\item $\MR_1$ of $\ValRep{v_1}{\tau_1}{\sgm_1(\st_1)}$
+	\item $\MR_1$ of $\ValRep{v_1}{\tau_1}{\sgm_1^*(\st_1)}$
     \item $W^L_1 \le C \cdot W^H_1 $ 
 \end{enumerate}
 
@@ -1802,8 +1801,8 @@ $$\PT{
 From the assumptions $(iv)$ and $(vi)$, for all $i \in \{1,...,k\}$:
 \begin{enumerate}[(a)]
 	\item $\Type{}{\rho(x_i)}{\Gam(x_i)}$, that is, $\Type{}{v_i}{\tau_i}$
-	\item $\ValRep{\rho(x_i)}{\Gam(x_i)}{\sgm(\st_i)}$, that is,
-	$\ValRep{v_i}{\tau_i}{\sgm(\st_i)}$
+	\item $\ValRep{\rho(x_i)}{\Gam(x_i)}{\sgm^*(\st_i)}$, that is,
+	$\ValRep{v_i}{\tau_i}{\sgm^*(\st_i)}$
 \end{enumerate}
 
 So $W^H = \sum_{i=1}^{k}|v_i| +|v|$. \\ 
@@ -1875,7 +1874,6 @@ Using Lemma \ref{function-correctness} on $\MT_1$  with $\ME_1, \MC_1, (a),(b)$ 
 	and clearly for $\forall i \in \{1,...,j\}, \Type{}{\rho(x_i)}{\Gam(x_i)}$, that is 
 	   \eq{\eqnum{2}}{\j{\ol{\Type{}{n_i}{\int}}}}  
 	
-	% (v) ??
 	\item 
 	$\olol{\del(y)} \.< \s_0$ gives us
 	\begin{equation} \label{\eqnum{21}}
@@ -1887,7 +1885,7 @@ Using Lemma \ref{function-correctness} on $\MT_1$  with $\ME_1, \MC_1, (a),(b)$ 
 	
 	\item 
 	Since $\ValRep{\rho(y)}{\Gam(y)}{\sgm(\del(y))} =
- 	 \ValRep{\Seql{v}}{\tseq{\tau_1}}{\sgm^*(\st_1,\s_b)}$, 
+ 	 \ValRep{\Seql{v}}{\tseq{\tau_1}}{\sgm^*((\st_1,\s_b))}$, 
  	 which must have the derivation: 
  	 \eq{comp-ass-valrep}{
  	 \PT{
@@ -1899,7 +1897,7 @@ Using Lemma \ref{function-correctness} on $\MT_1$  with $\ME_1, \MC_1, (a),(b)$ 
 			\right)^l_{i=1}}
 		\UC{\ValRep{\Seql{v}}{\tseq{\tau_1}}{(w,\stwo)}}
 	 }}
-    where $w =  w_1 \ {\++} \cdots {\++} \ w_l$,
+    where $w =  w_1 \ {\++}_{\tau_1} \cdots {\++}_{\tau_1} \ w_l$,
     therefore we have
     \eq{comp-ass-sgmst1} {\sgm^*(\st_1) = w}
     \eq{comp-ass-sgms2}	{\sgm(\s_b) = \< \F_1,..., \F_l, \T \'>.}
@@ -2017,7 +2015,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 		Therefore, (b) holds.
 		
 	TS (c): For $\forall i \in \{1,..,l\}$, we take $\sgm_{ji} \~\S \sgm_j$
-		where $\S = dom(\sgm_j) - \S_1 $,  
+		where $\S = dom(\sgm_j) - (\S_1\cup \S_2) $,  
 		such that 
 		\begin{align*}
 			\sgm^*_{ji}(\st_1) & = w_i \\
@@ -2083,11 +2081,11 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	\def\sgmpempty{\sgm[\s_0 \|-> \emptyv, \s_1' \|-> \emptyv, ..., \s_j' \|-> \emptyv]}
 
 % vi	
-	Since $l=0$, then $v = \{ \}$. Also, we have 
+	Since $l=0$, we have 
 	$$\sgm'(\s_b) = \sgm(\s_b) = \oT$$
 	$$\forall s \in \olol{\st_2}. \sgm'(s) = \emptyv$$ 
 	
-	Therefore, $\sgm'((\st_2,\s_b)) = (\sgm'(\st_2), \sgm'(\s_b)) = (\emptyvtau{\tau_2},\oT)$, with which we construct 
+	Therefore, $\sgm'^*((\st_2,\s_b)) = (\sgm'^*(\st_2), \sgm'(\s_b)) = (\emptyvtau{\tau_2},\oT)$, with which we construct 
 	$$\MR = 
 	\PT{\Axiom{\ValRep{\{\}}{\tseq{\tau_2}}{(\emptyvtau{\tau_2},\oT)}}}$$ 
 	as required.\\

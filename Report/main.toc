@@ -20,7 +20,7 @@
 \contentsline {section}{\numberline {2.5}Eager SVCODE interpreter}{30}
 \contentsline {subsection}{\numberline {2.5.1}Dataflow}{30}
 \contentsline {subsection}{\numberline {2.5.2}Cost model}{31}
-\contentsline {section}{\numberline {2.6}Streaming interpreter}{31}
+\contentsline {section}{\numberline {2.6}Streaming SVCODE interpreter}{31}
 \contentsline {subsection}{\numberline {2.6.1}Streamability}{31}
 \contentsline {subsection}{\numberline {2.6.2}Processes}{32}
 \contentsline {subsection}{\numberline {2.6.3}Scheduling}{34}

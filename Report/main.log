@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  24 OCT 2017 06:12
+This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  24 OCT 2017 11:31
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1467,17 +1467,12 @@ Underfull \hbox (badness 10000) in paragraph at lines 958--959
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 962--965
+Underfull \hbox (badness 10000) in paragraph at lines 962--968
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 970--971
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 975--976
+Underfull \hbox (badness 10000) in paragraph at lines 974--975
 
  []
 
@@ -1486,117 +1481,117 @@ Underfull \hbox (badness 10000) in paragraph at lines 975--976
 \myCenter4=\dimen230
 \myScoreEnd4=\dimen231
 [53]
-Underfull \hbox (badness 10000) in paragraph at lines 1026--1030
+Underfull \hbox (badness 10000) in paragraph at lines 1025--1029
 
  []
 
 [54]
-Underfull \hbox (badness 10000) in paragraph at lines 1092--1094
+Underfull \hbox (badness 10000) in paragraph at lines 1091--1093
 
  []
 
 [55]
-Underfull \hbox (badness 10000) in paragraph at lines 1168--1173
+Underfull \hbox (badness 10000) in paragraph at lines 1167--1172
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1182--1186
+Underfull \hbox (badness 10000) in paragraph at lines 1181--1185
 
  []
 
 [56]
-Underfull \hbox (badness 10000) in paragraph at lines 1209--1211
+Underfull \hbox (badness 10000) in paragraph at lines 1208--1210
 
  []
 
 
-Overfull \hbox (79.14279pt too wide) detected at line 1236
+Overfull \hbox (79.14279pt too wide) detected at line 1235
 [] 
  []
 
 [57]
-Underfull \hbox (badness 10000) in paragraph at lines 1266--1267
+Underfull \hbox (badness 10000) in paragraph at lines 1265--1266
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1285--1286
+Underfull \hbox (badness 10000) in paragraph at lines 1284--1285
 
  []
 
 
-Overfull \hbox (39.53192pt too wide) detected at line 1298
+Overfull \hbox (39.53192pt too wide) detected at line 1297
 [] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1303--1304
+Underfull \hbox (badness 10000) in paragraph at lines 1302--1303
 
  []
 
 [58]
-Overfull \hbox (89.2749pt too wide) detected at line 1356
+Overfull \hbox (89.2749pt too wide) detected at line 1355
 [] 
  []
 
 [59]
-Underfull \hbox (badness 10000) in paragraph at lines 1361--1363
+Underfull \hbox (badness 10000) in paragraph at lines 1360--1362
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1364--1365
+Underfull \hbox (badness 10000) in paragraph at lines 1363--1364
 
  []
 
 
-Overfull \hbox (7.58214pt too wide) in paragraph at lines 1406--1413
+Overfull \hbox (7.58214pt too wide) in paragraph at lines 1405--1412
 []\OT1/cmr/m/n/12 . 
  []
 
 [60]
-Overfull \hbox (2.81097pt too wide) in paragraph at lines 1454--1462
+Overfull \hbox (2.81097pt too wide) in paragraph at lines 1453--1461
 []
  []
 
 [61] [62]
-Underfull \hbox (badness 10000) in paragraph at lines 1525--1526
+Underfull \hbox (badness 10000) in paragraph at lines 1524--1525
 
  []
 
 
-Overfull \hbox (36.51927pt too wide) in paragraph at lines 1576--1588
+Overfull \hbox (36.51927pt too wide) in paragraph at lines 1575--1587
 [][]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1589--1591
+Underfull \hbox (badness 10000) in paragraph at lines 1588--1590
 
  []
 
 [63]
-Overfull \hbox (70.23784pt too wide) in paragraph at lines 1595--1610
+Overfull \hbox (70.23784pt too wide) in paragraph at lines 1594--1609
 [][]
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1595--1610
+Underfull \hbox (badness 10000) in paragraph at lines 1594--1609
 
  []
 
 
-Overfull \hbox (64.97131pt too wide) detected at line 1625
+Overfull \hbox (64.97131pt too wide) detected at line 1624
 [] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1625--1627
+Underfull \hbox (badness 10000) in paragraph at lines 1624--1626
 
  []
 
 
-Overfull \hbox (8.70848pt too wide) in paragraph at lines 1649--1652
+Overfull \hbox (8.70848pt too wide) in paragraph at lines 1648--1651
 \OT1/cmr/m/n/12 thus $\OML/cmm/m/it/12 ^^[[] \OT1/cmr/m/n/12 = \OML/cmm/m/it/12
  ^^[\OT1/cmr/m/n/12 [\OT1/cmr/m/it/12 s[] \OMS/cmtt/m/n/12 7! h\OT1/cmtt/m/n/12
  F[]\OML/cmm/m/it/12 ; :::; \OT1/cmtt/m/n/12 F[]\OML/cmm/m/it/12 ; \OT1/cmtt/m/
@@ -1609,7 +1604,7 @@ m/it/12 ; :::; n \OMS/cmtt/m/n/12 ^^@
  []
 
 [64] [65]
-Overfull \hbox (2.33672pt too wide) in paragraph at lines 1756--1759
+Overfull \hbox (2.33672pt too wide) in paragraph at lines 1755--1758
 []\OT1/cmr/m/n/12 From (b), we must have $\OML/cmm/m/it/12 ^^Z\OT1/cmr/m/n/12 [
 \OML/cmm/m/it/12 x \OMS/cmtt/m/n/12 7! \OML/cmm/m/it/12 v[]\OT1/cmr/m/n/12 ](\O
 ML/cmm/m/it/12 x\OT1/cmr/m/n/12 ) : ^^@[\OML/cmm/m/it/12 x \OMS/cmtt/m/n/12 7! 
@@ -1619,37 +1614,37 @@ nd $\OML/cmm/m/it/12 ^^Z\OT1/cmr/m/n/12 [\OML/cmm/m/it/12 x \OMS/cmtt/m/n/12 7!
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1813--1815
+Underfull \hbox (badness 10000) in paragraph at lines 1812--1814
 
  []
 
 [66]
-Overfull \hbox (28.7669pt too wide) detected at line 1842
+Overfull \hbox (28.7669pt too wide) detected at line 1841
 [] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1866--1867
+Underfull \hbox (badness 10000) in paragraph at lines 1865--1866
 
  []
 
 [67]
-Underfull \hbox (badness 10000) in paragraph at lines 1940--1941
+Underfull \hbox (badness 10000) in paragraph at lines 1938--1939
 
  []
 
 
-Overfull \hbox (4.31828pt too wide) in paragraph at lines 1945--1956
+Overfull \hbox (4.31828pt too wide) in paragraph at lines 1943--1954
 [][] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1945--1956
+Underfull \hbox (badness 10000) in paragraph at lines 1943--1954
 
  []
 
 
-Overfull \hbox (6.04869pt too wide) in paragraph at lines 1957--1959
+Overfull \hbox (6.04869pt too wide) in paragraph at lines 1955--1957
 []\OT1/cmr/m/n/12 in which for $\OMS/cmtt/m/n/12 8\OML/cmm/m/it/12 i \OMS/cmtt/
 m/n/12 2 f\OT1/cmr/m/n/12 1\OML/cmm/m/it/12 ; :::; j\OMS/cmtt/m/n/12 g$\OT1/cmr
 /m/n/12 , $\OMS/cmtt/m/n/12 P[]$ \OT1/cmr/m/n/12 is a deriva-tion of $[] \OMS/c
@@ -1657,62 +1652,62 @@ mtt/m/n/12 +[]
  []
 
 [68]
-Underfull \hbox (badness 10000) in paragraph at lines 1967--1968
+Underfull \hbox (badness 10000) in paragraph at lines 1965--1966
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1969--1971
+Underfull \hbox (badness 10000) in paragraph at lines 1967--1969
 
  []
 
 
-Overfull \hbox (4.31828pt too wide) in paragraph at lines 1972--1988
+Overfull \hbox (4.31828pt too wide) in paragraph at lines 1970--1986
 [][] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1991--1992
+Underfull \hbox (badness 10000) in paragraph at lines 1989--1990
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1994--1995
+Underfull \hbox (badness 10000) in paragraph at lines 1992--1993
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 2009--2010
+Underfull \hbox (badness 10000) in paragraph at lines 2007--2008
 
  []
 
 [69]
-Underfull \hbox (badness 10000) in paragraph at lines 2058--2062
+Underfull \hbox (badness 10000) in paragraph at lines 2056--2060
 
  []
 
 [70]
-Underfull \hbox (badness 10000) in paragraph at lines 2079--2081
+Underfull \hbox (badness 10000) in paragraph at lines 2077--2079
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 2092--2094
+Underfull \hbox (badness 10000) in paragraph at lines 2090--2092
 
  []
 
 
-Overfull \hbox (46.58104pt too wide) detected at line 2120
+Overfull \hbox (46.58104pt too wide) detected at line 2118
 [] 
  []
 
 [71]
-Underfull \hbox (badness 10000) in paragraph at lines 2129--2130
+Underfull \hbox (badness 10000) in paragraph at lines 2127--2128
 
  []
 
 
-Overfull \hbox (54.61969pt too wide) in paragraph at lines 2135--2139
+Overfull \hbox (54.61969pt too wide) in paragraph at lines 2133--2137
 \OT1/cmr/m/n/12 Also, $\OML/cmm/m/it/12 ^^[[]\OT1/cmr/m/n/12 (\OT1/cmr/m/it/12 
 s[]\OT1/cmr/m/n/12 ) = \OML/cmm/m/it/12 ^^[\OT1/cmr/m/n/12 (\OT1/cmr/m/it/12 s[
 ]\OT1/cmr/m/n/12 ) = \OMS/cmtt/m/n/12 h\OT1/cmtt/m/n/12 F[]\OML/cmm/m/it/12 ; :
@@ -1724,7 +1719,7 @@ L/cmm/m/it/12 ; \OT1/cmr/m/it/12 s[]\OT1/cmr/m/n/12 )) = (\OML/cmm/m/it/12 ^^[[
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 2142--2143
+Underfull \hbox (badness 10000) in paragraph at lines 2140--2141
 
  []
 

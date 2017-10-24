@@ -33,7 +33,7 @@ Finally, two interpreters of SVCODE, an eager one and a streaming one, will be d
 \section{High-level interpreter}
 
 
-In this thesis, the high-level \mysnesl language we have experimented with is close to the SNESL introduced in the last chapter but without vectors, and we will call this language \mysnesl.
+In this thesis, the high-level \mysnesl \ language we have experimented with is close to the SNESL introduced in the last chapter but without vectors, and we will call this language \mysnesl.
 As our first goal is to extend SNESL with user-defined (recursive) functions,
 it is safe to do so because removing vectors should not affect the complexity of the problem too much; we believe that if the solution works with streams, the general type in SNESL, it should work with vectors as well. 
 
@@ -950,7 +950,7 @@ By activated we mean the executed stream definitions, because those inside a \wc
 
 
 
-\section{Streaming interpreter}
+\section{Streaming SVCODE interpreter}
 
 The execution model of the streaming interpreter does not assume an infinite memory; instead, it only uses a limited size of memory as a buffer. 
 If the buffer size is relatively small, then most of the streams cannot be materialized entirely at once. 
