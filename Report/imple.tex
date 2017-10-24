@@ -544,7 +544,7 @@ the element-wise addition result $\<4, 3\'>$.
 
 \begin{example} \emph{$\map{+}(\<3,2\'>, \< 1,1\'>)$:}\\
 	\begin{center}
-		\includegraphics[width=0.6\textwidth]{fig/mapxducer.png}
+		\includegraphics[width=0.7\textwidth]{fig/mapxducer.png}
 	\end{center}
 \end{example}
 
@@ -594,7 +594,7 @@ Figure~\ref{fig-svcode-eg1} shows an example program, with its DAG in Figure~\re
 %	)
 \hspace{1cm}
 
-\fig{\includegraphics[width=0.85\textwidth]{fig/dataflow.png}}{
+\fig{\includegraphics[width=0.9\textwidth]{fig/dataflow.png}}{
 	Dataflow DAG for the code in Figure~\ref{fig-svcode-eg1} (assuming S3 is nonempty).
 	\label{fig-svcode-dag1}
 	Note that, for simplicity, the control stream is added as an explicit supplier only to Xducer $\consta{a}$.
@@ -655,7 +655,7 @@ Then the adding operation in the comprehension body is translated to an instruct
 The Xducer $\usum$ working on a flag stream $s_b$ to generate the new control stream. It transforms an $\F$ to a unit, a $\T$ to nothing.
 \begin{example} \emph{$\usumf{\<\F,\T,\F,\F,\T\'>}$ with the control stream = $\<(),() \'>$:} \\
 	\begin{center}
-		\includegraphics[width=0.7\textwidth]{fig/usumxducer.png}
+		\includegraphics[width=0.8\textwidth]{fig/usumxducer.png}
 	\end{center}
 \end{example}
 
@@ -694,7 +694,7 @@ We give its definition in a form close to the SVCODE style for more readability:
 The Xducer $\distr$ consumes a boolean stream as a segment descriptor of the data stream, and replicates the constants of the data stream corresponding times to their segment lengths.
 \begin{example} \emph{$\distrf{\<\F,\F,\F,\T,\F,\T\'>}{\< 2,5 \'>}$ with control stream $\< (),() \'>$}\\
 	\begin{center}
-		\includegraphics[width=0.7\textwidth]{fig/distrxducer.png}
+		\includegraphics[width=0.8\textwidth]{fig/distrxducer.png}
 	\end{center}
 \end{example}
 
@@ -723,9 +723,9 @@ p = & \ p_1; \\
 	
 The Xducer $\bu$ simply transforms a boolean to a unary number, i.e.,  transforms $\oF$ to $\oT$, and $\oT$ to $\< \F, \T \'>$.
 \begin{example} \emph{$\bu({\<\T,\F\'>})$ with control stream $\< (),() \'>$}\\
-	\begin{center}
-		\includegraphics[width=0.6\textwidth]{fig/b2uxducer.png}
-	\end{center}
+\begin{center}
+	\includegraphics[width=0.7\textwidth]{b2uxudcer2}
+\end{center}
 \end{example}
 
 The function $\mathtt{pack}_{\tau}$ annotated with the high-level type  that the packed stream tree represents will generate instructions of $\pack$ and possibly $\upack$ and $\distr$. The function $\olol{st}$  used in the instruction \wc returns a flattening set of the stream ids in $\st$; we will give its definition in Chapter 3.4.
@@ -748,14 +748,14 @@ The Xducer $\pack$ throws away the element of the second stream if the boolean o
 
 \begin{example} \emph{$\pack({\<\T,\F,\T\'>}, \<2,3,4 \'>)$ with control stream $\< (),(), () \'>$}\\
 	\begin{center}
-		\includegraphics[width=0.6\textwidth]{fig/packxducer.png}
+		\includegraphics[width=0.7\textwidth]{fig/packxducer.png}
 	\end{center}
 \end{example}
 
 $\upack$ works in a way similar to $\pack$, but on data of boolean segments rather than primitive values.
 \begin{example} \emph{$\upack({\<\T,\F,\T\'>}, \< \F,\T,\ \ \F,\F,\T, \ \ \F,\F,\F, \T\'>)$ with control stream $\< (),(), () \'>$}\\
 	\begin{center}
-		\includegraphics[width=0.8\textwidth]{fig/upackxducer.png}
+		\includegraphics[width=0.9\textwidth]{fig/upackxducer.png}
 	\end{center}
 \end{example}
 
@@ -791,7 +791,7 @@ Given a stream $\singl{n}$, the Xducer $\toflag$ first outputs $n$ $\F$s, then o
 $\genscan_{+}(s_b,s_d)$ performs an exclusive scan of addition (with neutral element 0) on the data stream $s_d$ segmented by $s_b$.
 \begin{example} \emph{$\genscan_{+}(\<\F,\F,\F,\T,\F,\T\'>, \< 2,5,3,6 \'>)$  with control stream $\<(),()\'>$: }\\
 	\begin{center}
-		\includegraphics[width=0.7\textwidth]{fig/scanxducer.png}
+		\includegraphics[width=0.8\textwidth]{fig/scanxducer.png}
 	\end{center}
 \end{example}
 
@@ -976,16 +976,24 @@ Static analysis for streamability is still an open problem \cite{Fphd}.
 \begin{lstlisting}[style=nesl-style]
 > :bs 1    -- set buffer size = 1
 >
-> let s = &4 in {reducePlus(s)} ++ s
+> let s = &4 in {reducePlus(s)} ++ s   -- expression1
 Deadlock!
 >
-> let s = &4 in s ++ {reducePlus(s)}
-{0,1,2,3,6} :: {int}
+> let s = &4 in s ++ {reducePlus(s)}   -- expression2
+{0,1,2,3,6} :: {int}                   -- result
+[W_H: 19, S_H: 5]                  -- high-level work and step cost
+[W_L: 101, S_L: 37]                -- low-level work and step cost
+W_L/W_H: 5.3                           -- work bound
+S_L/(W_H/bufSize + S_H): 1.5           -- step bound
 >
-> :bs 5
+> :bs 10    -- buffer size 10
 >
-> let s = &4 in {reducePlus(s)} ++ s
+> let s = &4 in {reducePlus(s)} ++ s   -- expression1 
 {6,0,1,2,3} :: {int}
+[W_H: 19, S_H: 5]
+[W_L: 101, S_L: 13]
+W_L/W_H: 5.3
+S_L/(W_H/bufSize + S_H): 1.9
 \end{lstlisting}
 
 
@@ -1033,10 +1041,9 @@ where $\S$ is the stream ids of the suppliers. An example process of Xducer $\ma
 
 \begin{figure}
 	\centering
-	\includegraphics[width=1.0\textwidth]{fig/process}
-	\caption{A process S2 of Xducer $\map{+}$. 
-		It has read a 2 from S0's buffer and a 1 from S1's buffers, and it is writing a 3 to its own buffer.}
-	\label{fig:process}
+	\includegraphics[width=1.0\textwidth]{process2}
+	\caption{A process S2 of Xducer $\map{+}$. It has read a 2 from S0's buffer and a 1 from S1's buffers, and it is writing a 3 to its own buffer.}
+	\label{fig:process2}
 \end{figure}
 
 Since we do not have parallel implementation of Xducer, we can consider the Xducer inside a process as the action-performing unit. 
@@ -1170,10 +1177,22 @@ so a recursion that can terminate at the high level will also terminate at the l
 \begin{lstlisting}[style=nesl-style]
   -- define a function to compute factorial
   > function fact(x:int):int = if x <= 1 then 1 else x*fact(x-1)
-  
-  -- a running example
+   
+  -- using eager interpreter 
   > let x = {3,7,0,4} in {fact(y): y in x }
-  {6,5040,1,24} :: {int}
+  {6,5040,1,24} :: {int}     
+  [W_H: 227, S_H: 95]        
+  [W_L: 1007, S_L: 140]      
+  W_L/W_H: 4.4               -- work bound
+  S_L/S_H: 1.5               -- step bound
+  
+  -- using streaming interpreter
+  > let x = {3,7,0,4} in {fact(y): y in x }
+  {6,5040,1,24} :: {int}     
+  [W_H: 227, S_H: 95]       
+  [W_L: 977, S_L: 128]      
+  W_L/W_H: 4.3            
+  S_L/(W_H/bufSize + S_H): 1.1
 \end{lstlisting}
 
 \hspace{1cm}\\
@@ -1206,9 +1225,10 @@ For example, the following expression tries to negate the elements that can be d
 \begin{example}\emph{ A soft deadlock that can be broken by stealing}
 \end{example}
 \begin{lstlisting}[style=nesl-style]
-  -- buffer size 4 
- > {the({-x | x % 5 == 0} ++ {x | x %5 != 0}) :  x in &10})
- {0,1,2,3,4,-5,6,7,8,9} :: {int}
+  > :bs 4
+  >
+  > {the({-x | x % 5 == 0} ++ {x | x %5 != 0}) :  x in &10}
+  {0,1,2,3,4,-5,6,7,8,9} :: {int}
 \end{lstlisting}
 
 
@@ -1233,6 +1253,8 @@ This type of deadlock is mainly caused by insufficient space or trying to traver
 \begin{example} \emph{A hard deadlock caused by traversing the sequence $s$ two times.} \label{eg:deadlock1}
 \end{example}
 \begin{lstlisting}[style=nesl-style]
+> :bs 4
+>
 > let s = {1+ x : x in &5} in s ++ &2 ++ s
 Deadlock!
 \end{lstlisting}
@@ -1243,8 +1265,15 @@ One can solve the deadlock by recomputing the $s$ stream, for example,  defining
 {1,2,3,4,5,0,1,1,2,3,4,5} :: {int}
 \end{lstlisting}
 
-Other solutions can be tabulating the sequence (into a vector), so it can be used multiple times, or enlarging the buffer size. 
+Other solutions can be tabulating the sequence (into a vector), so it can be used multiple times, or enlarging the buffer size. \\
 
+\begin{lstlisting}[style=nesl-style]
+> :bs 10
+Buffer size: 10
+>
+> let s = {1+ x : x in &5} in s ++ &2 ++ s
+{1,2,3,4,5,0,1,1,2,3,4,5} :: {int}
+\end{lstlisting}
 %\vspace{0.5cm}
 %Another example of hard deadlock caused by memory source limitation:
 %\begin{example} \emph{Given an integer sequence with an equal number of odd and even elements, the following function \texttt{oeadd} will try to perform addition on a pair of odd and even number with the same index in their respective subsequences.} 
@@ -1294,12 +1323,33 @@ For an input sequence of length $n$, the algorithm (for both scan and reduce) ha
 \lstinputlisting[style=nesl-style]{code/uc_scanred.snesl}
 \vspace{0.5cm}
 
-For the following running example, the actual time of the unfolding of \texttt{scanred} is 5, i.e., $\lg 16$ + 1 (as we can see from our instrumented interpreter). Thus the size of the dataflow network, or the number of processes grows 4-fold after the initialization to reach its maximal size.
+For the following running example, the actual time of the unfolding of \texttt{scanred} is 5, i.e., $\lg 16$ + 1 (as we can see from our instrumented interpreter, but not shown here). Thus the size of the dataflow network, or the number of processes grows 4-fold after the initialization to reach its maximal size.
 We would expect that streamable recursions will use linear space in its recursion depth, while this requires more experiments and a formal proof. \\
 
 \begin{lstlisting}[style=nesl-style]
 > :bs 1
-> 
+>
 > scanred(&16,16)
 ({0,0,1,3,6,10,15,21,28,36,45,55,66,78,91,105},120) :: ({int},int)
+[W_H: 837, S_H: 188], [W_L: 4783, S_L: 1568]
+W_L/W_H: 5.7
+S_L/(W_H/bufSize + S_H): 1.5
+>
+> :bs 10
+Buffer size: 10
+>
+> scanred(&16,16)
+({0,0,1,3,6,10,15,21,28,36,45,55,66,78,91,105},120) :: ({int},int)
+[W_H: 837, S_H: 188], [W_L: 4783, S_L: 351]
+W_L/W_H: 5.7
+S_L/(W_H/bufSize + S_H): 1.3
+>
+> :bs 100
+Buffer size: 100
+>
+> scanred(&16,16)
+({0,0,1,3,6,10,15,21,28,36,45,55,66,78,91,105},120) :: ({int},int)
+[W_H: 837, S_H: 188], [W_L: 4783, S_L: 300]
+W_L/W_H: 5.7
+S_L/(W_H/bufSize + S_H): 1.5
 \end{lstlisting}

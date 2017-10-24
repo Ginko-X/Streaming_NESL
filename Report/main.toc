@@ -13,35 +13,35 @@
 \contentsline {section}{\numberline {2.3}SVCODE}{19}
 \contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{19}
 \contentsline {subsection}{\numberline {2.3.2}Xducers and control stream}{20}
-\contentsline {section}{\numberline {2.4}Translating SNESL\textsubscript {1}\ to SVCODE}{22}
+\contentsline {section}{\numberline {2.4}Translating SNESL\textsubscript {1}\ to SVCODE}{23}
 \contentsline {subsection}{\numberline {2.4.1}Expression translation}{23}
 \contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{26}
 \contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{29}
 \contentsline {section}{\numberline {2.5}Eager SVCODE interpreter}{30}
 \contentsline {subsection}{\numberline {2.5.1}Dataflow}{30}
 \contentsline {subsection}{\numberline {2.5.2}Cost model}{30}
-\contentsline {section}{\numberline {2.6}Streaming SVCODE interpreter}{30}
+\contentsline {section}{\numberline {2.6}Streaming SVCODE interpreter}{31}
 \contentsline {subsection}{\numberline {2.6.1}Streamability}{31}
-\contentsline {subsection}{\numberline {2.6.2}Processes}{31}
+\contentsline {subsection}{\numberline {2.6.2}Processes}{32}
 \contentsline {subsection}{\numberline {2.6.3}Scheduling}{34}
 \contentsline {subsection}{\numberline {2.6.4}Cost model}{35}
 \contentsline {subsection}{\numberline {2.6.5}Recursion}{35}
 \contentsline {subsection}{\numberline {2.6.6}Deadlock}{37}
-\contentsline {subsection}{\numberline {2.6.7}Examples}{38}
-\contentsline {chapter}{\numberline {3}Formalization}{40}
-\contentsline {section}{\numberline {3.1}SNESL\textsubscript {0}}{40}
-\contentsline {subsection}{\numberline {3.1.1}Syntax}{40}
-\contentsline {subsection}{\numberline {3.1.2}Typing rules}{41}
-\contentsline {subsection}{\numberline {3.1.3}Semantics}{42}
-\contentsline {section}{\numberline {3.2}SVCODE\textsubscript {0}}{42}
-\contentsline {subsection}{\numberline {3.2.1}Syntax}{43}
-\contentsline {subsection}{\numberline {3.2.2}Instruction semantics}{44}
-\contentsline {subsection}{\numberline {3.2.3}Xducer semantics}{45}
-\contentsline {subsection}{\numberline {3.2.4}SVCODE\textsubscript {0}\ determinism}{47}
-\contentsline {section}{\numberline {3.3}Translation}{51}
-\contentsline {section}{\numberline {3.4}Value representation}{53}
-\contentsline {section}{\numberline {3.5}Correctness}{54}
-\contentsline {subsection}{\numberline {3.5.1}Definitions}{54}
-\contentsline {subsection}{\numberline {3.5.2}Correctness proof}{62}
-\contentsline {section}{\numberline {3.6}Scaling up}{73}
-\contentsline {chapter}{\numberline {4}Conclusion}{75}
+\contentsline {subsection}{\numberline {2.6.7}Examples}{39}
+\contentsline {chapter}{\numberline {3}Formalization}{41}
+\contentsline {section}{\numberline {3.1}SNESL\textsubscript {0}}{41}
+\contentsline {subsection}{\numberline {3.1.1}Syntax}{41}
+\contentsline {subsection}{\numberline {3.1.2}Typing rules}{42}
+\contentsline {subsection}{\numberline {3.1.3}Semantics}{43}
+\contentsline {section}{\numberline {3.2}SVCODE\textsubscript {0}}{43}
+\contentsline {subsection}{\numberline {3.2.1}Syntax}{44}
+\contentsline {subsection}{\numberline {3.2.2}Instruction semantics}{45}
+\contentsline {subsection}{\numberline {3.2.3}Xducer semantics}{46}
+\contentsline {subsection}{\numberline {3.2.4}SVCODE\textsubscript {0}\ determinism}{48}
+\contentsline {section}{\numberline {3.3}Translation}{52}
+\contentsline {section}{\numberline {3.4}Value representation}{54}
+\contentsline {section}{\numberline {3.5}Correctness}{55}
+\contentsline {subsection}{\numberline {3.5.1}Definitions}{55}
+\contentsline {subsection}{\numberline {3.5.2}Correctness proof}{63}
+\contentsline {section}{\numberline {3.6}Scaling up}{74}
+\contentsline {chapter}{\numberline {4}Conclusion}{76}
