@@ -19,10 +19,10 @@
 \contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{29}
 \contentsline {section}{\numberline {2.5}Eager SVCODE interpreter}{30}
 \contentsline {subsection}{\numberline {2.5.1}Dataflow}{30}
-\contentsline {subsection}{\numberline {2.5.2}Cost model}{31}
-\contentsline {section}{\numberline {2.6}Streaming SVCODE interpreter}{31}
+\contentsline {subsection}{\numberline {2.5.2}Cost model}{30}
+\contentsline {section}{\numberline {2.6}Streaming SVCODE interpreter}{30}
 \contentsline {subsection}{\numberline {2.6.1}Streamability}{31}
-\contentsline {subsection}{\numberline {2.6.2}Processes}{32}
+\contentsline {subsection}{\numberline {2.6.2}Processes}{31}
 \contentsline {subsection}{\numberline {2.6.3}Scheduling}{34}
 \contentsline {subsection}{\numberline {2.6.4}Cost model}{35}
 \contentsline {subsection}{\numberline {2.6.5}Recursion}{35}
@@ -44,4 +44,4 @@
 \contentsline {subsection}{\numberline {3.5.1}Definitions}{54}
 \contentsline {subsection}{\numberline {3.5.2}Correctness proof}{62}
 \contentsline {section}{\numberline {3.6}Scaling up}{73}
-\contentsline {chapter}{\numberline {4}Conclusion}{74}
+\contentsline {chapter}{\numberline {4}Conclusion}{75}

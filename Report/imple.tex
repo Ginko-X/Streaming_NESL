@@ -187,7 +187,7 @@ Figure~\ref{fig-snesl1-values} shows the typing rules for \mysnesl \ values, and
 }
 \PT{
 	\AC{\TypeV{v_1}{\tau}}
-	\AC{...}
+	\AC{\cdots}
 	\AC{\TypeV{v_l}{\tau}}
 	\TC{\TypeV{\{\replc{l}{v}\}}{\{\tau\}}}
 }
@@ -233,9 +233,9 @@ The high-level semantics of \mysnesl \ is given in Figure~\ref{fig:mysnesl-seman
 	}\\[4ex]
 	\PT{
 		\AC{\Eval{\rho}{e_1}{v_1}}
-		\AC{...}
-		\AC{\Eval{\rho}{e_l}{v_l}}
-		\TC{\Eval{\rho}{\{e_1,...,e_l\}}{\{v_1,...,v_l\}}}	
+		\AC{\cdots}
+		\AC{\Eval{\rho}{e_k}{v_k}}
+		\TC{\Eval{\rho}{\{e_1,...,e_k\}}{\{v_1,...,v_k\}}}	
 	}
 	\PT{
 		\Axiom{\Eval{\rho}{\{\}\tau}{\{\}}}
@@ -494,13 +494,13 @@ As a general rule of reading an SVCODE instruction, the stream ids on the left-h
 	&   && \quad | \ \scall{f}{s_1,...,s_k}{(s_1',...,s_{k'}')} \tag{SVCODE function call}\\
 	&   && \quad | \ p_1;p_2  \\
 	\\
-	&\s && ::= 0 \ | \ 1 \ ... \in \SId  = \mathbb{N}   \tag{stream ids}\\
+	&\s && ::= 0 \ | \ 1 \ | \ \cdots \in \SId  = \mathbb{N}   \tag{stream ids}\\
 	&  \S && ::= \{\s_1,..., \s_k\} \in \sset  \tag{set of stream ids}\\
 	\\
 	& \psi \ && ::= \consta{a} \ | \ \toflag  
 	\ | \ \usum \ | \ \map{\oplus} \ | \ \genscan_{+} \ | \ \genreduce_{+} \ | \ \distr  \tag{Xducers}  \\
-    &   && \quad | \ \pack \ | \ \upack \ | \ \bu \ | \ \segconcat \ | \ \usegcount \ | \ \intermerge \ | \ ...  \\
-    & \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | <= \ | \ == \ | \  \*{not} \ | \ ... \tag{scalar operations}
+    &   && \quad | \ \pack \ | \ \upack \ | \ \bu \ | \ \segconcat \ | \ \usegcount \ | \ \intermerge \ | \ \cdots  \\
+    & \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | <= \ | \ == \ | \  \*{not} \ | \ \cdots \tag{scalar operations}
 	\end{alignat*}
 	\caption{Abstract syntax of SVCODE \label{fig-svcode1-gram}}
 \end{figure}
@@ -524,7 +524,7 @@ Thus the new control stream is the most important role here, because it decides 
 $\Sin$ is a variable set including all the streams that are referred to by $p_1$;
 it will only affect the streaming execution model of SVCODE, while in the eager model it can be ignored.
 
-The instruction $\scall{f}{\replc{m}{s}}{(\replc{n}{s'})}$ can be read as: ``calling function $f$ with arguments $\replc{m}{s}$ returns $\replc{n}{s'}$". 
+The instruction $\scall{f}{\replc{k}{s}}{(\replc{k'}{s'})}$ can be read as: ``calling function $f$ with arguments $\replc{k}{s}$ returns $\replc{k'}{s'}$". 
 The function body of $f$ is merely another piece of SVCODE program, but without the definition instructions of its argument streams.
 
 
@@ -728,7 +728,7 @@ The Xducer $\bu$ simply transforms a boolean to a unary number, i.e.,  transform
 	\end{center}
 \end{example}
 
-The function $\mathtt{pack}_{\tau}$ annotated with the high-level type  that the packed stream tree represents will generate instructions of $\pack$ and possibly $\upack$ and $\distr$. The function $\olol{st}$  used in the instruction \wc returns a flattening set of the stream ids in $\st$; we will give its definition later.
+The function $\mathtt{pack}_{\tau}$ annotated with the high-level type  that the packed stream tree represents will generate instructions of $\pack$ and possibly $\upack$ and $\distr$. The function $\olol{st}$  used in the instruction \wc returns a flattening set of the stream ids in $\st$; we will give its definition in Chapter 3.4.
 
 \begin{align*}
 s' := \Pack{s_b}{s}{\pi}; \quad \equiv & \quad s' := \packf{s_b}{s}; \\
@@ -777,7 +777,7 @@ A high-level built-in function call will be translated to a few lines of SVCODE 
 			p= & \sdef{\s_0}{\toflag(\s)} ; \\ 
 			& \sdef{\s_1}{\usum(s_0)} ; \\
 			& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{\{\}}{\{\s_2\}}; \\
-			& \sdef{\s_3}{\scan_{0}(\s_0,s_2)}
+			& \sdef{\s_3}{\genscan_{+}(\s_0,s_2)}
 		\end{align*}
 
 Given a stream $\singl{n}$, the Xducer $\toflag$ first outputs $n$ $\F$s, then one $\T$.
@@ -788,8 +788,8 @@ Given a stream $\singl{n}$, the Xducer $\toflag$ first outputs $n$ $\F$s, then o
 	\end{center}
 \end{example}
 
-$\scan_{}(s_b,s_d)$ performs an exclusive scan on the data stream $s_d$ segmented by $s_b$.
-\begin{example} \emph{$\scan_{}(\<\F,\F,\F,\T,\F,\T\'>, \< 2,5,3,6 \'>)$  with control stream $\<(),()\'>$: }\\
+$\genscan_{+}(s_b,s_d)$ performs an exclusive scan of addition (with neutral element 0) on the data stream $s_d$ segmented by $s_b$.
+\begin{example} \emph{$\genscan_{+}(\<\F,\F,\F,\T,\F,\T\'>, \< 2,5,3,6 \'>)$  with control stream $\<(),()\'>$: }\\
 	\begin{center}
 		\includegraphics[width=0.7\textwidth]{fig/scanxducer.png}
 	\end{center}
@@ -797,12 +797,12 @@ $\scan_{}(s_b,s_d)$ performs an exclusive scan on the data stream $s_d$ segmente
 
 
 
-\item The high-level function $\*{scan}_+$ is implemented straightforwardly by using the  Xducer $\scan_{}$:
+\item The high-level function $\*{scan}_+$ is implemented straightforwardly by using the  Xducer $\genscan_{+}$:
 	$$	\PT{
-	\Axiom{\Transf{\*{scan}_+}{(s_d,s_b)}{\s_0}{}{\sfun{\sdef{s_0}{\scanf{s_b}{s_d}}} {(\s_0,\s_b)}}}
+	\Axiom{\Transf{\*{scan}_+}{(s_d,s_b)}{\s_0}{}{\sfun{\sdef{s_0}{\genscan_{+}(s_b,s_d)}} {(\s_0,\s_b)}}}
 }$$
 
-\item Translating $\*{reduce}_+$ is analogous to that of $\*{scan}_+$ by using its corresponding low-level Xducer $\mathtt{ReducePlus}$.
+\item Similar to $\*{scan}_+$, $\*{reduce}_+$  is translated to a low-level Xducer $\genreduce_{+}$.
 
 \item The translation of $\*{concat}$ is also one instruction using the Xducer $\segconcat$:
 $$	\PT{
@@ -893,14 +893,6 @@ The overline function $\bar{}$ \ flattens a stream tree to a list of stream ids:
 &\bar{}: \STree \-> [\SId] \\
 &\overline{\s} = [s] \\
 &\overline{(\st_1,st_2)} = \overline{st_1} {\++} \overline{st_2}
-\end{align*}
-
-Incidentally, we define another similar function $\olol{\st}$ to return the set of the stream ids in the tree $\st$.
-
-	\begin{align*}
-&\olol{\STree}: \-> \S \\
-&\olol{\s} = \{s\} \\
-&\olol{(\st_1,st_2)} = \olol{st_1} \cup \olol{st_2}
 \end{align*}
 
 Then a user-defined function $\*{function} \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e $ will be translated to an SVCODE function
