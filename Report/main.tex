@@ -179,6 +179,7 @@
 \def\.<{\lessdot}
 \def\bs{ \ \backslash \ } 
 
+\def\olol#1{\overline{\overline{#1}}}
 
 \def\unit{()}
 \def\vunit{\langle \unit \rangle}  
@@ -320,13 +321,12 @@
  Streaming NESL (SNESL) is an experimental, first-order functional, nested data-parallel language, employing a streaming execution model and integrating with a cost model that can predict both time and space complexity.
  Practical experiments have demonstrated good performance of SNESL's implementation and provided empirical evidence of the validity of the cost model.
  
- In this thesis, we first extend SNESL to support recursive functions while preserving the cost model.
+ In this thesis, we first extend SNESL to support recursive functions.
  This requires non-trivial extensions to SNESL's target language, SVCODE, and the flow graph of its streaming dataflow model to be dynamically completed at runtime.
  Two execution models of the extended SVCODE, the NESL-like eager one, and the streaming one, are given.
  
- Then we show the formalization of the semantics of a subset of the source and target languages, followed by the proof of the translation correctness and work cost preservation.
+ Then we show the formalization of the semantics of a subset of the source and target languages, followed by a proof of the translation correctness and work cost preservation.
  
-%TODO cost preservation ??
 \end{abstract}
 
 

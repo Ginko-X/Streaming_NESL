@@ -288,7 +288,7 @@ If any of them is a stream, then there is no guarantee that this stream is alrea
 For the restricted comprehension, the $guard$ expression $e_0$ first gets evaluated: if it is a $\T$, $e_1$ will be evaluated, generating a singleton sequence; otherwise, $e_1$ will not be evaluated, and the comprehension only returns an empty sequence. \\
 Here, since $e_1$ will be evaluated at most once, there will be no problem if any free variables of $e_1$ is a stream.
 
-The built-in functions of \mysnesl \ correspond to a subset of SNESL's ones shown in Figure~\ref{fig-snesl-func} but without $\*{mkseq}$, $\*{zip}$ (), and the vector-related ones. 
+The built-in functions of \mysnesl \ correspond to a subset of SNESL's ones shown in Figure~\ref{fig-snesl-func} but without $\*{mkseq}$, and the vector-related ones. 
 In addition, the function $\*{scan}$ and $\*{reduce}$ are also
 taken a specific verison: restricted $\otimes$ to +, for simplicity, as shown in Figure~\ref{fig-mysnesl-func}. 
 
@@ -486,7 +486,7 @@ We use $s$ to range over stream variables, also called stream $id$s, and $\S$ a 
 As a general rule of reading an SVCODE instruction, the stream ids on the left-hand side of a symbol ``:=" are the defined streams of the instruction.
 
 
-\begin{figure}[H] \large
+\begin{figure}[h] \large
 	\begin{alignat*}{2}
 	&p  && :: = \ \epsilon \tag{empty program}\\ 
 	&   && \quad | \ \sdef{\s}{\psi(s_1,...,s_k)}  \tag{single stream definition}\\
@@ -728,7 +728,8 @@ The Xducer $\bu$ simply transforms a boolean to a unary number, i.e.,  transform
 	\end{center}
 \end{example}
 
-The function $\mathtt{pack}_{\tau}$ annotated with the high-level type of the packed variable will generate instructions of $\pack$ and possibly $\upack$ and $\distr$:
+The function $\mathtt{pack}_{\tau}$ annotated with the high-level type  that the packed stream tree represents will generate instructions of $\pack$ and possibly $\upack$ and $\distr$. The function $\olol{st}$  used in the instruction \wc returns a flattening set of the stream ids in $\st$; we will give its definition later.
+
 \begin{align*}
 s' := \Pack{s_b}{s}{\pi}; \quad \equiv & \quad s' := \packf{s_b}{s}; \\
 \\
@@ -738,8 +739,10 @@ s' := \Pack{s_b}{s}{\pi}; \quad \equiv & \quad s' := \packf{s_b}{s}; \\
 (st'_1,s_1')  := \Pack{s_b}{(st_1,s_1)}{\{\tau\}}; \quad \equiv & \quad s_1' := \upackf{s_b}{s_1}; \\ 
 &\quad s_2' := \distrf{s_1}{s_b};\\
 &\quad s_c := \usumf{s_1}; \\
-&\quad \withctrl{s_c}{st_1' :=  \Pack{s_2'}{st_1}{\tau}}{[s_2'] {\++} \ol{st_1}}{st'_1} \\
+&\quad \withctrl{s_c}{st_1' :=  \Pack{s_2'}{st_1}{\tau}}{\{s_2'\} \cup \olol{st_1}}{\olol{st'_1}} \\
 \end{align*}
+
+
 
 The Xducer $\pack$ throws away the element of the second stream if the boolean of the corresponding position in the first stream is a $\F$. 
 
@@ -773,7 +776,7 @@ A high-level built-in function call will be translated to a few lines of SVCODE 
 	\begin{align*}
 			p= & \sdef{\s_0}{\toflag(\s)} ; \\ 
 			& \sdef{\s_1}{\usum(s_0)} ; \\
-			& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{[]}{[\s_2]}; \\
+			& \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{\{\}}{\{\s_2\}}; \\
 			& \sdef{\s_3}{\scan_{0}(\s_0,s_2)}
 		\end{align*}
 
@@ -869,7 +872,9 @@ Note that we make the argument of $\intermerge$, $\mergeRecur{}$, $\seginter$ an
 
 
 \item $\*{empty}$ also uses a corresponding low-level Xducer $\isempty$.
-
+\begin{example}
+	\emph{Xducer $\isempty(\<\F,\T, \ \F, \F,\F, \T,\  \T\'>)$ with control stream $\< (),(),()\'>$ outputs $\<\F,\F,\T\'>$.}		
+\end{example}
 
 
 \end{itemize}
@@ -883,13 +888,20 @@ Note that we make the argument of $\intermerge$, $\mergeRecur{}$, $\seginter$ an
 We first introduce the type of SVCODE functions $\*{SFun}$: a triple in the form $([s_1,...,s_m], p, [s_1',...,s_n'])$, where $s_1,...,s_m$ are the argument stream ids, $p$ the function body, and $s_1',...,s_n'$ the return values:
 $$ \sf ::= ([s_1,...,s_m], p, [s_1',...,s_n']) \in \*{SFun}$$
 
-The function $\bar{}$ \ flattens a stream tree to a list of stream ids:
+The overline function $\bar{}$ \ flattens a stream tree to a list of stream ids:
 	\begin{align*}
 &\bar{}: \STree \-> [\SId] \\
 &\overline{\s} = [s] \\
 &\overline{(\st_1,st_2)} = \overline{st_1} {\++} \overline{st_2}
 \end{align*}
 
+Incidentally, we define another similar function $\olol{\st}$ to return the set of the stream ids in the tree $\st$.
+
+	\begin{align*}
+&\olol{\STree}: \-> \S \\
+&\olol{\s} = \{s\} \\
+&\olol{(\st_1,st_2)} = \olol{st_1} \cup \olol{st_2}
+\end{align*}
 
 Then a user-defined function $\*{function} \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e $ will be translated to an SVCODE function
 $([s_1,...,s_m], p, \ol{\st})$, 
@@ -946,6 +958,8 @@ As a result, the SVCODE program will be traversed multiple times, or there will 
 The dataflow of the streaming execution model is still a DAG, but the difference from the eager one is that each Xducer maintains a small buffer, whose data is updated each round. 
 The final result will be collected from all these scheduling rounds.
 
+% TODO mention KPM network??
+
 Since in most cases we will have to execute more than one rounds, some extra setting-up and overhead seem to be inevitable.
 On the other hand, exploiting only a limited buffer increases the efficiency of space usage. 
 In particular, for properly streamable SNESL programs, the buffer size can be as small as one.
@@ -955,26 +969,31 @@ In particular, for properly streamable SNESL programs, the buffer size can be as
 
 So far we have mentioned $streamable$ for a few times, but not given a further explanation.
 
-We consider an algorithm to be streamable if it can be executed in constant space, and particularly, in linear space to the recursion depth for recursive ones.
+We consider an algorithm to be streamable if it can be executed in constant space, and more generally, in space linear in the recursion depth.
 
 We should point out that not all algorithms are streamable. 
 The situation where an algorithm is not streamable can be various.
 The first case easy to think about may be that the order of processing the data is random, not in the same direction of time, or in other words, it requires random access.
-For instance, most sorting algorithms, such as $QuickSort$ \cite{Hoare1961}, are not suitable to be streamed, since most of them involve element permutation or indexing. There are also some computations that look streamable, but can still be possible to fail, as Example~\ref{eg:reduce} shows.
+For instance, most sorting algorithms, such as Mergesort, are not suitable to be streamed, since most of them involve element permutation or indexing. There are also some computations that look streamable, but can still be possible to fail, as Example~\ref{eg:reduce} shows.
 
-Static analysis for streamability is still an open problem.
+Static analysis for streamability is still an open problem \cite{Fphd}.
 
 \begin{example}\label{eg:reduce}
-	\emph{The first expression are not properly streamable: after the stream $s$ has been entirely consumed by $\mathtt{reducePlus}$, it is used to append to the end of the reduction result, which requires to traversing it again; the second expression is properly streamable, since outputting $s$ can be executed at the same time of computing the reduction.}
+	\emph{The first expression are not properly streamable: after the stream $s$ has been entirely consumed by $\mathtt{reducePlus}$, it is used to append to the end of the reduction result, which requires to recompute it; the second expression is properly streamable, since outputting $s$ can be executed at the same time of computing the reduction.}
 \end{example}
 \begin{lstlisting}[style=nesl-style]
--- Buffer size: 1
+> :bs 1    -- set buffer size = 1
 >
 > let s = &4 in {reducePlus(s)} ++ s
 Deadlock!
 >
 > let s = &4 in s ++ {reducePlus(s)}
 {0,1,2,3,6} :: {int}
+>
+> :bs 5
+>
+> let s = &4 in {reducePlus(s)} ++ s
+{6,0,1,2,3} :: {int}
 \end{lstlisting}
 
 
@@ -982,16 +1001,18 @@ Deadlock!
 In the streaming execution model, the output buffer of a Xducer can be written only by the Xducer itself, but can be read by many other Xducers. 
 We define two states for a buffer:
 \begin{itemize}
-	\item \filling state　: the buffer is not full, and the Xducer is producing or writing data to it; any other trying to read it has to wait, or more precisely, enters a read-block state.
+	\item \filling state　: the buffer is not full, and the Xducer is producing or writing data to it; any client trying to read it has to wait.
 
-	\item \draining state: the buffer must be full; the readers, including the read-blocked ones, can read it only in this state; if the Xducer itself tries to write the buffer, then it enters a write-block state.
+	\item \draining state: the buffer must be full; the clients can read it only in this state; if the Xducer itself tries to write the buffer.
 \end{itemize}
 
 The condition of switching from \filling to \draining is simple: when the buffer is fully filled. 
 But the other switching direction takes a bit more work to detect: all the readers have read all the data in the buffer. We will explain more about this later.
 
+In this way, the time of context-switching for a buffer is minimized, and the data is shared among its clients.
 
-A notable special case is when the Xducer produces its last chunk, whose size may be less than the buffer size thus can never turn the buffer to a draining mode.
+
+A notable special case is when the Xducer produces its last chunk, whose size may be less than the buffer size and thus can never turn the buffer to a draining mode.
 To deal with this case, we add a flag to the draining state to indicate if it is the last chunk of the stream. 
 Thus, we have the definition of a buffer state as follows:
 \begin{align*}
@@ -1008,7 +1029,8 @@ Actually, once a dataflow DAG is established, it is only possible to add more su
 Since Xducers have different data rates (the size of consumed/produced data at each round), it is also important to keep track of the position of the data that it has read.
 We will call this position the \emph{read-cursor}.
 Also, it is possible that a Xducer reads from the same supplier multiple times but with different data rates, so only a pair of client id and the read-cursor is not enough.
-Thus we need a third component, the channel number, as we have shown in Figure~\ref{fig-svcode-dag1}.
+So  we need  to distinguish each use, rather than each client. 
+In practice, we use the channel number, as we have shown in Figure~\ref{fig-svcode-dag1}, together with the read-cursor on the buffer to distinguish a use.
 As a result, we have a client list $\clis$ of type $[(\SId, \int, \int)]$.
 
 Now we use a structure $process$, a tuple of four components including a Xducer, to stand for one node on the streaming DAG, with the type:
@@ -1025,7 +1047,7 @@ where $\S$ is the stream ids of the suppliers. An example process of Xducer $\ma
 	\label{fig:process}
 \end{figure}
 
-The Xducer inside a process is the action-performing unit. 
+Since we do not have parallel implementation of Xducer, we can consider the Xducer inside a process as the action-performing unit. 
 We classify the atomic actions of a Xducer into three:
 \begin{itemize}
 	\item \pin: read one element from one supplier's buffer.
@@ -1039,10 +1061,9 @@ a \done \ action can be added where the Xducer should shutdown:
 $$[\pin_0, \pin_1, \pout, \pin_0, \pin_1, \pout,... ,\done]$$
  where the subscripts of \pin indicate reading from different suppliers.
 
-As discussed before, the Xducer knows when to shut itself down, that is, when it reads an EOS from the control stream. 
-A process is responsible for providing the Xducer with the data and arranging the generated data into the buffer. 
 
-The activities of a process is described as the following table shows.
+The process is responsible for providing its Xducer with the data and maintaining the state of the buffer. 
+Its activities is described as the following table shows.
 
 
  \begin{table}[H]\large
@@ -1054,25 +1075,24 @@ The activities of a process is described as the following table shows.
  		\pin  & \texttt{process-read}  & \texttt{process-read}; \texttt{allread-check}  & impossible \\
  		\hline
  		\pout &  write one element to buffer;
- 		if buffer is full, switch to \draining \texttt{F}    &    enter write-block; \texttt{allread-check}   & impossible \\ 
+ 		if buffer is full, switch to \draining \texttt{F}    &    wait to write, and \texttt{allread-check}   & impossible \\ 
  		\hline
  		\done &  switch to \draining \texttt{T}      & switch to \draining \texttt{T}   & \texttt{skip}  \\ 
  		\hline
  	\end{tabular}
- \caption{Process actions}
+ \caption{Process activities. The description of \texttt{process-read} and \texttt{allread-check} are given later.}
  \end{table}
 
-\texttt{process-read}:
+\begin{itemize}
+\item \texttt{process-read}:
 
 \begin{itemize}
 	\item if the supplier's buffer state is \draining, and the read-cursor shows the process has not yet read all the data, then the process reads one element successfully and increases the read-cursor by one
-	\item if the supplier's buffer state is \draining, but the read-cursor shows the process has read all the data, or the supplier's buffer state is \filling, then the process enters a read-block state
+	\item if the supplier's buffer state is \draining, but the read-cursor shows the process has read all the data, or the supplier's buffer state is \filling, then the process waits 
 \end{itemize}
 
-%full-check: if the buffer is full, switch it to \draining \texttt{F} state.
-
-\texttt{allread-check}: if all the clients have read all the data of the buffer, switch it to \filling state.
-
+\item \texttt{allread-check}: if all the clients have read all the data of the buffer, switch it to \filling state.
+\end{itemize}
 
 \subsection{Scheduling}
 The streaming execution model consists of two phases:
@@ -1225,35 +1245,36 @@ This type of deadlock is mainly caused by insufficient space or trying to traver
 Deadlock!
 \end{lstlisting}
 As the appending operation is sequential, which means its arguments must come one by one, the same stream $s$ can not appear two times sequentially.
-One can solve the deadlock by recomputing the $s$ stream, that is, defining another stream doing the same task so they can be used at different time, for example, as the following code shows:\\
+One can solve the deadlock by recomputing the $s$ stream, for example,  defining another stream doing the same task so they can be used at different time, as the following code shows:\\
 \begin{lstlisting}[style=nesl-style]
 > let s = {1+ x : x in &5} ; s2 = {1+ x : x in &5} in s ++ &2 ++ s2
 {1,2,3,4,5,0,1,1,2,3,4,5} :: {int}
 \end{lstlisting}
-Another solution is to tabulate the sequence (into a vector) so that it can be used multiple times. 
 
-\vspace{0.5cm}
-Another example of hard deadlock caused by memory source limitation:
-\begin{example} \emph{Given an integer sequence with an equal number of odd and even elements, the following function \texttt{oeadd} will try to perform addition on a pair of odd and even number with the same index in their respective subsequences.} 
-\end{example}
+Other solutions can be tabulating the sequence (into a vector), so it can be used multiple times, or enlarging the buffer size. 
 
-\lstinputlisting[style=nesl-style]{code/harddeadlock.snesl} 
-\hspace{0.3cm}
-
-If we give the function a proper argument, for example, an sequence of an odd and an even interleaving with each other, it will never deadlock, even with a buffer of size one. 
-But if there is a relatively large distance between any odd-even pair, the code may deadlock.  \\
-  
-\begin{lstlisting}[style=nesl-style]
--- buffer size 1
-
-> oeadd(&30) -- an odd and an even interleaved
-{1,5,9,13,17,21,25,29,33,37,41,45,49,53,57} :: {int}
-
-> oeadd({1,3,5,7,0,2,4,8})  -- distan
-Deadlock!
-\end{lstlisting}
-
-Again, this type of deadlock can be broken by enlarging the buffer size, recalculation or fully materialization.
+%\vspace{0.5cm}
+%Another example of hard deadlock caused by memory source limitation:
+%\begin{example} \emph{Given an integer sequence with an equal number of odd and even elements, the following function \texttt{oeadd} will try to perform addition on a pair of odd and even number with the same index in their respective subsequences.} 
+%\end{example}
+%
+%\lstinputlisting[style=nesl-style]{code/harddeadlock.snesl} 
+%\hspace{0.3cm}
+%
+%If we give the function a proper argument, for example, an sequence of an odd and an even interleaving with each other, it will never deadlock, even with a buffer of size one. 
+%But if there is a relatively large distance between any odd-even pair, the code may deadlock.  \\
+%  
+%\begin{lstlisting}[style=nesl-style]
+%-- buffer size 1
+%
+%> oeadd(&30) -- an odd and an even interleaved
+%{1,5,9,13,17,21,25,29,33,37,41,45,49,53,57} :: {int}
+%
+%> oeadd({1,3,5,7,0,2,4,8})  -- distan
+%Deadlock!
+%\end{lstlisting}
+%
+%Again, this type of deadlock can be broken by enlarging the buffer size, recalculation or fully materialization.
 
 
 \end{itemize}
@@ -1273,11 +1294,20 @@ Again, this type of deadlock can be broken by enlarging the buffer size, recalcu
 
 \subsection{Examples}
 
+The following example program computes the united-and-conquer (exclusive) scan and reduce at the same. 
+Due to a lack of primitive functions in the experimental language, we only implemented a version for a sequence with a length of power of 2 and require the length to be explicitly given. 
+
+For an input sequence of length $n$, the algorithm (for both scan and reduce) has a asymptotic cost of linear work and logarithmic step, i.e. $O(n)$ work and $O(\lg{n})$ step, and its recursion depth is logarithmic as well. \\
 
 \lstinputlisting[style=nesl-style]{code/uc_scanred.snesl}
+\vspace{0.5cm}
+
+For the following running example, the actual time of the unfolding of \texttt{scanred} is 5, i.e., $\lg 16$ + 1 (as we can see from our instrumented interpreter). Thus the size of the dataflow network, or the number of processes grows 4-fold after the initialization to reach its maximal size.
+We would expect that streamable recursions will use linear space in its recursion depth, while this requires more experiments and a formal proof. \\
 
 \begin{lstlisting}[style=nesl-style]
--- buffer size 1
+> :bs 1
+> 
 > scanred(&16,16)
 ({0,0,1,3,6,10,15,21,28,36,45,55,66,78,91,105},120) :: ({int},int)
 \end{lstlisting}

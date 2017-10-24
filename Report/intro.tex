@@ -128,10 +128,12 @@ The expressions of SNESL are shown in the following figure.
 & e &&::=  a \     \tag{constant} \\
 &   && \quad | \ x  \tag{variable} \\
 &   && \quad | \ (e_1,...,e_k) \tag{tuple}\\
-&   && \quad | \ \Let{x}{e_1}{e_2} \tag{let-binding}\\
+&   && \quad | \ \Let{p}{e_1}{e_2} \tag{let-binding}\\
 &   && \quad | \ \hcall{\Tupk{e}}  \tag{built-in function call} \\
-&   && \quad | \ \{e_1: \ x \ \*{in} \ e_0 \} \tag{general comprehension} \\
-&   && \quad | \ \{e_1 \ | \ e_0 \}\tag {restricted comprehension} 
+&   && \quad | \ \{e_1: \ p \ \*{in} \ e_0 \} \tag{general comprehension} \\
+&   && \quad | \ \{e_1 \ | \ e_0 \}\tag {restricted comprehension} \\
+\\
+& p &&:: = x \ | \ (p_1,...,p_k)  \tag{pattern matching}
 \end{alignat*}
 \caption{Syntax of SNESL expressions \label{fig-snesl-exps}}
 \end{figure}

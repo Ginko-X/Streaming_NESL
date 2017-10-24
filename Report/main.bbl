@@ -3,7 +3,7 @@
 
 \bibitem[BG96]{Blel96-proof}
 Guy~E. Blelloch and John Greiner.
-\newblock A provable time and space efficient implementation of nesl.
+\newblock A provable time and space efficient implementation of {NESL}.
 \newblock In {\em Proceedings of the First ACM SIGPLAN International Conference
   on Functional Programming}, ICFP '96, pages 213--225, New York, NY, USA,
   1996. ACM.
@@ -17,7 +17,7 @@ Guy~E. Blelloch, Jonathan~C. Hardwick, Siddhartha Chatterjee, Jay Sipelstein,
   NY, USA, 1993. ACM.
 
 \bibitem[Ble89]{blel89scan}
-Guy~E Blelloch.
+Guy~E. Blelloch.
 \newblock Scans as primitive parallel operations.
 \newblock {\em IEEE Transactions on Computers}, 38(11):1526--1538, 1989.
 
@@ -27,13 +27,13 @@ Guy~E. Blelloch.
 \newblock MIT Press, Cambridge, MA, USA, 1990.
 
 \bibitem[Ble95]{blel95nesl}
-Guy~E Blelloch.
+Guy~E. Blelloch.
 \newblock Nesl: A nested data-parallel language.(version 3.1).
 \newblock Technical Report CMU-CS-95-170, School of Computer Science, Carnegie
   Mellon University, 1995.
 
 \bibitem[Ble96]{blel96cost}
-Guy~E Blelloch.
+Guy~E. Blelloch.
 \newblock Programming parallel algorithms.
 \newblock {\em Communications of the ACM}, 39(3):85--97, 1996.
 
@@ -49,11 +49,6 @@ Manuel M.~T. Chakravarty, Roman Leshchinskiy, Simon Peyton~Jones, Gabriele
 \newblock Data parallel haskell: A status report.
 \newblock In {\em Proceedings of the 2007 Workshop on Declarative Aspects of
   Multicore Programming}, DAMP '07, pages 10--18, New York, NY, USA, 2007. ACM.
-
-\bibitem[Hoa61]{Hoare1961}
-C.~A.~R. Hoare.
-\newblock Algorithm 64: Quicksort.
-\newblock {\em Commun. ACM}, 4(7):321--, July 1961.
 
 \bibitem[LCK{\etalchar{+}}12]{Lippmeier:2012}
 Ben Lippmeier, Manuel~M.T. Chakravarty, Gabriele Keller, Roman Leshchinskiy,
@@ -97,14 +92,14 @@ Simon Peyton~Jones.
   Springer-Verlag.
 
 \bibitem[PP93]{prins93}
-Jan~F Prins and Daniel~W Palmer.
+Jan~F. Prins and Daniel~W. Palmer.
 \newblock Transforming high-level data-parallel programs into vector
   operations.
 \newblock In {\em Proceedings of the Fourth SIGPLAN Symposium on Principles and
   Practice of Parallel Programming}, PPoPP'93, pages 119--128. ACM, 1993.
 
 \bibitem[PPCF95]{palm95}
-Daniel~W Palmer, Jan~F Prins, Siddhartha Chatterjee, and Rickard~E Faith.
+Daniel~W. Palmer, Jan~F. Prins, Siddhartha Chatterjee, and Rickard~E. Faith.
 \newblock Piecewise execution of nested data-parallel programs.
 \newblock In {\em International Workshop on Languages and Compilers for
   Parallel Computing}, pages 346--361. Springer, 1995.
@@ -113,7 +108,7 @@ Daniel~W Palmer, Jan~F Prins, Siddhartha Chatterjee, and Rickard~E Faith.
 D.~W. Palmer, J.~F. Prins, and S.~Westfold.
 \newblock Work-efficient nested data-parallelism.
 \newblock In {\em Proceedings of the Fifth Symposium on the Frontiers of
-  Massively Parallel Computation (Frontiers'95)}, FRONTIERS '95, pages 186--,
-  Washington, DC, USA, 1995. IEEE Computer Society.
+  Massively Parallel Computation (Frontiers'95)}, FRONTIERS '95, pages
+  186--193, Washington, DC, USA, 1995. IEEE Computer Society.
 
 \end{thebibliography}

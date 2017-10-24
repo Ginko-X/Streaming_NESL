@@ -41,7 +41,7 @@
 
 \def\ConEq#1{\xlongequal{#1}}  % Sgm conditional equation
 
-\def\olol#1{\overline{\overline{#1}}}
+
 
 \def\Seql#1{\{ #1_1,...,#1_l \}}
 
@@ -50,13 +50,12 @@
 \chapter{Formalization}
 
 
-%TODO add cost perservation
-In this chapter, we will present the formal proof of the correctness of the translation for the language \fmsnesl, a core subset of \mysnesl.
+In this chapter, we will present the formal proof of the correctness of the translation and the work cost preservation for the language \fmsnesl, a core subset of \mysnesl.
 First its formal definition and semantics will be given.
 Then \fmsvcode, the target language of \fmsnesl, is defined, and proofs of some of its properties including freshness and determinism are given.
-Note that as the first step to formalize the full language, we only consider the eager semantics of this target language here.
+As the first step to formalize the full language, we only consider the eager semantics of this target language here.
 The value representation and translation from \fmsnesl \ to \fmsvcode \ are also formalized.
-Finally, we put emphasis on the proof of the main correctness theorem of this language.
+Finally, we put emphasis on the proof of the translation correctness theorem of this language.
 
 
 
@@ -331,7 +330,7 @@ Before showing the semantics, we first introduce some notations and operations a
 \begin{nota}[\textbf{Stream length}]
 	For a stream $\a = \< a_1,...,a_l \'>$, $|\a|$ = l. \\
 \end{nota}
-%TODO add cost explanations
+
 The operational semantics of \fmsvcode \  is given in Figure~\ref{fig-svcode-semantics}, and the $W$ in the judgment stands for the work cost.
 The runtime environment or store $\sgm$ is a mapping from stream variables to vectors:
 $$\sgm = [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$$
@@ -550,8 +549,6 @@ In practice, most of the Xducers can be realized in a more efficient way to expr
 %\end{mdframed}
 
 \subsection{\fmsvcode \ determinism}
-
-We now present  how we prove a well-formed \fmsvcode \  program is deterministic.\\
 
 \begin{defi}[\textbf{Stream prefix}]
 	$\a$ is a $prefix$ of $\a'$, written $\a \prefix \a'$, if it can be shown so using the following rules:\\
@@ -2184,26 +2181,31 @@ It is a tiny language, compared to the full SNESL.
 However, it maintains the most important properties and the core semantics of full SNESL.
 In particular, it includes the general comprehension, the expression for expressing nested data-parallelism in SNESL. 
  
-The proofs of the most important lemmas and theorems shown in this chapter, such as the block self-delimiting lemma, the store concatenation lemma, the determinism theorem and the main correctness theorem, have shed light on the extension of  the formal validation of full SNESL. 
-
-
+The proofs of the most important lemmas and theorems shown in this chapter, such as the block self-delimiting lemma, the store concatenation lemma, the determinism theorem and the correctness theorem of the translation, have shed light on the extension of the formal validation of full SNESL. 
+For scaling up, we need to consider:
 \begin{itemize}
 	\item Extension of more primitive types will be analogous to the $\int$ type as we have shown.
 	
 	\item Adding pairs should mainly increase one more rule for value representation. Since the low-level stream trees are compatible with pairs, the effect at the low-level would be almost transparent. 
 	
 	\item Adding more built-in functions are basically to add more Xducers to the target language, as most of them are implemented by only one counterpart low-level Xducer, such as $\scan_{}$ for $\*{scan}$ and $\segconcat$ for $\*{concat}$, or a couple of lines.
-	The two-level semantics of Xducers (the general level and the block level) has reduced much of the work to design or formalize a new Xducer.
+	The two-level semantics of Xducers (the general level and the block level) has reduced much of the work to formalize the semantics of a new Xducer.
 	In addition, a non-trivial built-in function $\*{iota}$, implemented with a \wc instruction, is already given in \fmsnesl \  as a representative example.
  
+	\item For the restricted comprehension, its implementation in SVCODE is simpler than the general one, because it does not include variable-bindings. So extending the proof system with it should not be a problem. However, the type-dependent pack may need some consideration to deal with. 
 	
-	\item For the restricted comprehension, its implementation in SVCODE is simpler than the general one, because it does not include variable-bindings. So extending the proof system with it will not be a problem. 
+	\item Extension of step and space cost should be analogous to the work cost. 
+	
+	
+	\item With the \sc instruction being added to the target language,  recursion should be possible to be added, but we will also need to prove  the preservation of termination, which  is to show that the translated SVCODE program from a terminating SNESL one will also terminate. This may require a formalization of the small-step semantics.
+	
+	\item Error preservation is also a desirable part to be added. We would expect the runtime error can be propagated accurately from the high-level to the low-level.
+	
+	\item The real challenge may be to scale up to streaming semantics. At this point, there are still some problems about streaming left open, such as streamability and deadlock, so it is not that meaningful to give a precise prediction about how they will affect the proof system.
+	
 	
 \end{itemize}
 
-Maybe the most challenging extension of the proof system is for user-defined functions. 
-With the \sc instruction being added to the target language, non-recursive functions should have transparent effect to the proof system. 
-But recursions will affect the determinism of the target language.  ???
 
 
 
