@@ -8,7 +8,8 @@
         + scaling up
         + conclusion
         + bibliography
-	
+     + 24 Oct: finished all the parts, fixed known bugs
+     
 + Week 50 (10 ~ 16 Oct)
     + Fixes and complements to chapter 1 and 2,  [main.pdf](https://github.com/Ginko-X/Streaming_NESL/blob/master/Report/main.pdf)  
     + proof fixed in chapter 3, except for the last main theorem proof (but should mainly be symbol updates or clean-ups)
