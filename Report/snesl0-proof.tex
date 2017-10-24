@@ -258,7 +258,7 @@ The syntax of \fmsvcode \  is given in Figure~\ref{fig-svcode-grammar}.
 	&  \S && ::= \{\s_1,..., \s_i\} \in \sset  \tag{a set of stream ids}
 	\end{alignat*}
 	\caption{Abstract syntax of \fmsvcode \  \label{fig-svcode-grammar}}
-%TODO fix Xducer maptwo?
+
 \end{figure}
 
 
@@ -2175,29 +2175,30 @@ then
 \section{Scaling up}
 
 We have presented the formal proof of the correctness of \fmsnesl. 
-It is a tiny language, compared to the full SNESL. 
+It is a tiny language, compared to the full SNESL, or even \mysnesl. 
 However, it maintains the most important properties and the core semantics of full SNESL.
 In particular, it includes the general comprehension, the expression for expressing nested data-parallelism in SNESL. 
  
 The proofs of the most important lemmas and theorems shown in this chapter, such as the block self-delimiting lemma, the store concatenation lemma, the determinism theorem and the correctness theorem of the translation, have shed light on the extension of the formal validation of full SNESL. 
 For scaling up, we need to consider:
 \begin{itemize}
-	\item Extension of more primitive types will be analogous to the $\int$ type as we have shown.
+	\item Extension to more primitive types and associative scalar operations should be trivial.
 	
-	\item Adding pairs should mainly increase one more rule for value representation. Since the low-level stream trees are compatible with pairs, the effect at the low-level would be almost transparent. 
+	\item Adding pairs should mainly increase one more rule for value representation. Since the low-level stream trees are compatible with pairs, the effect at the low-level would be almost transparent. However, the translation of $\*{zip}$ will need to include code checking that the segment descriptors of the two sequence arguments are identical.
 	
+	\item Error preservation is also a desirable part that can be easily supported. We would expect the runtime error can be simulated accurately from the high-level to the low-level.
+		
 	\item Adding more built-in functions are basically to add more Xducers to the target language, as most of them are implemented by only one counterpart low-level Xducer, such as $\scan_{}$ for $\*{scan}$ and $\segconcat$ for $\*{concat}$, or a couple of lines.
 	The two-level semantics of Xducers (the general level and the block level) has reduced much of the work to formalize the semantics of a new Xducer.
 	In addition, a non-trivial built-in function $\*{iota}$, implemented with a \wc instruction, is already given in \fmsnesl \  as a representative example.
  
-	\item For the restricted comprehension, its implementation in SVCODE is simpler than the general one, because it does not include variable-bindings. So extending the proof system with it should not be a problem. However, the type-dependent pack may need some consideration to deal with. 
+	\item For the restricted comprehension, its implementation in SVCODE is simpler than the general one, because it does not include variable-bindings. So extending the proof system with it should not be a problem. However, the type-dependent \texttt{pack} may need some consideration to deal with. 
 	
-	\item Extension of step and space cost should be analogous to the work cost. 
+	\item Extension to step and space cost should be similar to the work cost. 
 	
 	
-	\item With the \sc instruction being added to the target language,  recursion should be possible to be added, but we will also need to prove  the preservation of termination, which  is to show that the translated SVCODE program from a terminating SNESL one will also terminate. This may require a formalization of the small-step semantics.
+	\item With the \sc instruction being added to the target language, it will be simple to support recursion. However, we will also need to prove the preservation of termination to show that the translated SVCODE program from a terminating SNESL one will terminate as well. This should be provable with a generalized IH using induction on the high-level evaluation derivation. 
 	
-	\item Error preservation is also a desirable part to be added. We would expect the runtime error can be propagated accurately from the high-level to the low-level.
 	
 	\item The real challenge may be to scale up to streaming semantics. At this point, there are still some problems about streaming left open, such as streamability and deadlock, so it is not that meaningful to give a precise prediction about how they will affect the proof system.
 	

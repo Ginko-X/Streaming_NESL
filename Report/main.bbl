@@ -46,7 +46,7 @@ Guy~E. Blelloch and Gary~W. Sabot.
 \bibitem[CLPJ{\etalchar{+}}07]{Chak07}
 Manuel M.~T. Chakravarty, Roman Leshchinskiy, Simon Peyton~Jones, Gabriele
   Keller, and Simon Marlow.
-\newblock Data parallel haskell: A status report.
+\newblock Data {Parallel Haskell: A Status Report}.
 \newblock In {\em Proceedings of the 2007 Workshop on Declarative Aspects of
   Multicore Programming}, DAMP '07, pages 10--18, New York, NY, USA, 2007. ACM.
 
@@ -73,7 +73,7 @@ Frederik~M. Madsen.
 \bibitem[MF13]{MadFil13}
 Frederik~M. Madsen and Andrzej Filinski.
 \newblock Towards a streaming model for nested data parallelism.
-\newblock In {\em Proceedings of the 2Nd ACM SIGPLAN Workshop on Functional
+\newblock In {\em Proceedings of the 2nd ACM SIGPLAN Workshop on Functional
   High-performance Computing}, FHPC '13, pages 13--24, New York, NY, USA, 2013.
   ACM.
 
@@ -86,7 +86,7 @@ Frederik~M. Madsen and Andrzej Filinski.
 
 \bibitem[PJ08]{PeytonJones08}
 Simon Peyton~Jones.
-\newblock Harnessing the multicores: Nested data parallelism in haskell.
+\newblock Harnessing the multicores: Nested data parallelism in {Haskell}.
 \newblock In {\em Proceedings of the 6th Asian Symposium on Programming
   Languages and Systems}, APLAS '08, pages 138--138, Berlin, Heidelberg, 2008.
   Springer-Verlag.
@@ -98,17 +98,18 @@ Jan~F. Prins and Daniel~W. Palmer.
 \newblock In {\em Proceedings of the Fourth SIGPLAN Symposium on Principles and
   Practice of Parallel Programming}, PPoPP'93, pages 119--128. ACM, 1993.
 
-\bibitem[PPCF95]{palm95}
-Daniel~W. Palmer, Jan~F. Prins, Siddhartha Chatterjee, and Rickard~E. Faith.
+\bibitem[PPCF96]{palm95}
+Daniel~W. Palmer, Jan Prins, Siddhartha Chatterjee, and Rickard~E. Faith.
 \newblock Piecewise execution of nested data-parallel programs.
-\newblock In {\em International Workshop on Languages and Compilers for
-  Parallel Computing}, pages 346--361. Springer, 1995.
+\newblock In {\em Proceedings of the 8th International Workshop on Languages
+  and Compilers for Parallel Computing}, LCPC '95, pages 346--361, London, UK,
+  UK, 1996. Springer-Verlag.
 
 \bibitem[PPW95]{Ppw95-workeff}
 D.~W. Palmer, J.~F. Prins, and S.~Westfold.
 \newblock Work-efficient nested data-parallelism.
 \newblock In {\em Proceedings of the Fifth Symposium on the Frontiers of
-  Massively Parallel Computation (Frontiers'95)}, FRONTIERS '95, pages
-  186--193, Washington, DC, USA, 1995. IEEE Computer Society.
+  Massively Parallel Computation}, FRONTIERS '95, pages 186--193, Washington,
+  DC, USA, 1995. IEEE Computer Society.
 
 \end{thebibliography}

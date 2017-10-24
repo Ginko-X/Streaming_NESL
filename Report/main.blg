@@ -5,22 +5,22 @@ The style file: alpha.bst
 Database file #1: thesis.bib
 You've used 17 entries,
             2543 wiz_defined-function locations,
-            678 strings with 7618 characters,
-and the built_in function-call counts, 7945 in all, are:
-= -- 858
+            679 strings with 7641 characters,
+and the built_in function-call counts, 7948 in all, are:
+= -- 860
 > -- 312
 < -- 18
 + -- 106
 - -- 104
-* -- 536
-:= -- 1238
+* -- 538
+:= -- 1240
 add.period$ -- 61
 call.type$ -- 17
 change.case$ -- 105
 chr.to.int$ -- 17
 cite$ -- 17
 duplicate$ -- 353
-empty$ -- 583
+empty$ -- 581
 format.name$ -- 124
 if$ -- 1717
 int.to.chr$ -- 1
@@ -28,14 +28,14 @@ int.to.str$ -- 0
 missing$ -- 15
 newline$ -- 89
 num.names$ -- 51
-pop$ -- 94
+pop$ -- 91
 preamble$ -- 1
 purify$ -- 124
 quote$ -- 0
-skip$ -- 302
+skip$ -- 303
 stack$ -- 0
 substring$ -- 492
-swap$ -- 102
+swap$ -- 101
 text.length$ -- 18
 text.prefix$ -- 6
 top$ -- 0
@@ -43,4 +43,4 @@ type$ -- 132
 warning$ -- 0
 while$ -- 80
 width$ -- 21
-write$ -- 251
+write$ -- 253
