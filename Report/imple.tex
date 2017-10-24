@@ -7,7 +7,7 @@
 \newcommand{\xducer}{\*{Xducer}}
 \newcommand{\filling}{\texttt{Filling} \ }
 \newcommand{\draining}{\texttt{Draining} \ }
-\newcommand{\pin}{\texttt{Pin} \ }
+\newcommand{\pin}{ \texttt{Pin} \ }
 \newcommand{\pout}{\texttt{Pout}}
 \newcommand{\done}{\texttt{Done}}
 
@@ -167,7 +167,7 @@ The typing rules for built-in operations (using the judgment $\boxed{\Typef {\hc
 The typing rules of \mysnesl \ should be straightforward except those for comprehensions. 
 For the general comprehension, the $input$ sequence $e_0$, as well as the whole expression, must be a sequence.
 The types of the free variables of the $ comprehension \ body$ $e_1$, i.e., $x_1,...,x_k$, are all required to be concrete. 
-That is, they cannot be sequences.
+That is, they cannot be sequences or contain any sequence component.
 However, they can be of any types in restricted comprehension.
 We will explain this later.
  
@@ -283,10 +283,10 @@ The evaluation rules are also straightforward except for the comprehensions.
 In the general comprehension, the input sequence $e_0$ gets evaluated first, generating a sequence of $l$ elements.
 These $l$ elements are used to substitute the bound variable $x$ in the comprehension body $e_1$; so $e_1$ will be evaluated $l$ times with different substitutions of $x$ but with the same value of its free variables $x_1,...,x_k$.
 As mentioned before, these free variables $x_1,..., x_k$ can only be of concrete types, because their values are repeatedly used $l$ times here, which requires these values must be already materialized. 
-If any of them is a stream, then there is no guarantee that this stream is already computed completely when the evaluation of $e_1$ starts, which may cause problems, such as a deadlock.
+If any of them is a stream, then the entire stream must be allocated for each of the $l$ evaluations of $e_1$.
 
-For the restricted comprehension, the $guard$ expression $e_0$ first gets evaluated: if it is a $\T$, $e_1$ will be evaluated, generating a singleton sequence; otherwise, $e_1$ will not be evaluated, and the comprehension only returns an empty sequence. \\
-Here, since $e_1$ will be evaluated at most once, there will be no problem if any free variables of $e_1$ is a stream.
+
+For the restricted comprehension, the $guard$ expression $e_0$ first gets evaluated: if it is a $\T$, $e_1$ will be evaluated, generating a singleton sequence; otherwise, $e_1$ will not be evaluated, and the comprehension only returns an empty sequence. Here, since $e_1$ will be evaluated at most once, there will be no problem if any free variables of $e_1$ is a stream.
 
 The built-in functions of \mysnesl \ correspond to a subset of SNESL's ones shown in Figure~\ref{fig-snesl-func} but without $\*{mkseq}$, and the vector-related ones. 
 In addition, the function $\*{scan}$ and $\*{reduce}$ are also
@@ -422,7 +422,7 @@ The types and semantics of these built-in functions remain the same as they are 
 At the low level, a value of \mysnesl \ is represented as either a primitive $stream$ (i.e., a collection of primitive values),
 or a binary tree structure with stream leaves. 
 The idea of this representation comes from \cite{Blel90vecmod}. 
-The primitive stream $\a$ of $l$ elements $a_1,...,a_l$ and the stream tree $w$ have the following form: 
+The primitive stream $\a$ of $l$ elements $a_1,...,a_l$ and the stream tree $w$ have the following forms: 
 $$ \a ::= \<a_1,...,a_l\'>$$
 $$ w ::= \a \ | \ (w_1,w_2) $$
 
@@ -613,7 +613,7 @@ In Section~\ref{sec:valrep}, we have seen the idea of how a high-level value of 
 At the compiling time, we use a structure $\STree$ (stream id tree) to connect the high-level variables and the low-level ones: 
 $$ \STree \ni \st ::= \s \ | \ (\st_1,\st_2) $$
 The translation symbol table $\del$ is a mapping from high-level variables to stream trees:
- $$\del = [x_1 \|-> \st_1,..., x_k \|-> {\st_k}] $$ 
+ $$\del ::= [x_1 \|-> \st_1,..., x_k \|-> {\st_k}] $$ 
 
 Another important component maintained at the compiling time is a fresh-stream allocation counter. 
 It will be assigned to the defined stream(s) of the generated instruction by the translation.
@@ -642,17 +642,17 @@ More details about translating $\*{append}$ is given later.
 For the empty sequence $\{\}\tau$, the low-level streams are all empty streams except for the outermost descriptor $\oT$, and the number of those empty streams depends on the type $\tau$.
 
 The most interesting case may be the comprehensions. 
-For the general one, $\Comp{e_1}{x}{e_0}{x_1,...,x_k}$, the key step is to bind the variable $x$ to the entire data stream of the input sequence $e_0$, then translate the body $e_1$ with this variable-binding, and put it into a \wc block. 
+For the general one, $\Comp{e_1}{x}{e_0}{x_1,...,x_k}$, the key step is to bind the variable $x$ to the entire data stream of the input sequence $e_0$, then translate the body $e_1$ with this variable-binding, and put the generated code into a \wc block. 
 It is also important here that the parallel degrees must be changed (to the length of the input sequence).
 The values of the free variables  $x_1,...,x_k$ will be used many times (depending on the length of the input sequence as well), so they need to be replicated.
 
 For example, the first step to translate the comprehension in the expression $\Let{x}{1}{\Comp{i+x}{i}{\&5}{x}}$ is to translate $\&5$, which is represented as a data stream $\<0,1,2,3,4\'>$ with a flag steam $\<\F,\F,\F,\F,\F,\T\'>$.
 So $i$ will be bound to the data stream, and the flag is used to generate the new control stream, using the Xducer $\usum$.
-The free variable $x$ will be replicated 5 times, i.e., $\<1,1,1,1,1\'>$, which is done by the Xducer $\distr$.
+The free variable $x$ with value $\singl{1}$ will be replicated 5 times, generating a new stream $\<1,1,1,1,1\'>$, and this replication work is done by the Xducer $\distr$.
 Then the adding operation in the comprehension body is translated to an instruction performing vector addition on the stream bound to $i$ and the replication stream of $x$, and executing the instruction will give us $\<1,2,3,4,5\'>$. 
 
 
-The Xducer $\usum$ working on a flag stream $s_b$ to generate the new control stream. It transforms an $\F$ to a unit, a $\T$ to nothing.
+The Xducer $\usum$ working on a flag stream $s_b$ is employed to generate the new control stream. It transforms an $\F$ to a unit, a $\T$ to nothing.
 \begin{example} \emph{$\usumf{\<\F,\T,\F,\F,\T\'>}$ with the control stream = $\<(),() \'>$:} \\
 	\begin{center}
 		\includegraphics[width=0.8\textwidth]{fig/usumxducer.png}
@@ -770,7 +770,7 @@ A high-level built-in function call will be translated to a few lines of SVCODE 
 	The translation will first use the Xducer $\toflag$ to generate the descriptor of the return value, and then perform a scan operation on a stream of $n$ 1s to generate the data stream.
 	Its translation will look like: 
 	$$	\PT{
-		\Axiom{\Transf{\iotan}{\s}{\s_0}{}{\sfun{p} {(\s_3,\s_0)}}}
+		\Axiom{\Transf{\iotan}{\s}{}{}{\sfun{p} {(\s_3,\s_0)}}}
 	}$$
 	where 
 	\begin{align*}
@@ -799,14 +799,14 @@ $\genscan_{+}(s_b,s_d)$ performs an exclusive scan of addition (with neutral ele
 
 \item The high-level function $\*{scan}_+$ is implemented straightforwardly by using the  Xducer $\genscan_{+}$:
 	$$	\PT{
-	\Axiom{\Transf{\*{scan}_+}{(s_d,s_b)}{\s_0}{}{\sfun{\sdef{s_0}{\genscan_{+}(s_b,s_d)}} {(\s_0,\s_b)}}}
+	\Axiom{\Transf{\*{scan}_+}{(s_d,s_b)}{}{}{\sfun{\sdef{s_0}{\genscan_{+}(s_b,s_d)}} {(\s_0,\s_b)}}}
 }$$
 
 \item Similar to $\*{scan}_+$, $\*{reduce}_+$  is translated to a low-level Xducer $\genreduce_{+}$.
 
 \item The translation of $\*{concat}$ is also one instruction using the Xducer $\segconcat$:
 $$	\PT{
-	\Axiom{\Transf{\*{concat}}{((st,s_1),s_2)}{\s_0}{}{\sfun{\sdef{s_0}{\segconcat(s_2,s_1)}} {(st,\s_0)}}}
+	\Axiom{\Transf{\*{concat}}{((st,s_1),s_2)}{}{}{\sfun{\sdef{s_0}{\segconcat(s_2,s_1)}} {(st,\s_0)}}}
 }$$
 
 
@@ -821,7 +821,7 @@ The Xducer $\segconcat$ merges the second outermost descriptors of the high-leve
 
 \item $\*{part}$ can be implemented straightforward by the Xducer $\usegcount$.
 $$	\PT{
-	\Axiom{\Transf{\*{part}}{(st_1,s_1),(s_2,s_2'))}{\s_0}{}{\sfun{\sdef{s_0}{\usegcount(s_2,s_2')}} {((\st_1,\s_2),s_0)}}}
+	\Axiom{\Transf{\*{part}}{(st_1,s_1),(s_2,s_2'))}{}{}{\sfun{\sdef{s_0}{\usegcount(s_2,s_2')}} {((\st_1,\s_2),s_0)}}}
 }$$
 
 $\usegcount$ counts the number of the segments of its second argument,  segmented according to the second argument, and represents it in unary.
@@ -834,7 +834,7 @@ $\usegcount$ counts the number of the segments of its second argument,  segmente
 
 \item Implementation of the function $\*{append}$ may be the most tricky one, since it needs to recursively append subsequences at each depth of the argument sequences:
 $$	\PT{
-	\Axiom{\Transf{\*{append}}{(st_1,s_1),(st_2,s_2))}{\s_0}{}{\sfun{p} {(\st,\s_0)}}}
+	\Axiom{\Transf{\*{append}}{(st_1,s_1),(st_2,s_2))}{}{}{\sfun{p} {(\st,\s_0)}}}
 }$$
 \def\mergeRecur#1{\mathtt{mergeRecur}_{#1}}
 where 
@@ -890,16 +890,16 @@ $$ \sf ::= ([s_1,...,s_m], p, [s_1',...,s_n']) \in \*{SFun}$$
 
 The overline function $\bar{}$ \ flattens a stream tree to a list of stream ids:
 	\begin{align*}
-&\bar{}: \STree \-> [\SId] \\
-&\overline{\s} = [s] \\
-&\overline{(\st_1,st_2)} = \overline{st_1} {\++} \overline{st_2}
+\bar{}: \STree & \-> [\SId] \\
+\overline{\s} & = [s] \\
+\overline{(\st_1,st_2)} & = \overline{st_1} {\++} \overline{st_2}
 \end{align*}
 
 Then a user-defined function $\*{function} \  f(x_1: \tau_1, ..., x_k: \tau_k): \tau = e $ will be translated to an SVCODE function
 $([s_1,...,s_m], p, \ol{\st})$, 
 assuming
  $$\Trans{[x_1 \|-> st_1,..., x_k \|-> \st_k ]}{e}{}{}{\sfun{p}{\st}}$$ 
-where argument trees $\st_1,...,\st_k$  are generated from their corresponding types $\tau_1,...,\tau_k$ (with all fresh ids), and
+where argument trees $\st_1,...,\st_k$  are generated according to  their types $\tau_1,...,\tau_k$ (with all fresh ids), and
 $$[s_1,...,s_m] = \ol{st_1} \ {\++} \ ... \ {\++} \ \ol{st_k}$$
 
 %\def\treegene#1{\mathtt{treeGene}_{#1}}
@@ -1007,8 +1007,7 @@ We define two states for a buffer:
 \end{itemize}
 
 The condition of switching from \filling to \draining is simple: when the buffer is fully filled. 
-But the other switching direction takes a bit more work to detect: all the readers have read all the data in the buffer. We will explain more about this later.
-
+But the other switching direction takes a bit more work to detect: all the readers have read all the data in the buffer (we will explain more about this later).
 In this way, the time of context-switching for a buffer is minimized, and the data is shared among its clients.
 
 
@@ -1028,8 +1027,7 @@ Actually, once a dataflow DAG is established, it is only possible to add more su
 
 Since Xducers have different data rates (the size of consumed/produced data at each round), it is also important to keep track of the position of the data that it has read.
 We will call this position the \emph{read-cursor}.
-Also, it is possible that a Xducer reads from the same supplier multiple times but with different data rates, so only a pair of client id and the read-cursor is not enough.
-So  we need  to distinguish each use, rather than each client. 
+Also, it is possible that a Xducer reads from the same supplier multiple times but with different data rates, so we need  to distinguish each use, rather than each client. 
 In practice, we use the channel number, as we have shown in Figure~\ref{fig-svcode-dag1}, together with the read-cursor on the buffer to distinguish a use.
 As a result, we have a client list $\clis$ of type $[(\SId, \int, \int)]$.
 
@@ -1043,7 +1041,7 @@ where $\S$ is the stream ids of the suppliers. An example process of Xducer $\ma
 	\centering
 	\includegraphics[width=1.0\textwidth]{process2}
 	\caption{A process S2 of Xducer $\map{+}$. It has read a 2 from S0's buffer and a 1 from S1's buffers, and it is writing a 3 to its own buffer.}
-	\label{fig:process2}
+	\label{fig:process}
 \end{figure}
 
 Since we do not have parallel implementation of Xducer, we can consider the Xducer inside a process as the action-performing unit. 
@@ -1109,10 +1107,10 @@ In this phase, the interpreter establishes the initial DAG by traversing the SVC
 	\end{itemize}
 
 	
-	\item initialize a function call  $\scall{f}{[s_1,...,s_n]}{[s_1',...,s_m']}$: \\
+	\item initialize a function call  $\scall{f}{s_1,...,s_k}{(s_1',...,s'_{k'})}$: \\
 	A user-defined function at runtime can be considered as another DAG, whose nodes(processes) of the formal arguments are missing. 
 	So the interpreter just adds the function's DAG to the main program's DAG 
-	and replaces the function's formal arguments with the actual parameters $[s_1,...,s_n]$, and the formal return ones with the actual ones $[s_1',...,s_m']$.  
+	and replaces the function's formal arguments with the actual parameters $s_1,...,s_k$, and the formal return ones with the actual ones $s_1',...,s_{k'}'$.  
 
 	
 	\item initialize a \wc block $\withctrl{\s_c}{p}{\Sin}{\Sout}$ \\

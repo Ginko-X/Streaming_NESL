@@ -205,7 +205,7 @@ Let $|v|$ denote the \emph{size} of a value:
 			\right)}
 		\UC{\Eval{\rho}{\Comp{e}{x}{y}{\usevarsk}}
 			     {\{\replc{l}{v'}\}}      
-			     {(k+1)\cdot l + \sum_{i=1}^{l}W_i}}
+			     {	1+ (k+1)\cdot l + \sum_{i=1}^{l}W_i}}
 	}\\
 	
 \item Built-in function evaluation rules: \\
@@ -333,7 +333,7 @@ Before showing the semantics, we first introduce some notations and operations a
 
 The operational semantics of \fmsvcode \  is given in Figure~\ref{fig-svcode-semantics}, and the $W$ in the judgment stands for the work cost.
 The runtime environment or store $\sgm$ is a mapping from stream variables to vectors:
-$$\sgm = [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$$
+$$\sgm ::= [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$$
 The control stream $\c$, which is a vector of units, indicates the parallel degree of the computation, as we have discussed in the last chapter. 
 It is worth noting that only in the rule $\PName{Wc-Nonemp}$ the control stream gets changed.
 
@@ -452,8 +452,8 @@ After abstracting the general semantics, the remaining work of formalizing the s
 		\Axiom{\blockf{\toflag}{\singl{n}}{\< \F_1,...,\F_n,\T \'>}} } \\[3ex]
 	
 	\PRule{X-MapTwo}{\PT{\AC{}
-			\RiLa{(n_3= n_1 \oplus n_2)}
-			\UC{\blockf{\maptwo{\oplus}}{\singl{n_1}, \singl{n_2}} {\singl{n_3}}}
+			\RiLa{(n_3= n_1 + n_2)}
+			\UC{\blockf{\maptwo{+}}{\singl{n_1}, \singl{n_2}} {\singl{n_3}}}
 	}} \\[3ex]
 	
 	%--- UsumF
@@ -487,7 +487,7 @@ After abstracting the general semantics, the remaining work of formalizing the s
 
 
 As mentioned before, we can consider a block  as the minimum computing unit assigned to a single processor. This is reasonable for
-Xducers such as $\consta{a}$ and $\maptwo{\oplus}$, because
+Xducers such as $\consta{a}$ and $\maptwo{+}$, because
 they are already sequential at the block level. 
 
 However, some other Xducers, such as $\usum$, can be parallelized further inside a block.
@@ -927,7 +927,7 @@ The following Lemma~\ref{lem-trans-prim-wf} and Theorem~\ref{thm-trans-wf} toget
 \section{Value representation}
 
 \begin{enumerate}[(1)]
-	\item Just like $\STree$, stream value trees also needs to be redefined as follows:  
+	\item Just like $\STree$, the stream value tree also needs to be redefined as follows:  
 	\fmsvcode \  values: $$\SvVal \ni \v ::= \a \ | \ (\v,\b) $$
 	
 	\item A function for \fmsvcode \  value construction from a stream-id tree:
@@ -945,7 +945,7 @@ The following Lemma~\ref{lem-trans-prim-wf} and Theorem~\ref{thm-trans-wf} toget
 	\end{align*}
 	
 	
-	\item We annotate the operation ${\++}$ with the high-level type to represent the concatenation of \fmsvcode \  values': 
+	\item We annotate the operation ${\++}$ with the high-level type to represent the concatenation of \fmsvcode \  values: 
 	\begin{align*}
 	{\++}_{\tau}: \SvVal &\->  \SvVal \-> \SvVal \\
 	\a_1 \ {\++}_{\int}  \ \a_2 &= \a_1 \ {\++} \ \a_2 \\
@@ -1027,7 +1027,7 @@ A corollary that can be derived from these lemmas is that if two high-level valu
 	then $v=v'$.
 \end{cor}
 \begin{proof}
-	The proof can be derived straightforward from using Lemma~\ref{lem:recov-correct} (take $w' = \emptyvtau{\tau}$) and Lemma~\ref{lem:recov-determ}.
+	The proof can be derived straightforward from Lemma~\ref{lem:recov-correct} (take $w' = \emptyvtau{\tau}$) and Lemma~\ref{lem:recov-determ}.
 \end{proof}
 
 
@@ -1497,7 +1497,7 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
 	\end{enumerate}
  	then, for some $\sgm'$ and $W$, 
  	\begin{enumerate}[(i)]
- 		\setcounter{enumi}{5}
+ 		\setcounter{enumi}{4}
  		\item $\seval{p}{\sgm}{\vunit}{\sgm'}{W}$ (by $\MP$)
  		\item $\ValRep{v}{\tau}{\sgm'^*(\st)}$ (by $\MR$)
  		\item $W \le C \cdot (\sum_{i=1}^{k}|v_i| + |v|)$ 
@@ -1545,7 +1545,7 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
 \def\pplus{\sdef{\s_0}{\maptwof{+}{\s_1}{\s_2}}}	
 	So $k=2$ and $v_1= n_1, v_2= n_2, v = n_3, \st = \s_0$. \\
 	 
-	 Assumption (iv) gives us
+	 Assumption $(iv)$ gives us
 	 $\infer{\ValRep{n_1}{\int}{\sgm(\s_1)}}{}$ and 
 	 $\infer{\ValRep{n_2}{\int}{\sgm(\s_2)}}{}$, which implies
 	 $\sgm(\s_1) = \singl{n_1}$ and $\sgm(\s_2) = \singl{n_2}$ respectively. 
@@ -1599,7 +1599,7 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
 		\UCN{\MP_0}{\seval{p_0}{\sgm}{\vunit}{\sgm_0} {W_0} }
 		\UCN{\MP_1}{\seval{p_1}{\sgm_0}{\vunit}{\sgm_1} {W_1} } 	
 		\UCN{\MP_2}{\seval{p_2}{\sgm_1}{\vunit}{\sgm_2} {W_2} }
-		\UCN{\MP_3}{\seval{p_3}{\sgm_2}{\vunit}{\sgm_3} {W_3} }
+		\UCN{\MP_3}{\seval{p_3}{\sgm_2}{\vunit}{\sgm'} {W_3} }
 		\BC{\seval{p_2;p_3}{\sgm_2}{\vunit}{\sgm'}{W_2+W_3}}
 		\BC{\seval{p_1;(p_2;p_3)}{\sgm_1}{\vunit}{\sgm'}{W_1+W_2+W_3}}
 		\BC{\seval{p_0;(p_1;(p_2;p_3))}{\sgm}{\vunit}{\sgm'}{W_0+W_1+W_2+W_3}}		 	
@@ -1661,7 +1661,7 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
 			\Axiom{\sevalfg{\consta{1}}{}{\emptyv}{\emptyv}}
 			\QuaternaryInfC{$\sevalfg{\consta{n}}{}{\nunit}{\<1_1,...,1_n\'>}$}
 			\UC{\seval{\sdef{\s_2}{\consta{1}()}}{\sgm_1}{\nunit}
-				{\sgm'_1[s_2 \|-> \<1_1,...,1_n\'>]}{n}}
+				{\sgm_1[s_2 \|-> \<1_1,...,1_n\'>]}{n}}
 			\UC{\seval{p_2}{\sgm_1}{\vunit}{\sgm_1[s_2 \|-> \<1_1,...,1_n\'>]}{n+1}}}$$
 	 	So in this subcase, $\sgm_2 = \sgm[\s_0 \|-> \flagn, \s_1 \|-> \nunit, \s_2 \|-> \<1_1,...,1_n\'>]$, and $W_2 = n+1$.
 	 \end{itemize}
@@ -1827,8 +1827,8 @@ From the assumptions $(iv)$ and $(vi)$, for all $i \in \{1,...,k\}$:
 	$\ValRep{v_i}{\tau_i}{\sgm^*(\st_i)}$
 \end{enumerate}
 
-So $W^H = |v| + \sum_{i=1}^{k}|v_i| $. \\ 
-Using Lemma \ref{function-correctness} on $\MT_1$  with $\ME_1, \MC_1, (a),(b)$ will give us exactly what we shall show.
+Since $W^H = |v| + \sum_{i=1}^{k}|v_i| $, 
+using Lemma \ref{function-correctness} on $\MT_1$  with $\ME_1, \MC_1, (a),(b)$ will give us exactly what we shall show.
 
 		
 \item Case $e = \Comp{e_1}{x}{y}{\usevars}$. \\
@@ -1837,9 +1837,9 @@ Using Lemma \ref{function-correctness} on $\MT_1$  with $\ME_1, \MC_1, (a),(b)$ 
 \def\stwo{\< \F_1,..., \F_l, \T \'>}
 \def\sgmszs{\sgm[\s_0 \|-> \lunit, \st_2 \>-> \sgm''(\st_2)]}
 \def\sgmsz{\sgm[\s_0 \|-> \lunit]}
-For notation convenience, in this proof case we use $x$ with subscript $j$ instead of $k$ to denote the free variables in $e_1$, as $k$ will be used for other purpose. 
+For notational convenience, in this proof case we use $x$ with subscript $j$ instead of $k$ to denote the free variables in $e_1$, as $k$ will be used for other purpose. 
 
-From the corresponding assumption, we have: 
+From the corresponding assumptions, we have: 
 		\begin{enumerate}[(i)]
 		\item 
 		$$\PT{
@@ -1859,11 +1859,11 @@ From the corresponding assumption, we have:
 				\end{aligned}\right)^l_{i=1}}
 			\LeLa{\ME = }
 			\UC{\Eval{\rho}{\Comp{e_1}{x}{y}{\usevars}}{\{v_1',...,v'_l\}}
-			      { (1+ j) \cdot l + \sum_{i=1}^{l}W^H_i }}
+			      { 1+ (1+ j) \cdot l + \sum_{i=1}^{l}W^H_i }}
 		}\]
 	    with $$\rho(y)=\{v_1',...,v'_l\} $$
 	    \[\j{\rho(x_i) = n_i}\]
-		So $W^H = (1+ j) \cdot l + \sum_{i=1}^{l}W^H_i $.
+		So $W^H = 1 + (1+ j) \cdot l + \sum_{i=1}^{l}W^H_i $.
 		
 		\item 
 		\[\PT{
@@ -2026,7 +2026,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 	\begin{enumerate}[(a)]
 		\item $\forall i \in \{1,...,l\}.\forall x' \in dom(\Gam_1). \Type{}{\rho_i(x')}{\Gam_1(x')$ } 
 		\item $\forall x' \in dom(\Gam_1). \olol{\del_1(x')} \.< \s_0 +1 +j  $
-		\item $\forall i \in \{1,...,l\}.\forall x' \in dom(\Gam_1). \ValRep{\rho_i(x')}{\Gam_1(x')}{\sgm^*_{ji}(\del_1(x'))}$\\
+		\item $\forall i \in \{1,...,l\}.\forall x' \in dom(\Gam_1). \ValRep{\rho_i(x')}{\Gam_1(x')}{\sgm^*_{ji}(\del_1(x'))}$ for some $\sgm_{ji}$\\
 	\end{enumerate}
 	
 	TS (a): From $\eqref{\eqnum{20}}$ and $\eqref{\eqnum{2}}$ it is clear that (a) holds.
@@ -2043,8 +2043,7 @@ Using $\PName{Seq}$ $(j+1)$ times, we can build $\MP$ as follows:
 for some $\S_1$ such that $(\olol{\st_1} \cup \{s_1,...,s_j\}) \subseteq \S_1 $, 
 and some $\S_2$ such that $\S_2 \subseteq \{s_0\!+1\!+j,...,s_1\}$. 
 	
-	For $\forall i \in \{1,..,l\}$, we 
-	take $\S = dom(\sgm_j) - (\S_1 \cup \S_2)$, and take $\sgm_{ji}$ such that  
+	 We now take $\S = dom(\sgm_j) - (\S_1 \cup \S_2)$, and for $\forall i \in \{1,..,l\}$, we take $\sgm_{ji}$ as
 		\begin{align*}
 		    dom(\sgm_{ji}) & = dom(\sgm_j) \\
 		    \forall s \in \S. \sgm_{ji}(s) & = \sgm_{j}(s) \\
@@ -2123,8 +2122,8 @@ and some $\S_2$ such that $\S_2 \subseteq \{s_0\!+1\!+j,...,s_1\}$.
 	\item \label{subcase-2} 
 	Subcase $\sgm_j(\s_0) \neq \emptyv$, i.e., $l > 0$.
 	
-    Since we have $\eqref{well-form}$, $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and  $(\S_1 \cup \S_2) \cap \S = \emptyset$ from $\eqref{\eqnum{33}}$,
-	it is easy to show that using Lemma \ref{lem-sgm-join} $(l-1)$ times we can obtain
+    Since we have $\eqref{well-form}$, $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and  $(\S_1 \cup \S_2) \cap \S = \emptyset$,
+	it is easy to show that using Lemma \ref{lem-sgm-join} (the parallelism fusion lemma) $(l-1)$ times we can obtain
 	\eq{p1-sgms-sgms'}{
 		\seval{p_1}{(\x{\S} \sgm_{ji})^l_{i=1}}{\lunit}{(\x{\S} \sgm_{ji}')^l_{i=1}}{W^L_{j+1}}
 	}
@@ -2169,16 +2168,16 @@ and some $\S_2$ such that $\S_2 \subseteq \{s_0\!+1\!+j,...,s_1\}$.
 	
 	Showing (ix): \\
 	As we have shown, $$W^L =  \sum_{i=0}^{j+1} W^L_i = W^L_0 + \sum_{i=1}^{j}W^L_i + W^L_{j+1} = (2l+1) +  j\cdot (2l+2) + W^L_{j+1} $$
-	$$W^H = l \cdot (j+1) + \sum_{i=1}^{l} W^H_i$$ 
-	For $l=0$, $W^L_{j+1}$ = 1,  so $W^L  = 2 + 2j$, and $W^H = 1 + j$, thus $C$ can be any number $ \ge 2$.
+	$$W^H = 1+ l \cdot (j+1) + \sum_{i=1}^{l} W^H_i$$ 
+	For $l=0$, $W^L_{j+1}$ = 1,  so $W^L  = 2 + 2j$, and $W^H = 1 $, thus $C$ can be any number $ \ge 2+2j$ (which is still a constant).
     	 
 	For $l>0$, $W^L_{j+1} \le 1 + C \cdot \sum_{i=1}^{l}W^H_i$, so 
 	\begin{align*}
 		W^L  & \le (2l+1) + j\cdot (2l+2) + C \cdot   \sum_{i=1}^{l}W^H_i \\
 		& =   (2j+2) \cdot l + C \cdot   \sum_{i=1}^{l}W^H_i  + 1 + 2j \\
-		W^H & = (j+1) \cdot l + \sum_{i=1}^{l} W^H_i
+		W^H & = (j+1) \cdot l + \sum_{i=1}^{l} W^H_i + 1
 	\end{align*}
-   Therefore, ignoring the contants $(1+2j)$ in $W^L$,  $C $ can be any number $\ge 2$.
+   Therefore, ignoring the contants $(1+2j)$ in $W^L$ and 1 in $W^H$,  $C $ can be any number $\ge 2$.
 	
 	\end{itemize}
 
@@ -2189,7 +2188,7 @@ and some $\S_2$ such that $\S_2 \subseteq \{s_0\!+1\!+j,...,s_1\}$.
 
 
 \begin{cor}[\textbf{Correctness of implementation}]
-	If 
+	For some constant $C$, if 
 	\begin{enumerate}[(i)]
 		\item $\Type{[\ ]}{e}{\tau}$
 		\item $\Eval{[\ ]}{e}{v}{W^H}$
@@ -2200,7 +2199,7 @@ then
 	\item $\exists! \ p,st,s . \Trans{[\ ]}{e}{0}{s}{(p,\st)}$
 	\item $\exists! \ \sgm. \seval{p}{[\ ]}{\vunit}{\sgm}{W^L} $
 	\item $\exists! \ v'. \Vtransb{\sgm^*(\st)}{\tau}{v}{\emptyvtau{\tau}} $ and $v' = v$
-	\item $ \exists C . W^L = C \cdot W^H$ 
+	\item $ W^L \le C \cdot W^H$ 
 	 
 \end{enumerate}
 \end{cor}
