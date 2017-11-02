@@ -1,7 +1,7 @@
 # Working Progress
 + 2 Nov: [presentation slides](https://github.com/Ginko-X/Streaming_NESL/blob/master/Report/presentation/main.pdf)
 + 1 Nov: fixed work preservation proof
-    + for the high-level work cost of general comprehension, I think it should be `(l+1)(k+1) + sum...`, (not `1 + (l+1)k + sum...`, or `1 + (k+1)l) + sum...`,)  where (l+1) accounts for the length of the descriptor, (k+1) for Distr (of k free variables) and _Usum_; the work cost can be bounded now with C >=2 in both cases.
+    + for the high-level work cost of general comprehension, I think it should be `(l+1)(k+1) + sum...`, (not `1 + (l+1)k + sum...`, or `1 + (k+1)l + sum...`,)  where (l+1) accounts for the length of the descriptor, (k+1) for Distr (of k free variables) and _Usum_; the work cost can be bounded now with C >=2 in both cases.
     + reorganized/rewrote/simplied the proof case of general comprehension (of the translation correctness theorem) to make it more readable 
 
 + Week 51 (17~ 24 Oct)
