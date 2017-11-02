@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  2 NOV 2017 22:13
+This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  2 NOV 2017 22:33
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1871,9 +1871,9 @@ Overfull \vbox (15.38753pt too high) detected at line 361
 ] [17
 
 ]
-File: ../process2.png Graphic file (type QTm)
- <use  "../process2.png" >
-Overfull \vbox (32.15434pt too high) detected at line 440
+File: ../fig/process.png Graphic file (type QTm)
+ <use  "../fig/process.png" >
+Overfull \vbox (27.35394pt too high) detected at line 440
  []
 
 [18
@@ -1991,7 +1991,7 @@ Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 786.
  ) 
 Here is how much of TeX's memory you used:
  40869 strings out of 493706
- 794649 string characters out of 6145768
+ 794651 string characters out of 6145768
  952850 words of memory out of 5000000
  43462 multiletter control sequences out of 15000+600000
  15359 words of font info for 100 fonts, out of 8000000 for 9000
