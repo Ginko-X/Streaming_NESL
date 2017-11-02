@@ -1,6 +1,0 @@
--- partition a string to words (delimited by spaces)
--- SNESL1 version: replace chars with ints
-function str2wds_snesl(v:{int}):{{int}} =
-   let flags = {x == 32 : x in v};
-       nonsps =  concat({{x | x != 32} : x in v})
-    in concat({{x | not(empty(x))}: x in part(nonsps, flags ++ {T})})
