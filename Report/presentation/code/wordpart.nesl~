@@ -1,0 +1,9 @@
+-- NESL version
+function str2wds(str) =
+  let strl = #str;  
+      spc_is =  { i : c in str, i in &strl | c == ' '}; 
+      word_ls = { id2 - id1 -1 : id1 in [-1] ++ spc_is; id2 in spc_is++[strl]}; 
+      valid_ls = {l : l in word_ls | l > 0}; 
+      chars = {c : c in str | c != ' ' }  -- non-space chars
+   in partition(chars, valid_ls); 
+

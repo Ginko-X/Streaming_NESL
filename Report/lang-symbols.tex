@@ -1,0 +1,244 @@
+
+\def\*#1{\mathbf{#1}}
+
+%source language syntax
+\def\Let#1#2#3{\*{let} \ #1 = #2 \ \*{in} \ #3}
+\def\Comp#1#2#3#4{\{#1 : #2 \ \*{in} \ #3 \ \*{using} \ #4\}}
+\def\RComp#1#2#3{\{ #1 \ | \ #2 \ \*{using} \ #3 \}}
+
+\def\hcall{\phi} 
+
+\def\usevars{x_1,...,x_j}
+\def\usevarsk{x_1,...,x_k}
+\def\j#1{(#1)^j_{i=1}}
+\def\k#1{(#1)^k_{i=1}}
+\def\l#1{(#1)^l_{i=1}}
+
+\def\const#1{\*{const}_{#1} ()}
+\def\iota#1{\*{iota} (#1)} 
+\def\plus#1#2{\*{plus} (#1,#2)}
+
+\def\constn#1{\*{const}_{#1}}
+\def\iotan{\*{iota}} 
+\def\plusn{\*{plus}}
+
+
+%types
+\def\int{\*{int}}
+\def\bool{\*{bool}} 
+\def\tseq#1{\{#1\}}  
+
+
+% symbol shorthands
+\def\Eva{\downarrow}
+\def\Ra{\Rightarrow}
+\def\Env{\ \vdash\ } 
+
+\def\Seqk#1{\{ #1_1,...,#1_k \}}
+\def\Tupk#1{(#1_1,...,#1_k)}
+\def\replc#1#2{#2_1,...,#2_{#1}}
+
+% greek letters
+\def\sgm{\sigma}
+\def\Gam{\Gamma}
+\def\del{\delta}
+
+
+% special font
+
+\def\MC{\mathcal{C}}  % translation
+\def\ME{\mathcal{E}}  % snesl evaluation
+\def\MP{\mathcal{P}}  % svcode semantics
+\def\MT{\mathcal{T}}  % typing rules
+\def\MR{\mathcal{R}}  % value representation
+
+
+% Judgment
+\def\Jug#1{\textbf{Judgment} \boxed{#1} \\[1ex]}
+
+\def\Map#1#2{#1 \mapsto #2}
+ 
+
+% Evaluation
+\def\Eval#1#2#3{#1 \Env #2 \Eva #3 } 
+\def\EvalF#1#2#3{#1(#2) \Eva #3}  % function evaluation
+
+%typing
+\def\Type#1#2#3{#1 \Env #2 : #3 } 
+\def\Typef#1#2#3{#1 : (#2) \rightarrow #3}
+\def\TypeV#1#2{#1 : #2}
+
+%value representation
+\def\ValRep#1#2#3{ #1 \triangleright_{#2} #3}
+
+
+% rule with a name
+\def\ERule#1#2{$\textsc{E-#1} : {#2}$}
+\def\CRule#1#2{$\textsc{C-#1} : {#2}$}
+\def\PRule#1#2{$\textsc{P-#1} : {#2}$}
+
+
+% only rule name
+\def\EName#1{\textsc{E-#1}}
+\def\PName#1{\textsc{P-#1}}
+\def\CName#1{\textsc{C-#1}}
+
+%proof tree shorthands
+\def\AC#1{\AxiomC{$#1$}}
+\def\Axiom#1{\AxiomC{} \UnaryInfC{$#1$}}
+\def\UC#1{\UnaryInfC{$#1$}}
+\def\BC#1{\BinaryInfC{$#1$}}
+\def\TC#1{\TrinaryInfC{$#1$}}
+\def\DP{\DisplayProof}
+\def\LeLa#1{\LeftLabel{$#1$}}
+\def\RiLa#1{\RightLabel{$#1$}}
+\def\PT#1{#1 \DisplayProof \qquad} 
+%UnaryInfC with a deriviation name
+\def\UCN#1#2{\AxiomC{$#1$} \noLine \UC{#2}}
+
+
+%shorhands notations
+\def\<{\langle} 
+\def\'>{\rangle}
+\def\->{\rightarrow}
+\def\=>{\Rightarrow}
+
+\def\ConEq#1{\xlongequal{<#1}}  % Sgm conditional equation
+\def\.<{\lessdot}
+\def\bs{ \ \backslash \ } 
+
+\def\olol#1{\overline{\overline{#1}}}
+
+\def\unit{()}
+\def\vunit{\langle \unit \rangle}  
+
+\def\vrange#1#2{\langle #1,...,#2 \rangle}
+\def\lrange#1#2{\left[ #1,...,#2 \right]}
+
+\def\emptyv{\langle \rangle}
+
+\def\prefix{\sqsubseteq}
+
+
+\def\s{\mathit{s}}  
+\def\st{\mathit{st}} 
+\def\SId{\mathbf{SId}}
+\def\STree{\mathbf{STree}}
+
+\def\sset{\mathbb{S}}
+\def\S{S}
+\def\Sin{S_{in}}
+\def\Sout{S_{out}}
+
+\def\FV#1{\mathtt{fv}(#1)}
+\def\dv#1{\mathtt{dv}(#1)}
+
+
+\def\v{w}
+\def\a{\vec a}
+\def\b{\vec b}
+\def\c{\vec c}
+
+\def\SvVal{\mathbf{SvVal}}
+
+%\def\ctrl{\mathtt{Ctrl}}
+\def\consta#1{\mathtt{Const_{#1}}} 
+\def\toflag{\mathtt{ToFlags}}
+\def\usum{\mathtt{Usum}}
+\def\maptwo#1{\mathtt{MapTwo}_{#1}}
+\def\map#1{\mathtt{Map}_{#1}}
+
+\def\scan{\mathtt{ScanPlus}}
+
+\def\genscan{\mathtt{Scan}}
+\def\genreduce{\mathtt{Reduce}}
+
+\def\distr{\mathtt{Distr}}
+\def\pack{\mathtt{Pack}}
+\def\upack{\mathtt{UPack}}
+\def\bu{\mathtt{B2u}}
+\def\segconcat{\mathtt{SegConcat}}
+\def\usegcount{\mathtt{USegCount}}
+\def\intermerge{\mathtt{InterMerge}}
+\def\seginter{\mathtt{SegInter}}
+\def\primseginter{\mathtt{PrimSegInter}}
+\def\check{\mathtt{Check}}
+\def\isempty{\mathtt{IsEmpty}}
+\def\emptyctrl{\mathtt{EmptyCtrl}}
+
+
+
+\def\constaf#1{\mathtt{Const_{#1}()}} 
+\def\toflagf#1{\mathtt{ToFlags}(#1)}
+\def\usumf#1{\mathtt{Usum}(#1)}
+\def\maptwof#1#2#3{\mathtt{MapTwo}_{#1}(#2,#3)}
+\def\scanf#1#2{\mathtt{ScanPlus}(#1,#2)}
+\def\distrf#1#2{\mathtt{Distr}(#1,#2)}
+\def\packf#1#2{\mathtt{Pack}(#1,#2)}
+\def\upackf#1#2{\mathtt{UPack}(#1,#2)}
+
+\def\:={:=}
+\def\sdef#1#2{#1 := #2}
+\def\withctrl#1#2#3#4{#4 := \mathtt{WithCtrl}(#1,#3,#2)}
+\def\wc{$\mathtt{WithCtrl}$ }
+\def\sc{$\mathtt{SCall}$ }
+\def\scall#1#2#3{#3 := \mathtt{SCall} \ #1(#2)} 
+\def\sf{$\mathtt{SFun}$}
+
+\def\T{\mathtt{T}} 
+\def\F{\mathtt{F}} 
+\def\oT{\singl{\T}}
+\def\oF{\singl{\F}}
+
+\def\sids#1{\mathtt{sids}(#1)}
+\def\ol#1{\overline{#1}}
+
+\def\++{+\!+}
+\def\vapp#1#2{#1 {\++} #2}
+
+
+\def\~#1{\stackrel{#1}{\sim}}
+\def\x#1{\stackrel{#1}{\bowtie}} % sgm append
+
+\newcommand\ra{\rightarrow}
+\def\Da{\Downarrow}
+\def\dda{\downdownarrows}
+
+\def\lcall{\psi} 
+
+
+\def\blockf#1#2#3{#1(#2) \Eva #3} 
+\def\unary#1#2#3{{\lcall}(#1,...,#2) \dda #3}
+
+\def\blockv#1#2#3#4{\lcall_{#1}(#2,...,#3) \Eva #4}  
+\def\unaryv#1#2#3#4#5{\lcall_{#1}(#2,...,#3) \dda^{#4} #5}
+
+\def\singl#1{\langle #1 \rangle}
+\def\|->{\mapsto}   % map 
+\def\>->{\rightarrowtail} % map a bunch of variables
+%\def\=>#1#2{\Rightarrow^{#1}_{#2}}
+
+
+%translation
+\def\sfun#1#2{(#1,#2)}
+
+% compiling/translation
+\def\Trans#1#2#3#4#5{#1 \Env #2 \Rightarrow^{#3}_{#4} #5}
+\def\Transf#1#2#3#4#5{#1(#2) \Rightarrow^{#3}_{#4} #5}
+
+%% ---- formalization
+\def\Vtransb#1#2#3#4{#1 \mathrel{\triangleleft_{#2}} #3,#4}
+\def\wf#1#2#3{ #2 \Vdash #1 : #3} %well-formed
+\def\etail#1#2{\< #1 | #2 \'>}  % element and a tail vector
+
+\def\PRName#1{\textsc{I-#1}}
+\def\MI{\mathcal{I}}  % prefix rule
+% well-formedness rules
+\def\WName#1{\textsc{W-#1}}
+\def\MW{\mathcal{W}}
+
+\def\ConEq#1{\xlongequal{#1}}  % Sgm conditional equation
+
+\def\Seql#1{\{ #1_1,...,#1_l \}}
+\def\emptyvtau#1{\emptyv_{#1}} 
+

@@ -1,0 +1,5 @@
+-- SNESL version
+function str2wds_snesl(str) =
+ let flags = { x == ' ' : x in str};
+     nonsps =  concat({{x | x != ' '} : x in v})
+  in concat({{x|not(empty(x))}: x in part(nonsps,flags ++ {T})})

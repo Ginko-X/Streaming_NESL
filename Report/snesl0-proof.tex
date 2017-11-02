@@ -574,7 +574,7 @@ In practice, most of the Xducers can be realized in a more efficient way to expr
 The following lemma says that a Xducer always knows how many elements it should consume and produce when it reads one element from the control stream, i.e., in one block, and these numbers are fixed in any block for the same Xducer.
 
 
-\begin{lem}[\textbf{Blocks are self-delimiting and deterministic.}] \label{lem-block-unique}
+\begin{lem}[\textbf{Blocks are self-delimiting and deterministic}] \label{lem-block-unique}
 	If
 	\begin{enumerate}[(i)]
 		\item $(\a_i' \prefix  \a_i \ by \ some \ derivation \ \MI_{i})^k_{i=1}$ and $\block{\a_1'}{\a_k'}{\a'}$ by some $\MP$, 
@@ -974,11 +974,6 @@ It is easy to check that, for any $\tau$, ${\++}_{\tau}$ is associative with $\e
 			\RiLa{(\v = \v_1 \ {\++}_{\tau} \cdots {\++}_{\tau} \ w_l)}
 			\UC{\ValRep{\{v_1,...,v_l\}}{\tseq{\tau}}{(w,\langle \F_1,..., \F_l, \T \rangle)}}
 		}\\
-		
-	%		\PT{ \Axiom{\ValRep{\{\}}{\tseq{\tau}}{(\emptyvtau{\tau},\oT)}}
-	%	}\\
-	
-
 
 \item The following set of rules are used to recover/reconstruct a \fmsnesl \ value from a \fmsvcode\ value. The judgment can be read as:`` given a \fmsvcode\ value $w$ and a high-level type $\tau$, a high-level value $v$ will be generated from the prefix of each stream of $w$, and the remaining part is $w'$". \\
 
@@ -1056,7 +1051,7 @@ We also define a binary operation $\x\S$ on stores to represent a special kind o
 the $concatenation$ of two similar stores is a new store, in which the bound values by $\S$ are from any of the parameter stores, and 
 the others are the concatenation of the values from the two stores. 
 In other words, a $concatenation$ of two similar stores is only a concatenation of the bound values that $may$ be different in these stores.
-\begin{defi}[\textbf{Store Concatenation}] \label{def-sgm-join}
+\begin{defi}[\textbf{Store concatenation}] \label{def-sgm-join}
 	For $\sgm_1 \~\S \sgm_2$,
 	$\sgm_1 \x{\S} \sgm_2 = \sgm$ where \\
 	$\sgm(s) =

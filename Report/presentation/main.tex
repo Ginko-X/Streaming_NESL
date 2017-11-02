@@ -1,0 +1,786 @@
+\documentclass{beamer}
+
+\usetheme[numbering=fraction,block=fill]{metropolis}  
+%\usetheme{Copenhagen} 
+
+
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{proof}
+\usepackage{bussproofs}
+\usepackage{color}
+\usepackage{geometry}
+\usepackage{enumerate}
+\usepackage{extarrows}
+\usepackage{verbatim}
+\usepackage{algorithm}
+\usepackage[ampersand]{easylist}
+\usepackage[linewidth=1pt]{mdframed}
+\usepackage[font=large,labelfont=bf]{caption}
+\usepackage{float}
+\usepackage{diagbox}
+\usepackage{listings}
+
+\input{../lang-style.tex}
+
+\lstset{
+	basicstyle=\scriptsize\ttfamily,
+	breakatwhitespace=true,
+	breaklines=true,
+	captionpos=t,
+	columns=fixed,
+	extendedchars=true,
+	commentstyle=\color{darkgreen},
+	frame=single,
+	frameround=tttt,
+	framesep=4pt,
+	keywordstyle=\bfseries\color{carnelian},
+	numbers=left,
+	numberstyle=\scriptsize\color{gray},
+	rulecolor=\color{black},
+	showstringspaces=false,
+	showtabs=false,
+	stepnumber=1,
+}
+
+\input{../lang-symbols.tex}
+
+\newtheorem{thm}{Theorem}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{defi}[thm]{Definition}
+\newtheorem{nota}[thm]{Notation}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{cor}[thm]{Corollary}
+
+        
+\title{Formalizing the implementation of \\ Streaming NESL}
+%\subtitle{Master's Thesis}
+
+\author{Dandan Xue}
+\date{Novermber 8, 2017}
+
+\institute{Department of Computer Science (DIKU) \\ University of Copenhagen}
+
+\begin{document}
+\maketitle
+
+%\frame{\tableofcontents}
+
+\begin{frame}{Contents}
+	\begin{enumerate}
+		\item Introduction
+		\begin{itemize}
+			\item NESL
+			\item Streaming NESL (SNESL)
+		\end{itemize}
+		\item Implementation
+		\begin{itemize}
+			\item Extended target language (supporting recursion)
+			\item Translation 
+			\item Streaming SVCODE interpreter
+		\end{itemize}
+		
+		\item Formalization
+			\begin{itemize}
+				\item Source and target language semantics
+				\item Target language well-formedness, determinism 
+				\item Translation correctness (including work preservation)
+			\end{itemize}
+		\item Conclusion
+	\end{enumerate}
+\end{frame}
+
+\section{Introduction}
+
+\begin{frame}{NESL}
+	\begin{itemize}
+		\item A functional nested data-parallel language
+		\item Developed by Guy E. Blelloch in 1990s at CMU
+		\item Highlights: 
+		\begin{itemize}
+			\item Highly expressive for parallel algorithms. \\ 
+			Main data-parallel construct: \emph{apply-to-each}, $$\{e_1(x) : x \ \*{in} \ e_0 \} $$\\ 
+	  Example: compute $\sum_{i=0}^{k-1}$ for $k \in [2,3,4]$ (result: [1,3,6]):
+	  $$\{\*{sum}(\&x) : x \ \*{in} \ [2,3,4]\} $$
+	  
+	  \item An intuitive cost model for time complexity: work-step model
+	  \begin{itemize}
+	  	\item work cost $t_1$: total number of operations executed
+	  	\item step cost $t_\infty$: the longest chain of sequential dependency
+	  \end{itemize}
+	\end{itemize}
+	\end{itemize}
+  
+\end{frame}
+
+\begin{frame}{Streaming NESL (SNESL)}
+	\begin{itemize}
+		\item Experimental refinement of NESL
+		\item Aiming at improving space-usage efficiency 
+		\item Work from Frederik M. Madsen and Andrzej Filinski in 2010s at DIKU
+		\item Highlights:
+		\begin{itemize}
+			\item Streaming semantics 
+			\begin{align*} 
+			& \pi ::= \bool \ | \ \int \ | \ \*{char} \ | \ \*{real}  \ | \ \cdots \tag{scalar types}\\
+			& \tau ::= \pi \ | \ (\tau_1,...,\tau_k) \ | \ [\tau] \tag{concrete types} \\
+			& \sigma ::= \tau \ | \ (\sigma_1,...,\sigma_k) \ | \ \tseq{\sigma}  \tag{general types} 
+			\end{align*}
+			
+			\item A space cost model
+			\begin{itemize}
+				\item sequential space $s_1$: the minimal space to perform the computation
+				\item parallel space $s_\infty$: space needed to achieve the maximal parallel degree ( NESL's case)
+			\end{itemize}
+		\end{itemize}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{SNESL syntax} 
+	\begin{itemize}
+		\item Expressions
+		\begin{alignat*}{2}
+		& e &&::=  a \ | \ x \ | \ (e_1,...,e_k) \ | \ \Let{x}{e_1}{e_2} \ | \ \hcall{\Tupk{e}} \\ 
+		&   && \quad | \ \{e_1: \ x \ \*{in} \ e_0 \} \tag{general comprehension} \\
+		&   && \quad | \ \{e_1 \ | \ e_0 \}\tag {restricted comprehension} 
+		\end{alignat*}
+		
+  \item Primitive functions
+		\begin{alignat*}{2} 
+		&\hcall && ::= \oplus \ | \ \ \*{append} \ | \ \*{concat} \ | \ \*{zip} \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_{\otimes} \ | \ \*{reduce}_{\otimes}   \\
+		&   && \quad | \ \*{mkseq} \ |  \ \*{the}  \ | \ \*{empty} \tag{sequence operations}\\
+		&   && \quad | \ \*{length} \ | \ \*{elt}  \tag{vector operations}\\
+		&   && \quad | \ \*{seq} \ | \ \*{tab} \tag{convertion between vector and sequence}\\
+		& \oplus  \ && :: = +  \ | \ \times \ |  \  / \ | ==  \ | \ \*{not} \ | \ \cdots  \tag{scalar operations}\\
+		& \otimes \ && :: = + \ | \ \times  \ | \ \*{max} \ | \ ...  \tag{associative binary operations}
+		\end{alignat*}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{SNESL primitive functions}
+	\begin{table}\footnotesize 
+		\begin{tabular}{p{0.35\columnwidth}|p{0.63\columnwidth}}
+			\hline
+			$\*{{\++} : (\{\sgm\}, \{\sgm\}) \ra \{\sgm\}}$ & append two sequences \\ \hline
+			$\*{concat: \{\{\sgm\}\} \rightarrow \{\sgm\} }$ &  flatten a sequence of sequences                 \\ \hline
+			$\*{zip} \colon (\{\sgm_1\}, ..., \{\sgm_k\})\ra \{(\sgm_1,...,\sgm_k)\}$ & $\*{zip}(\{1,2\},\{\F,\T\}) = \{(1,\F),(2,\T)\}$\\ \hline
+			$\*{\&: \int \ra \{\int\}}$  &  \&5 = \{0,1,2,3,4\} \\ \hline
+			$\*{part: (\{\sgm\}, \{\bool\}) \ra  \{\{\sgm\}\}}$   & $\*{part}(\{3,1,4\}, \{\F,\F,\T,\F,\T,\T\}) = \{\{3,1\},\{4\},\{\}\}$                \\ \hline
+			$\*{scan_\otimes}: \{\int\} \ra \{\int\}$     & $\*{scan_+}(\&5) = \{0,0,1,3,6\} $  \\ \hline
+			$\*{reduce_\otimes: \{\int\} \ra \int }$     &  $\*{reduce_+}(\&5) = 10$              \\ \hline
+			$\*{mkseq}: (\overbrace{\sgm,...,\sgm}^{k}) \ra \{\sgm\}$  & $\*{mkseq}(1,2,3) = \{1,2,3\}$ \\ \hline  
+			$\*{\#}$: $[\tau] \ra \int$ & length of a vector \\ \hline  
+			$\*{!}$: ($[\tau], \int) \ra \tau$  & element indexing, [3,8,2] ! 1 = 8 \\ \hline  
+			$\*{the:  \{\sgm\} \ra \sgm}$     &  return the element of a singleton,  $\*{the}(\{10\}) = 10$        \\ \hline
+			$\*{empty:  \{\sgm\} \ra \bool}$       & test a sequence empty or not             \\ \hline  
+			$\*{seq}: [\tau] \ra \{\tau\} $  & $\*{seq}([1,2]) = \{1,2\}$ \\ \hline  
+			$\*{tab}: \{\tau\} \ra [\tau] $  & $\*{tab}(\{1,2\}) = [1,2]$\\ \hline  
+		\end{tabular}
+	\end{table}
+	
+\end{frame}
+
+\begin{frame}[fragile]{??[optional] Example program: Splitting a string into words}
+
+\lstinputlisting[style=nesl-style]{code/wordpart.nesl} 
+\lstinputlisting[style=nesl-style]{code/wordpart.snesl} 
+	
+\begin{lstlisting}[style=nesl-style]
+  $> str2wds("A   NESL program . ")
+  [['A'], ['N', 'E', 'S', 'L'], ['p', 'r', 'o', 'g', 'r', 'a', 'm'], ['.']] :: [[char]]
+\end{lstlisting}
+\end{frame}
+
+%\begin{frame}{Cost model}
+%%TODO more
+%\begin{itemize}
+%	\item Work-step cost model from NESL
+%	\item Space cost model from SNESL
+%\end{itemize}
+%\end{frame}
+
+
+% ---------------- implemenation ------------------------------
+
+\newcommand\tr{\triangleright}
+\newcommand{\proc}{\*{Proc}}
+\newcommand{\bufst}{\*{BufState}}
+%\newcommand{\sups}{\*{Sups}}
+\newcommand{\clis}{\*{Clis}}
+\newcommand{\xducer}{\*{Xducer}}
+\newcommand{\filling}{\texttt{Filling} \ }
+\newcommand{\draining}{\texttt{Draining} \ }
+\newcommand{\pin}{ \texttt{Pin} \ }
+\newcommand{\pout}{\texttt{Pout}}
+\newcommand{\done}{\texttt{Done}}
+\newcommand{\ftype}{\varphi}
+
+
+\def\interT#1#2#3{\vdash_{#1} #2 : #3}
+\def\conc#1{#1 \ {\mathbf{concrete}}}
+\def\Type#1#2#3{#1 \vdash_{\Sigma} \ #2 : #3 } 
+\def\Eval#1#2#3{#1 \vdash_{\Phi} #2 \Eva #3 } 
+\def\Distr#1#2#3{\mathtt{distr}_{#3}(#1,#2)}
+\def\Pack#1#2#3{\mathtt{pack}_{#3}(#1,#2)}
+
+\section{Implementation}
+
+\begin{frame}{Source language}
+
+\begin{itemize}
+\item Simplified SNESL types
+	{\small\begin{align*} 
+	& \pi ::= \bool \ | \ \int  \tag{only two scalar types}\\ 
+	& \tau ::= \pi \ | \ (\tau_1,\tau_2) \ | \ \tseq{\tau} \tag{no vectors, tuples to pairs} \\
+	& \ftype :: = (\tau_1,...,\tau_k) \ra \tau  \tag{support recursion}
+	\end{align*}}	
+\item Syntax
+	{\small \begin{alignat*}{2} 
+	& t &&::= \*{eval} \ e \ | \ d \ t \  \tag{top-level term} \\
+	& e &&::=  a \ | \ x  \ | \ (e_1,e_2) \ | \ \Let{x}{e_1}{e_2} \ | \ \hcall{\Tupk{e}} \\
+	&   &&  \quad | \ \{ \}\tau \ | \ \{e_1,...,e_k \}_{\quad (k \ge 1)} \\
+	&   && \quad | \ \Comp{e_1}{x}{e_0}{\usevarsk} \ | \ \RComp{e_1}{e_0}{\usevarsk}  \\
+	&   && \quad | \ f (e_1,...,e_k)  \tag {user-defined function call} \\
+	& d &&::= \*{function} \  f (x_1\colon{\tau_1}, ..., x_k\colon\tau_k)\colon{\tau} = e \\
+	&\hcall && ::= \oplus \ | \  \ {\++}_{\tau} \ | \ \*{concat}_{\tau}  \ | \ \&(\*{iota})  \ | \ \*{part}_{\tau}  \ | \ \*{scan}_+ \ | \ \*{reduce}_{+} \ | \cdots \\	
+	\end{alignat*}
+   }
+%& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | <= \ | \ == \ | \  \*{not} \ | \ \cdots
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Source language}
+\begin{itemize}
+	\item Key typing rules:\\[2ex]
+{\small
+\makebox[1.2\textheight]{	
+	\PT{
+		\AC{\Type{\Gam}{e_0}{\{\tau_0\}}}
+		\AC{\Type{[x \|-> \tau_0, \k{x_i \|-> \tau_i}]}{e_1}{\tau}}
+		\RiLa{\left(
+			\begin{aligned}
+				&\k{\Gam(x_i) = \tau_i \\
+					&\conc{\tau_i}}
+			\end{aligned} \right)}
+		\BC{\Type{\Gam}{\Comp{e_1}{x}{e_0}{\usevarsk}}{\tseq{\tau}}}
+	}
+}\\[2ex]
+\PT{
+	\AC{\Type{\Gam}{e_0}{\bool}}
+	\AC{\Type{[\k{x_i \|-> \tau_i}]}{e_1}{\tau}}
+	\RiLa{(\k{\Gam(x_i) = \tau_i})}
+	\BC{\Type{\Gam}{\RComp{e_1}{e_0}{\usevarsk}}{\tseq{\tau}}}
+}\\[2ex]
+\PT{
+	\AC{\Type{\Gam}{e_1}{\tau_1}}
+	\AC{\cdots}
+	\AC{\Type{\Gam}{e_k}{\tau_k}}
+	\RiLa{(\Sigma(f) = (\tau_1, ... , \tau_k) \ra \tau)}
+	\TC{\Type{\Gam}{f(e_1,...,e_k)}{\tau}}
+}\\[2ex]
+%TODO fix or remove
+
+\item Key evaluation rules:
+	
+\PT{
+	\AC{\Eval{\rho}{e_0}{\{v_1,...,v_l\}}}
+	\AC{(\Eval{[x \|-> {v_i}, x_j \|-> \rho(x_j))^k_{j=1}]}{e_1}{v_i'})^l_{i=1}}
+	\BC{\Eval{\rho}{\Comp{e_1}{x}{e_0}{\usevarsk}}{\{\replc{l}{v'}}\}}
+}\\[2ex]
+
+\PT{
+	\AC{\k{\Eval{\rho}{e_i}{v_i}}}
+	\AC{\Eval{[\k{x_i \|-> v_i}]}{e_0}{v}}
+	\BC{\Eval{\rho}{f{\Tupk{e}}}{v}}
+}\\
+where $\Phi(f)=   f(x_1\colon\tau_1, ..., x_k\colon\tau_k)\colon \tau = e_0$
+}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Target language: SVCODE}
+	\begin{itemize}
+	\item SVCODE values:
+		\begin{itemize}
+			\item primitive stream: $\a ::= \<a_1,...,a_l\'>$, e.g., $\<1,2,3\'>, \<\F, \T, \F ,\F, \T \'>$
+			\item stream tree: $w ::= \a \ | \ (w_1,w_2)$
+		\end{itemize}
+		
+	\item SVCODE syntax
+		{\small \begin{alignat*}{2} 
+		&p  && :: = \ \epsilon \ | \ p_1;p_2 \\ 
+		&   && \quad | \ \sdef{\s}{\psi(s_1,...,s_k)}  \tag{single stream definition}\\
+		&   && \quad | \ \withctrl{\s}{p_1}{\Sin}{\Sout}  \tag{\wc block}\\
+		&   && \quad | \ \scall{f}{s_1,...,s_k}{(s_1',...,s_{k'}')} \tag{ function call}\\
+		&\s && ::= 0 \ | \ 1 \ | \ \cdots \in \SId  = \mathbb{N}   \tag{stream ids}\\
+		&  \S && ::= \{\s_1,..., \s_k\} \in \sset  \tag{set of stream ids}\\
+		& \psi \ && ::= \consta{a} \ | \ \toflag  
+		\ | \ \usum \ | \ \map{\oplus} \ | \ \genscan_{+} \ | \ \genreduce_{+} \ | \ \distr    \\
+		&   && \quad  | \ \pack \ | \ \upack \ | \ \bu \ | \ \segconcat \ | \intermerge \ | \ \cdots  \tag{Xducers} \\	
+		\end{alignat*}}
+		
+		\item semantics
+	\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{SVCODE dataflow}
+\begin{columns}
+\begin{column}{0.36\textwidth}
+
+\begin{lstlisting}[style=svcode-style]
+S1 := Const_3
+S2 := ToFlags S1
+S3 := Usum S2
+[S4] := WithCtrl S3 []:
+   S4 := Const_1()
+S5 := ScanPlus S2 S4
+\end{lstlisting}	
+	\end{column}	
+	\begin{column}{0.64\textwidth}
+	\includegraphics[width=1.1\textwidth]{../fig/dataflow.png}
+	\end{column}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Value representation}
+\begin{itemize}
+	\item Scalars are represented as singleton primitive streams: e.g., $3 \tr_\int \ \< 3 \'>, \T \tr_\bool \oT $
+	
+	\item A nested sequence with a nesting depth $d$ is represented as a flattening data stream and $d$ descriptor streams. 
+	$$\{\{3,1\}, \{4\}\} \tr_{\{\{\int\}\}} ((\< 3,1,4 \'>, \<\F,\F,\T,\F,\T \'>),\< \F, \F, \T \'>)  $$
+	$$\{\T,\F\} \tr_{\{\bool\}} (\< \T,\F\'>, \< \F,\F , \T \'>) $$		
+	
+\item A pair of SNESL values is represented as a pair of stream trees.  
+	$$(\{\T,\F\},2) \tr_{(\{\bool\},\int)} ((\< \T, \F \'>, \< \F,\F,\T \'>),\singl{2})$$
+
+\item A sequence of pairs is represented as a pair of sequences sharing one descriptor:
+	$$\{(1,\T),(2,\F),(3,\F)\} \tr_{\{(\int,\bool)\}} ((\<1,2,3\'>, \<\T,\F, \F\'>), \< \F,\F,\F,\T \'>)$$
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{Translation}
+\begin{itemize}
+	\item $\STree \ni \st ::= \s \ | \ (\st_1,\st_2) $
+	\item Translation symbol table $\del ::= [x_1 \|-> \st_1,..., x_k \|-> {\st_k}] $
+	\item General comprehension translation:\\
+	$\Comp{i+x}{i}{\&3}{x} \Ra$  
+{\footnotesize
+	\begin{lstlisting}[style=svcode-style]
+  ...
+  S4 := ...   -- <1 >      x
+  S5 := ...   -- <F,F,F,T> descriptor of &3 
+  S6 := ...   -- <0,1,2>   i
+  S7 := Usum S5;  -- 1. generate new control: <() () ()>
+  S8 := Distr S4 S5; -- 2. replicate x 3 times: <1 1 1 >
+  [S9] := WithCtrl S7 [S6,S8]: -- 3. translate  (i+x)
+            S9 := Map_+ S6 S8  -- <1,2,3>
+\end{lstlisting}
+}
+	\item Restricted comprehension translation: $\pack$ free variables instead of $\distr$ 
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Translation continue}
+	\begin{itemize}
+		 \item Built-in function translation: 
+		\begin{itemize}
+			\item $\*{scan}, \*{reduce}, \*{concat}, \*{part}, \*{empty}$: translated to a single stream definition, e.g., 
+			${\*{scan}_+}{((s_d,s_b))} \Ra {\genscan_{+}(s_b,s_d)}$
+			\item $\*{the}$, $\*{iota}$ translated to a few lines of code, e.g.,
+			$\iota{\s} \Ra 
+			 \begin{aligned}
+			 & \sdef{\s_0}{\toflag(\s)} ; \\ 
+			 & \sdef{\s_1}{\usum(s_0)} ; \\
+			 & \withctrl{\s_1}{\sdef{\s_2}{\consta{1}()}}{\{\}}{\{\s_2\}}; \\
+			 & \sdef{\s_3}{\genscan_{+}(\s_0,s_2)}
+			 \end{aligned}$
+			 
+			\item $\*{++}_{\tau}$: translated recursively, depending on $\tau$
+
+		\end{itemize}
+		\item User-defined functions: translated to SVCODE functions, unfolded at runtime when interpreting a \sc 
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{SVCODE interpreters}
+\begin{itemize}
+	\item Eager interpreter (NESL-like) 
+	\begin{itemize}
+		\item sufficient memory for allocating all streams at once
+		\item execute each instruction sequentially 
+		\item an extreme/simplest case of the streaming one with the largest buffer size, used to compare results and analyze time complexity 
+	\end{itemize}
+	\item Streaming interpreter
+	\begin{itemize}
+		\item limited buffer size, space-usage efficient
+		\item result is collected from  each scheduling round
+		\item need effective scheduling strategy to avoid deadlock and guarantee cost preservation
+	\end{itemize} 
+	
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{SVCODE streaming interpreter}
+	\begin{itemize}
+	\item Dataflow graph is similar to a Kahn process network
+	\begin{itemize}
+		\item Graph node (a process): $\proc   =  (\bufst, \S, \clis, \xducer)$
+		\item Buffer state maintained by process: $\bufst ::= \filling \ \a  \ | \ \draining \ \a' \ b$ 
+		\item A process example: 
+	\end{itemize}
+
+% TODO figure fix	
+	\end{itemize}
+	\includegraphics[width=0.8\textwidth]{../process2}
+\end{frame}
+
+
+\begin{frame}[fragile]{Recursion example}
+A function to compute factorial:
+\begin{lstlisting}[style=nesl-style]
+> function fact(x:int):int = if x <= 1 then 1 else x*fact(x-1)
+> let x = {3,7,0,4} in {fact(y): y in x }
+\end{lstlisting}
+
+1st unfolding (will unfold 7 times in total):
+\lstinputlisting[style=svcode-style]{code/fact.svcode}	
+    
+\end{frame}
+
+
+% ---------------- Formalization ------------------------------
+\def\fmsnesl{SNESL\textsubscript{0}}
+\def\fmsvcode{SVCODE\textsubscript{0}}
+
+\def\seval#1#2#3#4#5{\left\langle#1,#2 \right\rangle \Da^{#3} #4 \ \$ \ #5} 
+\def\sevalf#1#2#3#4{{\lcall}(#1,...,#2) \Da^{#3} #4}
+\def\sevalfg#1#2#3#4{#1(#2) \Da^{#3} #4}
+\def\Eval#1#2#3#4{#1 \Env #2 \Eva #3 \ \$ \ #4 } 
+\def\Type#1#2#3{#1 \Env #2 : #3 } 
+\def\Typef#1#2#3{#1 : (#2) \rightarrow #3}
+\def\TypeV#1#2{#1 : #2}
+\def\ValRep#1#2#3{ #1 \mathrel{\triangleright_{#2}} #3}
+\newcommand{\blocke}[3]{\lcall(#1,...,#2) \Eva #3}
+
+
+\section{Formalization}
+
+\begin{frame}{Source language: {\fmsnesl}}
+\begin{itemize}
+	\item Types: $$\tau ::= \int \ | \ \tseq{\tau_1}$$
+ 	\item Expressions: 
+ 	\begin{alignat*}{2}
+ 	& e &&::=  x \ | \ \Let{x}{e_1}{e_2} \ | \ \hcall{\Tupk{x}} \ | \ \Comp{e}{x}{y}{\usevarsk} \\
+ 	& \hcall && ::= \*{const}_n \ | \ \*{iota} \ | \ \*{plus} 
+ 	\end{alignat*}
+ 	\item Key evaluation rules with work cost $W$:
+ 	\begin{itemize}
+ 	
+ 	\item General comprehension: 
+ 	\PT{
+ 		\AC{(\Eval{[x \|-> {v_i}, x_1 \|-> n_1,...,x_k \|-> n_k]}{e}{v_i'} {W_i})^l_{i=1}}
+ 		\UC{\Eval{\rho}{\Comp{e}{x}{y}{\usevarsk}}
+ 			{\{\replc{l}{v'}\}}      
+ 			{W}}
+ 	}
+  where $\rho(y)=\{\replc{l}{v}\}$,$\k{\rho(x_i) = n_i}$, and $W =  (k+1)\cdot (l+1) \!+\!\sum_{i=1}^{l}W_i $ \\[2ex]
+  
+   \item Built-in function: 
+   \PT{
+  	\AC{\EvalF\hcall{\replc{k}{v}}{v}}
+  	\RiLa{((\rho(x_i)=v_i)^k_{i=1})}
+  	\UC{\Eval{\rho}{\hcall{\Tupk{x}}}{v}{(\sum_{i=1}^{k}|v_i|) + |v|} }
+  }
+	\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Target language: {\fmsvcode}}
+\begin{itemize}
+	\item syntax 
+	\begin{alignat*}{2}
+	&p  && :: = \ \epsilon  \ | \ \sdef{\s}{\psi(s_1,...,s_k)} \ | \ \withctrl{\s}{p_1}{\Sin}{\Sout} \ | \ p_1;p_2  
+	\end{alignat*}
+	\item key semantics with work cost
+	\begin{itemize}
+		\item Empty new control stream ($\sgm(s_c) = \emptyv$):
+		\PT{
+			\AC{}
+			\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\k{\s_i \|-> \emptyv}]}{1}}
+		}\\[2ex]
+		where $\forall s \in \{s_c\} \cup \Sin. \sgm(s) = \emptyv$, $\Sout = \{s_1,...,s_k\}$ 
+		
+		\item Nonempty new control stream ($\sgm(\s_c)= \c_1 \ne \emptyv$):
+		\PT{
+			\AC{\seval{p_1}{\sgm}{\c_1}{\sgm''}{W_1}}
+			\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\k{\s_i \|-> \sgm''(\s_i)}]} {W_1+1} }
+		}\\[2ex]
+	
+	\item  Xducers, $((\sgm(\s_i) = \a_i)^k_{i=1})$ \\
+	\PT{\AC{\sevalf{\a_1}{\a_k}{\c}{\a}}
+		     \UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm}{\c}{\sgm[\s \|-> \a]}{(\sum_{i=1}^{k}|\a_i|) + |\a|}}}
+	\end{itemize}		
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Xducer semantics}
+	\begin{itemize}
+		\item General semantics: \Jug{\sevalf{\a_1}{\a_k}{\c}{\a}}
+		\begin{itemize}
+		\item 
+		 \PT{
+			\AC{\blocke{\a_{11}}{\a_{k1}}{\a_{01}}}
+			\AC{\sevalf{\a_{12}}{\a_{k2}}{\c_0}{\a_{02}}}
+			\RiLa{((\vapp{\a_{i1}}{\a_{i2} = \a_i})^k_{i=0})}
+			\BC{\sevalf{\a_1}{\a_k}{\< () | \c_0 \rangle}{\a_0}}
+		}
+	    
+		\item 
+		\Axiom{\sevalf {\emptyv_1} {\emptyv_k} \emptyv \emptyv}
+		\DisplayProof
+	\end{itemize}
+		
+	\item Specific semantics (part):    \Jug{\blocke{\a_1}{\a_k}{\a}} 	
+	
+		\PT{
+			\Axiom{\blockf{\consta{\emph{a}}}{}{\singl{a}}}
+		}\PT{
+			\RiLa{(n \ge 0)}
+			\Axiom{\blockf{\toflag}{\singl{n}}{\< \F_1,...,\F_n,\T \'>}} } \\
+		
+		\PT{\AC{}
+				\RiLa{(n_3= n_1 + n_2)}
+				\UC{\blockf{\maptwo{+}}{\singl{n_1}, \singl{n_2}} {\singl{n_3}}}
+		} \\[2ex]
+		
+		%--- UsumF
+	    \PT{\AC{\blockf{\usum}{\b}{\a}}
+				\UC{\blockf{\usum}{ \<\F|\b \'>}{\<()|\a\'>}}
+			}\PT{ \Axiom{\blockf{\usum}{\oT}{\emptyv}}}\\[2ex]
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{{\fmsvcode} determinism}
+
+\begin{defi}[Stream prefix]
+\Jug{\a \prefix \a'}
+\PT{\Axiom{\emptyv \prefix \a' }}
+\PT{\AC{\a \prefix \a'}
+	\UC{\<a_0  |\a \'> \prefix \<a_0  | \a' \'>}
+   }
+\end{defi}
+
+\begin{lem}[Blocks are self-delimiting] 
+	If (i) $(\a_i' \prefix  \a_i)^k_{i=1}$ and $\blocke{\a_1'}{\a_k'}{\a'}$,\\ 
+	\quad (ii) $(\a_i'' \prefix \a_i)^k_{i=1}$ and $\blocke{\a_1''}{\a_k''}{\a''}$, \\
+	then  $(\a_i' = \a_i'')^k_{i=1}$, and $\a' = \a''$.
+\end{lem}
+
+\begin{lem}[Xducer determinism]
+	If $\sevalfg{\lcall}{\replc{k}{\a}}{\c}{\a_0}$,
+	and $\sevalfg{\lcall}{\replc{k}{\a}}{\c}{\a'_0}$,
+	then $\a_0 = \a'_0$.
+\end{lem}
+
+\begin{thm}[\fmsvcode  determinism] 
+	If $\seval{p}{\sgm}{\c}{\sgm'}{W}$ and $\seval{p}{\sgm}{\c}{\sgm''}{W'}$,
+	then $\sgm' = \sgm''$ and $W = W'$.
+\end{thm}
+
+\end{frame}
+
+
+
+\begin{frame}{Translation formalization}
+\begin{itemize}
+	\item General comprehension translation: 
+
+\vspace{1.0cm}	
+
+	\makebox[0.95\textwidth]{\footnotesize		
+		\PT{
+			\AC{\Trans{[x \|-> {\st_1}, \k{x_i \|-> s'_i}]}{e}{\s'_k+1}{\s''_1}{\sfun{p_1}{\st_2}}}
+			\RiLa{\left(
+				\begin{aligned}	
+					& \del(y) = (\st_1,\s_b), \k{\del(x_i) = \s_i}	\\		
+					& p =  \ (\ \sdef{\s'_0}{\usum(\s_b)}; \\
+					& \qquad \k{\sdef{\s'_k}{\distrf{\s_b}{\s_k}};} \\
+					& \qquad \withctrl{\s'_0}{p_1}{\Sin}{\Sout}) \\
+					&\Sin = \olol{\st_1} \cup \{s'_1,...,s'_k\} \\ 
+					& \Sout = \{s \ | \  s \in \olol{\st_2}, s \ge s'_k+1 \} \\
+					&\s'_{i+1} =  \ \s'_i + 1, \forall i \in \{0,...,k-1\} \\
+				\end{aligned}
+				\right)}
+			\UC{\Trans{\del}{\Comp{e}{x}{y}{\usevarsk}}{\s'_0}{\s''_1}
+				{ \sfun{p} {(\st_2,\s_b)}}}
+		}
+   }
+\vspace{1.0cm}	
+ 	
+	\item translation well-formedness {\footnotesize 
+	\begin{lem} 
+	\textbf{If} $\Transf{\hcall}{\replc k {\st}} {\s_0} {\s_1} {\sfun{p}{\st}}$,  $\bigcup_{i=1}^{k}\olol{\st_i} \subseteq \S$, and $\S \.< \s_0$, \\
+    \textbf{then}, for some $\S'$, $\wf{p}{\S}{\S'}$, $\S' \subseteq \{s_0, s_0\!+\!1,...,s_1\!-\!1\}$, and $\olol{\st} \subseteq (\S \cup \S')$
+	\end{lem}
+	
+	\begin{thm}
+     \textbf{If} $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$, 
+      $\forall x \in dom(\del). \olol{\del(x)} \subseteq \S$, and $\S \.< \s_0  $ \\
+	 \textbf{then}, for some $\S'$, $\wf{p}{\S}{\S'}$, $\S' \subseteq \{s_0,s_0\!+\!1,...,s_1\!-\!1\}$, and $\olol{\st} \subseteq (\S \cup \S')$
+	\end{thm}}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Value representation formalization}
+\begin{itemize}
+	\item Value representation rules:
+	\Jug{\ValRep{v}{\tau}{\v}}
+\makebox[\textwidth]{	
+	$\ol{\ValRep{n}{\int}{\singl{n}}}$ \quad 
+	\PT{
+		\AC{(\ValRep{v_i}{\tau}{\v_i})^l_{i=1}}
+		\RiLa{(\v = ({\++}_{\tau} w_i)^l_{i=1})}
+		\UC{\ValRep{\{v_1,...,v_l\}}{\tseq{\tau}}{(w,\langle \F_1,..., \F_l, \T \rangle)}}
+	}
+}	
+	\item Value recovery rules:
+	\Jug{\Vtransb{w}{\tau}{v}{w'}}
+\makebox[0.9\textwidth]{	
+	$\ol{\Vtransb{\etail{n_0}{\a}}{\int}{n_0}{\a}}$ 
+  \PT{
+		\AC{\Vtransb{w}{\tau}{v_1}{w_1}}
+		\AC{\Vtransb{w_1}{\tau}{v_2}{w_2}}
+		\AC{\cdots}
+		\AC{\Vtransb{w_{l-1}}{\tau}{v_l}{w_l}}
+		\QuaternaryInfC{$\Vtransb{(w,\etail{\F_1,...,\F_l,\T}{\b})}{\{\tau\}}{\{v_1,...,v_l\}}{(w_l,\b)}$}
+	}
+}
+\end{itemize}
+
+\begin{lem}[Recovery correctness]
+	If $\ValRep{v}{\tau}{w}$, then $\forall w'.\Vtransb{(w {\++}_{\tau} w')}{\tau}{v}{w'}$. 
+\end{lem}
+
+
+\begin{lem}[Recovery determinism] 
+	If $\Vtransb{w}{\tau}{v}{w'}$, and $\Vtransb{w}{\tau}{v'}{w''}$,
+	then $v = v'$, and $w' = w'' $.
+\end{lem}
+
+
+\begin{cor}
+	If $\ValRep{v}{\tau}{w}$, $\ValRep{v'}{\tau}{w}$,
+	then $v=v'$.
+\end{cor}
+
+\end{frame}
+ 
+\begin{frame}{Parallelism fusion lemma}
+\small
+\begin{defi}[Store similarity]	
+	$\sgm_1 {\~{\S}} \sgm_2 $ iff $dom(\sgm_1) = dom(\sgm_2)$, and $\forall s \in \S.\sgm_1(s)= \sgm_2(s)$ \\
+\end{defi}
+
+\begin{defi}[Store Concatenation]
+	For $\sgm_1 \~\S \sgm_2$,
+	$\sgm_1 \x{\S} \sgm_2 = \sgm$ where
+	$\sgm(s) =
+	\begin{cases}
+	\sgm_1(s) \ (=\sgm_2(s)), & s \in \S\\
+	\sgm_1(\s) {\++} \sgm_2(s), & s \notin \S \\
+	\end{cases} $
+\end{defi}
+
+\begin{lem}[Xducer concatenation] 
+	If  $\sevalfg{\lcall}{\a_{1},...,\a_{k}}{\c}{\a}$, and $\sevalfg{\lcall}{\a'_{1},...,\a'_{k}}{\c'}{\a'}$, \\
+	then $\sevalfg{\lcall}{\a_{1} {\++} \a'_{1},...,\a_{k} {\++} \a'_{k}}{\c {\++} \c'}{\a {\++} \a'}$.
+\end{lem}
+
+\begin{lem} [Parallelism fusion]
+	If (i) $\wf{p}{\S_1}{\S_2}$, (ii) $\sgm_1 \~{\S} \sgm_2$,  (iii) $\seval{p}{\sgm_1}{\c_1}{\sgm_1'}{W_1}$, (iv) $\seval{p}{\sgm_2} {\c_2} {\sgm_2'}{W_2}$, and (v) $(\S_1 \cup \S_2) \cap \S = \emptyset $, \\
+	then $\sgm_1' \~\S \sgm_2'$, $\seval{p}{\sgm_1 \x\S \sgm_2}{\c_1 {\++} \c_2}{ \sgm_1' \x\S \sgm_2' }{W}$, and $W \le W_1 + W_2$
+\end{lem}
+
+
+\end{frame}
+
+
+\begin{frame}{Correctness of translation and cost preservation }
+%\begin{lem}[\textbf{Correctness of built-in functions}]
+%	\label{function-correctness}
+%	For some constant $C$, if 
+%	\begin{enumerate}[(i)]
+%		\item $\Typef{\hcall}{\replc{k}{\tau}}\tau$ (by some derivation $\MT$)
+%		\item $\EvalF{\hcall}{\replc{k}{v}}{v}$ (by $\ME$)
+%		\item $\Transf{\hcall}{\replc k {\st}} {\s_0} {\s_1} {\sfun{p}{\st}}$ (by $\MC$)
+%		\item $(\ValRep{v_i}{\tau_i}{\sgm^*(\st_i)})^k_{i=1}$
+%		
+%	\end{enumerate}
+%	then, for some $\sgm'$ and $W$, 
+%	\begin{enumerate}[(i)]
+%		\setcounter{enumi}{4}
+%		\item $\seval{p}{\sgm}{\vunit}{\sgm'}{W}$ (by $\MP$)
+%		\item $\ValRep{v}{\tau}{\sgm'^*(\st)}$ (by $\MR$)
+%		\item $W \le C \cdot (\sum_{i=1}^{k}|v_i| + |v|)$ 
+%		
+%	\end{enumerate}
+%\end{lem}
+
+\begin{thm}[Correctness for expressions]
+	For some constant $C$, \textbf{if} \\
+    (i) $\Type{\Gam}{e}{\tau}$ \\
+    (ii) $\Eval{\rho}{e}{v}{W^H}$ \\ 
+	(iii) $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$ \\ 
+	(iv) $\forall x \in dom(\Gam). \Type{}{\rho(x)}{\Gam(x)}$ \\ 
+	(v) $\forall x \in dom(\Gam). \olol{\del(x)} \.< \s_0$ \\
+	(vi) $\forall x \in dom(\Gam).  \ValRep{\rho(x)}{\Gam(x)}{\sgm^*(\del(x))}$ \\
+	\textbf{then}, for some $\sgm'$ and $W^L$, \\
+	(vii) $\seval{p}{\sgm}{\singl{()}}{\sgm'}{W^L}$ \\
+    (viii)  $\ValRep{v}{\tau}{\sgm'^*(\st)}$ \\
+	(ix) $W^L \le C \cdot W^H$  \\
+	\end{thm}
+
+\end{frame}
+
+\begin{frame}{Scaling up}
+\begin{itemize}
+	\item More scalar types and built-in operations: should be trivial
+	\item Step/space cost: similar to work cost
+	\item Pairs/tuples: require more value representation rules
+	\item Restricted comprehension: similar to the general one, but need some thinking about packing general types 
+	\item Error preservation: possible to support
+	\item Recursion: consider termination preservation (from high-level to low-level) and reflection (from low-level to high-level) 
+	\item Streaming semantics: challenging, open problem
+\end{itemize}
+\end{frame}
+
+
+% ---------------- Conclusion ------------------------------
+\section{Conclusion}
+
+\begin{frame}{Conclusion}
+	Main contributions:
+	\begin{itemize}
+		\item Extension of streaming dataflow model to account for recursion 
+		\item A formalization of the source and target language, and the correctness proof of the translation including working cost preservation
+	\end{itemize}
+
+	Future work:
+	\begin{itemize}
+	\item Formalization of the streaming semantics of the target language
+	\item More investigation to schedulability, deadlock, etc.
+	\end{itemize}
+\end{frame}
+
+%\begin{frame}[standout]
+%Thank you!
+%\end{frame}
+
+\end{document}

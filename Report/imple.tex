@@ -266,7 +266,7 @@ The high-level semantics of \mysnesl \ is given in Figure~\ref{fig:mysnesl-seman
 		\BC{\Eval{\rho}{\RComp{e_1}{e_0}{\usevarsk}}{\{v_1\}}}
 	}\\[4ex]
 	\PT{
-		\AC{\k{\Eval{\rho}{e_1}{v_1}}}
+		\AC{\k{\Eval{\rho}{e_i}{v_i}}}
 		\AC{\Eval{[x_1 \|-> v_1,...,x_k \|-> v_k]}{e_0}{v}}
 		\RiLa{\left(
 			\begin{aligned}
@@ -950,7 +950,7 @@ As a result, the SVCODE program will be traversed multiple times, or there will 
 The dataflow of the streaming execution model is still a DAG, but the difference from the eager one is that each Xducer maintains a small buffer, whose data is updated each round. 
 The final result will be collected from all these scheduling rounds.
 
-% TODO mention KPM network??
+% TODO mention KPN
 
 Since in most cases we will have to execute more than one rounds, some extra setting-up and overhead seem to be inevitable.
 On the other hand, exploiting only a limited buffer increases the efficiency of space usage. 

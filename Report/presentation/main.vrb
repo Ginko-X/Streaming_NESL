@@ -1,0 +1,27 @@
+\frametitle{{\fmsvcode } determinism}
+
+\begin{defi}[Stream prefix]
+\Jug{\a \prefix \a'}
+\PT{\Axiom{\emptyv \prefix \a' }}
+\PT{\AC{\a \prefix \a'}
+^^I\UC{\<a_0  |\a \'> \prefix \<a_0  | \a' \'>}
+   }
+\end{defi}
+
+\begin{lem}[Blocks are self-delimiting]
+^^IIf (i) $(\a_i' \prefix  \a_i)^k_{i=1}$ and $\blocke{\a_1'}{\a_k'}{\a'}$,\\
+^^I\quad (ii) $(\a_i'' \prefix \a_i)^k_{i=1}$ and $\blocke{\a_1''}{\a_k''}{\a''}$, \\
+^^Ithen  $(\a_i' = \a_i'')^k_{i=1}$, and $\a' = \a''$.
+\end{lem}
+
+\begin{lem}[Xducer determinism]
+^^IIf $\sevalfg{\lcall}{\replc{k}{\a}}{\c}{\a_0}$,
+^^Iand $\sevalfg{\lcall}{\replc{k}{\a}}{\c}{\a'_0}$,
+^^Ithen $\a_0 = \a'_0$.
+\end{lem}
+
+\begin{thm}[\fmsvcode  determinism]
+^^IIf $\seval{p}{\sgm}{\c}{\sgm'}{W}$ and $\seval{p}{\sgm}{\c}{\sgm''}{W'}$,
+^^Ithen $\sgm' = \sgm''$ and $W = W'$.
+\end{thm}
+
