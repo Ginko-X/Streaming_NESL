@@ -99,7 +99,7 @@
 		\item Highlights: 
 		\begin{itemize}
 			\item Highly expressive for parallel algorithms. \\ 
-			Main data-parallel construct: \emph{apply-to-each}, $$\{e_1(x) : x \ \*{in} \ e_0 \} $$\\ 
+			Data-parallel construct: \emph{apply-to-each} $$\{e_1(x) : x \ \*{in} \ e_0 \} $$\\ 
 	  Example: compute $\sum_{i=0}^{k-1}$ for $k \in [2,3,4]$ (result: [1,3,6]):
 	  $$\{\*{sum}(\&x) : x \ \*{in} \ [2,3,4]\} $$
 	  
@@ -124,7 +124,7 @@
 			\begin{align*} 
 			& \pi ::= \bool \ | \ \int \ | \ \*{char} \ | \ \*{real}  \ | \ \cdots \tag{scalar types}\\
 			& \tau ::= \pi \ | \ (\tau_1,...,\tau_k) \ | \ [\tau] \tag{concrete types} \\
-			& \sigma ::= \tau \ | \ (\sigma_1,...,\sigma_k) \ | \ \tseq{\sigma}  \tag{general types} 
+			& \sigma ::= \tau \ | \ (\sigma_1,...,\sigma_k) \ | \ \tseq{\sigma}  \tag{streamable types} 
 			\end{align*}
 			
 			\item A space cost model
@@ -161,16 +161,16 @@
 	\begin{table}\footnotesize 
 		\begin{tabular}{p{0.35\columnwidth}|p{0.63\columnwidth}}
 			\hline
-			$\*{{\++} : (\{\sgm\}, \{\sgm\}) \ra \{\sgm\}}$ & append two sequences \\ \hline
+			$\*{append : (\{\sgm\}, \{\sgm\}) \ra \{\sgm\}}$ & append two sequences; syntactic sugar: ${\++}$ \\ \hline
 			$\*{concat: \{\{\sgm\}\} \rightarrow \{\sgm\} }$ &  flatten a sequence of sequences                 \\ \hline
 			$\*{zip} \colon (\{\sgm_1\}, ..., \{\sgm_k\})\ra \{(\sgm_1,...,\sgm_k)\}$ & $\*{zip}(\{1,2\},\{\F,\T\}) = \{(1,\F),(2,\T)\}$\\ \hline
-			$\*{\&: \int \ra \{\int\}}$  &  \&5 = \{0,1,2,3,4\} \\ \hline
+			$\*{iota(\&): \int \ra \{\int\}}$  &  \&5 = \{0,1,2,3,4\} \\ \hline
 			$\*{part: (\{\sgm\}, \{\bool\}) \ra  \{\{\sgm\}\}}$   & $\*{part}(\{3,1,4\}, \{\F,\F,\T,\F,\T,\T\}) = \{\{3,1\},\{4\},\{\}\}$                \\ \hline
 			$\*{scan_\otimes}: \{\int\} \ra \{\int\}$     & $\*{scan_+}(\&5) = \{0,0,1,3,6\} $  \\ \hline
 			$\*{reduce_\otimes: \{\int\} \ra \int }$     &  $\*{reduce_+}(\&5) = 10$              \\ \hline
 			$\*{mkseq}: (\overbrace{\sgm,...,\sgm}^{k}) \ra \{\sgm\}$  & $\*{mkseq}(1,2,3) = \{1,2,3\}$ \\ \hline  
-			$\*{\#}$: $[\tau] \ra \int$ & length of a vector \\ \hline  
-			$\*{!}$: ($[\tau], \int) \ra \tau$  & element indexing, [3,8,2] ! 1 = 8 \\ \hline  
+			$\*{length(\#)}$: $[\tau] \ra \int$ & length of a vector \\ \hline  
+			$\*{elt(!)}$: ($[\tau], \int) \ra \tau$  & element indexing, [3,8,2] ! 1 = 8 \\ \hline  
 			$\*{the:  \{\sgm\} \ra \sgm}$     &  return the element of a singleton,  $\*{the}(\{10\}) = 10$        \\ \hline
 			$\*{empty:  \{\sgm\} \ra \bool}$       & test a sequence empty or not             \\ \hline  
 			$\*{seq}: [\tau] \ra \{\tau\} $  & $\*{seq}([1,2]) = \{1,2\}$ \\ \hline  
@@ -231,7 +231,7 @@
 \item Simplified SNESL types
 	{\small\begin{align*} 
 	& \pi ::= \bool \ | \ \int  \tag{only two scalar types}\\ 
-	& \tau ::= \pi \ | \ (\tau_1,\tau_2) \ | \ \tseq{\tau} \tag{no vectors, tuples to pairs} \\
+	& \tau ::= \pi \ | \ (\tau_1,\tau_2) \ | \ \tseq{\tau} \tag{no vectors, change tuples to pairs} \\
 	& \ftype :: = (\tau_1,...,\tau_k) \ra \tau  \tag{support recursion}
 	\end{align*}}	
 \item Syntax
@@ -242,7 +242,7 @@
 	&   && \quad | \ \Comp{e_1}{x}{e_0}{\usevarsk} \ | \ \RComp{e_1}{e_0}{\usevarsk}  \\
 	&   && \quad | \ f (e_1,...,e_k)  \tag {user-defined function call} \\
 	& d &&::= \*{function} \  f (x_1\colon{\tau_1}, ..., x_k\colon\tau_k)\colon{\tau} = e \\
-	&\hcall && ::= \oplus \ | \  \ {\++}_{\tau} \ | \ \*{concat}_{\tau}  \ | \ \&(\*{iota})  \ | \ \*{part}_{\tau}  \ | \ \*{scan}_+ \ | \ \*{reduce}_{+} \ | \cdots \\	
+%	&\hcall && ::= \oplus \ | \  \ \*{append}_{\tau} \ | \ \*{concat}_{\tau}  \ | \ \&  \ | \ \*{part}_{\tau}  \ | \ \*{scan}_+ \ | \ \*{reduce}_{+} \ | \cdots \\	
 	\end{alignat*}
    }
 %& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | <= \ | \ == \ | \  \*{not} \ | \ \cdots
@@ -271,20 +271,20 @@
 	\RiLa{(\k{\Gam(x_i) = \tau_i})}
 	\BC{\Type{\Gam}{\RComp{e_1}{e_0}{\usevarsk}}{\tseq{\tau}}}
 }\\[2ex]
-\PT{
-	\AC{\Type{\Gam}{e_1}{\tau_1}}
-	\AC{\cdots}
-	\AC{\Type{\Gam}{e_k}{\tau_k}}
-	\RiLa{(\Sigma(f) = (\tau_1, ... , \tau_k) \ra \tau)}
-	\TC{\Type{\Gam}{f(e_1,...,e_k)}{\tau}}
-}\\[2ex]
-%TODO fix or remove
+%\PT{
+%	\AC{\Type{\Gam}{e_1}{\tau_1}}
+%	\AC{\cdots}
+%	\AC{\Type{\Gam}{e_k}{\tau_k}}
+%	\RiLa{(\Sigma(f) = (\tau_1, ... , \tau_k) \ra \tau)}
+%	\TC{\Type{\Gam}{f(e_1,...,e_k)}{\tau}}
+%}\\[2ex]
+%%TODO fix or remove
 
 \item Key evaluation rules:
 	
 \PT{
 	\AC{\Eval{\rho}{e_0}{\{v_1,...,v_l\}}}
-	\AC{(\Eval{[x \|-> {v_i}, x_j \|-> \rho(x_j))^k_{j=1}]}{e_1}{v_i'})^l_{i=1}}
+	\AC{(\Eval{[x \|-> {v_i}, (x_j \|-> \rho(x_j))^k_{j=1}]}{e_1}{v_i'})^l_{i=1}}
 	\BC{\Eval{\rho}{\Comp{e_1}{x}{e_0}{\usevarsk}}{\{\replc{l}{v'}}\}}
 }\\[2ex]
 
@@ -302,7 +302,8 @@ where $\Phi(f)=   f(x_1\colon\tau_1, ..., x_k\colon\tau_k)\colon \tau = e_0$
 	\begin{itemize}
 	\item SVCODE values:
 		\begin{itemize}
-			\item primitive stream: $\a ::= \<a_1,...,a_l\'>$, e.g., $\<1,2,3\'>, \<\F, \T, \F ,\F, \T \'>$
+			\item primitive stream: $\a ::= \<a_1,...,a_l\'>$ \\ 
+			e.g., $\a_1 = \<1,2\'>,  \<0 | \a_1 \'> = \<0,1,2\'>$, $\b = \<\F, \T , \F\'>$
 			\item stream tree: $w ::= \a \ | \ (w_1,w_2)$
 		\end{itemize}
 		
@@ -333,7 +334,7 @@ S1 := Const_3
 S2 := ToFlags S1
 S3 := Usum S2
 [S4] := WithCtrl S3 []:
-   S4 := Const_1()
+   S4 := Const_1
 S5 := ScanPlus S2 S4
 \end{lstlisting}	
 	\end{column}	
@@ -352,8 +353,8 @@ S5 := ScanPlus S2 S4
 	$$\{\{3,1\}, \{4\}\} \tr_{\{\{\int\}\}} ((\< 3,1,4 \'>, \<\F,\F,\T,\F,\T \'>),\< \F, \F, \T \'>)  $$
 	$$\{\T,\F\} \tr_{\{\bool\}} (\< \T,\F\'>, \< \F,\F , \T \'>) $$		
 	
-\item A pair of SNESL values is represented as a pair of stream trees.  
-	$$(\{\T,\F\},2) \tr_{(\{\bool\},\int)} ((\< \T, \F \'>, \< \F,\F,\T \'>),\singl{2})$$
+%\item A pair of SNESL values is represented as a pair of stream trees.  
+%	$$(\{\T,\F\},2) \tr_{(\{\bool\},\int)} ((\< \T, \F \'>, \< \F,\F,\T \'>),\singl{2})$$
 
 \item A sequence of pairs is represented as a pair of sequences sharing one descriptor:
 	$$\{(1,\T),(2,\F),(3,\F)\} \tr_{\{(\int,\bool)\}} ((\<1,2,3\'>, \<\T,\F, \F\'>), \< \F,\F,\F,\T \'>)$$
@@ -379,7 +380,7 @@ S5 := ScanPlus S2 S4
             S9 := Map_+ S6 S8  -- <1,2,3>
 \end{lstlisting}
 }
-	\item Restricted comprehension translation: $\pack$ free variables instead of $\distr$ 
+	\item Restricted comprehension translation: $\pack$ free variables instead of $\distr$
 \end{itemize}
 \end{frame}
 
@@ -402,7 +403,7 @@ S5 := ScanPlus S2 S4
 			\item $\*{++}_{\tau}$: translated recursively, depending on $\tau$
 
 		\end{itemize}
-		\item User-defined functions: translated to SVCODE functions, unfolded at runtime when interpreting a \sc 
+		\item User-defined functions: translated to SVCODE functions (i.e., SVCODE program with arguments), unfolded at runtime when interpreting a \sc 
 	\end{itemize}
 \end{frame}
 
@@ -588,9 +589,9 @@ A function to compute factorial:
 	then $\a_0 = \a'_0$.
 \end{lem}
 
-\begin{thm}[\fmsvcode  determinism] 
-	If $\seval{p}{\sgm}{\c}{\sgm'}{W}$ and $\seval{p}{\sgm}{\c}{\sgm''}{W'}$,
-	then $\sgm' = \sgm''$ and $W = W'$.
+\begin{thm}[{\fmsvcode}  determinism] 
+	If $\seval{p}{\sgm}{\c}{\sgm'}{W_1}$ and $\seval{p}{\sgm}{\c}{\sgm''}{W_2}$,
+	then $\sgm' = \sgm''$ and $W_1 = W_2$.
 \end{thm}
 
 \end{frame}
@@ -610,7 +611,7 @@ A function to compute factorial:
 				\begin{aligned}	
 					& \del(y) = (\st_1,\s_b), \k{\del(x_i) = \s_i}	\\		
 					& p =  \ (\ \sdef{\s'_0}{\usum(\s_b)}; \\
-					& \qquad \k{\sdef{\s'_k}{\distrf{\s_b}{\s_k}};} \\
+					& \qquad \k{\sdef{\s'_i}{\distrf{\s_b}{\s_i}};} \\
 					& \qquad \withctrl{\s'_0}{p_1}{\Sin}{\Sout}) \\
 					&\Sin = \olol{\st_1} \cup \{s'_1,...,s'_k\} \\ 
 					& \Sout = \{s \ | \  s \in \olol{\st_2}, s \ge s'_k+1 \} \\
@@ -621,13 +622,32 @@ A function to compute factorial:
 				{ \sfun{p} {(\st_2,\s_b)}}}
 		}
    }
-\vspace{1.0cm}	
+\vspace{0.5cm}	
+ 	\item Well-formed program $\boxed{\wf{p}{S}{S'}}$
+
+\vspace{0.2cm}	
  	
-	\item translation well-formedness {\footnotesize 
-	\begin{lem} 
-	\textbf{If} $\Transf{\hcall}{\replc k {\st}} {\s_0} {\s_1} {\sfun{p}{\st}}$,  $\bigcup_{i=1}^{k}\olol{\st_i} \subseteq \S$, and $\S \.< \s_0$, \\
-    \textbf{then}, for some $\S'$, $\wf{p}{\S}{\S'}$, $\S' \subseteq \{s_0, s_0\!+\!1,...,s_1\!-\!1\}$, and $\olol{\st} \subseteq (\S \cup \S')$
-	\end{lem}
+ 	{\small
+ 	\PT{ \RiLa{(\{s_1,...,s_k\} \subseteq \S, s\notin \S  )}
+ 		\Axiom{\wf{\sdef{s}{\lcall(s_1,...,s_k)}} 
+ 			{\S} {\{s\}}}}\\[2ex]
+ 		
+ \makebox[1.2\textheight]{
+ 	\PT{\AC{\wf{p_1}{\Sin}{S'}}
+ 		\RiLa{\left( 
+ 			(\Sin \cup \{s\} )\subseteq \S, \Sout \subseteq \S', 
+ 		    \S \cap \S' = \emptyset
+ 			\right)} 
+ 		\UC{\wf{\withctrl{s}{p_1}{\Sin}{\Sout}}{\S}{\Sout}}  
+ 	}
+  }
+}
+ 	
+	\item {\footnotesize 
+%	\begin{lem} 
+%	\textbf{If} $\Transf{\hcall}{\replc k {\st}} {\s_0} {\s_1} {\sfun{p}{\st}}$,  $\bigcup_{i=1}^{k}\olol{\st_i} \subseteq \S$, and $\S \.< \s_0$, \\
+%    \textbf{then}, for some $\S'$, $\wf{p}{\S}{\S'}$, $\S' \subseteq \{s_0, s_0\!+\!1,...,s_1\!-\!1\}$, and $\olol{\st} \subseteq (\S \cup \S')$
+%	\end{lem}
 	
 	\begin{thm}
      \textbf{If} $\Trans{\del}{e}{\s_0}{\s_1}{\sfun{p}{\st}}$, 
@@ -640,7 +660,7 @@ A function to compute factorial:
 
 \begin{frame}{Value representation formalization}
 \begin{itemize}
-	\item Value representation rules:
+	\item Value representation:
 	\Jug{\ValRep{v}{\tau}{\v}}
 \makebox[\textwidth]{	
 	$\ol{\ValRep{n}{\int}{\singl{n}}}$ \quad 
@@ -650,7 +670,7 @@ A function to compute factorial:
 		\UC{\ValRep{\{v_1,...,v_l\}}{\tseq{\tau}}{(w,\langle \F_1,..., \F_l, \T \rangle)}}
 	}
 }	
-	\item Value recovery rules:
+	\item Value recovery:
 	\Jug{\Vtransb{w}{\tau}{v}{w'}}
 \makebox[0.9\textwidth]{	
 	$\ol{\Vtransb{\etail{n_0}{\a}}{\int}{n_0}{\a}}$ 
@@ -688,7 +708,7 @@ A function to compute factorial:
 	$\sgm_1 {\~{\S}} \sgm_2 $ iff $dom(\sgm_1) = dom(\sgm_2)$, and $\forall s \in \S.\sgm_1(s)= \sgm_2(s)$ \\
 \end{defi}
 
-\begin{defi}[Store Concatenation]
+\begin{defi}[Store fusion]
 	For $\sgm_1 \~\S \sgm_2$,
 	$\sgm_1 \x{\S} \sgm_2 = \sgm$ where
 	$\sgm(s) =
@@ -698,7 +718,7 @@ A function to compute factorial:
 	\end{cases} $
 \end{defi}
 
-\begin{lem}[Xducer concatenation] 
+\begin{lem}[Xducer fusion] 
 	If  $\sevalfg{\lcall}{\a_{1},...,\a_{k}}{\c}{\a}$, and $\sevalfg{\lcall}{\a'_{1},...,\a'_{k}}{\c'}{\a'}$, \\
 	then $\sevalfg{\lcall}{\a_{1} {\++} \a'_{1},...,\a_{k} {\++} \a'_{k}}{\c {\++} \c'}{\a {\++} \a'}$.
 \end{lem}
@@ -746,7 +766,7 @@ A function to compute factorial:
     (viii)  $\ValRep{v}{\tau}{\sgm'^*(\st)}$ \\
 	(ix) $W^L \le C \cdot W^H$  \\
 	\end{thm}
-
+   (In our implementation, we have proven that $C$ can be any number $\ge$ 7.)
 \end{frame}
 
 \begin{frame}{Scaling up}
@@ -754,9 +774,9 @@ A function to compute factorial:
 	\item More scalar types and built-in operations: should be trivial
 	\item Step/space cost: similar to work cost
 	\item Pairs/tuples: require more value representation rules
-	\item Restricted comprehension: similar to the general one, but need some thinking about packing general types 
-	\item Error preservation: possible to support
+	\item Restricted comprehension: similar to the general one, but need to take care of packing general types 
 	\item Recursion: consider termination preservation (from high-level to low-level) and reflection (from low-level to high-level) 
+	\item Error preservation: possible to support
 	\item Streaming semantics: challenging, open problem
 \end{itemize}
 \end{frame}
@@ -769,7 +789,7 @@ A function to compute factorial:
 	Main contributions:
 	\begin{itemize}
 		\item Extension of streaming dataflow model to account for recursion 
-		\item A formalization of the source and target language, and the correctness proof of the translation including working cost preservation
+		\item A formalization of the source and target language, and the correctness proof of the translation including work cost preservation
 	\end{itemize}
 
 	Future work:

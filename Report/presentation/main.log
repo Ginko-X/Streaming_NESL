@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  2 NOV 2017 22:33
+This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  3 NOV 2017 01:17
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1791,7 +1791,7 @@ Overfull \vbox (14.02875pt too high) detected at line 192
 ] [9
 
 ]
-Overfull \vbox (20.51917pt too high) detected at line 250
+Overfull \vbox (3.71924pt too high) detected at line 250
  []
 
 [10
@@ -1810,18 +1810,10 @@ Overfull \hbox (5.60779pt too wide) in paragraph at lines 299--299
 [][]  
  []
 
-\myBox3=\box101
-\myScoreStart3=\dimen328
-\myCenter3=\dimen329
-\myScoreEnd3=\dimen330
-
-Overfull \vbox (11.1162pt too high) detected at line 299
- []
-
 [11
 
 ]
-Overfull \vbox (54.57935pt too high) detected at line 324
+Overfull \vbox (68.37927pt too high) detected at line 325
  []
 
 [12
@@ -1837,13 +1829,13 @@ Overfull \hbox (19.66772pt too wide) in paragraph at lines 14--16
  []
 
 )
-Overfull \vbox (6.90237pt too high) detected at line 344
+Overfull \vbox (6.90237pt too high) detected at line 345
  []
 
 [13
 
 ]
-Overfull \hbox (0.71568pt too wide) detected at line 361
+Overfull \hbox (0.71568pt too wide) detected at line 362
 \OMS/cmsy/m/n/10.95 f\OT1/cmss/m/n/10.95 ([]\OML/cmm/m/it/10.95 ; []\OT1/cmss/m
 /n/10.95 )\OML/cmm/m/it/10.95 ; \OT1/cmss/m/n/10.95 ([]\OML/cmm/m/it/10.95 ; []
 \OT1/cmss/m/n/10.95 )\OML/cmm/m/it/10.95 ; \OT1/cmss/m/n/10.95 ([]\OML/cmm/m/it
@@ -1853,10 +1845,6 @@ sy/m/n/10.95 i\OML/cmm/m/it/10.95 ; \OMS/cmsy/m/n/10.95 h[]\OML/cmm/m/it/10.95
 ; []; []\OMS/cmsy/m/n/10.95 i\OT1/cmss/m/n/10.95 )\OML/cmm/m/it/10.95 ; \OMS/cm
 sy/m/n/10.95 h[]\OML/cmm/m/it/10.95 ; []; []; []\OMS/cmsy/m/n/10.95 i\OT1/cmss/
 m/n/10.95 )
- []
-
-
-Overfull \vbox (15.38753pt too high) detected at line 361
  []
 
 [14
@@ -1873,7 +1861,7 @@ Overfull \vbox (15.38753pt too high) detected at line 361
 ]
 File: ../fig/process.png Graphic file (type QTm)
  <use  "../fig/process.png" >
-Overfull \vbox (27.35394pt too high) detected at line 440
+Overfull \vbox (27.35394pt too high) detected at line 441
  []
 
 [18
@@ -1882,7 +1870,7 @@ Overfull \vbox (27.35394pt too high) detected at line 440
 \openout4 = `main.vrb'.
 
  (./main.vrb (./code/fact.svcode))
-Overfull \vbox (32.13371pt too high) detected at line 453
+Overfull \vbox (32.13371pt too high) detected at line 454
  []
 
 [19
@@ -1890,28 +1878,28 @@ Overfull \vbox (32.13371pt too high) detected at line 453
 ] [20
 
 ]
-Overfull \hbox (3.58989pt too wide) in paragraph at lines 501--501
+Overfull \hbox (3.58989pt too wide) in paragraph at lines 502--502
 []  
  []
 
 LaTeX Font Info:    Font shape `EU1/lmss/m/it' in size <12> not available
-(Font)              Font shape `EU1/lmss/m/sl' tried instead on input line 501.
+(Font)              Font shape `EU1/lmss/m/sl' tried instead on input line 502.
 
 
-Overfull \vbox (20.52596pt too high) detected at line 501
+Overfull \vbox (20.52596pt too high) detected at line 502
  []
 
 [21
 
 ]
-Overfull \hbox (18.7162pt too wide) in paragraph at lines 530--530
+Overfull \hbox (18.7162pt too wide) in paragraph at lines 531--531
 []  
  []
 
 [22
 
 ]
-Overfull \hbox (22.41383pt too wide) in paragraph at lines 567--567
+Overfull \hbox (22.41383pt too wide) in paragraph at lines 568--568
 [] 
  []
 
@@ -1924,47 +1912,60 @@ Overfull \hbox (22.41383pt too wide) in paragraph at lines 567--567
 LaTeX Font Info:    Font shape `EU1/lmss/bx/it' in size <10.95> not available
 (Font)              Font shape `EU1/lmss/bx/sl' tried instead on input line 4.
 )
-Overfull \vbox (32.31522pt too high) detected at line 596
+Overfull \vbox (33.95956pt too high) detected at line 597
  []
 
 [24
 
 ]
-Overfull \hbox (6.53462pt too wide) in paragraph at lines 638--638
+Overfull \hbox (6.53462pt too wide) in paragraph at lines 658--658
+[][] 
+ []
+
+
+Overfull \hbox (5.60779pt too wide) in paragraph at lines 658--658
 [][] 
  []
 
 LaTeX Font Info:    Font shape `EU1/lmss/bx/it' in size <9> not available
-(Font)              Font shape `EU1/lmss/bx/sl' tried instead on input line 638
+(Font)              Font shape `EU1/lmss/bx/sl' tried instead on input line 658
 .
 
-Overfull \vbox (28.4844pt too high) detected at line 638
+Overfull \vbox (30.18642pt too high) detected at line 658
  []
 
 [25
 
 ]
-Overfull \hbox (21.90005pt too wide) in paragraph at lines 683--683
+Overfull \hbox (21.90005pt too wide) in paragraph at lines 703--703
 [][]  
  []
 
+\myBox3=\box101
+\myScoreStart3=\dimen328
+\myCenter3=\dimen329
+\myScoreEnd3=\dimen330
 \myBox4=\box102
 \myScoreStart4=\dimen331
 \myCenter4=\dimen332
 \myScoreEnd4=\dimen333
 
-Overfull \vbox (21.91666pt too high) detected at line 683
+Overfull \vbox (21.91666pt too high) detected at line 703
  []
 
 [26
 
 ]
-Overfull \vbox (21.57907pt too high) detected at line 712
+Overfull \vbox (21.57907pt too high) detected at line 732
  []
 
 [27
 
-] [28
+]
+Overfull \vbox (14.47876pt too high) detected at line 770
+ []
+
+[28
 
 ] [29
 
@@ -1982,17 +1983,17 @@ Overfull \vbox (21.57907pt too high) detected at line 712
 \tf@snm=\write8
 \openout8 = `main.snm'.
 
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 786.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 786.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 806.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 806.
  (./main.aux)
-Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 786.
-Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 786.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 786.
+Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 806.
+Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 806.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 806.
  ) 
 Here is how much of TeX's memory you used:
  40869 strings out of 493706
  794651 string characters out of 6145768
- 952850 words of memory out of 5000000
+ 952849 words of memory out of 5000000
  43462 multiletter control sequences out of 15000+600000
  15359 words of font info for 100 fonts, out of 8000000 for 9000
  1328 hyphenation exceptions out of 8191

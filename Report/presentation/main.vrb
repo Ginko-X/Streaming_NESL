@@ -20,8 +20,8 @@
 ^^Ithen $\a_0 = \a'_0$.
 \end{lem}
 
-\begin{thm}[\fmsvcode  determinism]
-^^IIf $\seval{p}{\sgm}{\c}{\sgm'}{W}$ and $\seval{p}{\sgm}{\c}{\sgm''}{W'}$,
-^^Ithen $\sgm' = \sgm''$ and $W = W'$.
+\begin{thm}[{\fmsvcode}  determinism]
+^^IIf $\seval{p}{\sgm}{\c}{\sgm'}{W_1}$ and $\seval{p}{\sgm}{\c}{\sgm''}{W_2}$,
+^^Ithen $\sgm' = \sgm''$ and $W_1 = W_2$.
 \end{thm}
 
