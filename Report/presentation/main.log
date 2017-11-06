@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  4 NOV 2017 20:06
+This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  6 NOV 2017 20:57
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1709,33 +1709,34 @@ LaTeX Font Info:    Font shape `EU1/lmss/m/it' in size <6> not available
  [3
 
 ]
-LaTeX Font Info:    Font shape `EU1/lmss/m/it' in size <10> not available
-(Font)              Font shape `EU1/lmss/m/sl' tried instead on input line 114.
-
-LaTeX Font Info:    Font shape `EU1/lmss/m/it' in size <7> not available
-(Font)              Font shape `EU1/lmss/m/sl' tried instead on input line 114.
+LaTeX Font Info:    Font shape `EU1/lmss/m/it' in size <9> not available
+(Font)              Font shape `EU1/lmss/m/sl' tried instead on input line 117.
 
 LaTeX Font Info:    Font shape `EU1/lmss/m/it' in size <5> not available
-(Font)              Font shape `EU1/lmss/m/sl' tried instead on input line 114.
-
-LaTeX Font Info:    Font shape `EU1/lmss/m/it' in size <9> not available
-(Font)              Font shape `EU1/lmss/m/sl' tried instead on input line 114.
+(Font)              Font shape `EU1/lmss/m/sl' tried instead on input line 117.
 
  [4
 
 ]
-Overfull \vbox (8.03008pt too high) detected at line 137
+LaTeX Font Info:    Font shape `EU1/lmss/m/it' in size <10> not available
+(Font)              Font shape `EU1/lmss/m/sl' tried instead on input line 140.
+
+LaTeX Font Info:    Font shape `EU1/lmss/m/it' in size <7> not available
+(Font)              Font shape `EU1/lmss/m/sl' tried instead on input line 140.
+
+
+Overfull \vbox (8.03008pt too high) detected at line 140
  []
 
 [5
 
 ]
-Overfull \hbox (1.56282pt too wide) in paragraph at lines 158--158
+Overfull \hbox (1.56282pt too wide) in paragraph at lines 161--161
 []  
  []
 
 
-Overfull \vbox (7.71127pt too high) detected at line 158
+Overfull \vbox (7.71127pt too high) detected at line 161
  []
 
 [6
@@ -1771,30 +1772,18 @@ Overfull \hbox (17.85757pt too wide) in paragraph at lines 3--20
  []
 
 )
-Overfull \vbox (19.15274pt too high) detected at line 181
+Overfull \vbox (19.15274pt too high) detected at line 184
  []
 
 [7
 
-]
-\openout4 = `main.vrb'.
-
- (./main.vrb (./code/wordpart.nesl
-LaTeX Font Info:    Font shape `EU1/lmtt/bx/n' in size <8> not available
-(Font)              Font shape `EU1/lmtt/b/n' tried instead on input line 3.
-) (./code/wordpart.snesl))
-Overfull \vbox (14.02875pt too high) detected at line 192
- []
-
-[8
-
-] [9
+] [8
 
 ]
-Overfull \vbox (3.71924pt too high) detected at line 250
+Overfull \vbox (3.71924pt too high) detected at line 253
  []
 
-[10
+[9
 
 ]
 \myBox1=\box99
@@ -1806,22 +1795,24 @@ Overfull \vbox (3.71924pt too high) detected at line 250
 \myCenter2=\dimen326
 \myScoreEnd2=\dimen327
 
-Overfull \hbox (5.60779pt too wide) in paragraph at lines 299--299
+Overfull \hbox (5.60779pt too wide) in paragraph at lines 303--303
 [][]  
+ []
+
+[10
+
+]
+Overfull \vbox (40.07942pt too high) detected at line 329
  []
 
 [11
 
 ]
-Overfull \vbox (68.37927pt too high) detected at line 325
- []
-
-[12
-
-]
 \openout4 = `main.vrb'.
 
  (./main.vrb
+LaTeX Font Info:    Font shape `EU1/lmtt/bx/n' in size <8> not available
+(Font)              Font shape `EU1/lmtt/b/n' tried instead on input line 9.
 File: ../fig/dataflow.png Graphic file (type QTm)
  <use  "../fig/dataflow.png" >
 Overfull \hbox (19.66772pt too wide) in paragraph at lines 14--16
@@ -1829,13 +1820,13 @@ Overfull \hbox (19.66772pt too wide) in paragraph at lines 14--16
  []
 
 )
-Overfull \vbox (6.90237pt too high) detected at line 345
+Overfull \vbox (6.90237pt too high) detected at line 349
  []
 
-[13
+[12
 
 ]
-Overfull \hbox (0.71568pt too wide) detected at line 362
+Overfull \hbox (0.71568pt too wide) detected at line 366
 \OMS/cmsy/m/n/10.95 f\OT1/cmss/m/n/10.95 ([]\OML/cmm/m/it/10.95 ; []\OT1/cmss/m
 /n/10.95 )\OML/cmm/m/it/10.95 ; \OT1/cmss/m/n/10.95 ([]\OML/cmm/m/it/10.95 ; []
 \OT1/cmss/m/n/10.95 )\OML/cmm/m/it/10.95 ; \OT1/cmss/m/n/10.95 ([]\OML/cmm/m/it
@@ -1847,100 +1838,85 @@ sy/m/n/10.95 h[]\OML/cmm/m/it/10.95 ; []; []; []\OMS/cmsy/m/n/10.95 i\OT1/cmss/
 m/n/10.95 )
  []
 
-[14
+[13
 
 ]
 \openout4 = `main.vrb'.
 
- (./main.vrb) [15
+ (./main.vrb) [14
+
+] [15
 
 ] [16
-
-] [17
 
 ]
 File: ../fig/process.png Graphic file (type QTm)
  <use  "../fig/process.png" >
-Overfull \vbox (27.35394pt too high) detected at line 441
+Overfull \vbox (27.35394pt too high) detected at line 444
  []
 
-[18
+[17
 
 ]
 \openout4 = `main.vrb'.
 
  (./main.vrb (./code/fact.svcode))
-Overfull \vbox (32.13371pt too high) detected at line 454
+Overfull \vbox (32.13371pt too high) detected at line 457
  []
 
-[19
+[18
 
-] [20
+] [19
 
 ]
-Overfull \hbox (3.58989pt too wide) in paragraph at lines 502--502
+Overfull \hbox (3.58989pt too wide) in paragraph at lines 504--504
 []  
  []
 
 LaTeX Font Info:    Font shape `EU1/lmss/m/it' in size <12> not available
-(Font)              Font shape `EU1/lmss/m/sl' tried instead on input line 502.
+(Font)              Font shape `EU1/lmss/m/sl' tried instead on input line 504.
 
 
-Overfull \vbox (20.52596pt too high) detected at line 502
+Overfull \vbox (20.06955pt too high) detected at line 504
+ []
+
+[20
+
+]
+Overfull \hbox (18.7162pt too wide) in paragraph at lines 532--532
+[][]  
+ []
+
+
+Overfull \vbox (20.24759pt too high) detected at line 532
  []
 
 [21
 
 ]
-Overfull \hbox (18.7162pt too wide) in paragraph at lines 531--531
+Overfull \hbox (22.41383pt too wide) in paragraph at lines 573--573
 []  
+ []
+
+
+Overfull \vbox (14.37733pt too high) detected at line 573
  []
 
 [22
 
 ]
-Overfull \hbox (22.41383pt too wide) in paragraph at lines 568--568
-[] 
+Overfull \hbox (6.53462pt too wide) in paragraph at lines 671--671
+[][] 
+ []
+
+
+Overfull \hbox (6.53462pt too wide) in paragraph at lines 671--671
+[]  
  []
 
 [23
 
 ]
-\openout4 = `main.vrb'.
-
- (./main.vrb
-LaTeX Font Info:    Font shape `EU1/lmss/bx/it' in size <10.95> not available
-(Font)              Font shape `EU1/lmss/bx/sl' tried instead on input line 4.
-)
-Overfull \vbox (33.95956pt too high) detected at line 597
- []
-
-[24
-
-]
-Overfull \hbox (6.53462pt too wide) in paragraph at lines 658--658
-[][] 
- []
-
-
-Overfull \hbox (5.60779pt too wide) in paragraph at lines 658--658
-[][] 
- []
-
-LaTeX Font Info:    Font shape `EU1/lmss/bx/it' in size <9> not available
-(Font)              Font shape `EU1/lmss/bx/sl' tried instead on input line 658
-.
-
-Overfull \vbox (30.18642pt too high) detected at line 658
- []
-
-[25
-
-]
-Overfull \hbox (21.90005pt too wide) in paragraph at lines 703--703
-[][]  
- []
-
 \myBox3=\box101
 \myScoreStart3=\dimen328
 \myCenter3=\dimen329
@@ -1949,29 +1925,36 @@ Overfull \hbox (21.90005pt too wide) in paragraph at lines 703--703
 \myScoreStart4=\dimen331
 \myCenter4=\dimen332
 \myScoreEnd4=\dimen333
+ [24
 
-Overfull \vbox (21.91666pt too high) detected at line 703
- []
+]
+\openout4 = `main.vrb'.
+
+ (./main.vrb)
+
+Class beamer Warning: Frame text is shrunk by a factor of 21.92688 percent inst
+ead of 20 percent on input line 811.
+
+[25
+
+]
+LaTeX Font Info:    Font shape `EU1/lmss/bx/it' in size <10> not available
+(Font)              Font shape `EU1/lmss/bx/sl' tried instead on input line 846
+.
+
+
+Class beamer Warning: Frame text is shrunk by a factor of 24.9939 percent inste
+ad of 20 percent on input line 846.
 
 [26
 
-]
-Overfull \vbox (21.57907pt too high) detected at line 732
- []
-
-[27
+] [27
 
 ]
-Overfull \vbox (14.47876pt too high) detected at line 770
+Overfull \vbox (21.86415pt too high) detected at line 882
  []
 
 [28
-
-] [29
-
-] [30
-
-] [31
 
 ]
 \tf@nav=\write6
@@ -1983,20 +1966,20 @@ Overfull \vbox (14.47876pt too high) detected at line 770
 \tf@snm=\write8
 \openout8 = `main.snm'.
 
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 806.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 806.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 888.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 888.
  (./main.aux)
-Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 806.
-Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 806.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 806.
+Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 888.
+Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 888.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 888.
  ) 
 Here is how much of TeX's memory you used:
- 40869 strings out of 493706
- 794651 string characters out of 6145768
- 952850 words of memory out of 5000000
- 43462 multiletter control sequences out of 15000+600000
- 15359 words of font info for 100 fonts, out of 8000000 for 9000
+ 40788 strings out of 493706
+ 794072 string characters out of 6145768
+ 956800 words of memory out of 5000000
+ 43391 multiletter control sequences out of 15000+600000
+ 15351 words of font info for 99 fonts, out of 8000000 for 9000
  1328 hyphenation exceptions out of 8191
- 71i,18n,97p,10435b,1389s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 71i,18n,97p,10435b,1374s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on main.pdf (31 pages).
+Output written on main.pdf (28 pages).

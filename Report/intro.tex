@@ -41,14 +41,10 @@ The strength of this construct is that it supports nested function application o
 Continuing with the example above, the adding-1 operation can also be performed on each subsequence of a nested sequence [[1,2,3],[4],[5,6]], written as: 
 $$\{\{y+1: y \ \*{in} \ x\}: x \ \*{in} \ [[1,2,3],[4],[5,6]]\}$$
 giving [[2,3,4],[5],[6,7]].
-For computing $\sum_{i=0}^{k-1}$ for $k \in [2,3,4]$, we can write
-$$\{\*{sum}(\&x) : x \ \*{in} \ [2,3,4]\}$$
-which ends to [1,3,6].
-
 
 
 The low-level language of NESL's implementation model is VCODE \cite{Blel-imp}, which uses vectors (i.e., flat arrays of atomic values such as integers or booleans) as the primitive type, and its instruction set performs operations on vectors as a whole, such as summing. 
-The technique $ flattening \ nested \ parallelism$ \cite{Blel-flatten} used in the implementation model translates nested function calls in NESL to instructions on vectors in VCODE. \\
+The technique \emph{flattening nested parallelism} \cite{Blel-flatten} used in the implementation model translates nested function calls in NESL to instructions on vectors in VCODE. \\
 %TODO menthion summitation tree nad segmented vector operation
 
 From the user's perspective, the first highlight of NESL is that the design of this language makes it easy to write readable parallel algorithms. The apply-to-each construct is more expressive in its general form:
@@ -89,7 +85,7 @@ It extends NESL with two features: a streaming semantics and a corresponding cos
 The basic idea behind the streaming semantics may be described as:
 data-parallelism can be realized not only in terms of space, as NESL has demonstrated, but also, for some restricted cases, in terms of time. 
 When there is no enough space to store all the data at the same time, computing them chunk by chunk may be a way out.
-This idea is similar to the concept of $piecewise \ execution$ in \cite{palm95}, but SNESL makes the chunkability exposed at the source level in the type system and the cost model instead of a low-level execution optimization, and the chunk size should be  proportional to the number of processors (10~100) and fit in cache.
+This idea is similar to the concept of \emph{piecewise execution} in \cite{palm95}, but SNESL makes the chunkability exposed at the source level in the type system and the cost model instead of a low-level execution optimization, and the chunk size should be  proportional to the number of processors (10 $\sim$ 100 typically) and fit in cache.
 
 \subsection{Types}
 
@@ -101,20 +97,19 @@ The types of a minimalistic version of SNESL defined in \cite{MadFil13} are as f
 \end{align*}
 Here $\pi$ stands for the primitive types and $\tau$ the concrete types, both originally supported in NESL.
 The type $[\tau]$, which is called $sequences$ in NESL and $vectors$ in SNESL, represents spatial collections of homogeneous data, and must be
-fully allocated or $materialized$ in memory for random access.  
+fully allocated or \emph{materialized} in memory for random access.  
 $(\tau_1,...,\tau_k)$ are tuples with $k$ components that may be of different types.
 
-The novel extension is the $streamable$ types $\sigma$, which generalizes the types of data that are not necessarily entirely materialized at once, but rather in a streaming fashion. 
-In particular, the type $\{\sigma\}$, called $sequences$ in SNESL, represents collections of data computed in terms of time, which means the elements of a sequence are produced and consumed over time.
+The novel extension is the \emph{streamable} types $\sigma$, which generalizes the types of data that are not necessarily entirely materialized at once, but rather in a streaming fashion. 
+In particular, the type $\{\sigma\}$, called \emph{sequences} in SNESL, represents collections of data computed in terms of time, which means the elements of a sequence are produced and consumed over time.
 So, even with a small size of memory, SNESL could execute programs which are impossible in NESL due to space limitation or more space efficiently than in NESL. 
 
-For clarity, from now on, we will use the terms consistent with SNESL.
-
+For the sake of clarity, we will from now on use the terms consistent with SNESL
 \subsection{Values and expressions}
 
 The values of SNESL are as follows:
 \begin{align*}
-& a ::=  \T \ | \ \F \ | \ n \ (n \in \mathbb{Z}) \ | \ ... \\
+& a ::=  \T \ | \ \F \ | \ n \ (n \in \mathbb{Z}) \ | \cdots\\
 & v ::=  a \ | \ (v_1,...,v_k) \ | \ [v_1,...,v_l] \ | \ \{v_1,...,v_l\} 
 \end{align*}
 where $a$ is the atomic values or constants of types $\pi$, and $v$ are
@@ -144,7 +139,7 @@ The apply-to-each construct in its general form splits into the general and the 
 the general one now is only responsible for expressing parallel computation,
 and the restricted one can decide if a computation is necessary or not, working as the only conditional in SNESL.
 Also, these comprehensions extend the semantics of the apply-to-each from evaluating to vectors (i.e., type $[\tau]$) to evaluating to sequences (i.e., type $\{\sigma\}$). 
-A notable difference between them is that the free variables of $e_1$ (except $x$) in the general comprehension can only be of concrete types, while they can be of any types in the restricted one.
+A notable difference between them is that the free variables of $e_1$ (except for those bound by $p$) in the general comprehension can only be of concrete types, while they can be of any types in the restricted one.
 
 Note that SNESL, as described in \cite{Fphd}, does not include programmer-defined functions. 
 In the implementation, functions can be defined, but effectively treated as macros during compilation.
@@ -161,29 +156,29 @@ The primitive functions of SNESL are shown in Figure~\ref{fig-snesl-func}.
 &   && \quad | \ \*{length} \ | \ \*{elt} \\
 &   && \quad | \ \*{the}  \ | \ \*{empty} \\
 &   && \quad | \ \*{seq} \ | \ \*{tab} \\
-& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | ==  \ |\ <=  \ | \ \*{not} \ | \ ... \tag{scalar operations} \\
-& \otimes \ && :: = + \ | \ \times  \ | \ \*{max} \ | \ ...  \tag{associative binary operations}
+& \oplus  \ && :: = + \ | \ - \ | \ \times \ |  \  / \ | \ \% \ | ==  \ |\ <=  \ | \ \*{not} \ | \ \cdots \tag{scalar operations} \\
+& \otimes \ && :: = + \ | \ \times  \ | \ \*{max} \ | \ \cdots \tag{associative binary operations}
 \end{alignat}
 \caption{SNESL primitive functions \label{fig-snesl-func}}
 \end{figure}
 
-The scalar functions of $\oplus$ and $\otimes$ should be self-explanatory from their conventional symbols. 
+The scalar functions of $\oplus$ and $\otimes$ should be self-explanatory from their conventional symbols or names. 
 The types of the other functions and their brief descriptions are given in Table~\ref{tab:snesl-funcs}.
 
-The functions listed in (1.1) and (1.2) of Figure~\ref{fig-snesl-func} are original supported in NESL, doing transformations on scalars and vectors.
+The functions listed in (1.1) and (1.2) of Figure~\ref{fig-snesl-func} are originally supported in NESL, doing transformations on scalars and vectors.
 In SNESL, list (1.1) are adapted to streaming versions with slight changes of parameter types where necessary.
-By streaming version we mean that these functions in SNESL take sequences as parameters instead of vectors as they do in NESL, as we can see from Table~\ref{tab:snesl-funcs}, thus most of these functions can execute in a more space-efficient way.  
+By streaming version we mean that these functions in SNESL take sequences as parameters instead of vectors as they do in NESL, as we can see from Table~\ref{tab:snesl-funcs}, thus these functions can execute in a more space-efficient way.  
 
 Functions in (1.2), i.e., $\*{length}$ and $\*{elt}$, are kept as their vector versions in SNESL. 
 These two exploit vectors that are fully materialized, thus have constant time cost.
-On the other hand, while analogous functions can be defined for sequences (using the other primitives), they have cost proportional to the length of the sequence.
+On the other hand, while analogous functions can be defined for sequences (using other primitives), they have cost proportional to the length of the sequence.
 
 List (1.3) are new primitives in SNESL.  
 The function $\*{the}$, returning the sole element of a singleton sequence, together with restricted comprehensions can be used to simulate an if-then-else expression:
 $$\*{if} \ e_0 \ \*{then} \ e_1 \ \*{else} \ e_2 \equiv \Let{b}{e_0}{ \*{the}(\{e_1 \ | \ b \} {\++} \{e_2 \ | \ \*{not}(b)\})} $$
 The function $\*{empty}$, which tests whether a sequence is empty or not, only needs to check at most one element of the sequence instead of materializing all the elements. Therefore, it works in a fairly efficient way with a constant complexity both in time and space.
 
-Finally, functions listed in (1.4) connects the concrete types and streams, making it possible to turn every NESL program into a SNESL one by adding suitable $\*{seq}/\*{tab}$.
+Finally, functions listed in (1.4) connects the concrete types and streams, making it possible to turn every NESL program into a SNESL one by adding suitable $\*{seq}/\*{tab}$ calls.
 
 \begin{table}\large
 	\renewcommand\arraystretch{1.8}
@@ -196,13 +191,13 @@ Finally, functions listed in (1.4) connects the concrete types and streams, maki
 		$\*{zip} \colon (\{\sgm_1\}, ..., \{\sgm_k\})\ra \{(\sgm_1,...,\sgm_k)\}$ & convert $k$ sequences into a sequence of $k$-component tuple \\ \hline
 		$\*{iota: \int \ra \{\int\}}$  &  generate an integer sequence starting from 0 to the given argument minus one; syntactic sugar: prefix symbol ``\&"    \\ \hline
 		$\*{part: (\{\sgm\}, \{\bool\}) \ra  \{\{\sgm\}\}}$   & partition a sequence into subsequences segmented by $\T$s in the second argument; e.g., $\*{part}(\{3,1,4\}, \{\F,\F,\T,\F,\T,\T\}) = \{\{3,1\},\{4\},\{\}\}$                \\ \hline
-		$\*{scan_\otimes}: \{\int\} \ra \{\int\}$     &  performs an exclusive scan of $\otimes$ operation on the given sequence.    \\ \hline
+		$\*{scan_\otimes}: \{\int\} \ra \{\int\}$     &  performs an exclusive scan of $\otimes$ operation on the given sequence    \\ \hline
 		$\*{reduce_\otimes: \{\int\} \ra \int }$     &   performs a reduction of $\otimes$ operation on the given sequence             \\ \hline
 		$\*{mkseq}: (\overbrace{\sgm,...,\sgm}^{k}) \ra \{\sgm\}$  & make a $k$-component tuple to a sequence of length $k$ \\ \hline  
 	    $\*{length}$: $[\tau] \ra \int$ & return the length of a vector; syntactic sugar: prefix symbol ``\#" \\ \hline  
 	    $\*{elt}$: ($[\tau], \int) \ra \tau$  & return the  element of a vector with the given index; syntactic sugar: infix symbol ``!" \\ \hline  
 	    $\*{the:  \{\sgm\} \ra \sgm}$     &     return the element of a singleton sequence           \\ \hline
-	    $\*{empty:  \{\sgm\} \ra \bool}$       & test if the given sequence is empty.             \\ \hline  
+	    $\*{empty:  \{\sgm\} \ra \bool}$       & test if the given sequence is empty            \\ \hline  
 	    $\*{seq}: [\tau] \ra \{\tau\} $  & stream a vector as a sequence \\ \hline  
 	    $\*{tab}: \{\tau\} \ra [\tau] $  & tabulate a sequence into a vector\\ \hline  
 	\end{tabular}
@@ -230,22 +225,7 @@ The first one is the sequential space $S_1$, that is, the minimal space to perfo
 The other is the parallel space $S_\infty$, the space that needed to achieve the maximal parallel degree, and it corresponds to assuming the program executes with an unlimited memory as NESL does.
 In \cite{Fphd}, the first component is refined further to allow vectors to be shared across parallel computations.
 
-With this extended cost model, the user can now estimate the time complexity of a SNESL program using the concepts same as for NESL, and the space complexity with the following formula
+With this extended cost model, the user can now estimate the time complexity of a SNESL program using the same concepts as for NESL, and the space complexity with the following formula
 $$ S = O(min(P \cdot S_1, S_\infty)) $$
 where $P$ is the number of processors.
 	
-%\section{Mathematical background and notations}
-%\begin{itemize}
-%	\item Set difference: \\
-%	For two sets $A$ and $B$, 
-%	\[ A \ \backslash \ B = \{s | s \in A \wedge s \notin B\} \]
-%	
-%	It is easy to prove the following properties: 
-% 	\begin{itemize}
-%	 	\item For any three sets $A,B$ and $C$: 
-%	 			\eq{set-p1}{(A \bs B) \cap C = (A \cap C) \bs B  =  A \cap (C \bs B)}
-%	 	\item For two sets $A$ and $B$,
-%	 	       \eq {set-p2}{A \cap B = \emptyset  \Leftrightarrow A \bs B = A}
-% 	\end{itemize}
-%
-%\end{itemize}
