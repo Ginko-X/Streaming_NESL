@@ -55,7 +55,7 @@ First its formal definition and semantics will be given.
 Then \fmsvcode, the target language of \fmsnesl, is defined, and proofs of some of its properties including freshness and determinism are given.
 As the first step to formalize the full language, we only consider the eager semantics of this target language here.
 The value representation and translation from \fmsnesl \ to \fmsvcode \ are also formalized.
-Finally, we put emphasis on the proof of the translation correctness theorem of this language.
+Finally, we put emphasis on the proof of the translation correctness theorem including work cost preservation.
 
 
 
@@ -109,7 +109,7 @@ where $t_1, t_2$ are temporary variables used by the front-end compiler.
 
 
 \subsection{Typing rules}
-\begin{itemize}
+\begin{enumerate}[(1)]
 	
 	\item Expression typing rules:\\
 	
@@ -139,8 +139,10 @@ where $t_1, t_2$ are temporary variables used by the front-end compiler.
 		\UC{\Type{\Gam}{\Comp{e}{x}{y}{\usevarsk}}{\tseq{\tau}}}
 	}\\[2ex]
 	
+Since now there is only one concrete type in {\fmsnesl} (i.e., $\int$), the free variables $\usevarsk$ in the rule for general comprehension must be all of type $\int$.
+ 
 	
-\item  Built-in functions typing rules:\\
+\item  Built-in function typing rules:\\
 
    \Jug{\Typef {\hcall} {\replc{k}{\tau}} {\tau}}
 	
@@ -159,7 +161,7 @@ where $t_1, t_2$ are temporary variables used by the front-end compiler.
 		\UC{\TypeV{\{\replc{l}{v}\}}{\tseq{\tau}}}
 	}
 	
-\end{itemize}
+\end{enumerate}
 
 \begin{nota}
 Let $|v|$ denote the \emph{size} of a value:
@@ -173,9 +175,8 @@ Let $|v|$ denote the \emph{size} of a value:
 \subsection{Semantics}
 
 
-\begin{itemize}
-\item The evaluation rules of \fmsnesl \ are  given below. The $W$ in the judgment ($W \in \mathbb{N}$) stands for the work cost. \\
-
+\begin{enumerate}[(1)]
+\item The evaluation rules with work cost of {\fmsnesl} are  given below. The $W$ in the judgment ($W \in \mathbb{N}$) stands for the work cost. \\
 	
 	\Jug{\Eval{\rho}{e}{v}{W}}
 	
@@ -187,7 +188,7 @@ Let $|v|$ denote the \emph{size} of a value:
 	\PT{
 		\AC{\Eval{\rho}{e_1}{v_1}{W_1}}
 		\AC{\Eval{\rho[x \|-> v_1]}{e_2}{v}{W_2}}
-		\BC{\Eval{\rho}{\Let{e_1}{x}{e_2}}{v}{W_1+ W_2}}	
+		\BC{\Eval{\rho}{\Let{x}{e_1}{e_2}}{v}{W_1+ W_2}}	
 	}\\[2ex]	
 	\PT{
 		\AC{\EvalF\hcall{\replc{k}{v}}{v}}
@@ -207,7 +208,17 @@ Let $|v|$ denote the \emph{size} of a value:
 		\UC{\Eval{\rho}{\Comp{e}{x}{y}{\usevarsk}}
 			     {\{\replc{l}{v'}\}}      
 			     {W}}
-	}\\
+	}\\[2ex]
+
+
+For variables, we consider its evaluation is zero-cost. 
+Let-bindings need to evaluate both the bound expression $e_1$ and the body $e_2$, so the cost is the sum of these two evaluations.
+A function call simply costs the total size of its arguments and return value.
+The cost for evaluating a general comprehension is the sum of the evaluations for each element in the sequence, plus some extra $(k+1)\cdot (l+1)$ 
+\footnote{In \cite{Fphd}, the extra is $k\cdot (l+1)$ (when the concrete type is restricted to only $\int$), which should be a bug. 
+In a special case where $k$=0 and the evaluation of the comprehension body does not cost anything, for example, $\Comp{x}{x}{\&5}{\cdot}$, 
+the total cost for evaluating the comprehension will be zero as well. 
+However, the low-level execution does pay some work cost (because of $\usum$) which is still proportional to the length of the sequence.}.
 	
 \item Built-in function evaluation rules: \\
 
@@ -222,12 +233,12 @@ Let $|v|$ denote the \emph{size} of a value:
 		\RiLa{(n_3= n_1+n_2)} 
 		\UC{\EvalF{\plusn}{n_1,n_2}{n_3}}}
 	
-\end{itemize}
+\end{enumerate}
 
 
 \section{\fmsvcode}
-The target language of \fmsnesl \  is also a subset of SVCODE presented in the last chapter. 
-We will call it  \fmsvcode.
+The target language of {\fmsnesl}  is also a subset of SVCODE presented in the last chapter without the \sc instruction. 
+We will call it {\fmsvcode}.
 
 \subsection{Syntax}
 In this minimal language, a primitive stream $\a$ can be a vector of booleans, integers or units, as the following grammar shows:
@@ -240,50 +251,48 @@ $$\a = \vrange{a_1}{a_i}  $$
 
 \hspace{1cm}
 
-The syntax of \fmsvcode \  is given in Figure~\ref{fig-svcode-grammar}.
-
+The syntax of {\fmsvcode} is given in Figure~\ref{fig-svcode-grammar}.
 
 \begin{figure}[H] \large
 	\begin{alignat*}{2}
 	&p  && :: = \ \epsilon \\ 
 	&   &&\ \ | \ \sdef{\s}{\psi(s_1,...,s_k)} \\
-	&   &&\ \ | \ \withctrl{\s}{p_1}{\Sin}{\Sout} \\
+	&   &&\ \ | \ \withctrl{\s_c}{p_1}{\Sin}{\Sout} \\
 	&   &&\ \ | \ p_1;p_2  \\
 	\\
 	&\s && ::= 0 \ | \ 1 \ | \ \cdots \in \SId  = \mathbb{N}   \tag{stream ids}\\
+	&  \S && ::= \{\s_1,..., \s_i\} \in \sset  \tag{a set of stream ids}
+	\\
 	\\
 	& \psi \ && ::= \consta{\emph{a}} \ | \ \toflag  
-	\ | \ \usum \ | \ \maptwo{+} \ | \ \scan_{n_0} \ | \ \distr  \tag{Xducers} \\
-%	& \oplus \ && :: = + \ | \ - \ | \ \times \ | \ / \ | \ \% \ | \ \cdots  \tag{binary integer operations}\\
-	\\
-	&  \S && ::= \{\s_1,..., \s_i\} \in \sset  \tag{a set of stream ids}
+	\ | \ \usum \ | \ \maptwo{+} \ | \ \scan_{n_0} \ | \ \distr  \tag{Xducers} 
 	\end{alignat*}
-	\caption{Abstract syntax of \fmsvcode \  \label{fig-svcode-grammar}}
+	\caption{Abstract syntax of {\fmsvcode} \label{fig-svcode-grammar}}
 
 \end{figure}
 
+%
+%The function $\texttt{dv}$ returns the set of defined variables of a given \fmsvcode \  program.
+%
+%\begin{alignat*}{2}
+%&\dv{\epsilon} && =  \emptyset \\
+%&\dv{\sdef{\s}{\psi(s_1,...,s_k)}} && =  \{s\} \\
+%&\dv{\withctrl{\s_c}{p_1}{\Sin}{\Sout}} && =   \Sout \\
+%&\dv{p_1;p_2} && =  \dv{p_1} \cup \dv{p_2} \\
+%\end{alignat*}
+%
+%Correspondingly, $\texttt{fv}$ returns the free variables set.
+%
+%\begin{alignat*}{2}
+%&\FV{\epsilon} && = \emptyset \\
+%&\FV{\sdef{\s}{\psi(s_1,...,s_i)}} && = \{s_1,...,s_k\}\\
+%&\FV{\withctrl{\s_c}{p_1}{\Sin}{\Sout}} && = \{s_c\} \cup \Sin \\
+%&\FV{p_1;p_2} && = \FV{p_1} \cup (\FV{p_2} - \dv{p_1}) \\
+%\end{alignat*}
 
-The function $\texttt{dv}$ returns the set of defined variables of a given \fmsvcode \  program.
-
-\begin{alignat*}{2}
-&\dv{\epsilon} && =  \emptyset \\
-&\dv{\sdef{\s}{\psi(s_1,...,s_k)}} && =  \{s\} \\
-&\dv{\withctrl{\s_c}{p_1}{\Sin}{\Sout}} && =   \Sout \\
-&\dv{p_1;p_2} && =  \dv{p_1} \cup \dv{p_2} \\
-\end{alignat*}
-
-Correspondingly, $\texttt{fv}$ returns the free variables set.
-
-\begin{alignat*}{2}
-&\FV{\epsilon} && = \emptyset \\
-&\FV{\sdef{\s}{\psi(s_1,...,s_i)}} && = \{s_1,...,s_k\}\\
-&\FV{\withctrl{\s_c}{p_1}{\Sin}{\Sout}} && = \{s_c\} \cup \Sin \\
-&\FV{p_1;p_2} && = \FV{p_1} \cup (\FV{p_2} - \dv{p_1}) \\
-\end{alignat*}
-
-We now consider a well-formed program $p$ should be in a form $\wf{p}{S}{S'}$, where its free variables correspond to a subset of $\S$ and its defined one are $\S'$, (i.e., $\FV{p} \subseteq \S$, $\dv{p} = \S'$), and most importantly, there is no overlapping between $\S$ and $\S'$.
+We consider a well-formed program $p$ must be able to be represented in a form $\wf{p}{S}{S'}$, where $\S$ is a superset of all the free variables of $p$ and $\S'$ a set of all the defined ones of $p$, and most importantly, there is no overlapping between $\S$ and $\S'$.
 \begin{defi}[\textbf{Well-formedness}]
-	$p$ is a well-formed SVCODE program, written as $\wf{p}{S}{S'}$ for some $\S$ and $\S'$,  if it can be shown so by the following rules :
+	$p$ is a well-formed {\fmsvcode} program, written as $\wf{p}{S}{S'}$ for some $\S$ and $\S'$,  if it can be shown so by the following rules:
 \end{defi}
   \Jug{\wf{p}{S}{S'}}
 	
@@ -295,12 +304,12 @@ We now consider a well-formed program $p$ should be in a form $\wf{p}{S}{S'}$, w
    	\PT{\AC{\wf{p_1}{\Sin}{S'}}
     	\RiLa{\left(
     		\begin{aligned}
-    			& (\Sin \cup \{s\} )\subseteq \S\\
+    			& (\Sin \cup \{s_c\} )\subseteq \S\\
     			&\Sout \subseteq \S' \\
     			& \S \cap \S' = \emptyset
     		\end{aligned}
     		 \right)} 
-    	\UC{\wf{\withctrl{s}{p_1}{\Sin}{\Sout}}{\S}{\Sout}}  
+    	\UC{\wf{\withctrl{s_c}{p_1}{\Sin}{\Sout}}{\S}{\Sout}}  
    	}\\[3ex]
    
    \PT{\AC{\wf{p_1}{\S}{\S_1}}
@@ -308,11 +317,13 @@ We now consider a well-formed program $p$ should be in a form $\wf{p}{S}{S'}$, w
        \BC{\wf{(p_1;p_2)}{\S}{\S_1 \cup \S_2}}
    }\\[3ex]
 
-\begin{lem}[\textbf{Freshness}]
+\begin{lem}
 	If $\wf{p}{\S}{\S'}$, then  $\S \cap \S' = \emptyset $. 
 \end{lem}
+\begin{proof}
+	The proof is straightforward by induction on the derivation of $\wf{p}{S}{S'}$.
+\end{proof}
 
-The proof is straightforward by induction on the derivation of $\wf{p}{S}{S'}$.
 
 
 
@@ -325,18 +336,18 @@ Before showing the semantics, we first introduce some notations and operations a
 
 
 \begin{nota}[\textbf{Stream concatenation}]
-	$\vapp{\vrange{a_1}{a_i}} {\vrange{a_1'}{a_j'}} = \langle a_1,...,a_i,a_1',...,a_j' \rangle $ \\
+	$\vapp{\vrange{a_1}{a_i}} {\vrange{a_1'}{a_j'}} = \langle a_1,...,a_i,a_1',...,a_j' \rangle $
 \end{nota}
 
 \begin{nota}[\textbf{Stream length}]
-	For a stream $\a = \< a_1,...,a_l \'>$, $|\a|$ = l. \\
+	For a stream $\a = \< a_1,...,a_l \'>$, $|\a|$ = l. 
 \end{nota}
 
 The operational semantics of \fmsvcode \  is given in Figure~\ref{fig-svcode-semantics}, and the $W$ in the judgment stands for the work cost.
 The runtime environment or store $\sgm$ is a mapping from stream variables to vectors:
 $$\sgm ::= [\s_1 \|-> {\a_1},...,\s_i \|-> {\a_i}]$$
 The control stream $\c$, which is a vector of units, indicates the parallel degree of the computation, as we have discussed in the last chapter. 
-It is worth noting that only in the rule $\PName{Wc-Nonemp}$ the control stream gets changed.
+It is worth noting that only in the rule $\PName{Wc-Nonemp}$ the control stream gets changed (from the conclusion to the premise).
 
 
 \begin{figure}[H]\large 
@@ -394,8 +405,8 @@ Its cost is the total size of the input and output streams.
 
 The rules $\PName{Wc-Emp}$ and $\PName{Wc-Nonemp}$ together show two possibilities for interpreting a \wc instruction:
 \begin{itemize}
-	\item if the new control stream $\s_c$ and the streams in $\Sin$, which includes the free variables of $p_1$, are all empty, then just bind empty vectors to the stream ids in $\Sout$, which is a part of the defined streams of $p_1$; the cost is just a constant 1, standing for the cost of generating an empty sequence.
-	\item otherwise execute the code of $p_1$ as usual under the new control stream, ending in the store $\sgm''$, then copy the bindings of $\Sout$ from $\sgm''$ to the initial store; the cost is the one of executing $p_1$ plus a constant 1. 
+	\item if the new control stream $\s_c$ and the streams in $\Sin$, which includes the free variables of $p_1$, are all empty, then just bind empty vectors to the stream ids in $\Sout$, which is a part of the defined streams of $p_1$; the cost is just a constant.
+	\item otherwise execute the code of $p_1$ as usual under the new control stream, ending in the store $\sgm''$, then copy the bindings of $\Sout$ from $\sgm''$ to the initial store; the cost is the one of executing $p_1$ plus a constant. 
 \end{itemize}
 
 The rule $\PName{Seq}$ is for executing two pieces of code sequentially, so the cost is the sum of these two.
@@ -428,13 +439,13 @@ Figure~\ref{fig-xducer-semantics} shows the semantics at the general level.
 \footnotetext{For notational convenience, in this thesis we add subscripts to a sequence of constants, such as $\emptyv, \F, 1$, to denote the total number of these constants.}
 
 There are only two rules for the general semantics. 
-They together say that the output stream of a Xducer is computed in a ``loop" fashion, where the 
-iteration uses specific block semantics of the Xducer and the number of iteration is the unary number that the control stream represents, i.e., the length of the control stream. 
+They together say that the output stream of a Xducer is computed in a ``loop" fashion, where each 
+iteration uses specific block semantics of the Xducer and the number of iterations is the unary number that the control stream represents, i.e., the length of the control stream. 
 In the parallel setting, we prefer to call this iteration a $block$. 
-Recall the control stream is a representation of the parallel degree of the computation, then a block stands for the subcomputation of exact one degree. 
+Recall that the control stream is a representation of the parallel degree of the computation, then a block stands for the subcomputation of exact one degree. 
 It is worth noting that all these blocks are data-independent, which means they can be executed in parallel. 
 So the control stream indeed carries the theoretical
-maximum number of processors we need to execute the computation most efficiently, if the computation within the block cannot be parallelized further. \\
+maximum number of processors we need to execute the computation most efficiently, if the computation within a block cannot be parallelized further. \\
 
 
 After abstracting the general semantics, the remaining work of formalizing the specific semantics of Xducers within a block becomes relatively clear and simple. The block semantics are defined in Figure~\ref{fig:xducer-bl-seman}. 
@@ -488,7 +499,7 @@ After abstracting the general semantics, the remaining work of formalizing the s
 
 
 As mentioned before, we can consider a block  as the minimum computing unit assigned to a single processor. This is reasonable for
-Xducers such as $\consta{a}$ and $\maptwo{+}$, because
+Xducers such as $\consta{\mathit{a}}$ and $\maptwo{+}$, because
 they are already sequential at the block level. 
 
 However, some other Xducers, such as $\usum$, can be parallelized further inside a block.
@@ -496,8 +507,8 @@ As we have implemented more Xducers than shown here, we find that computations o
 For the scope of this thesis, the block semantics we have shown are already relatively clear and simple enough to reason about, and the formalization of the unary level parallelism can be investigated in future work. 
 
 
-The formalization for these Xducers' semantics we have shown here is only for theoretical analysis and reasoning about the computation, but not for what the real implementation of them should be. 
-In practice, most of the Xducers can be realized in a more efficient way to express parallelism by using a segmented scan operation \cite{blel89scan}. 
+The formalization for these Xducers' semantics we have shown here is mainly for theoretical analysis and reasoning about the computation, but not for what the real implementation of them should be. 
+In practice, most of the Xducers can be realized in a more efficient way to exploit parallelism by using a segmented scan operation \cite{blel89scan}. 
 
 %Or if we want to use $unary$ semantics maybe for later: \\
 %\begin{mdframed}
@@ -552,7 +563,7 @@ In practice, most of the Xducers can be realized in a more efficient way to expr
 \subsection{\fmsvcode \ determinism}
 
 \begin{defi}[\textbf{Stream prefix}]
-	$\a$ is a \emph{prefix} of $\a'$, written $\a \prefix \a'$, if it can be shown so using the following rules:\\
+	$\a$ is a \emph{prefix} of $\a'$, written as $\a \prefix \a'$, if it can be shown so using the following rules:\\
 	
 	\emph{\Jug{\a \prefix \a'}}
 	\PT{\LeLa{\PRName{Emp:}} \Axiom{\emptyv \prefix \a' }}
@@ -571,7 +582,7 @@ In practice, most of the Xducers can be realized in a more efficient way to expr
 	The proof is straightforward by induction on $\a_1$: case $\a_1 = \emptyv$ and case $ \a_1 = \< a_0 \ | \ \a_1' \'>$ for some $\a_1'$.
 \end{proof}
 
-The following lemma says that a Xducer always knows how many elements it should consume and produce when it reads one element from the control stream, i.e., in one block, and these numbers are fixed in any block for the same Xducer.
+The following lemma says that a Xducer always knows how many elements it should consume and produce within a block.
 
 
 \begin{lem}[\textbf{Blocks are self-delimiting and deterministic}] \label{lem-block-unique}
@@ -662,7 +673,7 @@ The following lemma says that a Xducer always knows how many elements it should 
 		    $(\a''_{i0} \prefix \a_{i0} )^2_{i=1}$ and $\blockf{\scan_{n_0}}{\a''_{10},\a''_{20}}{\a''}$,
 			then $\a'_{10} = \a''_{10}, \a'_{20} = \a''_{20}$,  and $\a' = \a''$. \\
 			The proof is by induction on $\MP_0$.  There are two subcases:
-			for the case $\MP_0$ uses $\PName{-X-ScanT}$, the proof is analogous to the outer proof case $\MP$ uses  $\PName{-X-ScanT}$; for the case $\MP_0$ uses $\PName{-X-ScanF}$, the proof can be done by the inner IH. 	
+			for the case $\MP_0$ uses $\PName{-X-ScanT}$, the proof is analogous to the outer proof case where $\MP$ uses  $\PName{-X-ScanT}$; for the case $\MP_0$ uses $\PName{-X-ScanF}$, the proof can be done by the inner IH. 	
 			
 			Then, by this inner lemma on $\eqref{eq-scan-determ-1}$ with $\MP_0$, 
 			$\eqref{eq-scan-determ-2}$, $\MP_0'$, we get
@@ -737,7 +748,7 @@ The following lemma says that a Xducer always knows how many elements it should 
 \end{proof}
 
 
-\begin{thm}[$\mathbf{SVCODE_0 \ determinism}$] \label{thm-svcode-determ}
+\begin{thm}[$\mathbf{{SVCODE_0} determinism}$] \label{thm-svcode-determ}
 	If $\seval{p}{\sgm}{\c}{\sgm'}{W}$ (by some derivation $\MP$) and $\seval{p}{\sgm}{\c}{\sgm''}{W'}$ (by some derivation $\MP'$), 
 	then $\sgm' = \sgm''$ and $W = W'$.
 \end{thm}
@@ -774,7 +785,7 @@ The following lemma says that a Xducer always knows how many elements it should 
 			
 			So $\sgm' = \sgm[\k{\s_i \|-> \sgm_1(\s_i)}]$, 
 			and $\sgm'' = \sgm[\k{\s_i \|-> \sgm'_1(\s_i)}]$. \\
-			By IH on $\MP_1$ and $\MP'_1$, we obtain
+			By IH on $p_1$ with $\MP_1$ and $\MP'_1$, we obtain
 			$\sgm_1 = \sgm_1'$ and  $W_1 = W_1'$.
 			Then it is clear that $\sgm' = \sgm''$, and $W = W_1+1 = W'_1+ 1 = W'$, as required.
 			
@@ -830,7 +841,7 @@ The translation judgments shown below can be read as: `` in the environment $\de
 
 \makebox[1\textwidth]{		
 	\PT{
-		\AC{\Trans{[x \|-> {\st_1}, \k{x_i \|-> s'_i}]}{e}{\s'_0+1+k}{\s''_1}{\sfun{p_1}{\st_2}}}
+		\AC{\Trans{[x \|-> {\st_1}, \k{x_i \|-> s'_i}]}{e_1}{\s'_k+1}{\s''_1}{\sfun{p_1}{\st_2}}}
 		\RiLa{\left(
 			\begin{aligned}
 				\del(y) = &  \ (\st_1,\s_b) \\
@@ -841,11 +852,11 @@ The translation judgments shown below can be read as: `` in the environment $\de
 				& \ \sdef{\s'_k}{\distrf{\s_b}{\s_k}}; \\
 				& \ \withctrl{\s'_0}{p_1}{\Sin}{\Sout}) \\
 				\Sin = &  \ \olol{\st_1} \cup \{s'_1,...,s'_k\} \\
-				\Sout = & \ \{s \ | \  s \in \olol{\st_2}, s \ge s'_0+1+k \} \\
+				\Sout = & \ \{s \ | \  s \in \olol{\st_2}, s \ge s'_k+1 \} \\
 				\s'_{i+1} = & \ \s'_i + 1, \forall i \in \{0,...,k-1\} \\
 			\end{aligned}
 			\right)}
-		\UC{\Trans{\del}{\Comp{e}{x}{y}{\usevarsk}}{\s'_0}{\s''_1}
+		\UC{\Trans{\del}{\Comp{e_1}{x}{y}{\usevarsk}}{\s'_0}{\s''_1}
 			{ \sfun{p} {(\st_2,\s_b)}}}
 	}
 }	
@@ -886,7 +897,7 @@ The translation judgments shown below can be read as: `` in the environment $\de
 \end{nota}
 
 
-The following Lemma~\ref{lem-trans-prim-wf} and Theorem~\ref{thm-trans-wf} together show that the translated SVCODE program is well-formed and the new stream ids are fresh (given the conditions are all satisfied).
+The following Lemma~\ref{lem-trans-prim-wf} and Theorem~\ref{thm-trans-wf} together show that the translated {\fmsvcode} program is well-formed and the defined stream ids are fresh (given the conditions are all satisfied).
 
 
 \begin{lem} \label{lem-trans-prim-wf}
@@ -933,7 +944,7 @@ The following Lemma~\ref{lem-trans-prim-wf} and Theorem~\ref{thm-trans-wf} toget
 
 \begin{enumerate}[(1)]
 	\item Just like $\STree$, the stream value tree also needs to be redefined as follows:  
-	\fmsvcode \  values: $$\SvVal \ni \v ::= \a \ | \ (\v,\b) $$
+	 $$\SvVal \ni \v ::= \a \ | \ (\v,\b) $$
 	
 	\item A function for \fmsvcode \  value construction from a stream-id tree:
 	\begin{align*}
@@ -951,7 +962,7 @@ The following Lemma~\ref{lem-trans-prim-wf} and Theorem~\ref{thm-trans-wf} toget
 	
 
 
-\item The notation $\emptyvtau{\tau}$ can represent a stream tree whose streams are all empty (an empty stream  tree), or it can be viewed as given a high-level type $\tau$, a corresponding empty stream tree can be generated.
+\item The notation $\emptyvtau{\tau}$ can represent a stream tree whose streams are all empty (i.e., an empty stream tree), or it can be viewed as that given a high-level type $\tau$, a corresponding empty stream tree can be generated.
 \begin{nota}
 	Let $\emptyvtau{\tau}$ denote an empty stream tree: 
 	\begin{align*}
@@ -975,7 +986,7 @@ It is easy to check that, for any $\tau$, ${\++}_{\tau}$ is associative with $\e
 			\UC{\ValRep{\{v_1,...,v_l\}}{\tseq{\tau}}{(w,\langle \F_1,..., \F_l, \T \rangle)}}
 		}\\
 
-\item The following set of rules are used to recover/reconstruct a \fmsnesl \ value from a \fmsvcode\ value. The judgment can be read as:`` given a \fmsvcode\ value $w$ and a high-level type $\tau$, a high-level value $v$ will be generated from the prefix of each stream of $w$, and the remaining part is $w'$". \\
+\item The following set of rules are used to recover/reconstruct a \fmsnesl \ value from a \fmsvcode\ value. The judgment can be read as:`` given a \fmsvcode\ value $w$ and a high-level type $\tau$, a high-level value $v$ can be recovered from the prefix of each stream of $w$, and the remaining part is $w'$". \\
 
 \Jug{\Vtransb{w}{\tau}{v}{w'}}
 	\PT{\Axiom{\Vtransb{\etail{n_0}{\a}}{\int}{n_0}{\a}}
@@ -1019,7 +1030,7 @@ A corollary that can be derived from these lemmas is that if two high-level valu
 	then $v=v'$.
 \end{cor}
 \begin{proof}
-	The proof can be derived straightforward from Lemma~\ref{lem:recov-correct} (take $w' = \emptyvtau{\tau}$) and Lemma~\ref{lem:recov-determ}.
+	The proof will use Lemma~\ref{lem:recov-correct} (take $w' = \emptyvtau{\tau}$) and Lemma~\ref{lem:recov-determ}.
 \end{proof}
 
 
@@ -1047,11 +1058,11 @@ It is easy to show that this relation $\overset{\S}{\sim}$ is symmetric and tran
 \end{itemize}
 
 
-We also define a binary operation $\x\S$ on stores to represent a special kind of concatenation of two similar stores: 
-the $concatenation$ of two similar stores is a new store, in which the bound values by $\S$ are from any of the parameter stores, and 
+We also define a binary operation $\x\S$ on stores to represent a kind of fusion of two similar stores: 
+the $fusion$ of two similar stores is a new store, in which the bound values by $\S$ are from any of the parameter stores, and 
 the others are the concatenation of the values from the two stores. 
-In other words, a $concatenation$ of two similar stores is only a concatenation of the bound values that $may$ be different in these stores.
-\begin{defi}[\textbf{Store concatenation}] \label{def-sgm-join}
+
+\begin{defi}[\textbf{Store fusion}] \label{def-sgm-join}
 	For $\sgm_1 \~\S \sgm_2$,
 	$\sgm_1 \x{\S} \sgm_2 = \sgm$ where \\
 	$\sgm(s) =
@@ -1066,7 +1077,7 @@ Clearly, if $\sgm_1 \x{\S} \sgm_2 = \sgm$,
 
 
 
-\begin{lem}[\textbf{Xducer concatenation}] \label{lem-psi-join}
+\begin{lem}[\textbf{Xducer fusion}] \label{lem-psi-join}
 	If \begin{enumerate}[(i)]
 	 \item $\sevalfg{\lcall}{\a_{1},...,\a_{k}}{\c}{\a}$ by some derivation $\MP$
 	 \item $\sevalfg{\lcall}{\a'_{1},...,\a'_{k}}{\c'}{\a'}$ by some derivation $\MP'$,
@@ -1156,11 +1167,8 @@ The relation $\sgm \ConEq{\S} \sgm'$ looks similar to $\sgm \~{\S} \sgm'$, but i
 \end{proof}
 
 
-The following lemma says that the concatenation of the results of  subcomputations inside a comprehension body (i.e. $p$ in the lemma) is equivalent to the result of the entire parallel computation. 
-%From the other direction, it can be considered as splitting the computation of $p$ into subcomputations with smaller parallel degrees; all the supplier streams, i.e., $\FV{p} (\subseteq \S_1)$, are split correspondingly to
-%feed the Xducers of $p$. 
-%These smaller parallel degrees are specified by the control streams, i.e., $\c_1$ and $\c_2$ in the lemma. 
-%Other untouched streams (i.e., $\S$) of $\sgm$s  have no change during this process.\\
+The following lemma says that two separate executions of the same program $p$ with different parallel degrees ($\c_1$ and $\c_2$) can be fused as one computation with a parallel degree of $\c_1 {\++} \c_2$.
+
 
 \begin{lem} [\textbf{Parallelism fusion}] \label{lem-sgm-join}
 	If 
@@ -1270,7 +1278,7 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
 		
 \def\casethree{\withctrl{\s_c}{p_0}{\Sin}{\Sout}}
 
-    Assume $\Sout = [s_1,...,s_j]$. \\	
+    Assume $\Sout = \{s_1,...,s_k\}$. \\	
     There are four possibilities: 
    
     \begin{itemize}
@@ -1279,19 +1287,19 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
     	So $\MP_1$ must look like 
     	
     	$$\PT{
-    		\Axiom{\seval{\casethree}{\sgm_1}{\c_1}{\sgm_1[\s_1 \|-> \emptyv, ..., \s_j \|-> \emptyv]}{1}}
+    		\Axiom{\seval{\casethree}{\sgm_1}{\c_1}{\sgm_1[\s_1 \|-> \emptyv, ..., \s_k \|-> \emptyv]}{1}}
     	}$$
     	and we have   \eq{eq-lem24-c3-5}{  	
     		\forall s \in \{\s_c\} \cup \Sin. \sgm_1(s) = \emptyv}
     	
     	Similarly,$\MP_2$ must look like  	
     	$$\PT{
-    		\Axiom{\seval{\casethree}{\sgm_2}{\c_2}{\sgm_2[\s_1 \|-> \emptyv, ..., \s_j \|-> \emptyv]}{1}}
+    		\Axiom{\seval{\casethree}{\sgm_2}{\c_2}{\sgm_2[\s_1 \|-> \emptyv, ..., \s_k \|-> \emptyv]}{1}}
     	}$$
     	and \eq{eq-lem24-c3-9}{  	
     		\forall s \in \{\s_c\} \cup \Sin. \sgm_2(s) = \emptyv}
     	
- \def\sgmbe#1{\sgm_#1[\j{\s_i \|-> \emptyv}]}
+ \def\sgmbe#1{\sgm_#1[\k{\s_i \|-> \emptyv}]}
     	
     	So $\sgm_1' = \sgmbe{1}$, $\sgm_2' = \sgmbe{2}, W_1 = 1, W_2 =1 $. \\
     	
@@ -1300,20 +1308,20 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
    		
    		Also, it is easy to show that $\sgm'_1 \~{\S} \sgm'_2$ and 
    		\eq{\eqnumthree{7}}{
-   			\sgm'_1 \x{\S} \sgm'_2 = \sgmx[\j{\s_i \|-> \emptyv}]
+   			\sgm'_1 \x{\S} \sgm'_2 = \sgmx[\k{\s_i \|-> \emptyv}]
    		}
    	
     Using $\PName{Wc-Emp}$ with $\eqref{\eqnumthree{8}}$, we can build a derivation $\MP'$ as follows
    		$$\PT{
-   			\Axiom{\seval{\casethree}{\sgmx}{\cc}{\sgmx[\j{\s_i \|-> \emptyv}]}{1}}
+   			\Axiom{\seval{\casethree}{\sgmx}{\cc}{\sgmx[\k{\s_i \|-> \emptyv}]}{1}}
    		}$$
    	
    	With $\eqref{\eqnumthree{7}}$, we take $\MP = \MP'$.
-   	And $W = 1 \le W_1 + W_2$ as requierd.
+   	And $W = 1 \le 1+1 = W_1 + W_2$ as requierd.
    
 \item Subcase $\MP_1$ uses  $\PName{Wc-Nomemp}$, $\MP_2$ uses $\PName{Wc-Emp}$. \\
 
-  \def\sgmbpp#1{\sgm_{#1}[\j{\s_i \|-> \sgm_{#1}''(\s_i)}]}   	
+  \def\sgmbpp#1{\sgm_{#1}[\k{\s_i \|-> \sgm_{#1}''(\s_i)}]}   	
    	$\MP_1$ must look like
    	$$\PT{
    			\UCN{\MP_1'}{\seval{p_0}{\sgm_1}{\c_1'}{\sgm_1''}{W_0}}
@@ -1338,12 +1346,12 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
 	 \eq{\eqnumthree{23}}
 	 { \forall s \in \Sin. \sgmx(s) = \sgm_1(s) {\++} \sgm_2(s) = \sgm_1(s)}
 	
-	Then by Lemma \ref{lem-emp-join} on $\MW_0$ with $\MP_1'$ with \eqref{\eqnumthree{23}}, we obtain a derivation $\MP_0$
+	Then by Lemma \ref{lem-emp-join} on $\MW_0$ with $\MP_1'$, \eqref{\eqnumthree{23}}, we obtain a derivation $\MP_0$
     of 
     $$\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}{W_0}$$ for some $\sgm_0$, and 
     $$ \sgm_0 \ConEq{\S_2} \sgm_1''$$
     Then, with \eqref{eq-lem24-c3-2}, we have
-    \eq{\eqnumthree{25}} {(\sgm_0(s_i) = \sgm_1''(s_i))^j_{i=1}}
+    \eq{\eqnumthree{25}} {(\sgm_0(s_i) = \sgm_1''(s_i))^k_{i=1}}
     
  		
    	Since $\sgm_1 \~\S \sgm_2$,	by Definition \ref{def-sgm-join} with $\eqref{\eqnumthree{20}}$, $\eqref{\eqnumthree{21}}$, we have \eq{\eqnumthree{27}}{
@@ -1351,31 +1359,29 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
    	
    	and it is also easy to show $\sgm'_1 \~\S \sgm'_2$ and \eq{\eqnumthree{26}}{
    		\sgmpx =  
-   		 \sgmx[\j{\s_i \|-> \sgm_{1}''(\s_1)}]
+   		 \sgmx[\k{\s_i \|-> \sgm_{1}''(\s_1)}]
    	}	
     
-    With $\eqref{\eqnumthree{25}}$, we replace $\sgm''_1(s_i)$ with $\sgm_0(s_i)$ for $\forall i \in \{1,...,j\}$ in $\eqref{\eqnumthree{26}}$, giving us
+    With $\eqref{\eqnumthree{25}}$, we replace $\sgm''_1(s_i)$ with $\sgm_0(s_i)$ for $\forall i \in \{1,...,k\}$ in $\eqref{\eqnumthree{26}}$, giving us
     \eq{\eqnumthree{28}}{
     	\sgmpx =  
-    	\sgmx[\j{\s_i \|-> \sgm_0(\s_1)}]
+    	\sgmx[\k{\s_i \|-> \sgm_0(\s_1)}]
     }	
    
     Since $\eqref{\eqnumthree{27}}$, we can use the rule $\PName{Wc-Nonemp}$ to build a derivation $\MP'$ as follows 	
   		$$\PT{
   			\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1'}{\sgm_0}{W_0}}
-  			\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmx [\j{\s_i \|-> \sgm_0(\s_i)}]}{W_0+1}}
+  			\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmx [\k{\s_i \|-> \sgm_0(\s_i)}]}{W_0+1}}
   		}$$ 
 
 	Then with $\eqref{\eqnumthree{28}}$, we take $\MP$ = $\MP'$, 
-	and it is clear $W = W_0+ 1 = W_1  \le W_1 + 1 =  W_1 + W_2$ as required.
+	and it is clear $W = W_0+ 1 = W_1  \le W_1 + 1 =  W_1 + W_2$, as required.
   
 	\item Subcase $\MP_1$ uses  $\PName{Wc-Emp}$ and $\MP_2$ uses $\PName{Wc-Nonemp}$. \\	
 	This subcase is analogous to the previous one. \\
  		
 \item Subcase both $\MP_1$ and $\MP_2$ use $\PName{Wc-Nonemp}$. \\
-
 \def\sgmxpp{(\sgm_1'' \x{\S} \sgm_2'')}    
-
  	$\MP_1$ must look like
  	$$\PT{
  		\UCN{\MP_1'}{\seval{p_0}{\sgm_1}{\c_1'}{\sgm_1''}{W_1'}}
@@ -1394,24 +1400,24 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
     
     So $\sgm_1' = \sgmbpp{1}, W_1 = W_1'+1, \sgm_2' = \sgmbpp{2}$ and $W_2 = W_2'+1$.
     
-    By IH on $\MW_0$ with $\MP_1'$, $\MP_2'$, we get 
+    By IH on $p_0$ with $\MW_0$, $\MP_1'$, $\MP_2'$, we get 
     $\sgm_1'' \~\S \sgm_2''$, a derivation $\MP_0$ of 
     $$\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}{W'}$$
     and $W' \le W_1' + W_2'$.
     
-    Since $ \forall i \in \{1,...,j\}. s_i \in \Sout$ and $\Sout \cap \S = \emptyset$ ,
+    Since $ \forall i \in \{1,...,k\}. s_i \in \Sout$ and $\Sout \cap \S = \emptyset$ ,
     then by Definition $\ref{def-sgm-join}$, we know
     \eq{\eqnumthree{32}}{\sgmxpp(s_i) = \sgm_1''(\s_i) {\++} \sgm_2''(\s_i)}
     
     Also, it is easy to show that $\sgm'_{1} \~{\S} \sgm'_{2}$,
     and
    \eq{\eqnumthree{34}}
-   	{\sgmpx = \sgmx[\j{\s_i \|-> \sgm_1''(\s_i) {\++} \sgm_2''(\s_i)}] 
+   	{\sgmpx = \sgmx[\k{\s_i \|-> \sgm_1''(\s_i) {\++} \sgm_2''(\s_i)}] 
     }  
     Then, with  \eqref{\eqnumthree{32}}, we replace $\sgm_1''(s_i) {\++} \sgm_2''(s_i)$ with $\sgmxpp(s_i)$ 
-    for $\forall i \in \{1,...,j\}$ in \eqref{\eqnumthree{34}}, giving us
+    for $\forall i \in \{1,...,k\}$ in \eqref{\eqnumthree{34}}, giving us
     \eq{\eqnumthree{35}}{
-        \sgmpx 	= \sgmx[\j{\s_i \|->  \sgmxpp(\s_i)}] 
+        \sgmpx 	= \sgmx[\k{\s_i \|->  \sgmxpp(\s_i)}] 
    }  	
 
    	Since $\eqref{eq-lem24-c3-3}$ with $\eqref{\eqnumthree{30}}$,  $\eqref{\eqnumthree{31}}$, we know $\sgmx(\s_c)$ = $\c_1' {\++}  \c_2'\neq \emptyv $,
@@ -1419,10 +1425,10 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
    	\makebox[0.9\textwidth]{
    	$$\PT{
    		\UCN{\MP_0}{\seval{p_0}{\sgmx}{\c_1' {\++} \c_2'}{\sgm_1'' \x{\S} \sgm_2''}{W'}}
-   		\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmx[\j{\s_i \|-> \sgmxpp(\s_i)}]}{W'+1}}
+   		\UC{\seval{\casethree}{\sgmx}{\cc}{\sgmx[\k{\s_i \|-> \sgmxpp(\s_i)}]}{W'+1}}
    	}$$}.
    
-    Therefore, with $\eqref{\eqnumthree{35}}$, we take $\MP = \MP'$, and it is clear that $W = W' +1 \le W_1'+1 + W_2'+1 = W_1 + W_2$ as required.
+    Therefore, with $\eqref{\eqnumthree{35}}$, we take $\MP = \MP'$, and it is clear that $W = W' +1 < W_1'+1 + W_2'+1 = W_1 + W_2$ as required.
    
     \end{itemize}
 
@@ -1454,12 +1460,12 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
 
 \def\sgmxpp{\sgm_1'' \x{\S} \sgm_2''}    
 
-    Then by IH on $\MW_1$ with $\MP_1'$, $\MP_2'$, \eqref{\eqnumfour{1}}, we get \eq{\eqnumfour{3}}{\sgm_1'' \~\S \sgm_2''}
-     a derivation $\MP'$ of
+    Then by IH on $p_1$ with $\MW_1$, $\MP_1'$, $\MP_2'$, \eqref{\eqnumfour{1}}, we get \eq{\eqnumfour{3}}{\sgm_1'' \~\S \sgm_2''}
+    and a derivation $\MP'$ of
     $$\seval{p_1}{\sgmx}{\cc}{\sgmxpp}{W'}$$
     where $W' \le W_1' + W_2'$.
     
-    Likewise, by IH on $\MW_2$ with \eqref{\eqnumfour{3}}, $\MP_1''$, $\MP_2''$, we get $\sgm_1' \~\S \sgm_2'$, and a derivation $\MP''$ of $$\seval{p_2}{\sgmxpp}{\cc}{\sgmpx}{W''}$$
+    Likewise, by IH on $p_2$ with $\MW_2$, \eqref{\eqnumfour{3}}, $\MP_1''$, $\MP_2''$, we get $\sgm_1' \~\S \sgm_2'$, and a derivation $\MP''$ of $$\seval{p_2}{\sgmxpp}{\cc}{\sgmpx}{W''}$$
     where $W'' \le W_1'' + W_2''$.
     
     Therefore, we use the rule $\PName{Seq}$ to build $\MP$ as follows:\\
@@ -1500,7 +1506,7 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
 \begin{proof}
 
 	The proof is by cases on the syntax of $\hcall$.
-	We take $C$ = 7 here, which will satisfy all the proof cases.
+	We will show that we can take $C$ = 7 here, which will satisfy all the proof cases.
 \begin{itemize}
 	\item \label{thm-case-const} Case $\hcall = \constn{n}$ \\ 	
 	There is only one possibility for each of $\MT$, $\ME$ and $\MC$:
@@ -1523,7 +1529,7 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
 	So $\sgm' = \sgm[\s_0 \|-> \singl{n}]$.
 	
 	Then we take $\MR$ = $\PT{\Axiom{\ValRep{n}{\int}{\sgm'(\s_0)}}}$ \\
-	Also clearly, $ W = 1 = |v|$, and  $C$ can be any number $\ge 1$.
+	Also clearly, $ W = 1 = |v|$, so  $C$ can be any number $\ge 1$.
 	
 %	$\sgm' \ConEq{\s_0} \sgm$, $\s_0 \le \s_0 +1$, $\sids{\s_0} \.< \s_0 +1$, and we are done.
 		
@@ -1561,7 +1567,7 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
 %	 and $\sids{\s_0} \.< \s_0+1$ as required. 
 	
 %case iota	
-	\item \label{thm-case-iota} Case $\hcall = \iotan$.
+	\item \label{thm-case-iota} Case $\hcall = \iotan$. \\
 	We have
 	$$\MT = \PT{\Axiom{\Typef{\iotan}{\int}{\{\int\}}}}$$
 	$$\ME = \PT{\Axiom{\EvalF{\iotan}{n}{\{0,1,...,n\!-\!1\}}}}$$ where $n \ge 0$, and 
@@ -1624,7 +1630,7 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
 	 Similarly, for $p_1 = \sdef{\s_1}{\usum(s_0)}$, we can build $\MP_1$ as follows:
 	 $$\PT{
 	 	\AC{ \infer*{\blockf{\usum}{\<\F_2,...,\F_n,\T\'>}{\< ()_2,...,()_n\'>}} 
-	 		{by \ \PName{X-UsumT} \  \vcenter{\infer {\blockf{\usum}{\singl{\T}}{\emptyv}}{}}}
+	 		{\mathrm{by} \ \PName{X-UsumT} \  \vcenter{\infer {\blockf{\usum}{\singl{\T}}{\emptyv}}{}}}
 	 	}
 	 	\LeftLabel{by \PName{X-UsumF}}
 	 	\UC{\blockf{\usum}{\flagn}{\nunit}}
@@ -1645,14 +1651,14 @@ From $(v)$ we have $(\Sin \cup \{s_c\})  \subseteq \S_1 \cap \S = \emptyset$, th
 	 	$$\PT{\Axiom{\seval{p_2}{\sgm_1}{\vunit}{\sgm_1[s_2 \|-> \emptyv]}{1}}}$$
 	 	thus $\sgm_2 = \sgm[\s_0 \|-> \oT, \s_1 \|-> \emptyv, \s_2 \|-> \emptyv]$, and $W_2 = 1$. 
 	 	
-		\item Subcase $n >0$, then $\sgm_1(s_1) = \nunit \neq \emptyv$, so we build $\MP_2$ ending with $\PName{Wc-Nonemp}$:
+		\item Subcase $n >0$, then $\sgm_1(s_1) = \nunit \neq \emptyv$. It is easy to show that we can build $\MP_2$ ending with using the rule $\PName{Wc-Nonemp}$:
 		$$\PT{
-			\Axiom{\blockf{\consta{1}}{}{\singl{1}}}
-			\Axiom{\blockf{\consta{1}}{}{\singl{1}}}
-			\AC{...}
-			\Axiom{\sevalfg{\consta{1}}{}{\emptyv}{\emptyv}}
-			\QuaternaryInfC{$\sevalfg{\consta{n}}{}{\nunit}{\<1_1,...,1_n\'>}$}
-			\UC{\seval{\sdef{\s_2}{\consta{1}()}}{\sgm_1}{\nunit}
+%			\Axiom{\blockf{\consta{1}}{}{\singl{1}}}
+%			\Axiom{\blockf{\consta{1}}{}{\singl{1}}}
+%			\AC{...}
+%			\Axiom{\sevalfg{\consta{1}}{}{\emptyv}{\emptyv}}
+%			\QuaternaryInfC{$\sevalfg{\consta{n}}{}{\nunit}{\<1_1,...,1_n\'>}$}
+			\AC{\seval{\sdef{\s_2}{\consta{1}()}}{\sgm_1}{\nunit}
 				{\sgm_1[s_2 \|-> \<1_1,...,1_n\'>]}{n}}
 			\UC{\seval{p_2}{\sgm_1}{\vunit}{\sgm_1[s_2 \|-> \<1_1,...,1_n\'>]}{n+1}}}$$
 	 	So in this subcase, $\sgm_2 = \sgm[\s_0 \|-> \flagn, \s_1 \|-> \nunit, \s_2 \|-> \<1_1,...,1_n\'>]$, and $W_2 = n+1$.
@@ -1759,7 +1765,7 @@ $$\PT{\UCN{\MC_1}{\Trans{\del}{e_1}{\s_0}{\s_0'}{\sfun{p_1}{\st_1}}}
 
 So $p = p_1;p_2$. 
 
-By IH on $\MT_1$ with $\ME_1,\MC_1$, we have
+By IH on $e_1$ with $\MT_1$, $\ME_1,\MC_1$, we have
 \begin{enumerate}[(a)]
 	\item $\MP_1$ of $\seval{p_1}{\sgm}{\vunit}{\sgm_1}{W^L_1}$
 	\item $\MR_1$ of $\ValRep{v_1}{\tau_1}{\sgm_1^*(\st_1)}$
@@ -1770,7 +1776,7 @@ From (b), we must have $\rho[\Map{x}{v_1}](x) : \Gamma[\Map{x}{\tau_1}](x)$, and
 By Theorem~\ref{thm-trans-wf} on $\MC_1$, 
 we get $\olol{\st_1} \.< s_0'$, hence $\olol{\delta[\Map{x}{\st_1}](x)} \.< s_0'$. 
 
-Then by IH on  $\MT_2$ with $\ME_2,\MC_2$, we get 
+Then by IH on $e_2$ with $\MT_2$, $\ME_2,\MC_2$, we get 
 \begin{enumerate}	[(a)]
 	\setcounter{enumi}{3}
 	\item $\MP_2$ of $\seval{p_2}{\sgm_1}{\vunit}{\sgm_2}{W^L_2}$ 
@@ -1853,7 +1859,7 @@ From the corresponding assumptions, we have:
 		\UC{\Eval{\rho}{\Comp{e_1}{x}{y}{\usevarsk}}{\{v_1',...,v'_l\}}
      { W^H}}
 	}\]
- with $$\rho(y)=\{v_1',...,v'_l\} $$
+ with $$\rho(y)=\{v_1,...,v_l\} $$
  \[\k{\rho(x_i) = n_i}\]
  $$W^H = (l+1) \cdot (1+k) + \sum_{i=1}^{l}W^H_i $$
 	
@@ -1889,7 +1895,11 @@ From the corresponding assumptions, we have:
 			\UC{\Type{}{\Seql{v}}{\tseq{\tau_1}}}}
 	}
 	and clearly for \ik. $\Type{}{\rho(x_i)}{\Gam(x_i)}$, that is 
-	   \eq{\eqnum{2}}{\k{\infer{\Type{}{n_i}{\int}}{}}}
+	   \eq{\eqnum{2}}{
+	   	 \k{
+	   		\Axiom{\Type{}{n_i}{\int}}
+	   		\DisplayProof
+   		}}
 	
 	\item 
 	$\olol{\del(y)} \.< \s_0$ gives us
@@ -1931,11 +1941,14 @@ From the corresponding assumptions, we have:
 %		&\withctrl{\s_0}{p_1}{\Sin}{\Sout} 
 %	\end{aligned}}
 
+\def\pu{p_{\mathrm{u}}} 
+\def\pd#1{p_{\mathrm{d}#1}}
+\def\pw{p_{\mathrm{w}}}
 
 \def\p{\begin{aligned}
-    &  p_u; \\ 
-    &  \k{p_{di};} \\
-    & p_w 
+    &  \pu; \\ 
+    &  \k{\pd{i};} \\
+    & \pw
 \end{aligned}}
 
 %\def\comppp{\begin{aligned} 
@@ -1944,8 +1957,8 @@ From the corresponding assumptions, we have:
 %\end{aligned}}
 
 \def\pp{\begin{aligned} 
-	 &  \k{p_{di};} \\
-	 & p_w  
+	 &  \k{\pd{i};} \\
+	 & \pw 
 \end{aligned}}
 
 %\def\compppp{\begin{aligned} 
@@ -1954,8 +1967,8 @@ From the corresponding assumptions, we have:
 %\end{aligned}}
 
 \def\ppp{\begin{aligned} 
-		& (p_{di};)^k_{i=2} \\
-		& p_w  
+		& (\pd{i};)^k_{i=2} \\
+		& \pw 
 \end{aligned}}
 
 
@@ -1969,13 +1982,13 @@ First we shall show (vii): $\seval{p}{\sgm}{\singl{()}}{\sgm'}{W^L}$ by some $\M
 
 Let 
 \begin{align*}
-	p_u & = \usumdef \\
-	p_{d1} & = \sdef{\s'_1}{\distrf{\s_b}{\s_1}} \\
+	\pu & = \usumdef \\
+	\pd1 & = \sdef{\s'_1}{\distrf{\s_b}{\s_1}} \\
 	& \quad \vdots \\
-	p_{dk} & = \sdef{\s'_k}{\distrf{\s_b}{\s_k}} \\
-	p_w & = \wcdef  	
+	\pd{k} & = \sdef{\s'_k}{\distrf{\s_b}{\s_k}} \\
+	\pw& = \wcdef  	
 \end{align*}
-That is, $p = p_u;\ p_{d1};\ \cdots ;\ p_{dk};\ p_w$.
+That is, $p = \pu;\ \pd1;\ \cdots ;\ \pd{k};\ \pw$.
 
 
 Using $\PName{Seq}$ $(k+1)$ times (which generates $(k+1)$ intermediate stores $\sgm_0,...,\sgm_k$), we can build $\MP$ as follows:
@@ -1983,51 +1996,31 @@ Using $\PName{Seq}$ $(k+1)$ times (which generates $(k+1)$ intermediate stores $
 
 \makebox[0.9\textwidth][c]{ 
 	\PT{
-	\UCN{\MP_u}{\seval{p_u}{\sgm}{\singl{()}}{\sgm_0}{W^L_u}}
-	\UCN{\MP_{d1}}{\seval{p_{d1}}{\sgm_0}{\singl{()}}{\sgm_1}{W^L_{d1}}}
-	\UCN{\MP_w}{\infer*{}{
-	      \infer{}
-	      	{\MP_{dk} &  \seval{p_w}{\sgm_k}{\singl{()}}{\sgm'}{W^L_w}}}}
-	\UC{\seval{\ppp}{\sgm_1}{\singl{()}}{\sgm'}{W^L_w+\sum_{i=2}^{k}W^L_{di}}}
-	\BC{\seval{\pp}{\sgm_0}{\singl{()}}{\sgm'}{W^L_w+\sum_{i=1}^{k}W^L_{di}}}
+	\UCN{\MP_{\mathrm u}}{\seval{\pu}{\sgm}{\singl{()}}{\sgm_0}{W^L_{\mathrm u}}}
+	\UCN{\MP_{\mathrm d 1}}{\seval{\pd1}{\sgm_0}{\singl{()}}{\sgm_1}{W^L_{\mathrm d 1}}}
+	\UCN{\MP_{\mathrm d k}}{\seval{\pd k}{\sgm_{k-1}}{\singl{()}}{\sgm_k}{W^L_{\mathrm d k}}}
+	\UCN{\MP_{\mathrm w}}{\seval{\pw}{\sgm_k}{\singl{()}}{\sgm'}{W^L_{\mathrm w}}}
+	\BC{\vdots}	
+	\UC{\seval{\ppp}{\sgm_1}{\singl{()}}{\sgm'}{W^L_{\mathrm w}+\sum_{i=2}^{k}W^L_{\mathrm d i}}}
+	\BC{\seval{\pp}{\sgm_0}{\singl{()}}{\sgm'}{W^L_{\mathrm w}+\sum_{i=1}^{k}W^L_{\mathrm d i}}}
 	\BC{\seval{\p}{\sgm}{\singl{()}}{\sgm'}{W^L}}
 	}
 }
 
-thus $$W^L = W^L_u + (\sum_{i=1}^{k} W^L_{di}) + W^L_w$$
+thus $$W^L = W^L_{\mathrm u} + (\sum_{i=1}^{k} W^L_{\mathrm d i}) + W^L_{\mathrm w}$$
  
-It is easy to show that, (as we have presented some analogous cases in the proof of Lemma~\ref{function-correctness},)  with $\sgm(\s_b) = \sb$,  $\MP_u$ must end to 
+It is easy to show that, (as we have presented some analogous cases in the proof of Lemma~\ref{function-correctness},)  with $\sgm(\s_b) = \sb$,  we can build $\MP_{\mathrm u}$ ending in 
   $$\seval{\usumdef}{\sgm}{\vunit}{\sgm[\s'_0 \|-> \lunit]}{2l+1}$$
  
-and, with $\k{\sgm(\s_i) = \singl{n_i}}$ from $\eqref{\eqnum{3}}$, $\MP_{di}$ must end to 
+and, with $\k{\sgm(\s_i) = \singl{n_i}}$ from $\eqref{\eqnum{3}}$, $\MP_{\mathrm d i}$ ending in 
 $$\seval{\distrdef}{\sgm_{i-1}}{\vunit}{\sgm_{i-1}[\s_i \|-> \< \overbrace{ n_i,...,n_i}^{l}\'>]} {2l+2}$$ 
-%	$\forall i \in \{1,...,j\}$ as follows:\\
-%	
-%	\makebox[0.9\textwidth][c]{  
-%	  \PT{
-%	  	\AC{ \infer*{\blockf{\distr}{\<\F_2,...,\F_l,\T\'>, \singl{n_i}}{\<\overbrace{ n_i,...,n_i}}^{l-1}\'> } 
-%	  		{by \ \PName{X-DistrT} \  \vcenter{\infer {\blockf{\distr}{\singl{\T},\singl{n_i}}{\emptyv}}{}}}
-%	  	}
-%	  	\LeftLabel{by \PName{X-DistrF}}
-%	  	\UC{\blockf{\distr}{\sb,\singl{n_i}}{\< \overbrace{n_i,...,n_i}^{l}\'>}}
-%	  	\AC{}
-%	  	\LeftLabel{by \PName{X-Termi}}
-%	  	\UC{\sevalfg{\distr}{\emptyv,\emptyv}{\emptyv} \emptyv}
-%	  	\LeftLabel{by \PName{X-Loop}}
-%	  	\BC{\sevalfg{\distr}{\sb, \singl{n_i}}{\vunit}{\< \overbrace{ n_i,...,n_i}^{l}\'>}}
-%	  	\LeftLabel{by \PName{Xducer}}
-%	  	\UC{\seval{\distrdef}{\sgm_{i-1}}{\vunit}{\sgm_{i-1}[\s_i \|-> \< \overbrace{ n_i,...,n_i}^{l}\'>]} {2l+2}}
-%	  }
-%  }
-%  
-%  So \ik. $\sgm_i= \sgm_{i-1}[\s_i \|-> \< \overbrace{ n_i,...,n_i}^{l}\'>]$ and $W^L_i = 2l+2$.
-%  
-  Thus $\sgm_k = \sgm[\s'_0 \|-> \lunit, \s'_1 \|-> \ln{1},..., \s'_k \|-> \ln{k}]$, and $W^L_u + (\sum_{i=1}^{k} W^L_{di}) = (2l+1) + k\cdot (2l+2) = 2(k+1) \cdot l + 1+2k$ .\\
+
+  Thus $\sgm_k = \sgm[\s'_0 \|-> \lunit, \s'_1 \|-> \ln{1},..., \s'_k \|-> \ln{k}]$, and $W^L_{\mathrm u} + (\sum_{i=1}^{k} W^L_{\mathrm d i}) = (2l+1) + k\cdot (2l+2) = 2(k+1) \cdot l + 1+2k$ .\\
 	  
 % IH --------	
-  Now it remains to build $\MP_w$. \\
+  Now it remains to build $\MP_{\mathrm w}$. \\
   Assume $\Sout = \{s'_{k+1},...,s'_{k+k'}\}$. 
-  There are two possibilities to build $\MP_w$, for each of which we will show (viii) and (xi) respectively. \\
+  There are two possibilities for $\sgm_k(\s'_0)$, for each of which we will build a $\MP_{\mathrm w}$ and show (viii) and (ix). \\
 	
 	\begin{itemize}
 %subcase l = 0
@@ -2037,14 +2030,14 @@ $$\seval{\distrdef}{\sgm_{i-1}}{\vunit}{\sgm_{i-1}[\s_i \|-> \< \overbrace{ n_i,
 	with $\eqref{comp-ass-sgms2}$, $\sgm_k(\s_b) = \oT $.
 	Thus $$\forall s \in (\{\s'_0\} \cup \Sin). \sgm_k(\s) = \emptyv$$ 
 	
-	Then we can use the rule $\PName{Wc-Emp}$ to build $\MP_w$ as follows:
+	Then we can use the rule $\PName{Wc-Emp}$ to build $\MP_{\mathrm w}$ as follows:
 	$$\PT{
 		\Axiom{\seval{\wcdef}{\sgm_k}{\< () \'>}
 			   {\sgm_k[\s_{k+1} \|-> \emptyv,...,\s_{k+k'} \|-> \emptyv]}{1}}
 	  }$$ 
     So in this subcase, we take \eq{\eqnum{5}}{
-    \sgm' =  \sgm[\s_0 \|-> \emptyv, \s_1 \|-> \emptyv, ...,\s_k \|-> \emptyv, \s_{k+1} \|-> \emptyv,..., \s_{k+k'} \|-> \emptyv]}
-	and $W^L_w = 1$. \\ 
+    \sgm' =  \sgm[\s'_0 \|-> \emptyv, \s'_1 \|-> \emptyv, ...,\s'_k \|-> \emptyv, \s'_{k+1} \|-> \emptyv,..., \s'_{k+k'} \|-> \emptyv]}
+	and $W^L_{\mathrm w} = 1$. \\ 
 	
 % viii	
 %	Since $l=0$, we have 
@@ -2055,7 +2048,7 @@ $$\seval{\distrdef}{\sgm_{i-1}}{\vunit}{\sgm_{i-1}[\s_i \|-> \< \overbrace{ n_i,
 	$$\MR = 
 	\PT{\Axiom{\ValRep{\{\}}{\tseq{\tau_2}}{(\emptyvtau{\tau_2},\oT)}}}$$ 
 	
-	Finally, $W^L = (2l+1) + k\cdot (2l+2) + W^L_w = 2+2k$, 
+	Finally, $W^L = (2l+1) + k\cdot (2l+2) + W^L_{\mathrm w} = 2+2k$, 
 	and $W^H = (l+1) \cdot (1+k) + \sum_{i=1}^{l}W^H_i = 1+k$,
 	thus $C$ can be any number $\ge 2$.\\ 
     
@@ -2074,37 +2067,38 @@ Since we have $\MT_1$, $\l{\ME_i}$, and $\MC_1$, let $\Gam_1$, $\l{\rho_i} $, an
  	\del_1 & = [x \|-> {\st_1}, x_1 \|-> s'_1,...,x_k \|-> s'_k]
  \end{align*}
 
-From what we already shown (i.e., $\eqref{\eqnum{20}}$, $\eqref{\eqnum{2}}),$\eqref{\eqnum{21}}, $\eqref{\eqnum{1}}$), 
+From what we already shown (i.e., $\eqref{\eqnum{20}}$, $\eqref{\eqnum{2}}), \eqref{\eqnum{21}}$), 
 it is clear that 
 \begin{enumerate}[(a)]
 	\item $\forall i \in \{1,...,l\}.\forall x' \in dom(\Gam_1). \Type{}{\rho_i(x')}{\Gam_1(x')$ } 
 	\item $\forall x' \in dom(\Gam_1). \olol{\del_1(x')} \.< \s'_k +1  $
 \end{enumerate}
-We now shall show : 
- $$ \mathrm{(c)} \ \forall i \in \{1,...,l\}.\forall x' \in dom(\Gam_1). \ValRep{\rho_i(x')}{\Gam_1(x')}{\sgm^*_{ki}(\del_1(x'))} \ \  \mathrm{for \ some } \ \sgm_{ki}.$$ 
 
-Let $\S = dom(\sgm_k) - \Sin$, \ we take $\sgm_{ki}$ as
+Let $\S = dom(\sgm_k) - \Sin$. 
+For $\forall i \in \{1,...,l\}$, \ we take $\sgm'_{i}$ as
 \begin{align*}
-dom(\sgm_{ki}) & = dom(\sgm_k) \\
-\forall s \in \S. \sgm_{ki}(s) & = \sgm_{k}(s) \\
-\sgm^*_{ki}(\st_1) & = w_i \\
-\sgm_{ki}(\s'_1) & = \singl{n_1} \\
+dom(\sgm'_{i}) & = dom(\sgm_k) \\
+\forall s \in \S. \sgm'_{i}(s) & = \sgm_{k}(s) \\
+\sgm'^*_{i}(\st_1) & = w_i \\
+\sgm'_{i}(\s'_1) & = \singl{n_1} \\
 & \ \vdots \\
-\sgm_{ki}(\s'_k) & = \singl{n_k} 
+\sgm'_{i}(\s'_k) & = \singl{n_k} 
 \end{align*}
 
-Then it is easy to show that (c) holds (from \eqref{comp-ass-valrep}, ??),  and
-\eq{\eqnum{34}} {\sgm_{k1} \~\S \sgm_{k2} \~\S ... \~\S \sgm_{kl} \~\S \sgm_k}
+Then it is eays to show  that \\
+ $ \mathrm{(c)} \ \forall i \in \{1,...,l\}.\forall x' \in dom(\Gam_1). \ValRep{\rho_i(x')}{\Gam_1(x')}{\sgm'^*_{i}(\del_1(x'))}$  \\
+   and
+\eq{\eqnum{34}} {\sgm'_{1} \~\S \sgm'_{2} \~\S ... \~\S \sgm'_{l} \~\S \sgm_k}
 \eq{\eqnum{32}}
-{\sgm_{k1} \x\S \sgm_{k2} \x\S ... \x\S \sgm_{kl} = \l{\x{\S} \sgm_{ki}} = \sgm_k}
+{\sgm'_{1} \x\S \sgm'_{2} \x\S ... \x\S \sgm'_{l} = \l{\x{\S} \sgm'_{i}} = \sgm_k}
 
 \def\il{$\forall i \in \{1,...,l\}$} 
 
-By IH ($l$ times) on $\MT_1$ with $\l{\ME_i}$, 
+By IH ($l$ times) on $e_1$ with $\MT_1$, $\l{\ME_i}$, 
 $\MC_1, (a), (b), (c)$, we obtain:
-\eq{compIH1}{\l{ \seval{p_1}{\sgm_{ki}}{\<()\'>}{\sgm_{ki}'}{W^L_{ki}}}}
-\eq{compIH2}{(\ValRep{v'_i}{\tau_2}{\sgm'^*_{ki}(\st_2)})^l_{i=1}}
-\eq{compIH3}{(W^L_{ki} \le C \cdot W^H_i)^l_{i=1}}
+\eq{compIH1}{\l{ \seval{p_1}{\sgm'_{i}}{\<()\'>}{\sgm''_{i}}{W^{L'}_{i}}}}
+\eq{compIH2}{(\ValRep{v'_i}{\tau_2}{\sgm''^*_{i}(\st_2)})^l_{i=1}}
+\eq{compIH3}{(W^{L'}_{i} \le C \cdot W^H_i)^l_{i=1}}
 % ----------- 	
 
 
@@ -2115,21 +2109,22 @@ for some $\S'\subseteq \{s'_k\!+1,s'_k\!+2,...,s''_1-1\}$.
 %It is easy to show that $\Sout \subseteq \S'$. 
 
 Since we have $\eqref{well-form}$, $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and clearly $(\Sin \cup \S') \cap \S = \emptyset$,
-	it is easy to show that using Lemma \ref{lem-sgm-join} (the parallelism fusion lemma) $(l-1)$ times we can obtain a derivation $\MP'_{w}$ of 
+	it is easy to show that using Lemma \ref{lem-sgm-join} (the parallelism fusion lemma) $(l-1)$ times we can obtain a derivation $\MP'_{\mathrm w}$ of 
 	\eq{p1-sgms-sgms'}{
-		\seval{p_1}{(\x{\S} \sgm_{ki})^l_{i=1}}{\lunit}{(\x{\S} \sgm_{ki}')^l_{i=1}}{W^{L'}_{w}}
+		\seval{p_1}{(\x{\S} \sgm'_{i})^l_{i=1}}{\lunit}{(\x{\S} \sgm''_{i})^l_{i=1}}{W^{L'}_{\mathrm w}}
 	}
-	and, together with $\eqref{compIH3}$,  $$W^{L'}_w \le  \sum_{i=1}^{l}W^L_{ki} \le C \cdot \sum_{i=1}^{l}W^H_i$$
+	and, together with $\eqref{compIH3}$,  
+	$$W^{L'}_{\mathrm w} \le  \sum_{i=1}^{l}W^{L'}_{i} \le C \cdot \sum_{i=1}^{l}W^H_i$$
 	
-    Let $\sgm'' = (\x{\S} \sgm_{ki}')^l_{i=1}$, then (with $\eqref{\eqnum{32}}$) we can rewrite $\MP'_w$ as:
-    $$\seval{p_1}{\sgm_k}{\lunit}{\sgm''}{W^{L'}_w}$$
+    Let $\sgm'' = (\x{\S} \sgm''_{i})^l_{i=1}$, then (with $\eqref{\eqnum{32}}$), we have $\MP'_{\mathrm w}$ as:
+    $$\seval{p_1}{\sgm_k}{\lunit}{\sgm''}{W^{L'}_{\mathrm w}}$$
 	
-    Now we build $\MP_{w}$ using the rule $\PName{Wc-Nonemp}$ as follows:
+    Now we build $\MP_{\mathrm w}$ using the rule $\PName{Wc-Nonemp}$ as follows:
 	$$\PT{
-		\UCN{\MP_{w}'}{\seval{p_1}{\sgm_k}{\lunit}{\sgm''}{W^{L'}_{w}}}
-		\UC{\seval{p_w} {\sgm_k}{\vunit} 
+		\UCN{\MP_{\mathrm w}'}{\seval{p_1}{\sgm_k}{\lunit}{\sgm''}{W^{L'}_{\mathrm w}}}
+		\UC{\seval{\pw} {\sgm_k}{\vunit} 
 			{\sgm_k[\s'_{k+1}\|-> \sgm''(\s'_{k+1}),...,\s'_{k+k'}\|-> \sgm''(\s'_{k+k'})]}
-		{1+ W^{L'}_{w}}}	
+		{1+ W^{L'}_{\mathrm w}}}	
 	}$$
    
     So in this subcase we take 
@@ -2143,10 +2138,10 @@ Since we have $\eqref{well-form}$, $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and c
     and $ W^{L}_{w} = 1+ W^{L'}_{w} \le 1 + C\cdot \sum_{i=1}^{l}W^H_i $.\\
     
     
-	Let $\sgm'^*(\st_2) = w'$, and $\sgm'^*_{ki}(\st_2) = w'_i$ for \il. 
+	Let $\sgm'^*(\st_2) = w'$, and $\sgm''^*_{i}(\st_2) = w'_i$ for \il. 
 	 
-	Then by Definition \ref{def-sgm-join} with $\eqref{\eqnum{4}}$, we have
-	$$w' = \sgm''^*(\st_2) = w'_1 {\++}_{\tau_2} ... {\++}_{\tau_2} w'_l$$
+	Then it is easy to show:
+	$$w' = \sgm''^*(\st_2) = w'_1 {\++}_{\tau_2} \cdots {\++}_{\tau_2} w'_l$$
 
 	So we now have $\sgm'^*(\st)= \sgm'^*((\st_2,\s_b)) = (w',\sb)$. 
 	With \eqref{compIH2}, we can construct $\MR$ as follows:
@@ -2157,7 +2152,7 @@ Since we have $\eqref{well-form}$, $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and c
 	
 	Finally, in this subcase
 	\begin{align*}
-		W^L & =  (2l+1) +  k\cdot (2l+2) + W^L_{w} \\
+		W^L & =  (2l+1) +  k\cdot (2l+2) + W^L_{\mathrm w} \\
 		    & \le  (2l+1) +  k\cdot (2l+2) + 1 + C\cdot \sum_{i=1}^{l}W^H_i \\
 		    & = 2(l+1) \cdot (1+k) + C\cdot \sum_{i=1}^{l}W^H_i
 	\end{align*}
@@ -2179,13 +2174,17 @@ Since we have $\eqref{well-form}$, $\eqref{\eqnum{34}}$, $\eqref{compIH1}$ and c
 then 
 \begin{enumerate}[(i)]
 	\setcounter{enumi}{2}
-	\item $\exists! \ p,st,s . \Trans{[\ ]}{e}{0}{s}{(p,\st)}$
-	\item $\exists! \ \sgm. \seval{p}{[\ ]}{\vunit}{\sgm}{W^L} $
-	\item $\exists! \ v'. \Vtransb{\sgm^*(\st)}{\tau}{v}{\emptyvtau{\tau}} $ and $v' = v$
-	\item $ W^L \le C \cdot W^H$ 
+	\item $\exists! \ p,st,s \mathpunct{.} \Trans{[\ ]}{e}{0}{s}{(p,\st)}$
+	\item $\exists! \ \sgm, {W^L} \mathpunct{.}  \seval{p}{[\ ]}{\vunit}{\sgm}{W^L} $
+	\item $\exists! \ v'\mathpunct{.} \Vtransb{\sgm^*(\st)}{\tau}{v'}{\emptyvtau{\tau}} $ 
+	\item $v' = v$ and $ W^L \le C \cdot W^H$ 
 	 
 \end{enumerate}
 \end{cor}
+
+\begin{proof}
+	The proof will use Theorem~\ref{mainthm-correctness}, Theorem~\ref{thm-svcode-determ}, Lemma~\ref{lem:recov-determ} and Lemma~\ref{lem:recov-correct}.
+\end{proof}
 
 \section{Scaling up}
 
@@ -2194,20 +2193,20 @@ It is a tiny language, compared to the full SNESL, or even \mysnesl.
 However, it maintains the most important properties and the core semantics of full SNESL.
 In particular, it includes the general comprehension, the expression for expressing nested data-parallelism in SNESL. 
  
-The proofs of the most important lemmas and theorems shown in this chapter, such as the block self-delimiting lemma, the store concatenation lemma, the determinism theorem and the correctness theorem of the translation, have shed light on the extension of the formal validation of full SNESL. 
-For scaling up, we need to consider:
+The proofs of the most important lemmas and theorems shown in this chapter, such as the block self-delimiting lemma, the parallelism fusion lemma, the determinism theorem and the correctness theorem of the translation, have shed light on the extension of the formal validation of full SNESL. 
+For scaling up, we need to consider at least the following points:
 \begin{itemize}
 	\item Extension to more primitive types and associative scalar operations should be trivial.
 	
-	\item Adding pairs should mainly increase one more rule for value representation. Since the low-level stream trees are compatible with pairs, the effect at the low-level would be almost transparent. However, the translation of $\*{zip}$ will need to include code checking that the segment descriptors of the two sequence arguments are identical.
+	\item Adding pairs should mainly increase one more rule for value representation. Since the low-level stream trees are compatible with pairs, the effect at the low-level would be almost transparent. However, the translation of the function $\*{zip}$ (for generating pairs) will need to include code checking that the segment descriptors of the two sequence arguments are identical.
 	
-	\item Error preservation is also a desirable part that can be easily supported. We would expect the runtime error can be simulated accurately from the high-level to the low-level.
+	\item Error preservation is also a desirable part that can be easily supported in principle. We would expect the runtime error can be simulated accurately from the high level to the low level.
 		
-	\item Adding more built-in functions are basically to add more Xducers to the target language, as most of them are implemented by only one counterpart low-level Xducer, such as $\scan_{}$ for $\*{scan}$ and $\segconcat$ for $\*{concat}$, or a couple of lines.
+	\item Adding more built-in functions are basically to add more Xducers to the target language, as most of them are implemented by only one counterpart low-level Xducer, such as $\scan_{}$ for $\*{scan}$ and $\segconcat$ for $\*{concat}$, or a few lines.
 	The two-level semantics of Xducers (the general level and the block level) has reduced much of the work to formalize the semantics of a new Xducer.
 	In addition, a non-trivial built-in function $\*{iota}$, implemented with a \wc instruction, is already given in \fmsnesl \  as a representative example.
  
-	\item For the restricted comprehension, its implementation in SVCODE is simpler than the general one, because it does not include variable-bindings. So extending the proof system with it should not be a problem. However, the type-dependent \texttt{pack} may need some consideration to deal with. 
+	\item For the restricted comprehension, its implementation in SVCODE is simpler than the general one, because it does not include variable-bindings. However, the type-dependent \texttt{pack} may need some consideration to deal with. 
 	
 	\item Extension to step and space cost should be similar to the work cost. 
 	
