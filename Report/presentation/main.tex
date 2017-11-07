@@ -130,12 +130,10 @@
 		\end{alignat*}	
   \item<2-> Primitive functions
 		\begin{alignat*}{2} 
-		&\hcall && ::= \oplus \ | \ \ \*{append} \ | \ \*{concat} \ | \ \*{zip} \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_{\otimes} \ | \ \*{reduce}_{\otimes}   \\
-		&   && \quad | \ \*{mkseq} \ |  \ \*{the}  \ | \ \*{empty} \tag{sequence operations}\\
-		&   && \quad | \ \*{length} \ | \ \*{elt}  \tag{vector operations}\\
-		&   && \quad | \ \*{seq} \ | \ \*{tab} \tag{convertion between vector and sequence}\\
-		& \oplus  \ && :: = +  \ | \ \times \ |  \  / \ | ==  \ | \ \*{not} \ | \ \cdots  \tag{scalar operations}\\
-		& \otimes \ && :: = + \ | \ \times  \ | \ \*{max} \ | \ \cdots  \tag{associative binary operations}
+		&\hcall && ::= \oplus \ | \ \ \*{append} \ | \ \*{concat} \ | \ \*{zip} \ | \ \*{iota}  \ | \ \*{part}  \ | \ \*{scan}_{\otimes} \ | \ \*{reduce}_{\otimes} \\ 
+		&   && \quad | \ \*{mkseq} \ |  \ \*{the}  \ | \ \*{empty} \ | \ \*{length} \ | \ \*{elt}  \ | \ \*{seq} \ | \ \*{tab} | \ \cdots \\
+		& \oplus  \ && :: = +  \ | \ \times \ |  \  / \ | ==  \ | \ \*{not} \ | \ \cdots  \\
+		& \otimes \ && :: = + \ | \ \times  \ | \ \*{max} \ | \ \cdots 
 		\end{alignat*} 
 \item<3-> $\*{if} \ e_0 \ \*{then} \ e_1 \ \*{else} \ e_2 \equiv \Let{b}{e_0}{ \*{the}(\{e_1 \ | \ b \} {\++} \{e_2 \ | \ \*{not}(b)\})} $
 
@@ -215,8 +213,8 @@
 \begin{itemize}
 \item Simplified SNESL types
 	{\small\begin{align*} 
-	& \pi ::= \bool \ | \ \int  \tag{only two scalar types}\\ 
-	& \tau ::= \pi \ | \ (\tau_1,\tau_2) \ | \ \tseq{\tau} \tag{no vectors, change tuples to pairs} \\
+	& \pi ::= \bool \ | \ \int  \\ 
+	& \tau ::= \pi \ | \ (\tau_1,\tau_2) \ | \ \tseq{\tau} \tag{no vectors} \\
 	& \ftype :: = (\tau_1,...,\tau_k) \ra \tau  \tag{support recursion}
 	\end{align*}}	
 \pause
