@@ -1,5 +1,5 @@
 \beamer@endinputifotherversion {3.36pt}
 \beamer@sectionintoc {1}{Introduction}{3}{0}{1}
-\beamer@sectionintoc {2}{Implementation}{8}{0}{2}
-\beamer@sectionintoc {3}{Formalization}{19}{0}{3}
-\beamer@sectionintoc {4}{Conclusion}{27}{0}{4}
+\beamer@sectionintoc {2}{Implementation}{12}{0}{2}
+\beamer@sectionintoc {3}{Formalization}{26}{0}{3}
+\beamer@sectionintoc {4}{Conclusion}{42}{0}{4}

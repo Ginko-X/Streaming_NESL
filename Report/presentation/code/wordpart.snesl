@@ -1,5 +1,7 @@
--- SNESL version
+-- split a string into words (delimited by spaces)
 function str2wds_snesl(str) =
  let flags = { x == ' ' : x in str};
      nonsps =  concat({{x | x != ' '} : x in v})
   in concat({{x|not(empty(x))}: x in part(nonsps,flags ++ {T})})
+-- count the length of a stream
+function slength(s) = reduce({1 : _ in s})

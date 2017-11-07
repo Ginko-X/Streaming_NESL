@@ -1,6 +1,4 @@
--- control stream = <()>
-
-S1 := Const_3;   -- <3>   
+-- initial control stream = <()>
     ...       
 S10 := InterMerge [S6,S7,S8,S9]; -- <F,F,F,F,T>
 S11 := PriSegInter [(S1,S6),(S2,S7),(S3,S8),(S4,S9)]; -- <3,7,0,4>

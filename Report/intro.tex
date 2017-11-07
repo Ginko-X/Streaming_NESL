@@ -45,7 +45,6 @@ giving [[2,3,4],[5],[6,7]].
 
 The low-level language of NESL's implementation model is VCODE \cite{Blel-imp}, which uses vectors (i.e., flat arrays of atomic values such as integers or booleans) as the primitive type, and its instruction set performs operations on vectors as a whole, such as summing. 
 The technique \emph{flattening nested parallelism} \cite{Blel-flatten} used in the implementation model translates nested function calls in NESL to instructions on vectors in VCODE. \\
-%TODO menthion summitation tree nad segmented vector operation
 
 From the user's perspective, the first highlight of NESL is that the design of this language makes it easy to write readable parallel algorithms. The apply-to-each construct is more expressive in its general form:
 $$ \{ e_1 :  x_1 \ \*{in} \ seq_1 \ ; \ ... \ ; \ x_i \  \*{in} \ seq_i \ \ | \ e_2  \}$$

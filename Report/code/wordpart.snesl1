@@ -4,3 +4,6 @@ function str2wds_snesl(v:{int}):{{int}} =
    let flags = {x == 32 : x in v};
        nonsps =  concat({{x | x != 32} : x in v})
     in concat({{x | not(empty(x))}: x in part(nonsps, flags ++ {T})})
+
+-- count length
+function slength(v:{{int}}):int = reducePlus({1: _ in v})

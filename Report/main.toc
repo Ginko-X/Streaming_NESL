@@ -1,33 +1,34 @@
-\contentsline {chapter}{\numberline {1}Introduction}{3}
-\contentsline {section}{\numberline {1.1}Background}{3}
-\contentsline {section}{\numberline {1.2}Nested data parallelism}{3}
-\contentsline {section}{\numberline {1.3}NESL}{4}
-\contentsline {section}{\numberline {1.4}SNESL}{5}
-\contentsline {subsection}{\numberline {1.4.1}Types}{6}
-\contentsline {subsection}{\numberline {1.4.2}Values and expressions}{6}
-\contentsline {subsection}{\numberline {1.4.3}Primitive functions}{7}
-\contentsline {subsection}{\numberline {1.4.4}Cost model}{8}
-\contentsline {chapter}{\numberline {2}Implementation}{11}
-\contentsline {section}{\numberline {2.1}High-level interpreter}{11}
-\contentsline {section}{\numberline {2.2}Value representation}{18}
-\contentsline {section}{\numberline {2.3}SVCODE}{19}
-\contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{19}
-\contentsline {subsection}{\numberline {2.3.2}Xducers and control stream}{20}
-\contentsline {section}{\numberline {2.4}Translating SNESL\textsubscript {1}\ to SVCODE}{23}
-\contentsline {subsection}{\numberline {2.4.1}Expression translation}{23}
-\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{26}
-\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{29}
-\contentsline {section}{\numberline {2.5}Eager SVCODE interpreter}{30}
-\contentsline {subsection}{\numberline {2.5.1}Dataflow}{30}
-\contentsline {subsection}{\numberline {2.5.2}Cost model}{30}
-\contentsline {section}{\numberline {2.6}Streaming SVCODE interpreter}{31}
-\contentsline {subsection}{\numberline {2.6.1}Streamability}{31}
-\contentsline {subsection}{\numberline {2.6.2}Processes}{32}
-\contentsline {subsection}{\numberline {2.6.3}Scheduling}{34}
-\contentsline {subsection}{\numberline {2.6.4}Cost model}{35}
-\contentsline {subsection}{\numberline {2.6.5}Recursion}{35}
-\contentsline {subsection}{\numberline {2.6.6}Deadlock}{37}
-\contentsline {subsection}{\numberline {2.6.7}Examples}{39}
+\contentsline {chapter}{Preface}{3}
+\contentsline {chapter}{\numberline {1}Introduction}{4}
+\contentsline {section}{\numberline {1.1}Background}{4}
+\contentsline {section}{\numberline {1.2}Nested data parallelism}{4}
+\contentsline {section}{\numberline {1.3}NESL}{5}
+\contentsline {section}{\numberline {1.4}SNESL}{6}
+\contentsline {subsection}{\numberline {1.4.1}Types}{7}
+\contentsline {subsection}{\numberline {1.4.2}Values and expressions}{7}
+\contentsline {subsection}{\numberline {1.4.3}Primitive functions}{8}
+\contentsline {subsection}{\numberline {1.4.4}Cost model}{9}
+\contentsline {chapter}{\numberline {2}Implementation}{12}
+\contentsline {section}{\numberline {2.1}High-level interpreter}{12}
+\contentsline {section}{\numberline {2.2}Value representation}{19}
+\contentsline {section}{\numberline {2.3}SVCODE}{20}
+\contentsline {subsection}{\numberline {2.3.1}SVCODE Syntax}{20}
+\contentsline {subsection}{\numberline {2.3.2}Xducers and control stream}{21}
+\contentsline {section}{\numberline {2.4}Translating SNESL\textsubscript {1}\ to SVCODE}{24}
+\contentsline {subsection}{\numberline {2.4.1}Expression translation}{24}
+\contentsline {subsection}{\numberline {2.4.2}Built-in function translation}{27}
+\contentsline {subsection}{\numberline {2.4.3}User-defined function translation}{30}
+\contentsline {section}{\numberline {2.5}Eager SVCODE interpreter}{31}
+\contentsline {subsection}{\numberline {2.5.1}Dataflow}{31}
+\contentsline {subsection}{\numberline {2.5.2}Cost model}{31}
+\contentsline {section}{\numberline {2.6}Streaming SVCODE interpreter}{32}
+\contentsline {subsection}{\numberline {2.6.1}Streamability}{32}
+\contentsline {subsection}{\numberline {2.6.2}Processes}{33}
+\contentsline {subsection}{\numberline {2.6.3}Scheduling}{35}
+\contentsline {subsection}{\numberline {2.6.4}Cost model}{36}
+\contentsline {subsection}{\numberline {2.6.5}Recursion}{36}
+\contentsline {subsection}{\numberline {2.6.6}Deadlock}{38}
+\contentsline {subsection}{\numberline {2.6.7}Examples}{40}
 \contentsline {chapter}{\numberline {3}Formalization}{41}
 \contentsline {section}{\numberline {3.1}SNESL\textsubscript {0}}{41}
 \contentsline {subsection}{\numberline {3.1.1}Syntax}{41}

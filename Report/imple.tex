@@ -5,9 +5,9 @@
 \newcommand{\sups}{\*{Sups}}
 \newcommand{\clis}{\*{Clis}}
 \newcommand{\xducer}{\*{Xducer}}
-\newcommand{\filling}{\texttt{Filling} \ }
-\newcommand{\draining}{\texttt{Draining} \ }
-\newcommand{\pin}{ \texttt{Pin} \ }
+\newcommand{\filling}{\texttt{Filling}}
+\newcommand{\draining}{\texttt{Draining}}
+\newcommand{\pin}{\texttt{Pin}}
 \newcommand{\pout}{\texttt{Pout}}
 \newcommand{\done}{\texttt{Done}}
 
@@ -706,9 +706,9 @@ The restricted comprehension is a little bit simpler compared to the general one
 
 $$\PT{
 	\AC{\Trans{\del}{e_0}{}{}{(p_1,s_b)}}
-	\AC{\Trans{[\j{x_i \|-> \st'_i}]}{e_1}{s_1}{}{\sfun{p_2}{\st}}}
-	\RiLa{(\j{\del(x_i) = \ \st_i})}		
-	\BC{\Trans{\del}{\RComp{e_1}{e_0}{\usevars}}{}{}
+	\AC{\Trans{[\k{x_i \|-> \st'_i}]}{e_1}{}{}{\sfun{p_2}{\st}}}
+	\RiLa{(\k{\del(x_i) = \ \st_i})}		
+	\BC{\Trans{\del}{\RComp{e_1}{e_0}{\usevarsk}}{}{}
 		{ \sfun{p} {(\st,\s_1)}}}
 }$$
 
@@ -719,7 +719,7 @@ p = & \ p_1; \\
 & \ \sdef{\s_2}{\usum(\s_1)}; \\
 & \ \sdef{\st_1'}{\Pack{\s_b}{\st_1}{\tau_1}}; \\
 & \qquad \qquad \vdots \\
-& \ \sdef{\st_j'}{\Pack{\s_b}{\st_j}{\tau_j}}; \\
+& \ \sdef{\st_k'}{\Pack{\s_b}{\st_k}{\tau_k}}; \\
 & \ \withctrl{\s_2}{p_2}{\Sin}{\Sout} \\
 \end{aligned}$$
 	
@@ -730,7 +730,7 @@ The Xducer $\bu$ simply transforms a boolean to a unary number, i.e.,  transform
 \end{center}
 \end{example}
 
-The function $\mathtt{pack}_{\tau}$ annotated with the high-level type  that the packed stream tree represents will generate instructions of $\pack$ and possibly $\upack$ and $\distr$. The function $\olol{st}$  used in the instruction \wc returns a flattening set of the stream ids in $\st$; we will give its definition in Chapter 3.4.
+The function $\mathtt{pack}_{\tau}$ annotated with the high-level type  that the packed stream tree represents will generate instructions of $\pack$ and possibly $\upack$ and $\distr$. The function $\olol{st}$  used in the instruction \wc returns a flattening set of the stream ids in $\st$; its formal definition can be found in Chapter 3.3.
 
 \begin{align*}
 s' := \Pack{s_b}{s}{\pi}; \quad \equiv & \quad s' := \packf{s_b}{s}; \\
@@ -784,7 +784,7 @@ A high-level built-in function call will be translated to a few lines of SVCODE 
 
 Given a stream $\singl{n}$, the Xducer $\toflag$ first outputs $n$ $\F$s, then one $\T$.
 
-\begin{example} \emph{$\toflagf{\<2,0\'>}$  with control stream $\<(),()\'>$:}\\
+\begin{example} \emph{$\toflagf{\<3,0\'>}$  with control stream $\<(),()\'>$:}\\
 	\begin{center}
 		\includegraphics[width=0.7\textwidth]{fig/toflagsxducer.png}
 	\end{center}
@@ -821,13 +821,13 @@ The Xducer $\segconcat$ merges the second outermost descriptors of the high-leve
 \end{example}
 
 
-\item $\*{part}$ can be implemented straightforward by the Xducer $\usegcount$.
+\item $\*{part}$ can be implemented straightforwardly by the Xducer $\usegcount$.
 $$	\PT{
 	\Axiom{\Transf{\*{part}}{(st_1,s_1),(s_2,s_2'))}{}{}{\sfun{\sdef{s_0}{\usegcount(s_2,s_2')}} {((\st_1,\s_2),s_0)}}}
 }$$
 
 $\usegcount$ counts the number of the segments of its second argument,  segmented according to the second argument, and represents it in unary.
-\begin{example} \emph{$\usegcount(\< \F,\F,\F,\F,\F,\T,\F,\F, \F,\T \'>, \<\F,\T,\F,\F,\T,\F,\F,\T\'>)$ with control stream $\<(),()\'>$. The first argument indicates that the first 5 elements of the second argument are in the same segment, which has two $\T$s, and the last 3 another segment, which includes only one $\T$. So the unary form of the counting result (with segmenting) is $\<\F,\F,\T,\F, \T \'>$ }\\
+\begin{example} \emph{$\usegcount(\< \F,\F,\F,\F,\F,\T,\F,\F, \F,\T \'>, \<\F,\T,\F,\F,\T,\F,\F,\T\'>)$ with control stream $\<(),()\'>$. The first argument indicates that the first 5 elements of the second argument are in the same segment, which has two $\T$s, and the last 3 another segment, which includes only one $\T$. So the unary form of the counting result is $\<\F,\F,\T,\F, \T \'>$ }\\
 	\begin{center}
 		\includegraphics[width=0.9\textwidth]{fig/usegcountxducer.png}
 	\end{center}
@@ -904,19 +904,11 @@ assuming
 where argument trees $\st_1,...,\st_k$  are generated according to  their types $\tau_1,...,\tau_k$ (with all fresh ids), and
 $$[s_1,...,s_m] = \ol{st_1} \ {\++} \ ... \ {\++} \ \ol{st_k}$$
 
-%\def\treegene#1{\mathtt{treeGene}_{#1}}
-%\begin{align*}
-%& \treegene{\pi}(s_0) & = (s_0, s_0 + 1) \\
-%& \treegene{(\tau_1,\tau_2)}(s_0)  & =  ((st_1,st_2), st)\\
-%& \treegene{\tau_1}(s_0) = (st_1, s1) \\
-%\end{align*}
-
-
 
 The generated SVCODE function will be added to a user-defined function environment $\Psi$ mapping from function identifiers to $\*{SFun}$s:
 $$ \Psi ::= [f_1 \|-> \sf_1,...,f_i \|-> \sf_i] $$
 
-And $\Psi$ will be used as a component of the runtime environment. So when we interpret the instruction $\scall{f}{[s_1,...,s_m]}{[s_1',...,s_n']}$, the function body can be unfolded by looking up $f$ in $\Psi$ and then passing the arguments.
+And $\Psi$ will be used as a component of the runtime environment. So when we interpret the instruction $\scall{f}{s_1,...,s_m}{(s_1',...,s_n')}$, the function body will be unfolded by looking up $f$ in $\Psi$ and then passing the arguments.
 
 \section{Eager SVCODE interpreter}
 Recall that an SVCODE program is a list of instructions, each of which defines one or more streams. 
@@ -952,7 +944,6 @@ As a result, the SVCODE program will be traversed multiple times, or there will 
 The dataflow of the streaming execution model is still a DAG, but the difference from the eager one is that each Xducer maintains a small buffer, whose data is updated each round. 
 The final result will be collected from all these scheduling rounds.
 
-% TODO mention KPN
 
 Since in most cases we will have to execute more than one rounds, some extra setting-up and overhead seem to be inevitable.
 On the other hand, exploiting only a limited buffer increases the efficiency of space usage. 
@@ -961,7 +952,7 @@ In particular, for properly streamable SNESL programs, the buffer size can be as
 
 \subsection{Streamability}
 
-So far we have mentioned $streamable$ for a few times, but not given a further explanation.
+So far we have mentioned \emph{streamable} for a few times, but not given a further explanation.
 
 We consider an algorithm to be streamable if it can be executed in constant space, and more generally, in space linear in the recursion depth.
 
@@ -973,7 +964,7 @@ For instance, most sorting algorithms, such as Mergesort, are not suitable to be
 Static analysis for streamability is still an open problem \cite{Fphd}.
 
 \begin{example}\label{eg:reduce}
-	\emph{The first expression are not properly streamable: after the stream $s$ has been entirely consumed by $\mathtt{reducePlus}$, it is used to append to the end of the reduction result, which requires to recompute it; the second expression is properly streamable, since outputting $s$ can be executed at the same time of computing the reduction.}
+	\emph{The first expression are not properly streamable: after the stream $s$ has been entirely consumed by $\mathtt{reducePlus}$ (i.e., $\genreduce_{+}$), it is used to append to the end of the reduction result, which requires to recompute it; the second expression is properly streamable, since outputting $s$ can be executed at the same time of computing the reduction.}
 \end{example}
 \begin{lstlisting}[style=nesl-style]
 > :bs 1    -- set buffer size = 1
@@ -1003,12 +994,12 @@ S_L/(W_H/bufSize + S_H): 1.9
 In the streaming execution model, the output buffer of a Xducer can be written only by the Xducer itself, but can be read by many other Xducers. 
 We define two states for a buffer:
 \begin{itemize}
-	\item \filling state　: the buffer is not full, and the Xducer is producing or writing data to it; any client trying to read it has to wait.
+	\item {\filling}: the buffer is not full, and the Xducer is producing or writing data to it; any client trying to read it has to wait.
 
-	\item \draining state: the buffer must be full; the clients can read it only in this state; if the Xducer itself tries to write the buffer.
+	\item {\draining}: the buffer must be full; the clients can read it only in this state; if the Xducer itself tries to write the buffer.
 \end{itemize}
 
-The condition of switching from \filling to \draining is simple: when the buffer is fully filled. 
+The condition of switching from {\filling} to {\draining} is simple: when the buffer is fully filled. 
 But the other switching direction takes a bit more work to detect: all the readers have read all the data in the buffer (we will explain more about this later).
 In this way, the time of context-switching for a buffer is minimized, and the data is shared among its clients.
 
@@ -1017,10 +1008,9 @@ A notable special case is when the Xducer produces its last chunk, whose size ma
 To deal with this case, we add a flag to the draining state to indicate if it is the last chunk of the stream. 
 Thus, we have the definition of a buffer state as follows:
 \begin{align*}
-	\bufst :: & = \filling \ \a \\
-	          & \ \ | \ \draining \ \a' \ b \
+	\bufst :: & = {\filling} \ \a \\
+	          & \ \ | \ \draining \ \a \ b \
 \end{align*}
-
 where $\a$ is the data in the buffer.
 
 In addition to maintaining the buffer state, a Xducer also has to remember its suppliers so that it is not necessary to specify the suppliers repeatedly each round. 
@@ -1033,7 +1023,7 @@ Also, it is possible that a Xducer reads from the same supplier multiple times b
 In practice, we use the channel number, as we have shown in Figure~\ref{fig-svcode-dag1}, together with the read-cursor on the buffer to distinguish a use.
 As a result, we have a client list $\clis$ of type $[(\SId, \int, \int)]$.
 
-Now we use a structure $process$, a tuple of four components including a Xducer, to stand for one node on the streaming DAG, with the type:
+Now we use a structure \emph{process}, a tuple of four components including a Xducer, to stand for one node on the streaming DAG with the type:
 
 $$ \proc  =  (\bufst, \S, \clis, \xducer) $$
 
@@ -1049,16 +1039,16 @@ where $\S$ is the stream ids of the suppliers. An example process of Xducer $\ma
 Since we do not have parallel implementation of Xducer, we can consider the Xducer inside a process as the action-performing unit. 
 We classify the atomic actions of a Xducer into three:
 \begin{itemize}
-	\item \pin: read one element from one supplier's buffer.
-	\item \pout : write one element to its own buffer.
-	\item \done: shutdown itself, no read or write any more.
+	\item {\pin}: read one element from one supplier's buffer.
+	\item {\pout}: write one element to its own buffer.
+	\item {\done}: shutdown itself, no read or write any more.
 \end{itemize}
 
 A Xducer's actions can be considered as a sequential list of these three atomics.
-For example,  the $\map{+}$ Xducer's action will be repetitions of two \pin s (reads from two suppliers respectively) followed by one \pout, and 
-a \done \ action can be added where the Xducer should shutdown:
-$$[\pin_0, \pin_1, \pout, \pin_0, \pin_1, \pout,... ,\done]$$
- where the subscripts of \pin indicate reading from different suppliers.
+For example,  the $\map{+}$ Xducer's action will be repetitions of two {\pin}s (reads from two suppliers respectively) followed by one {\pout}, and 
+a {\done} \ action can be added where the Xducer should shutdown:
+$$[{\pin}_0, {\pin}_1, {\pout}, {\pin}_0, {\pin}_1, {\pout},... ,{\done}]$$
+ where the subscripts of {\pin} indicate reading from different suppliers.
 
 
 The process is responsible for providing its Xducer with the data and maintaining the state of the buffer. 
@@ -1070,13 +1060,13 @@ Its activities is described as the following table shows.
  	\centering
  	\begin{tabular}{|l|p{0.3\columnwidth}|p{0.3\columnwidth}|l|}  
  		\hline
- 		 \diagbox{Xducer \\ action}{Buffer \\ state} & \filling & \draining \texttt{F} & \draining \texttt{T} \\ \hline
- 		\pin  & \texttt{process-read}  & \texttt{process-read}; \texttt{allread-check}  & impossible \\
+ 		 \diagbox{Xducer \\ action}{Buffer \\ state} & {\filling} & {\draining} \texttt{F} & {\draining} \texttt{T} \\ \hline
+ 		{\pin}  & \texttt{process-read}  & \texttt{process-read}; \texttt{allread-check}  & impossible \\
  		\hline
- 		\pout &  write one element to buffer;
- 		if buffer is full, switch to \draining \texttt{F}    &    wait to write, and \texttt{allread-check}   & impossible \\ 
+ 		{\pout} &  write one element to buffer;
+ 		if buffer is full, switch to {\draining} \texttt{F}    &    wait to write, and \texttt{allread-check}   & impossible \\ 
  		\hline
- 		\done &  switch to \draining \texttt{T}      & switch to \draining \texttt{T}   & \texttt{skip}  \\ 
+ 		{\done} &  switch to {\draining} \texttt{T}      & switch to {\draining} \texttt{T}   & \texttt{skip}  \\ 
  		\hline
  	\end{tabular}
  \caption{Process activities. The description of \texttt{process-read} and \texttt{allread-check} are given later.}
@@ -1086,11 +1076,11 @@ Its activities is described as the following table shows.
 \item \texttt{process-read}:
 
 \begin{itemize}
-	\item if the supplier's buffer state is \draining, and the read-cursor shows the process has not yet read all the data, then the process reads one element successfully and increases the read-cursor by one
-	\item if the supplier's buffer state is \draining, but the read-cursor shows the process has read all the data, or the supplier's buffer state is \filling, then the process waits 
+	\item if the supplier's buffer state is {\draining}, and the read-cursor shows the process has not yet read all the data, then the process reads one element successfully and increases the read-cursor by one
+	\item if the supplier's buffer state is {\draining}, but the read-cursor shows the process has read all the data, or the supplier's buffer state is {\filling}, then the process waits 
 \end{itemize}
 
-\item \texttt{allread-check}: if all the clients have read all the data of the buffer, switch it to \filling state.
+\item \texttt{allread-check}: if all the clients have read all the data of the buffer, switch it to {\filling} state.
 \end{itemize}
 
 \subsection{Scheduling}
@@ -1104,7 +1094,7 @@ In this phase, the interpreter establishes the initial DAG by traversing the SVC
 	\begin{itemize}
 		\item set its suppilers $\S$ = $[s_1,...,s_k]$
 		\item add itself to its suppliers' $\clis$ with the corresponding channel number $\in \{1,...,k\}$ and a read-cursor number 0
-		\item empty buffer of state \filling
+		\item empty buffer of state {\filling}
 		\item set up the specific Xducer $\lcall$
 	\end{itemize}
 
@@ -1126,18 +1116,16 @@ In this phase, the interpreter establishes the initial DAG by traversing the SVC
 
 
 \item Loop scheduling. \\ 
-This phase is a looping procedure. The condition of its end is that all the Xducers have shutdown, and all the buffers are in $\draining \T$ state. 
+This phase is a looping procedure. The condition of its end is that all the Xducers have shutdown, and all the buffers are in ${\draining} \T$ state. 
 
 In a single scheduling round, the processes on the DAG are activated one by one from small to large.
-The active process acts as we have seen in Table~\ref{fig:process} shows, until it enters a read-block or write-block state, or it is skipped.  
-The results collected from each round consist the entire streams of the final result.
+The active process acts as Table~\ref{fig:process} shows.
 
-As long as a real (not dummy) process has been set up, it will keep working until its Xducer shutdown (although it may pause for some rounds due to read or write block). 
-The crucial task in each round is to judge whether to unfold a \wc block or not. The judgment depends on the buffer state of the new control stream:
+Another important task in each round is to judge whether to unfold a \wc block or not. The judgment depends on the buffer state of the new control stream:
 
 \begin{itemize}
-	\item \filling$\emptyv$: the new control process has not produce any data yet, so the decision cannot be made in this round, thus delayed to the next round
-	\item \draining$\emptyv \ \T$ : the new control stream is empty, thus no need to unfold the code, just set the export list streams also empty, and performs some other necessary clean-up job  
+	\item {\filling} $\emptyv$: the new control process has not produce any data yet, so the decision cannot be made in this round, thus delayed to the next round
+	\item {\draining} $\emptyv \ \T$ : the new control stream is empty, thus no need to unfold the code, just set the export list streams also empty, and performs some other necessary clean-up job  
 	\item other cases: the new control stream must be nonempty, thus the interpreter can unfold the code block now, and replace the dummy clients/producers with actual clients/producers.
 \end{itemize}
 
@@ -1153,8 +1141,8 @@ The crucial task in each round is to judge whether to unfold a \wc block or not.
 \subsection{Cost model}
 Since we have defined the atomic actions of Xducers, it is now easy to define the low-level cost:
 \begin{description}
-	\item[Work] = the total number of \pin and \pout \  of all processes
-	\item[Step] = the total number of switches from \filling to \draining of all processes
+	\item[Work] = the total number of {\pin} and {\pout} of all processes
+	\item[Step] = the total number of switches from {\filling} to {\draining} of all processes
 \end{description}
 
 
@@ -1163,9 +1151,9 @@ Since we have defined the atomic actions of Xducers, it is now easy to define th
 In SVCODE, a recursive function call happens when the function body of $f$ from the instruction $\scall{f}{s_1,...,s_k}{(s_1',...,s'_{k'})}$ includes another \sc of  $f$.
 
 
-For a non-recursive \sc, the effect of interpreting this instruction is almost transparent. 
+For a non-recursive \sc instruction, the effect of interpreting it is almost transparent. 
 For a recursive one, there is not much difference except one crucial point: the recursive \sc can only occur within a \wc block, otherwise it can never terminate.
-At each time of interpreting an inline \sc, the function body is unfolded, but the \wc instruction inside it will stop it from further unfolding, that is, the stack-frame number only increases by one. 
+At each time of interpreting an inline \sc instruction, the function body is unfolded, but the \wc instruction inside it will stop it from further unfolding, that is, the stack-frame number only increases by one. 
 
 At the high level, a SNESL program should use some conditional to decide when to terminate the recursion. 
 As conditionals in SNESL are only comprehensions, which are all translated to a \wc block wrapping the expression body,
@@ -1196,12 +1184,12 @@ so a recursion that can terminate at the high level will also terminate at the l
 \end{lstlisting}
 
 \hspace{1cm}\\
-The translated SVCODE of the expression \texttt{let x = \{3,7,0,4\} in \{fact(y): y in x \}} is given in Figure~\ref{fig-fact-main} (omited some code for the sequence generation). After generating the sequence \texttt{\{3,7,0,4\}}, 
-the code only has two more instructions: a $\usum$ to replace a new control stream, and a \wc block only for controling the recursive function call. 
+The outline of the translated SVCODE of the expression \texttt{let x = \{3,7,0,4\} in \{fact(y): y in x\}} is given in Figure~\ref{fig-fact-main}. After generating the sequence \texttt{\{3,7,0,4\}}, 
+the code only has two more instructions: a $\usum$ to generate the new control stream, and a \wc block only for controling the recursive function call. 
 
 \fig{
 \lstinputlisting[style=svcode-style]{code/fact1.svcode}
-}{The SVCODE for the main function \label{fig-fact-main}}
+}{Outline SVCODE for the main function \label{fig-fact-main}}
 
 The code of the function body is shown in Figure~\ref{fig-fact-body}. 
 The comments show the streams when the function is unfolded at its first time, i.e, the argument stream \texttt{S1 = [3,7,0,4]}. 
@@ -1213,14 +1201,14 @@ In our example, it is the number 7 that will unfold the function 6 times.\\
 \fig{}{The SVCODE of \texttt{fact} function body \label{fig-fact-body}}
 
 \subsection{Deadlock}
-An inherent tough issue of the streaming execution model is the risk of deadlock, which is mainly due to the limitation of available memory and the irreversibility of time.
+An inherent tough issue of the streaming execution model is the risk of deadlock, which is mainly due to the limitation of available memory.
 In general, we classify deadlock situations into two types: soft deadlock, which can be broken not necessarily by enlarging the buffer size, and hard deadlock, which can only be solved by enlarging the buffer size or recomputation. 
 
 \begin{itemize}
 
 \item Soft deadlock: 
 
-One case of soft deadlock can be due to the different data rates of processes that leads to a situation where some buffer(s) of $\filling$ state can never turn to \draining. 
+One case of soft deadlock can be caused by the different data rates of processes that leads to a situation where some buffer(s) of {\filling} state can never turn to {\draining}. 
 For example, the following expression tries to negate the elements that can be divided by 5 exactly of a sequence.
 \begin{example}\emph{ A soft deadlock that can be broken by stealing}
 \end{example}
@@ -1232,23 +1220,23 @@ For example, the following expression tries to negate the elements that can be d
 \end{lstlisting}
 
 
-In this example, the argument sequence contains elements from 0 to 9; the subsequence of the negated numbers, containing only 0 and -5, are concatenated with the one of the other eight numbers. 
+In this example, the input sequence contains elements from 0 to 9; the subsequence of the negated numbers, containing only 0 and -5, are concatenated with the one of the other eight numbers. 
 Since these two subsequences are generated at different rates,
 the buffer for holding the shorter subsequence cannot get full when the other for the longer subsequence is already full to drain.
 Then the Xducer for appending their elements deadlocks.
-But if we minimize the buffer size to 1, then the deadlock does not happen, since buffer of size one immediately turns to \draining mode as soon as there is one element generated. 
+But if we minimize the buffer size to 1, then the deadlock does not happen, since buffer of size one immediately turns to {\draining} mode as soon as there is one element generated. 
 
 In our implementation, we use a $stealing$ strategy to mitigate this type of deadlock. 
-The idea is that when a deadlock is detected, we will first switch the smallest process with a \filling state buffer into \draining mode to see if the deadlock can be broken; if not, we repeat this switch until the deadlock is broken; or otherwise, it may be a hard deadlock.
+The idea is that when a deadlock is detected, we will first switch the smallest process with a {\filling} state buffer into {\draining} mode to see if the deadlock can be broken; if not, we repeat this switch until the deadlock is broken; or otherwise, it may be a hard deadlock.
 
 Since the stealing strategy is basically a premature
-switch from \filling to \draining, the low-level step cost may be affected and the effect depends on the concrete program and the buffer size. 
+switch from {\filling} to {\draining}, the low-level step cost may be affected and the effect depends on the concrete program and the buffer size. 
 Some future work can be further investigation about the effect of this stealing strategy on the cost model.\\
 
 
 \item Hard deadlock: 
 
-This type of deadlock is mainly caused by insufficient space or trying to traverse (use) the same sequence multiple times. 
+This type of deadlock is mainly caused by insufficient space or trying to traverse the same sequence multiple times. 
 
 \begin{example} \emph{A hard deadlock caused by traversing the sequence $s$ two times.} \label{eg:deadlock1}
 \end{example}
@@ -1269,7 +1257,6 @@ Other solutions can be tabulating the sequence (into a vector), so it can be use
 
 \begin{lstlisting}[style=nesl-style]
 > :bs 10
-Buffer size: 10
 >
 > let s = {1+ x : x in &5} in s ++ &2 ++ s
 {1,2,3,4,5,0,1,1,2,3,4,5} :: {int}
@@ -1318,13 +1305,13 @@ Buffer size: 10
 The following example program computes the united-and-conquer (exclusive) scan and reduce at the same. 
 Due to a lack of primitive functions in the experimental language, we only implemented a version for a sequence with a length of power of 2 and require the length to be explicitly given. 
 
-For an input sequence of length $n$, the algorithm (for both scan and reduce) has a asymptotic cost of linear work and logarithmic step, i.e. $O(n)$ work and $O(\lg{n})$ step, and its recursion depth is logarithmic as well. \\
+For an input sequence of length $n$, the algorithm (for both scan and reduce) has an asymptotic cost of linear work and logarithmic step, i.e. $O(n)$ work and $O(\lg{n})$ step, and its recursion depth is logarithmic as well. \\
 
 \lstinputlisting[style=nesl-style]{code/uc_scanred.snesl}
 \vspace{0.5cm}
 
 For the following running example, the actual time of the unfolding of \texttt{scanred} is 5, i.e., $\lg 16$ + 1 (as we can see from our instrumented interpreter, but not shown here). Thus the size of the dataflow network, or the number of processes grows 4-fold after the initialization to reach its maximal size.
-We would expect that streamable recursions will use linear space in its recursion depth, while this requires more experiments and a formal proof. \\
+We would expect that all streamable recursions use linear space in its recursion depth, while this requires more experiments and a formal proof. \\
 
 \begin{lstlisting}[style=nesl-style]
 > :bs 1
@@ -1336,7 +1323,6 @@ W_L/W_H: 5.7
 S_L/(W_H/bufSize + S_H): 1.5
 >
 > :bs 10
-Buffer size: 10
 >
 > scanred(&16,16)
 ({0,0,1,3,6,10,15,21,28,36,45,55,66,78,91,105},120) :: ({int},int)
@@ -1345,7 +1331,6 @@ W_L/W_H: 5.7
 S_L/(W_H/bufSize + S_H): 1.3
 >
 > :bs 100
-Buffer size: 100
 >
 > scanred(&16,16)
 ({0,0,1,3,6,10,15,21,28,36,45,55,66,78,91,105},120) :: ({int},int)
