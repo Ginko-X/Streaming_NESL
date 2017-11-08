@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  7 NOV 2017 23:49
+This is XeTeX, Version 3.14159265-2.6-0.99992 (TeX Live 2015) (preloaded format=xelatex 2015.11.15)  8 NOV 2017 11:09
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1974,9 +1974,17 @@ ead of 20 percent on input line 781.
 LaTeX Font Info:    Font shape `EU1/lmss/bx/it' in size <10> not available
 (Font)              Font shape `EU1/lmss/bx/sl' tried instead on input line 823
 .
- [40
 
-] [41
+Overfull \vbox (9.12476pt too high) detected at line 823
+ []
+
+[40
+
+]
+Overfull \vbox (9.12476pt too high) detected at line 823
+ []
+
+[41
 
 ] [42
 
@@ -2010,10 +2018,10 @@ Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 855.
 Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 855.
  ) 
 Here is how much of TeX's memory you used:
- 40860 strings out of 493706
- 795078 string characters out of 6145768
+ 40859 strings out of 493706
+ 795057 string characters out of 6145768
  1005825 words of memory out of 5000000
- 43439 multiletter control sequences out of 15000+600000
+ 43438 multiletter control sequences out of 15000+600000
  15351 words of font info for 99 fonts, out of 8000000 for 9000
  1328 hyphenation exceptions out of 8191
  71i,18n,97p,10435b,1394s stack positions out of 5000i,500n,10000p,200000b,80000s

@@ -83,9 +83,9 @@
 			\begin{itemize}
 			
 			\item Data-parallel construct: \emph{apply-to-each} $$\{e_1(x) : x \ \*{in} \ e_0 \} $$\\ 
-	  \item Ex: compute $\sum_{i=1}^{2}i^2$ and $\sum_{i=3}^{10}i^2$:
-	  $$\{\*{sum}(\{i \times i: i \ \*{in} \ s\}) : s \ \*{in} \ [[1,2],[3,4,5,6,7,8,9,10]]\}$$
-	  ! Allocate {\color{blue} 10} size of space for intermediate data
+	  \item Ex: compute $\sum_{i=1}^{10000}i^2$:
+	  $$\*{sum}(\{i \times i: i \ \*{in}  \ [1,...,10000]\})$$
+	  ! Allocate {\color{blue} 10000} size of space for intermediate data
   		\end{itemize}
 	  \item An intuitive cost model for time complexity: work--step model
 	  \begin{itemize}
@@ -472,7 +472,7 @@ A function to compute factorial:
  			{\{\replc{l}{v'}\}}      
  			{W}}
  	}
-  where $\rho(y)=\{\replc{l}{v}\}$, and $W =  (k+1)\cdot (l+ {\color{red}1}) \!+\!\sum_{i=1}^{l}W_i $ \\[2ex]
+  where $\rho(y)=\{\replc{l}{v}\}$, and $W =  (k+1)\cdot (l \ {\color{red}+1}) \!+\!\sum_{i=1}^{l}W_i $ \\[2ex]
   
    \item Built-in function: 
    \PT{
@@ -492,7 +492,7 @@ A function to compute factorial:
 %	\end{alignat*}
 	\item key semantics with work cost, \boxed{\seval{p}{\sgm}{\c}{\sgm'}{W}} : \\[1ex]
 	\begin{itemize}
-		\item<1-> Empty new control stream ($\sgm(s_c) = \emptyv$):
+		\item<1-> Empty new control stream ($\sgm(s_c) = \emptyv$): \\[2ex]
 		\PT{
 			\Axiom{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\k{\s_i \|-> \emptyv}]}{1}}
 		}\\[2ex]
@@ -504,7 +504,7 @@ A function to compute factorial:
 			\UC{\seval{\withctrl{\s_c}{p_1}{\Sin}{\Sout}}{\sgm}{\c}{\sgm[\k{\s_i \|-> \sgm''(\s_i)}]} {W_1+1} }
 		}\\[2ex]
 	
-	\item<3->  Xducers, $((\sgm(\s_i) = \a_i)^k_{i=1})$ \\
+	\item<3->  Xducers, $((\sgm(\s_i) = \a_i)^k_{i=1})$ \\[2ex]
 	\PT{\AC{\sevalf{\a_1}{\a_k}{\c}{\a}}
 		     \UC{\seval{\sdef{\s}{\lcall\Tupk\s}}{\sgm}{\c}{\sgm[\s \|-> \a]}{(\sum_{i=1}^{k}|\a_i|) + |\a|}}}
 	\end{itemize}		
@@ -522,23 +522,23 @@ A function to compute factorial:
 			\AC{\sevalf{\a_{12}}{\a_{k2}}{\c_0}{\a_{02}}}
 			\RiLa{((\vapp{\a_{i1}}{\a_{i2} = \a_i})^k_{i=0})}
 			\BC{\sevalf{\a_1}{\a_k}{\< () | \c_0 \rangle}{\a_0}}
-		}	    
+		}\\[2ex]	    
 		\item 
 		\Axiom{\sevalf {\emptyv_1} {\emptyv_k} \emptyv \emptyv}
 		\DisplayProof
 	\end{itemize}
 		
-	\item<2-> Block semantics (part), \boxed{\blocke{\a_1}{\a_k}{\a}} : \\	
+	\item<2-> Block semantics (part), \boxed{\blocke{\a_1}{\a_k}{\a}} : \\[2ex]	
 		\PT{
 			\Axiom{\blockf{\consta{\emph{a}}}{}{\singl{a}}}
 		}\PT{
 			\RiLa{(n \ge 0)}
-			\Axiom{\blockf{\toflag}{\singl{n}}{\< \F_1,...,\F_n,\T \'>}} }\\[2ex] 
+			\Axiom{\blockf{\toflag}{\singl{n}}{\< \F_1,...,\F_n,\T \'>}} }\\[3ex] 
 				
 		\PT{\AC{}
 				\RiLa{(n_3= n_1 + n_2)}
 				\UC{\blockf{\maptwo{+}}{\singl{n_1}, \singl{n_2}} {\singl{n_3}}}
-		} 
+		}\\[2ex] 
 		
 		%--- UsumF
 	    \PT{\AC{\blockf{\usum}{\b}{\a}}
@@ -781,10 +781,10 @@ then $\seval{p}{\sgm_1 \x{} \sgm_2}{\c_1 {\++} \c_2}{ \sgm_1' \x{} \sgm_2' }{W}$
 \end{frame}
 
 
-\begin{frame}[shrink=20]{Correctness theorem}
+\begin{frame}{Correctness theorem}
 \begin{itemize}
-	\item If $e$ (as well as its free variables) is well-typed, and can be evaluated to $v$ with cost $W^H$, and translated to $p$,
-	then executing $p$ will generate streams that can represent $v$, and the cost is bounded by a constant $C$ times $W^H$: 
+	\item (i) If $e$ (as well as its free variables) is well-typed, evaluated to $v$ with cost $W^H$, translated to $p$ \\
+	(ii) then executing $p$ will generate streams that can represent $v$, cost bounded by  $C \cdot W^H$: 
 	
 \begin{thm}[Translation correctness, simplified version]
 	\small 
@@ -806,7 +806,7 @@ then $\seval{p}{\sgm_1 \x{} \sgm_2}{\c_1 {\++} \c_2}{ \sgm_1' \x{} \sgm_2' }{W}$
 \item Corollary: Implementation correctness
   \begin{enumerate}[(i)]
 	\item if $e$ is well-typed, closed, evaluated to $v$ with cost $W^H$
-	\item then $e$ can be translated to $p$; executing $p$ generates $\st$ that can recover $v$, with cost $W^L$ bounded by $C \times W^H$ 
+	\item then $e$ can be translated to $p$; executing $p$ generates streams that can recover $v$, cost bounded by $C \cdot W^H$ 
 	\item translation, execution of $p$, recovery are all determinisitc
 \end{enumerate}
 %\begin{cor}[Implementation correctness]
