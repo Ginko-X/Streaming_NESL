@@ -172,7 +172,7 @@ Let $|v|$ denote the \emph{size} of a value:
 
 \end{nota}
 
-\subsection{Semantics}
+\subsection{Semantics} \label{fmsnesl-semantics}
 
 
 \begin{enumerate}[(1)]
@@ -214,10 +214,10 @@ Let $|v|$ denote the \emph{size} of a value:
 For variables, we consider its evaluation is zero-cost. 
 Let-bindings need to evaluate both the bound expression $e_1$ and the body $e_2$, so the cost is the sum of these two evaluations.
 A function call simply costs the total size of its arguments and return value.
-The cost for evaluating a general comprehension is the sum of the evaluations for each element in the sequence, plus some extra $(k+1)\cdot (l+1)$ 
+The cost for evaluating a general comprehension is the sum of the evaluations for each element in the sequence, plus an extra $(k+1)\cdot (l+1)$ 
 \footnote{In \cite{Fphd}, the extra is $k\cdot (l+1)$ (when the concrete type is restricted to only $\int$), which should be a bug. 
 In a special case where $k$=0 and the evaluation of the comprehension body does not cost anything, for example, $\Comp{x}{x}{\&5}{\cdot}$, 
-the total cost for evaluating the comprehension will be zero as well. 
+the total cost for evaluating the comprehension will be zero as well, if the extra is only $k\cdot (l+1)$. 
 However, the low-level execution does pay some work cost (because of $\usum$) which is still proportional to the length of the sequence.}.
 	
 \item Built-in function evaluation rules: \\
